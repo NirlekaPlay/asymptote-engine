@@ -35,25 +35,30 @@ function SuspicionManagement.increaseSuspicion(self: SuspicionManagement, suspec
 	self.suspicionLevels[suspect] = math.min(CONFIG.MAX_SUSPICION, currentSuspicion + increase)
 end
 
-function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
+function SuspicionManagement.decreaseSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
 	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
 
 	if currentSuspicion > 0 then
 		local decrease = CONFIG.SUSPICION_DECAY_RATE * deltaTime
 		self.suspicionLevels[suspect] = math.max(0.0, currentSuspicion - decrease)
+
+		-- clean up once the level reaches zero
+		if self.suspicionLevels[suspect] <= 0 then
+			self.suspicionLevels[suspect] = nil
+		end
 	end
 end
 
-function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number): ()
-	for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-		if not player.Character then
-			continue
-		end
+function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number, visiblePlayers: { Player }): ()
+	-- increase suspicion for visible players
+	for _, player in visiblePlayers do
+		self:increaseSuspicion(player, deltaTime)
+	end
 
-		if (player.Character:WaitForChild("Raise") :: BoolValue).Value then
-			self:increaseSuspicion(player, deltaTime)
-		else
-			self:lowerSuspicion(player, deltaTime)
+	-- decrease suspicion for non-visible players
+	for suspect, _ in pairs(self.suspicionLevels) do
+		if not table.find(visiblePlayers, suspect) then
+			self:decreaseSuspicion(suspect, deltaTime)
 		end
 	end
 
