@@ -2,20 +2,27 @@
 
 local CONFIG = {
 	MAX_SUSPICION = 1.0,
-	SUSPICION_DECAY_RATE = 0.5,  -- How fast suspicion decreases per update
-	SUSPICION_RAISE_RATE = 0.7,  -- Base rate for raising suspicion
+	SUSPICION_DECAY_RATE = 0.3,  -- How fast suspicion decreases per update
+	SUSPICION_RAISE_RATE = 0.5,  -- Base rate for raising suspicion,
+	SUSPICIOUS_THRESHOLD = 0.5
+}
+
+local SUSPICION_STATES = {
+	CALM = "CALM",
+	SUSPICIOUS = "SUSPICIOUS",
+	ALERTED = "ALERTED"
 }
 
 --[=[
 	@class SuspicionManagement
-
 	Manages the raising and lowering of suspicion per player.
 ]=]
 local SuspicionManagement = {}
 SuspicionManagement.__index = SuspicionManagement
-
 export type SuspicionManagement = typeof(setmetatable({} :: {
-	suspicionLevels: { [Player]: number }
+	suspicionLevels: { [Player]: number },
+	currentState: "CALM" | "SUSPICIOUS" | "ALERTED",
+	focusingSuspect: Player?
 }, SuspicionManagement))
 
 local function getSuspectSuspicionWeight(suspect: Player): number
@@ -24,7 +31,9 @@ end
 
 function SuspicionManagement.new(): SuspicionManagement
 	return setmetatable({
-		suspicionLevels = {}
+		suspicionLevels = {},
+		currentState = SUSPICION_STATES.CALM,
+		focusingSuspect = nil :: Player?
 	}, SuspicionManagement)
 end
 
@@ -49,20 +58,85 @@ function SuspicionManagement.decreaseSuspicion(self: SuspicionManagement, suspec
 	end
 end
 
-function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number, visiblePlayers: { Player }): ()
-	-- increase suspicion for visible players
-	for _, player in visiblePlayers do
-		self:increaseSuspicion(player, deltaTime)
+function SuspicionManagement.getMostSuspiciousPlayer(self: SuspicionManagement): (Player?, number)
+	local highestPlayer = nil
+	local highestValue = -math.huge -- start with the smallest possible number
+
+	for player, suspicion in pairs(self.suspicionLevels) do
+		if suspicion > highestValue then
+			highestValue = suspicion
+			highestPlayer = player
+		end
 	end
 
-	-- decrease suspicion for non-visible players
-	for suspect, _ in pairs(self.suspicionLevels) do
-		if not table.find(visiblePlayers, suspect) then
-			self:decreaseSuspicion(suspect, deltaTime)
+	return highestPlayer, highestValue
+end
+
+function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number, visiblePlayers: { Player }): ()
+	-- set of visible players for quick lookup
+	local visiblePlayersSet = {}
+	for _, player in visiblePlayers do
+		visiblePlayersSet[player] = true
+	end
+
+	local currentState = self.currentState -- for the fucking typechecker to not complain like a bitch
+	
+	if currentState == SUSPICION_STATES.CALM then
+		-- increase suspicion for visible players, decrease for non-visible
+		for _, player in visiblePlayers do
+			self:increaseSuspicion(player, deltaTime)
+		end
+		
+		-- decrease suspicion for all non visible players
+		for player, _ in pairs(self.suspicionLevels) do
+			if not visiblePlayersSet[player] then
+				self:decreaseSuspicion(player, deltaTime)
+			end
+		end
+		
+		-- check if any player reaches suspicious threshold
+		local mostSuspicious, highestValue = self:getMostSuspiciousPlayer()
+		if mostSuspicious and highestValue >= CONFIG.SUSPICIOUS_THRESHOLD then
+			self.currentState = SUSPICION_STATES.SUSPICIOUS
+			self.focusingSuspect = mostSuspicious
+		end
+		
+	elseif currentState == SUSPICION_STATES.SUSPICIOUS then
+		-- only raise suspicion for the focused suspect if they're visible
+		-- (fuck you typechecker)
+		if self.focusingSuspect :: Player and visiblePlayersSet[self.focusingSuspect :: Player] then
+			self:increaseSuspicion(self.focusingSuspect :: Player, deltaTime)
+		end
+		
+		-- decrease suspicion for all other players (including focused suspect if not visible)
+		for player, _ in pairs(self.suspicionLevels) do
+			if player ~= self.focusingSuspect or not visiblePlayersSet[player] then
+				self:decreaseSuspicion(player, deltaTime)
+			end
+		end
+		
+		-- check if focused suspect reaches maximum suspicion
+		local suspectValue = self.suspicionLevels[self.focusingSuspect :: Player]
+		if suspectValue and suspectValue >= CONFIG.MAX_SUSPICION then
+			self.currentState = SUSPICION_STATES.ALERTED
+		end
+
+		-- check if focused suspect's suspicion is below the threshold
+		if suspectValue and suspectValue < CONFIG.SUSPICIOUS_THRESHOLD then
+			self.currentState = SUSPICION_STATES.CALM
+		end
+		
+	elseif currentState == SUSPICION_STATES.ALERTED then
+		-- only lower suspicion for all players except the focused suspect
+		for player, _ in pairs(self.suspicionLevels) do
+			if player ~= self.focusingSuspect then
+				self:decreaseSuspicion(player, deltaTime)
+			end
 		end
 	end
 
 	print(self.suspicionLevels)
+	warn(`State: {self.currentState}, Focus: {self.focusingSuspect}`)
 end
 
 return SuspicionManagement
