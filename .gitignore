@@ -1,0 +1,15 @@
+# Project place file
+/roblox-asymptote.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+# Apple's Mac files
+.DS_Store
+
+# Luau Language Server
+sourcemap.json
+
+# Temporary files
+temp*
