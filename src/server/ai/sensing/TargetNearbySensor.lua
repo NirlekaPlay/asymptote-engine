@@ -1,7 +1,5 @@
 --!strict
 
-local Players = game:GetService("Players")
-
 --[=[
 	@class TargetNearbySensor
 ]=]
@@ -20,8 +18,7 @@ function TargetNearbySensor.new(insideRange: number): TargetNearbySensor
 	}, TargetNearbySensor)
 end
 
-function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vector3): ()
-	local players = Players:GetPlayers()
+function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vector3, players: {Player}): ()
 	local detectedTargets = {}
 	for _, player in ipairs(players) do
 		local character = player.Character
