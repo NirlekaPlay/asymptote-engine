@@ -2,8 +2,8 @@
 
 local CONFIG = {
 	MAX_SUSPICION = 1.0,
-	SUSPICION_DECAY_RATE = 0.05,  -- How fast suspicion decreases per update
-	SUSPICION_RAISE_RATE = 0.07,  -- Base rate for raising suspicion
+	SUSPICION_DECAY_RATE = 0.5,  -- How fast suspicion decreases per update
+	SUSPICION_RAISE_RATE = 0.7,  -- Base rate for raising suspicion
 }
 
 --[=[
@@ -28,31 +28,32 @@ function SuspicionManagement.new(): SuspicionManagement
 	}, SuspicionManagement)
 end
 
-function SuspicionManagement.increaseSuspicion(self: SuspicionManagement, suspect: Player): ()
+function SuspicionManagement.increaseSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
 	local suspicionWeight = getSuspectSuspicionWeight(suspect)
-	local increase = CONFIG.SUSPICION_RAISE_RATE * suspicionWeight
+	local increase = CONFIG.SUSPICION_RAISE_RATE * suspicionWeight * deltaTime
 	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
 	self.suspicionLevels[suspect] = math.min(CONFIG.MAX_SUSPICION, currentSuspicion + increase)
 end
 
-function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, suspect: Player): ()
+function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
 	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
-	
+
 	if currentSuspicion > 0 then
-		self.suspicionLevels[suspect] = math.max(0.0, currentSuspicion - CONFIG.SUSPICION_DECAY_RATE)
+		local decrease = CONFIG.SUSPICION_DECAY_RATE * deltaTime
+		self.suspicionLevels[suspect] = math.max(0.0, currentSuspicion - decrease)
 	end
 end
 
-function SuspicionManagement.update(self: SuspicionManagement): ()
+function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number): ()
 	for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
 		if not player.Character then
 			continue
 		end
 
 		if (player.Character:WaitForChild("Raise") :: BoolValue).Value then
-			self:increaseSuspicion(player)
+			self:increaseSuspicion(player, deltaTime)
 		else
-			self:lowerSuspicion(player)
+			self:lowerSuspicion(player, deltaTime)
 		end
 	end
 

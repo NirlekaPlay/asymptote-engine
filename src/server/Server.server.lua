@@ -4,6 +4,6 @@ local SuspicionManagement = require(ServerScriptService.Server.ai.suspicion.Susp
 
 local currentSusMan = SuspicionManagement.new()
 
-RunService.PreAnimation:Connect(function()
-	currentSusMan:update()
+RunService.PreAnimation:Connect(function(deltaTime)
+	currentSusMan:update(deltaTime)
 end)
