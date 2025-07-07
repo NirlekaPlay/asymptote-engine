@@ -8,7 +8,7 @@ local Statuses = require(ServerScriptService.server.player.Statuses)
 local CONFIG = {
 	MAX_SUSPICION = 1.0,
 	SUSPICION_DECAY_RATE = 0.3,  -- How fast suspicion decreases per update
-	SUSPICION_RAISE_RATE = 0.5,  -- Base rate for raising suspicion,
+	SUSPICION_RAISE_RATE = 0.1,  -- Base rate for raising suspicion,
 	SUSPICIOUS_THRESHOLD = 0.5
 }
 
@@ -34,6 +34,7 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 local function getSuspectSuspicionWeight(suspect: Player): number
 	local playerStatuses = PlayerStatusReg.getStatus(suspect)
 	if not playerStatuses then
+		print(suspect, "has no statuses")
 		return 0
 	else
 		local totalWeight = 0
@@ -42,6 +43,7 @@ local function getSuspectSuspicionWeight(suspect: Player): number
 			totalWeight += weight
 		end
 
+		print(`{suspect.Name} has total sus weight of {totalWeight}`)
 		return totalWeight
 	end
 end
