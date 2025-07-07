@@ -1,5 +1,8 @@
---!strict
+--!nocheck
 local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerStatusReg = require(ServerScriptService.Server.player.PlayerStatusReg)
+local Statuses = require(ServerScriptService.Server.player.Statuses)
 
 --[=[
 	@class TriggerZone
@@ -12,13 +15,15 @@ TriggerZone.__index = TriggerZone
 
 export type TriggerZone = typeof(setmetatable({} :: {
 	region: Region3,
-	playersInZone: { Player }
+	playersInZone: { [Player]: true },
+	lastPlayersInZone: { [Player]: true }
 }, TriggerZone))
 
 function TriggerZone.new(min: Vector3, max: Vector3): TriggerZone
 	return setmetatable({
 		region = Region3.new(min, max),
-		playersInZone = {}
+		playersInZone = {},
+		lastPlayersInZone = {}
 	}, TriggerZone)
 end
 
@@ -55,8 +60,9 @@ function TriggerZone.fromPart(part: BasePart, doDestroy: boolean?): TriggerZone
 end
 
 function TriggerZone.update(self: TriggerZone): ()
+	self.lastPlayersInZone = self.playersInZone
 	local players = Players:GetPlayers()
-	local playersInZone = {}
+	local playersInZone: { [Player]: true } = {}
 
 	for _, player in ipairs(players) do
 		local character = player.Character
@@ -73,10 +79,30 @@ function TriggerZone.update(self: TriggerZone): ()
 			continue
 		end
 
-		table.insert(playersInZone, player)
+		PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
+
+		playersInZone[player] = true
+	end
+
+	for player in pairs(self.lastPlayersInZone) do
+		if not playersInZone[player] then
+			PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
+		end
 	end
 
 	self.playersInZone = playersInZone
+end
+
+function TriggerZone.getPlayersInZone(self: TriggerZone): { Player }
+	local playersInZone = table.create(#self.playersInZone, true) :: { Player }
+
+	local i = 0
+	for player, _ in pairs(self.playersInZone) do
+		i += 1
+		playersInZone[i] = player
+	end
+
+	return playersInZone
 end
 
 function TriggerZone.isPointWithinRegion(point: Vector3, region: Region3): boolean

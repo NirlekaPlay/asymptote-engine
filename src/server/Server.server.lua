@@ -11,6 +11,6 @@ local currentTriggerZone = TriggerZone.fromPart(workspace:WaitForChild("Zone1"))
 
 RunService.PreAnimation:Connect(function(deltaTime)
 	currentTriggerZone:update()
-	currentNearbySensor:update(rig.PrimaryPart.Position, currentTriggerZone.playersInZone)
+	currentNearbySensor:update(rig.PrimaryPart.Position, currentTriggerZone:getPlayersInZone())
 	currentSusMan:update(deltaTime, currentNearbySensor.detectedTargets)
 end)
