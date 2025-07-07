@@ -124,6 +124,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		-- check if focused suspect's suspicion is below the threshold
 		if suspectValue and suspectValue < CONFIG.SUSPICIOUS_THRESHOLD then
 			self.currentState = SUSPICION_STATES.CALM
+			self.focusingSuspect = nil
 		end
 		
 	elseif currentState == SUSPICION_STATES.ALERTED then
