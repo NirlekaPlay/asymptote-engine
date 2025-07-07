@@ -31,3 +31,20 @@ e.g. A Guard sees a `{ "DISGUISED" }` Player, suspicion for the player raises. R
 threshold, any other Players with a lower suspicious priority, e.g. `{ "MINOR_TRESPASSING" }`,
 are ignored and their suspicion lowers. However, if another Player gets on sight with `{ "ARMED" }`,
 the Guard's focus focuses on the armed player and raises the suspicion on them.
+
+2. Patrolling. A Guard can have a patrolling duty. A map or level has posts, each posts are grouped so that
+specific Guards can only patrol around their designated posts.
+
+Each posts contains information, which includes the position, of course, the facing direction, tells the Guard
+once in a post to face what direction, and if its occupied or not.
+e.g. `{ cframe: CFrame, occupied: boolean }` (CFrames can have both position and orientation so thats handy)
+
+A Guard typical routine for patrolling are:
+
+ a. If the Guard is not on any posts, it tries to randomly find one designated under them. It checks if those
+    posts are occupied or not. If it is occupied, keep searching. If it finds a post thats unoccupied, then
+    it sets said post as occupied and begins to walk to it.
+ b. Once a Guard is on a post, it waits for a random time, and after thats done, it tries to find an unoccupied
+    post designated under them. If it does not find one, stays there until it does. Once it does find one,
+    release the current post and sets the selected post as occupied, and walks to it. And the cycle repeats.
+ c. If a Guard is interrupted, if they've already choosen post to walk to it, it releases it.
