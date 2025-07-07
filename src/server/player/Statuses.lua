@@ -17,6 +17,15 @@ local StatusPriority: { PlayerStatus } = {
 	"ARMED"
 }
 
+local StatusesWeight: { [PlayerStatus]: number } = {
+	MINOR_TRESPASSING = 3.0,
+	MAJOR_TRESPASSING = 4.0,
+	MINOR_SUSPICIOUS = 2.0,
+	CRIMINAL_SUSPICIOUS = 5.0,
+	DISGUISED = 1.5,
+	ARMED = 10
+}
+
 local Statuses = {
 	MINOR_TRESPASSING = "MINOR_TRESPASSING",
 	MAJOR_TRESPASSING = "MAJOR_TRESPASSING",
@@ -28,7 +37,8 @@ local Statuses = {
 
 local t = {
 	STATUS_BY_PRIORITY = StatusPriority,
-	PLAYER_STATUSES = Statuses
+	STATUS_BY_WEIGHT = StatusesWeight,
+	PLAYER_STATUSES = Statuses,
 }
 
 return t :: typeof(t)

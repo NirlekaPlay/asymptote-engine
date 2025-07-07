@@ -1,4 +1,7 @@
 --!strict
+local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerStatusReg = require(ServerScriptService.Server.player.PlayerStatusReg)
+local Statuses = require(ServerScriptService.Server.player.Statuses)
 
 local CONFIG = {
 	MAX_SUSPICION = 1.0,
@@ -26,7 +29,18 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 }, SuspicionManagement))
 
 local function getSuspectSuspicionWeight(suspect: Player): number
-	return 1.0
+	local playerStatuses = PlayerStatusReg.getStatus(suspect)
+	if not playerStatuses then
+		return 0
+	else
+		local totalWeight = 0
+		for status, _ in pairs(playerStatuses) do
+			local weight = Statuses.STATUS_BY_WEIGHT[status]
+			totalWeight += weight
+		end
+
+		return totalWeight
+	end
 end
 
 function SuspicionManagement.new(): SuspicionManagement

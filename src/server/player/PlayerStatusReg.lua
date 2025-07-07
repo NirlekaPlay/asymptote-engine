@@ -22,4 +22,8 @@ function PlayerStatusReg.setStatus(player: Player, statusType: Statuses.PlayerSt
 	print(playerStatuses)
 end
 
+function PlayerStatusReg.getStatus(player: Player): { [Statuses.PlayerStatus]: true }?
+	return playerStatuses[player]
+end
+
 return PlayerStatusReg
