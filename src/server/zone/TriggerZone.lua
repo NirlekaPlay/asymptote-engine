@@ -1,8 +1,8 @@
 --!nocheck
 local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
-local PlayerStatusReg = require(ServerScriptService.Server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.Server.player.Statuses)
+local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
+local Statuses = require(ServerScriptService.server.player.Statuses)
 
 --[=[
 	@class TriggerZone

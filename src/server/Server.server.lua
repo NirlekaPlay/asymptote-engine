@@ -1,11 +1,11 @@
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
-local TargetNearbySensor = require(ServerScriptService.Server.ai.sensing.TargetNearbySensor)
-local SuspicionManagement = require(ServerScriptService.Server.ai.suspicion.SuspicionManagement)
-local TriggerZone = require(ServerScriptService.Server.zone.TriggerZone)
+local TargetNearbySensor = require(ServerScriptService.server.ai.sensing.TargetNearbySensor)
+local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+local TriggerZone = require(ServerScriptService.server.zone.TriggerZone)
 
 local rig: Model = workspace:WaitForChild("Rig")
-local currentSusMan = SuspicionManagement.new()
+local currentSusMan = SuspicionManagement.new(rig)
 local currentNearbySensor = TargetNearbySensor.new(20)
 local currentTriggerZone = TriggerZone.fromPart(workspace:WaitForChild("Zone1"))
 

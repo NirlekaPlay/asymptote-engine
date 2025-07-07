@@ -1,7 +1,9 @@
 --!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local PlayerStatusReg = require(ServerScriptService.Server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.Server.player.Statuses)
+local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
+local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
+local Statuses = require(ServerScriptService.server.player.Statuses)
 
 local CONFIG = {
 	MAX_SUSPICION = 1.0,
@@ -23,6 +25,7 @@ local SUSPICION_STATES = {
 local SuspicionManagement = {}
 SuspicionManagement.__index = SuspicionManagement
 export type SuspicionManagement = typeof(setmetatable({} :: {
+	model: Model,
 	suspicionLevels: { [Player]: number },
 	currentState: "CALM" | "SUSPICIOUS" | "ALERTED",
 	focusingSuspect: Player?
@@ -43,8 +46,9 @@ local function getSuspectSuspicionWeight(suspect: Player): number
 	end
 end
 
-function SuspicionManagement.new(): SuspicionManagement
+function SuspicionManagement.new(model: Model): SuspicionManagement
 	return setmetatable({
+		model = model,
 		suspicionLevels = {},
 		currentState = SUSPICION_STATES.CALM,
 		focusingSuspect = nil :: Player?
@@ -56,6 +60,10 @@ function SuspicionManagement.increaseSuspicion(self: SuspicionManagement, suspec
 	local increase = CONFIG.SUSPICION_RAISE_RATE * suspicionWeight * deltaTime
 	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
 	self.suspicionLevels[suspect] = math.min(CONFIG.MAX_SUSPICION, currentSuspicion + increase)
+
+	if self.suspicionLevels[suspect] then 
+		TypedDetectionRemote:FireClient(suspect, self.suspicionLevels[suspect], self.model, self.model.PrimaryPart.Position)
+	end
 end
 
 function SuspicionManagement.decreaseSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
@@ -69,6 +77,10 @@ function SuspicionManagement.decreaseSuspicion(self: SuspicionManagement, suspec
 		if self.suspicionLevels[suspect] <= 0 then
 			self.suspicionLevels[suspect] = nil
 		end
+	end
+
+	if self.suspicionLevels[suspect] then
+		TypedDetectionRemote:FireClient(suspect, self.suspicionLevels[suspect], self.model, self.model.PrimaryPart.Position)
 	end
 end
 
@@ -150,8 +162,8 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		end
 	end
 
-	print(self.suspicionLevels)
-	warn(`State: {self.currentState}, Focus: {self.focusingSuspect}`)
+	--print(self.suspicionLevels)
+	--warn(`State: {self.currentState}, Focus: {self.focusingSuspect}`)
 end
 
 return SuspicionManagement
