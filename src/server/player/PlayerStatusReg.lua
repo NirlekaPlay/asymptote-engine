@@ -10,7 +10,8 @@ local PlayerStatusReg = {}
 function PlayerStatusReg.setStatus(player: Player, statusType: Statuses.PlayerStatus, value: boolean): ()
 	local plrStatuses = playerStatuses[player]
 	if not plrStatuses then
-		playerStatuses[player] = {}
+		plrStatuses = {}
+		playerStatuses[player] = plrStatuses
 	end
 
 	if value then
@@ -19,7 +20,7 @@ function PlayerStatusReg.setStatus(player: Player, statusType: Statuses.PlayerSt
 		plrStatuses[statusType] = nil
 	end
 
-	print(playerStatuses)
+	--print(playerStatuses)
 end
 
 function PlayerStatusReg.getStatus(player: Player): { [Statuses.PlayerStatus]: true }?
