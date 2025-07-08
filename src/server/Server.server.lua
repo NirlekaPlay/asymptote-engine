@@ -106,7 +106,11 @@ RunService.PreAnimation:Connect(function(deltaTime)
 		end
 	else
 		if currentPost then
+			warn("Path interrupted, targeted suspect is", currentSusMan.focusingSuspect)
+			warn("Vacating...")
 			currentPost:vacate()
+			currentPost = nil
+			currentPatrolState = "UNEMPLOYED"
 			currentPathNav:stop()
 		end
 		if currentSusMan.currentState == "SUSPICIOUS" then

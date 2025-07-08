@@ -92,7 +92,7 @@ function PathNavigation.stop(self: PathNavigation)
 	self:disconnectMoveToConnection()
 
 	-- move to its current position to stop moving
-	self.character.humanoid:MoveTo(self.character.PrimaryPart.Position)
+	self.character.Humanoid:MoveTo(self.character.PrimaryPart.Position)
 end
 
 return PathNavigation
