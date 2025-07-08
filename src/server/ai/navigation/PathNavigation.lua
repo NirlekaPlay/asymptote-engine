@@ -20,7 +20,8 @@ export type PathNavigation = typeof(setmetatable({} :: {
 	pathAgentParams: AgentParameters?,
 	waypoints: { PathWaypoint },
 	currentWaypointIndex: number,
-	humanoidMoveToFinishedConnection: RBXScriptConnection?
+	humanoidMoveToFinishedConnection: RBXScriptConnection?,
+	finished: boolean
 }, PathNavigation))
 
 function PathNavigation.new(character: Model): PathNavigation
@@ -30,7 +31,8 @@ function PathNavigation.new(character: Model): PathNavigation
 		pathAgentParams = nil :: AgentParameters?,
 		waypoints = {},
 		currentWaypointIndex = 1,
-		humanoidMoveToFinishedConnection = nil :: RBXScriptConnection?
+		humanoidMoveToFinishedConnection = nil :: RBXScriptConnection?,
+		finished = false
 	}, PathNavigation)
 end
 
@@ -46,6 +48,7 @@ function PathNavigation.createPath(self: PathNavigation, toPos: Vector3): Path
 	self.path = path
 	self.waypoints = waypoints
 	self.currentWaypointIndex = 2
+	self.finished = false
 
 	return path
 end
@@ -72,9 +75,10 @@ end
 
 function PathNavigation.onMoveToFinished(self: PathNavigation): ()
 	local currentWaypointIndex = self.currentWaypointIndex
-	print(currentWaypointIndex)
+	--print(currentWaypointIndex)
 	local waypoints = self.waypoints
 	if currentWaypointIndex >= #waypoints then
+		self.finished = true
 		self:disconnectMoveToConnection()
 		return
 	end
