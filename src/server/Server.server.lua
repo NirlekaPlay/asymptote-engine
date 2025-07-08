@@ -3,6 +3,7 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
+local LookAtSuspectGoal = require(ServerScriptService.server.ai.goal.LookAtSuspectGoal)
 local RandomPostGoal = require(ServerScriptService.server.ai.goal.RandomPostGoal)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
@@ -46,11 +47,12 @@ end
 setupGuardPosts()
 
 currentGoalSelector:addGoal(RandomPostGoal.new(GuardAgent, currentGuardPosts), 1)
+currentGoalSelector:addGoal(LookAtSuspectGoal.new(GuardAgent), 0)
 
 RunService.PreAnimation:Connect(function(deltaTime)
 	currentTriggerZone:update()
 	currentNearbySensor:update(rig.PrimaryPart.Position, currentTriggerZone:getPlayersInZone())
 	currentSusMan:update(deltaTime, currentNearbySensor.detectedTargets)
 	currentGoalSelector:update(deltaTime)
-	
+	currentBodyRotCtrl:update(deltaTime)
 end)

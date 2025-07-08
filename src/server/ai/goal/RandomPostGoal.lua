@@ -74,8 +74,8 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 		rot:setRotateTowards(self.currentPost.cframe.LookVector)
 		warn("Walk to finished. Staying for...", math.floor(self.releaseUntil - tick()), "seconds")
 	elseif self.state == "STAYING" then
-		local remaining = self.releaseUntil - tick()
-		print(`Still waiting at post for {math.ceil(remaining)}s...`)
+		--local remaining = self.releaseUntil - tick()
+		--print(`Still waiting at post for {math.ceil(remaining)}s...`)
 		if tick() > self.releaseUntil then
 			self.state = "UNEMPLOYED"
 			self.currentPost:vacate()
