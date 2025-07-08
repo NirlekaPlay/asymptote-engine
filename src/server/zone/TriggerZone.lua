@@ -80,6 +80,14 @@ function TriggerZone.update(self: TriggerZone): ()
 		end
 
 		PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
+		local highlight = character:FindFirstChild("Highlight")
+		if not highlight then
+			local newHighlight = Instance.new("Highlight")
+			newHighlight.FillColor = Color3.new(255, 255, 0)
+			newHighlight.Parent = character
+			highlight = newHighlight
+		end
+		highlight.Enabled = true
 
 		playersInZone[player] = true
 	end
@@ -87,6 +95,14 @@ function TriggerZone.update(self: TriggerZone): ()
 	for player in pairs(self.lastPlayersInZone) do
 		if not playersInZone[player] then
 			PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
+			local highlight = player.Character:FindFirstChild("Highlight")
+			if not highlight then
+				local newHighlight = Instance.new("Highlight")
+				newHighlight.FillColor = Color3.new(255, 255, 0)
+				newHighlight.Parent = player.Character
+				highlight = newHighlight
+			end
+			highlight.Enabled = false
 		end
 	end
 
