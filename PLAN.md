@@ -47,4 +47,6 @@ A Guard typical routine for patrolling are:
  b. Once a Guard is on a post, it waits for a random time, and after thats done, it tries to find an unoccupied
     post designated under them. If it does not find one, stays there until it does. Once it does find one,
     release the current post and sets the selected post as occupied, and walks to it. And the cycle repeats.
- c. If a Guard is interrupted, if they've already choosen post to walk to it, it releases it.
+ c. A Guard may release a post under certain circumstances, which includes, but not limited to:
+
+     i. A Guard becomes alerted.
