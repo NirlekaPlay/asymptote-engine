@@ -74,16 +74,16 @@ function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
 end
 
 function PathNavigation.onMoveToFinished(self: PathNavigation): ()
+	self.currentWaypointIndex += 1 -- move to the next waypoint first
 	local currentWaypointIndex = self.currentWaypointIndex
-	--print(currentWaypointIndex)
 	local waypoints = self.waypoints
-	if currentWaypointIndex >= #waypoints then
+
+	if currentWaypointIndex > #waypoints then
 		self.finished = true
 		self:disconnectMoveToConnection()
 		return
 	end
 
-	self.currentWaypointIndex += 1
 	self.character.Humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
 end
 
