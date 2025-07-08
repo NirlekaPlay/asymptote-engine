@@ -1,6 +1,8 @@
 --!nocheck
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedStatusRemote)
 local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
 local Statuses = require(ServerScriptService.server.player.Statuses)
 
@@ -80,14 +82,7 @@ function TriggerZone.update(self: TriggerZone): ()
 		end
 
 		PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
-		local highlight = character:FindFirstChild("Highlight")
-		if not highlight then
-			local newHighlight = Instance.new("Highlight")
-			newHighlight.FillColor = Color3.new(255, 255, 0)
-			newHighlight.Parent = character
-			highlight = newHighlight
-		end
-		highlight.Enabled = true
+		TypedStatusRemote:FireClient(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
 
 		playersInZone[player] = true
 	end
@@ -95,14 +90,7 @@ function TriggerZone.update(self: TriggerZone): ()
 	for player in pairs(self.lastPlayersInZone) do
 		if not playersInZone[player] then
 			PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
-			local highlight = player.Character:FindFirstChild("Highlight")
-			if not highlight then
-				local newHighlight = Instance.new("Highlight")
-				newHighlight.FillColor = Color3.new(255, 255, 0)
-				newHighlight.Parent = player.Character
-				highlight = newHighlight
-			end
-			highlight.Enabled = false
+			TypedStatusRemote:FireClient(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
 		end
 	end
 
