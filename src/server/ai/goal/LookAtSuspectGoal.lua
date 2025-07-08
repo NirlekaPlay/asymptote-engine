@@ -36,7 +36,6 @@ function LookAtSuspectGoal.getFlags(self: LookAtSuspectGoal): {Flag}
 end
 
 function LookAtSuspectGoal.start(self: LookAtSuspectGoal): ()
-	warn("starting")
 	self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingSuspect.Character.PrimaryPart.Position)
 end
 
@@ -45,11 +44,11 @@ function LookAtSuspectGoal.stop(self: LookAtSuspectGoal): ()
 end
 
 function LookAtSuspectGoal.update(self: LookAtSuspectGoal, deltaTime: number): ()
-	return
+	self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingSuspect.Character.PrimaryPart.Position)
 end
 
 function LookAtSuspectGoal.requiresUpdating(self: LookAtSuspectGoal): boolean
-	return false
+	return true
 end
 
 return LookAtSuspectGoal
