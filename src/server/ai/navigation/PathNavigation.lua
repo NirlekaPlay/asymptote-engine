@@ -45,7 +45,7 @@ function PathNavigation.createPath(self: PathNavigation, toPos: Vector3): Path
 
 	self.path = path
 	self.waypoints = waypoints
-	self.currentWaypointIndex = 1
+	self.currentWaypointIndex = 2
 
 	return path
 end
@@ -67,7 +67,7 @@ function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
 		self:onMoveToFinished()
 	end)
 
-	self.character.Humanoid:MoveTo(self.waypoints[1].Position)
+	self.character.Humanoid:MoveTo(self.waypoints[self.currentWaypointIndex].Position)
 end
 
 function PathNavigation.onMoveToFinished(self: PathNavigation): ()
