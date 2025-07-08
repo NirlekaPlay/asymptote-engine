@@ -75,7 +75,7 @@ function RandomPostGoal.start(self: RandomPostGoal): ()
 		if not self.isAtTargetPost then
 			walkToPost(self, self.targetPost)
 		else
-			self.agent:getBodyRotationControl():setRotateTowards(self.targetPost.cframe.LookVector)
+			self.agent:getBodyRotationControl():setRotateToDirection(self.targetPost.cframe.LookVector)
 		end
 	else
 		warn("Attempt to find post...")
@@ -104,7 +104,7 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 		self.state = "STAYING"
 		self.isAtTargetPost = true
 		self.timeToReleasePost = math.random(4, 7)
-		rot:setRotateTowards(self.targetPost.cframe.LookVector)
+		rot:setRotateToDirection(self.targetPost.cframe.LookVector)
 		warn("Walk to finished. Staying for...", self.timeToReleasePost, "seconds")
 	elseif self.state == "STAYING" then
 		--local remaining = self.releaseUntil - tick()
@@ -114,7 +114,7 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 			self.state = "UNEMPLOYED"
 			self.targetPost:vacate()
 			self.targetPost = nil
-			rot:setRotateTowards(nil)
+			rot:setRotateToDirection(nil)
 			nav:stop()
 		end
 	end
