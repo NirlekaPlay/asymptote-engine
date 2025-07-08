@@ -104,6 +104,11 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 	-- set of visible players for quick lookup
 	local visiblePlayersSet = {}
 	for _, player in visiblePlayers do
+		-- idk why but this weird bug started coming out of nowhere that causes
+		-- the suspicion to get stuck cuz the weight is 0.
+		if getSuspectSuspicionWeight(player) <= 0 then
+			continue
+		end
 		visiblePlayersSet[player] = true
 	end
 
