@@ -24,11 +24,11 @@ export type PathNavigation = typeof(setmetatable({} :: {
 	finished: boolean
 }, PathNavigation))
 
-function PathNavigation.new(character: Model): PathNavigation
+function PathNavigation.new(character: Model, agentParams: AgentParameters?): PathNavigation
 	return setmetatable({
 		character = character,
 		path = nil :: Path?,
-		pathAgentParams = nil :: AgentParameters?,
+		pathAgentParams = agentParams,
 		waypoints = {},
 		currentWaypointIndex = 1,
 		humanoidMoveToFinishedConnection = nil :: RBXScriptConnection?,

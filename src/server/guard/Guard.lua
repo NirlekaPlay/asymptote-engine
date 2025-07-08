@@ -29,7 +29,10 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.character = character
 	self.bodyRotationControl = BodyRotationControl.new(character.HumanoidRootPart)
 	self.goalSelector = GoalSelector.new()
-	self.pathNavigation = PathNavigation.new(character)
+	self.pathNavigation = PathNavigation.new(character, {
+		AgentRadius = 8,
+		AgentHeight = 8
+	})
 	self.suspicionManager = SuspicionManagement.new(character)
 	self.targetNearbySensor = TargetNearbySensor.new(20)
 	self.designatedPosts = designatedPosts
