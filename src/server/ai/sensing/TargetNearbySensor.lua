@@ -47,7 +47,14 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 			continue
 		end
 
-		table.insert(detectedTargets, player)
+		local raycastResult = workspace:Raycast(agentPosition, (primaryPart.Position - agentPosition).Unit * self.insideRange)
+		if not raycastResult then
+			return
+		end
+
+		if raycastResult.Instance:IsDescendantOf(character) then
+			table.insert(detectedTargets, player)
+		end
 	end
 
 	self.detectedTargets = detectedTargets
