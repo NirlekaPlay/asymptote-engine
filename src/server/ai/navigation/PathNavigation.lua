@@ -91,8 +91,11 @@ function PathNavigation.stop(self: PathNavigation)
 	self.path = nil
 	self:disconnectMoveToConnection()
 
+	local lastSpeed = self.character.Humanoid.WalkSpeed
+	self.character.Humanoid.WalkSpeed = 0
 	-- move to its current position to stop moving
-	self.character.Humanoid:MoveTo(self.character.PrimaryPart.Position)
+	self.character.Humanoid:MoveTo(self.character.HumanoidRootPart.Position)
+	self.character.Humanoid.WalkSpeed = lastSpeed
 end
 
 return PathNavigation
