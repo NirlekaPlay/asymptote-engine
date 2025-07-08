@@ -88,6 +88,8 @@ RunService.PreAnimation:Connect(function(deltaTime)
 
 			--print(currentPathNav.path, currentPathNav.finished)
 			if currentPathNav.path == currentPathToPost and currentPathNav.finished then
+				-- AWFUL HACK ALERT:
+				currentPathNav.finished = false
 				currentPatrolState = "STAYING"
 				releaseUntil = tick() + math.random(4, 7)
 				currentBodyRotCtrl:setRotateTowards(currentPost.cframe.LookVector)
@@ -96,6 +98,8 @@ RunService.PreAnimation:Connect(function(deltaTime)
 		end
 
 		if currentPatrolState == "STAYING" then
+			--local remaining = releaseUntil - tick()
+			--print(`Still waiting at post for {math.ceil(remaining)}s...`)
 			if tick() > releaseUntil then
 				warn("Staying finished. Vacating...")
 				currentPost:vacate()
