@@ -26,6 +26,13 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 	local players = Players:GetPlayers()
 	local detectedTargets = {}
 	for _, player in ipairs(players) do
+		local statuses = PlayerStatusReg.getStatus(player)
+		if not statuses then
+			continue
+		end
+		if next(statuses) == nil then
+			continue
+		end
 		local character = player.Character
 		if not character then
 			continue
