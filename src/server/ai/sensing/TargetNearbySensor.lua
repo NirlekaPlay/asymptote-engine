@@ -1,5 +1,9 @@
 --!strict
 
+local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
+
 --[=[
 	@class TargetNearbySensor
 ]=]
@@ -18,7 +22,8 @@ function TargetNearbySensor.new(insideRange: number): TargetNearbySensor
 	}, TargetNearbySensor)
 end
 
-function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vector3, players: {Player}): ()
+function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vector3): ()
+	local players = Players:GetPlayers()
 	local detectedTargets = {}
 	for _, player in ipairs(players) do
 		local character = player.Character
@@ -28,6 +33,14 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 		local primaryPart = character.PrimaryPart
 		if not primaryPart then
 			continue
+		end
+		local susWeight = PlayerStatusReg.getStatus(player)
+		if not susWeight then
+			return
+		end
+
+		if next(susWeight) == nil then
+			return
 		end
 
 		if not ((primaryPart.Position - agentPosition).Magnitude <= self.insideRange) then
