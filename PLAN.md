@@ -50,3 +50,15 @@ A Guard typical routine for patrolling are:
  c. A Guard may release a post under certain circumstances, which includes, but not limited to:
 
      i. A Guard becomes alerted.
+
+3. Trespassing. Trespassing can be split to 2 classifications:
+
+ a. Minor Trespassing.
+ b. Major Trespassing.
+
+Trespassing status is affected by a Player's disguise. e.g. An undisguised Player is in an
+employees-only area. This gives the Player a Minor Trespassing status. If the Player is in a more
+restricted area such as security rooms, then it gives the Player a Major Trespassing status.
+
+If a Player wears a disguise, then Minor Trespassing zones will not give them its status. And 
+Major Trespassing zones will now give them Minor Trespassing status.
