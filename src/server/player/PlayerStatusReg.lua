@@ -7,9 +7,7 @@ local playerSusLevel: { [Player]: SuspiciousLevel.SuspiciousLevel } = {}
 
 local PlayerStatusReg = {}
 
-function PlayerStatusReg.getSuspiciousLevel(player: Player): SuspiciousLevel.SuspiciousLevel?
-	--print(playerSusLevel)
-	--print("attempt to fetch level from", player)
+function PlayerStatusReg.getSuspiciousLevel(player: Player): SuspiciousLevel.SuspiciousLevel
 	return playerSusLevel[player]
 end
 

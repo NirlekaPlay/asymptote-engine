@@ -3,13 +3,29 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local Guard = require(ServerScriptService.server.guard.Guard)
-local TriggerZone = require(ServerScriptService.server.zone.TriggerZone)
+local Statuses = require(ServerScriptService.server.player.Statuses)
+local TrespassingZone = require(ServerScriptService.server.zone.TrespassingZone)
 
 local GUARD_TAG_NAME = "Guard"
 local GUARD_POSTS_TAG_NAME = "Post"
-local TRIGGER_ZONE_TAG_NAME = "TriggerZone"
+local MINOR_TRESPASSING_ZONE_TAG_NAME = "MinorTrespassingZone"
+local MAJOR_TRESPASSING_ZONE_TAG_NAME = "MajorTrespassingZone"
 
-local zones: { TriggerZone.TriggerZone } = {}
+local MINOR_TRESPASSING_CONFIG: TrespassingZone.ZoneConfig = {
+	penalties = {
+		disguised = nil,
+		undisguised = Statuses.PLAYER_STATUSES.MINOR_TRESPASSING
+	}
+}
+
+local MAJOR_TRESPASSING_ZONE: TrespassingZone.ZoneConfig = {
+	penalties = {
+		disguised = Statuses.PLAYER_STATUSES.MINOR_TRESPASSING,
+		undisguised = Statuses.PLAYER_STATUSES.MAJOR_TRESPASSING
+	}
+}
+
+local zones: { TrespassingZone.TrespassingZone } = {}
 local guards: { Guard.Guard } = {}
 local currentGuardPosts: { GuardPost.GuardPost } = {}
 
@@ -22,14 +38,19 @@ end
 
 setupGuardPosts()
 
-local function setupTriggerZones()
-	for _, zone in ipairs(CollectionService:GetTagged(TRIGGER_ZONE_TAG_NAME)) do
-		local newZone = TriggerZone.fromPart(zone)
+local function setupTrespassingZones()
+	for _, zone in ipairs(CollectionService:GetTagged(MINOR_TRESPASSING_ZONE_TAG_NAME)) do
+		local newZone = TrespassingZone.fromPart(zone, MINOR_TRESPASSING_CONFIG)
+		table.insert(zones, newZone)
+	end
+
+	for _, zone in ipairs(CollectionService:GetTagged(MAJOR_TRESPASSING_ZONE_TAG_NAME)) do
+		local newZone = TrespassingZone.fromPart(zone, MAJOR_TRESPASSING_ZONE)
 		table.insert(zones, newZone)
 	end
 end
 
-setupTriggerZones()
+setupTrespassingZones()
 
 local function setupGuards()
 	for _, guard in ipairs(CollectionService:GetTagged(GUARD_TAG_NAME)) do

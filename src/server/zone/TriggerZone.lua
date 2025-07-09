@@ -1,10 +1,6 @@
---!nocheck
+--!nonstrict
+
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
-local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedStatusRemote)
-local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.server.player.Statuses)
 
 --[=[
 	@class TriggerZone
@@ -18,18 +14,24 @@ TriggerZone.__index = TriggerZone
 export type TriggerZone = typeof(setmetatable({} :: {
 	region: Region3,
 	playersInZone: { [Player]: true },
-	lastPlayersInZone: { [Player]: true }
+	lastPlayersInZone: { [Player]: true },
+	onPlayerEnterCallback: Callback?,
+	onPlayerLeaveCallback: Callback?
 }, TriggerZone))
 
-function TriggerZone.new(min: Vector3, max: Vector3): TriggerZone
+type Callback = ( Player ) -> ()
+
+function TriggerZone.new(min: Vector3, max: Vector3, onEnter: Callback?, onLeave: Callback?): TriggerZone
 	return setmetatable({
 		region = Region3.new(min, max),
 		playersInZone = {},
-		lastPlayersInZone = {}
+		lastPlayersInZone = {},
+		onPlayerEnterCallback = onEnter,
+		onPlayerLeaveCallback = onLeave
 	}, TriggerZone)
 end
 
-function TriggerZone.fromPart(part: BasePart, doDestroy: boolean?): TriggerZone
+function TriggerZone.fromPart(part: BasePart, onEnter: Callback?, onLeave: Callback?): TriggerZone
 	-- oh god what is this?
 
 	local abs = math.abs
@@ -40,7 +42,7 @@ function TriggerZone.fromPart(part: BasePart, doDestroy: boolean?): TriggerZone
 
 	local x, y, z, R00, R01, R02, R10, R11, R12, R20, R21, R22 = cf:GetComponents() -- this causes 1 Lua->C++ invocations and gets all components of cframe in one go, with no allocations
 
-	-- https://zeuxcg.org/2010/10/17/aabb-from-obb-with-component-wise-abs/
+	-- https://zeux.io/2010/10/17/aabb-from-obb-with-component-wise-abs/
 	local wsx = 0.5 * (abs(R00) * sx + abs(R01) * sy + abs(R02) * sz) -- this requires 3 Lua->C++ invocations to call abs, but no hash lookups since we cached abs value above; otherwise this is just a bunch of local ops
 	local wsy = 0.5 * (abs(R10) * sx + abs(R11) * sy + abs(R12) * sz) -- same
 	local wsz = 0.5 * (abs(R20) * sx + abs(R21) * sy + abs(R22) * sz) -- same
@@ -55,10 +57,8 @@ function TriggerZone.fromPart(part: BasePart, doDestroy: boolean?): TriggerZone
 	local maxz = z + wsz
 
 	local minv, maxv = Vector3.new(minx, miny, minz), Vector3.new(maxx, maxy, maxz)
-	if doDestroy then
-		part:Destroy()
-	end
-	return TriggerZone.new(minv, maxv)
+
+	return TriggerZone.new(minv, maxv, onEnter, onLeave)
 end
 
 function TriggerZone.update(self: TriggerZone): ()
@@ -77,50 +77,34 @@ function TriggerZone.update(self: TriggerZone): ()
 			continue
 		end
 
-		if not TriggerZone.isPartWithinRegion(humanoidRootPart, self.region) then
+		if not self:isPartWithinZone(humanoidRootPart) then
 			continue
 		end
 
-		PlayerStatusReg.getSuspiciousLevel(player):setStatus(
-			Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true
-		)
-		TypedStatusRemote:FireClient(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
-
 		playersInZone[player] = true
+		if not self.lastPlayersInZone[player] then
+			self.onPlayerEnterCallback(player)
+		end
 	end
 
 	for player in pairs(self.lastPlayersInZone) do
 		if not playersInZone[player] then
-			PlayerStatusReg.getSuspiciousLevel(player):setStatus(
-				Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false
-			)
-			TypedStatusRemote:FireClient(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
+			self.onPlayerLeaveCallback(player)
 		end
 	end
 
 	self.playersInZone = playersInZone
 end
 
-function TriggerZone.getPlayersInZone(self: TriggerZone): { Player }
-	local playersInZone = table.create(#self.playersInZone, true) :: { Player }
-
-	local i = 0
-	for player, _ in pairs(self.playersInZone) do
-		i += 1
-		playersInZone[i] = player
-	end
-
-	return playersInZone
-end
-
-function TriggerZone.isPointWithinRegion(point: Vector3, region: Region3): boolean
+function TriggerZone.isPointWithinZone(self: TriggerZone, point: Vector3): boolean
+	local region = self.region
 	local v3 = region.CFrame:PointToObjectSpace(point)
 	return (math.abs(v3.X) <= region.Size.X / 2)
 		and (math.abs(v3.Y) <= region.Size.Y / 2)
 		and (math.abs(v3.Z) <= region.Size.Z / 2)
 end
 
-function TriggerZone.isPartWithinRegion(part: BasePart, region: Region3): boolean
+function TriggerZone.isPartWithinZone(self: TriggerZone, part: BasePart): boolean
 	local size = part.Size / 2
 	local corners = {
 		part.CFrame * CFrame.new(size.X, size.Y, size.Z),
@@ -133,9 +117,9 @@ function TriggerZone.isPartWithinRegion(part: BasePart, region: Region3): boolea
 		part.CFrame * CFrame.new(-size.X, -size.Y, -size.Z)
 	}
 
-	for _, cf in ipairs(corners) do
+	for _, cframe in ipairs(corners) do
 		-- if any corner is outside, stop
-		if (not TriggerZone.isPointWithinRegion(cf.Position, region)) then
+		if (not self:isPointWithinZone(cframe.Position)) then
 			return false
 		end
 	end
