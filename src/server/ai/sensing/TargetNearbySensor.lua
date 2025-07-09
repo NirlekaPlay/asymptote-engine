@@ -26,13 +26,6 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 	local players = Players:GetPlayers()
 	local detectedTargets = {}
 	for _, player in ipairs(players) do
-		local statuses = PlayerStatusReg.getStatus(player)
-		if not statuses then
-			continue
-		end
-		if next(statuses) == nil then
-			continue
-		end
 		local character = player.Character
 		if not character then
 			continue
@@ -41,13 +34,12 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 		if not primaryPart then
 			continue
 		end
-		local susWeight = PlayerStatusReg.getStatus(player)
-		if not susWeight then
-			return
+		local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
+		if not susLevel then
+			continue
 		end
-
-		if next(susWeight) == nil then
-			return
+		if not susLevel:isSuspicious() then
+			continue
 		end
 
 		if not ((primaryPart.Position - agentPosition).Magnitude <= self.insideRange) then
@@ -56,7 +48,7 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 
 		local raycastResult = workspace:Raycast(agentPosition, (primaryPart.Position - agentPosition).Unit * self.insideRange)
 		if not raycastResult then
-			return
+			continue
 		end
 
 		if raycastResult.Instance:IsDescendantOf(character) then
@@ -65,7 +57,6 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 	end
 
 	self.detectedTargets = detectedTargets
-	--print(detectedTargets)
 end
 
 return TargetNearbySensor

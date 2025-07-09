@@ -81,7 +81,9 @@ function TriggerZone.update(self: TriggerZone): ()
 			continue
 		end
 
-		PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
+		PlayerStatusReg.getSuspiciousLevel(player):setStatus(
+			Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true
+		)
 		TypedStatusRemote:FireClient(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, true)
 
 		playersInZone[player] = true
@@ -89,7 +91,9 @@ function TriggerZone.update(self: TriggerZone): ()
 
 	for player in pairs(self.lastPlayersInZone) do
 		if not playersInZone[player] then
-			PlayerStatusReg.setStatus(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
+			PlayerStatusReg.getSuspiciousLevel(player):setStatus(
+				Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false
+			)
 			TypedStatusRemote:FireClient(player, Statuses.PLAYER_STATUSES.MINOR_TRESPASSING, false)
 		end
 	end

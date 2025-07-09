@@ -1,30 +1,30 @@
 --!strict
-local Statuses = require(script.Parent.Statuses)
 
--- kill me.
+local Players = game:GetService("Players")
+local SuspiciousLevel = require("./SuspiciousLevel")
 
-local playerStatuses: { [Player]: { [Statuses.PlayerStatus]: true }} = {}
+local playerSusLevel: { [Player]: SuspiciousLevel.SuspiciousLevel } = {}
 
 local PlayerStatusReg = {}
 
-function PlayerStatusReg.setStatus(player: Player, statusType: Statuses.PlayerStatus, value: boolean): ()
-	local plrStatuses = playerStatuses[player]
-	if not plrStatuses then
-		plrStatuses = {}
-		playerStatuses[player] = plrStatuses
-	end
-
-	if value then
-		plrStatuses[statusType] = true
-	else
-		plrStatuses[statusType] = nil
-	end
-
-	--print(playerStatuses)
+function PlayerStatusReg.getSuspiciousLevel(player: Player): SuspiciousLevel.SuspiciousLevel?
+	--print(playerSusLevel)
+	--print("attempt to fetch level from", player)
+	return playerSusLevel[player]
 end
 
-function PlayerStatusReg.getStatus(player: Player): { [Statuses.PlayerStatus]: true }?
-	return playerStatuses[player]
+Players.PlayerAdded:Connect(function(player)
+	playerSusLevel[player] = SuspiciousLevel.new()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	playerSusLevel[player] = nil
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if not playerSusLevel[player] then
+		playerSusLevel[player] = SuspiciousLevel.new()
+	end
 end
 
 return PlayerStatusReg

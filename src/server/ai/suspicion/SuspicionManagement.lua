@@ -3,7 +3,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
 local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.server.player.Statuses)
 
 local CONFIG = {
 	MAX_SUSPICION = 1.0,
@@ -31,23 +30,6 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 	focusingSuspect: Player?
 }, SuspicionManagement))
 
-local function getSuspectSuspicionWeight(suspect: Player): number
-	local playerStatuses = PlayerStatusReg.getStatus(suspect)
-	if not playerStatuses then
-		--print(suspect, "has no statuses")
-		return 0
-	else
-		local totalWeight = 0
-		for status, _ in pairs(playerStatuses) do
-			local weight = Statuses.STATUS_BY_WEIGHT[status]
-			totalWeight += weight
-		end
-
-		--print(`{suspect.Name} has total sus weight of {totalWeight}`)
-		return totalWeight
-	end
-end
-
 function SuspicionManagement.new(model: Model): SuspicionManagement
 	return setmetatable({
 		model = model,
@@ -58,7 +40,7 @@ function SuspicionManagement.new(model: Model): SuspicionManagement
 end
 
 function SuspicionManagement.increaseSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
-	local suspicionWeight = getSuspectSuspicionWeight(suspect)
+	local suspicionWeight = PlayerStatusReg.getSuspiciousLevel(suspect):getWeight()
 	local increase = CONFIG.SUSPICION_RAISE_RATE * suspicionWeight * deltaTime
 	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
 	self.suspicionLevels[suspect] = math.min(CONFIG.MAX_SUSPICION, currentSuspicion + increase)
@@ -104,11 +86,6 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 	-- set of visible players for quick lookup
 	local visiblePlayersSet = {}
 	for _, player in visiblePlayers do
-		-- idk why but this weird bug started coming out of nowhere that causes
-		-- the suspicion to get stuck cuz the weight is 0.
-		if getSuspectSuspicionWeight(player) <= 0 then
-			continue
-		end
 		visiblePlayersSet[player] = true
 	end
 
