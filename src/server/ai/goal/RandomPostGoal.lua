@@ -78,10 +78,10 @@ function RandomPostGoal.start(self: RandomPostGoal): ()
 			self.agent:getBodyRotationControl():setRotateToDirection(self.targetPost.cframe.LookVector)
 		end
 	else
-		warn("Attempt to find post...")
+		--warn("Attempt to find post...")
 		local post = getRandomUnoccupiedPost(self.posts)
 		if not post then
-			warn("No unoccupied posts found")
+			--warn("No unoccupied posts found")
 			return
 		end
 
@@ -105,7 +105,7 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 		self.isAtTargetPost = true
 		self.timeToReleasePost = math.random(4, 7)
 		rot:setRotateToDirection(self.targetPost.cframe.LookVector)
-		warn("Walk to finished. Staying for...", self.timeToReleasePost, "seconds")
+		--warn("Walk to finished. Staying for...", self.timeToReleasePost, "seconds")
 	elseif self.state == "STAYING" then
 		--local remaining = self.releaseUntil - tick()
 		--print(`Still waiting at post for {math.ceil(remaining)}s...`)

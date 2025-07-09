@@ -1,22 +1,22 @@
---!strict
+--!nonstrict
+
 --[=[
 	@class BodyRotationControl
+
 	Controls a body part to rotate towards a position or direction.
 ]=]
 local BodyRotationControl = {}
 BodyRotationControl.__index = BodyRotationControl
 
 export type BodyRotationControl = typeof(setmetatable({} :: {
-	humanoidRootPart: BasePart,
-	targetPosition: Vector3?,
+	character: Model,
 	targetDirection: Vector3?,
 	rotationSpeed: number
 }, BodyRotationControl))
 
-function BodyRotationControl.new(rootPart: BasePart, speed: number?): BodyRotationControl
+function BodyRotationControl.new(character: Model, speed: number?): BodyRotationControl
 	return setmetatable({
-		humanoidRootPart = rootPart,
-		targetPosition = nil :: Vector3?,
+		character = character,
 		targetDirection = nil :: Vector3?,
 		rotationSpeed = speed or 7
 	}, BodyRotationControl)
@@ -27,40 +27,51 @@ function BodyRotationControl.setSpeed(self: BodyRotationControl, speed: number):
 end
 
 function BodyRotationControl.setRotateTowards(self: BodyRotationControl, toward: Vector3?, speed: number?): ()
-	self.targetPosition = toward
-	self.targetDirection = nil
+	if toward then
+		local part = self.character.HumanoidRootPart
+		local origin = Vector3.new(part.Position.X, 0, part.Position.Z)
+		local target = Vector3.new(toward.X, 0, toward.Z)
+		self.targetDirection = (target - origin).Unit
+	else
+		self.targetDirection = nil
+	end
 	if speed then
 		self.rotationSpeed = speed
 	end
 end
 
 function BodyRotationControl.setRotateToDirection(self: BodyRotationControl, direction: Vector3?, speed: number?): ()
-	self.targetDirection = direction
-	self.targetPosition = nil
+	if direction then
+		self.targetDirection = Vector3.new(direction.X, 0, direction.Z).Unit
+	else
+		self.targetDirection = nil
+	end
 	if speed then
 		self.rotationSpeed = speed
 	end
 end
 
 function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number): ()
-	local part = self.humanoidRootPart
-	local lookDir: Vector3?
-	
-	-- Determine look direction based on target type
-	if self.targetPosition then
-		local origin = Vector3.new(part.Position.X, 0, part.Position.Z)
-		local target = Vector3.new(self.targetPosition.X, 0, self.targetPosition.Z)
-		lookDir = (target - origin).Unit
+	if self:isMoving() then
+		return
 	elseif self.targetDirection then
-		-- Use the direction directly, but flatten it to Y=0 plane
-		lookDir = Vector3.new(self.targetDirection.X, 0, self.targetDirection.Z).Unit
-	end
-	
-	-- Apply rotation if we have a valid look direction
-	if lookDir and lookDir.Magnitude > 0 then
-		local targetCFrame = CFrame.new(part.Position, part.Position + lookDir)
+		if not (self.targetDirection.Magnitude > 0) then
+			return
+		end
+		local part = self.character.HumanoidRootPart
+		local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
 		part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
 	end
+end
+
+function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
+	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		local isMoving = humanoid.MoveDirection.Magnitude > 0
+		local canMove = humanoid.WalkSpeed > 0
+		return isMoving and canMove
+	end
+	return false
 end
 
 return BodyRotationControl

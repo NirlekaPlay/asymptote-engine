@@ -27,7 +27,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	local self = {}
 
 	self.character = character
-	self.bodyRotationControl = BodyRotationControl.new(character.HumanoidRootPart)
+	self.bodyRotationControl = BodyRotationControl.new(character)
 	self.goalSelector = GoalSelector.new()
 	self.pathNavigation = PathNavigation.new(character, {
 		AgentRadius = 8,

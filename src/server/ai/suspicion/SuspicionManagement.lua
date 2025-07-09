@@ -34,7 +34,7 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 local function getSuspectSuspicionWeight(suspect: Player): number
 	local playerStatuses = PlayerStatusReg.getStatus(suspect)
 	if not playerStatuses then
-		print(suspect, "has no statuses")
+		--print(suspect, "has no statuses")
 		return 0
 	else
 		local totalWeight = 0
@@ -43,7 +43,7 @@ local function getSuspectSuspicionWeight(suspect: Player): number
 			totalWeight += weight
 		end
 
-		print(`{suspect.Name} has total sus weight of {totalWeight}`)
+		--print(`{suspect.Name} has total sus weight of {totalWeight}`)
 		return totalWeight
 	end
 end
