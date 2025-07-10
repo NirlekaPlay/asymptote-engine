@@ -54,11 +54,10 @@ function Guard.registerGoals(self: Guard): ()
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
-	--self.suspicionManager:update(deltaTime)
-	print(self.memories)
 	for _, sensor in  ipairs(self.sensors) do
 		sensor:update()
 	end
+	self.suspicionManager:update(deltaTime, self.memories[MemoryModuleTypes.VISIBLE_PLAYERS].value)
 	self.goalSelector:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 end
