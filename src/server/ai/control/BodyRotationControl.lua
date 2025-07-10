@@ -10,6 +10,7 @@ BodyRotationControl.__index = BodyRotationControl
 
 export type BodyRotationControl = typeof(setmetatable({} :: {
 	character: Model,
+	lastPos: Vector3,
 	targetDirection: Vector3?,
 	rotationSpeed: number
 }, BodyRotationControl))
@@ -18,7 +19,8 @@ function BodyRotationControl.new(character: Model, speed: number?): BodyRotation
 	return setmetatable({
 		character = character,
 		targetDirection = nil :: Vector3?,
-		rotationSpeed = speed or 7
+		rotationSpeed = speed or 7,
+		lastPos = character.HumanoidRootPart.Position
 	}, BodyRotationControl)
 end
 
@@ -54,7 +56,9 @@ end
 function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number): ()
 	if self:isMoving() then
 		return
-	elseif self.targetDirection then
+	end
+
+	if self.targetDirection then
 		if not (self.targetDirection.Magnitude > 0) then
 			return
 		end
@@ -65,13 +69,20 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 end
 
 function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
-	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		local isMoving = humanoid.MoveDirection.Magnitude > 0
-		local canMove = humanoid.WalkSpeed > 0
-		return isMoving and canMove
+	local humanoidRootPart: BasePart? = self.character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then
+		return false
 	end
-	return false
+	-- turns out, MoveDirection doesnt even get fucking updated.
+	-- so we need to do this terribleness.
+	-- and also since this control only rotates on Y axis, why bother with Y axis changes?
+	-- but hey, if it works, IT WORKS.
+	local curPos = humanoidRootPart.Position
+	curPos = Vector3.new(curPos.X, 0, curPos.Z)
+	local lastPos = self.lastPos
+	lastPos = Vector3.new(lastPos.X, 0, lastPos.Z)
+	self.lastPos = self.character.HumanoidRootPart.Position
+	return (curPos - lastPos).Magnitude > 1e-6
 end
 
 return BodyRotationControl
