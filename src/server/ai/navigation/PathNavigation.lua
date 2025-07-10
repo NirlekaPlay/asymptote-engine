@@ -6,12 +6,12 @@ local PathNavigation = {}
 PathNavigation.__index = PathNavigation
 
 export type AgentParameters = {
-	AgentRadius: number, -- these 2 values are useful so the agent wont get stuck in tight corners
-	AgentHeight: number,
-	AgentCanJump: boolean, -- due to the nature of our games, these 2 values are not necessary, leave them as false
-	AgentCanClimb: boolean,
-	WaypointSpacing: number,
-	Costs: {any}
+	AgentRadius: number?, -- these 2 values are useful so the agent wont get stuck in tight corners
+	AgentHeight: number?,
+	AgentCanJump: boolean?, -- due to the nature of our games, these 2 values are not necessary, leave them as false
+	AgentCanClimb: boolean?,
+	WaypointSpacing: number?,
+	Costs: {any}?
 }
 
 export type PathNavigation = typeof(setmetatable({} :: {
