@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
@@ -9,7 +9,7 @@ local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableV
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
-local TargetNearbySensor = require(ServerScriptService.server.ai.sensing.TargetNearbySensor)
+local PlayerSightSensor = require(ServerScriptService.server.ai.sensing.PlayerSightSensor)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
 local Guard = {}
@@ -21,9 +21,9 @@ export type Guard = typeof(setmetatable({} :: {
 	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
-	targetNearbySensor: TargetNearbySensor.TargetNearbySensor,
 	designatedPosts: { GuardPost.GuardPost },
-	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> }
+	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> },
+	sensors: { any }
 }, Guard))
 
 function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): Guard
@@ -37,20 +37,28 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 		AgentHeight = 8
 	})
 	self.suspicionManager = SuspicionManagement.new(character)
-	self.targetNearbySensor = TargetNearbySensor.new(20)
 	self.designatedPosts = designatedPosts
+	self.sensors = {
+		PlayerSightSensor.new(self, 20, 180)
+	}
+	self.memories = {
+		[MemoryModuleTypes.VISIBLE_PLAYERS] = ExpireableValue.new({}, math.huge)
+	}
 
 	return setmetatable(self, Guard)
 end
 
 function Guard.registerGoals(self: Guard): ()
-	self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
+	--self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
 	self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
-	self.targetNearbySensor:update(self.character.PrimaryPart.Position)
-	self.suspicionManager:update(deltaTime, self.targetNearbySensor.detectedTargets)
+	--self.suspicionManager:update(deltaTime)
+	print(self.memories)
+	for _, sensor in  ipairs(self.sensors) do
+		sensor:update()
+	end
 	self.goalSelector:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 end
@@ -65,6 +73,10 @@ end
 
 function Guard.getBodyRotationControl(self: Guard): BodyRotationControl.BodyRotationControl
 	return self.bodyRotationControl
+end
+
+function Guard.getPrimaryPart(self: Guard): BasePart
+	return self.character.PrimaryPart :: BasePart
 end
 
 return Guard
