@@ -82,18 +82,22 @@ function SuspicionManagement.getMostSuspiciousPlayer(self: SuspicionManagement):
 	return highestPlayer, highestValue
 end
 
-function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number, visiblePlayers: { Player }): ()
-	-- set of visible players for quick lookup
-	local visiblePlayersSet = {}
-	for _, player in visiblePlayers do
+function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number, visiblePlayers: { [Player]: true }): ()
+	local currentState = self.currentState -- for the fucking typechecker to not complain like a bitch
+	local visiblePlayersSet: { [Player]: true } = {}
+	for player, _ in pairs(visiblePlayers) do
+		local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
+		if not susLevel then continue end
+
+		-- players with not sus statuses have 0 weight, making suspicion raising go stuck
+		if not susLevel:isSuspicious() then continue end
+
 		visiblePlayersSet[player] = true
 	end
-
-	local currentState = self.currentState -- for the fucking typechecker to not complain like a bitch
 	
 	if currentState == SUSPICION_STATES.CALM then
 		-- increase suspicion for visible players, decrease for non-visible
-		for _, player in visiblePlayers do
+		for player, _ in visiblePlayersSet do
 			self:increaseSuspicion(player, deltaTime)
 		end
 		
