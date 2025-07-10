@@ -5,6 +5,8 @@ local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRo
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
 local LookAtSuspectGoal = require(ServerScriptService.server.ai.goal.LookAtSuspectGoal)
 local RandomPostGoal = require(ServerScriptService.server.ai.goal.RandomPostGoal)
+local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
+local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local TargetNearbySensor = require(ServerScriptService.server.ai.sensing.TargetNearbySensor)
@@ -20,7 +22,8 @@ export type Guard = typeof(setmetatable({} :: {
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
 	targetNearbySensor: TargetNearbySensor.TargetNearbySensor,
-	designatedPosts: { GuardPost.GuardPost }
+	designatedPosts: { GuardPost.GuardPost },
+	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> }
 }, Guard))
 
 function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): Guard
