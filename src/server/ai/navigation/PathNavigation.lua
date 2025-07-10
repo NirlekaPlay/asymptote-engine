@@ -64,6 +64,7 @@ end
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
 	-- reset for good measure (remove if causing performance problems)
 	-- for now, we dont implement a blocked or stuck handling
+
 	self:createPath(toPos)
 	self:disconnectMoveToConnection()
 	self.humanoidMoveToFinishedConnection = self.character.Humanoid.MoveToFinished:Connect(function()
@@ -88,13 +89,14 @@ function PathNavigation.onMoveToFinished(self: PathNavigation): ()
 end
 
 function PathNavigation.stop(self: PathNavigation)
-	self.path = nil
 	self:disconnectMoveToConnection()
+	self.path = nil
 
 	local lastSpeed = self.character.Humanoid.WalkSpeed
+	local pos = self.character.HumanoidRootPart.Position
 	self.character.Humanoid.WalkSpeed = 0
 	-- move to its current position to stop moving
-	self.character.Humanoid:MoveTo(self.character.HumanoidRootPart.Position)
+	self.character.Humanoid:MoveTo(pos)
 	self.character.Humanoid.WalkSpeed = lastSpeed
 end
 
