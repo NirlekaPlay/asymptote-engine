@@ -97,23 +97,21 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	local nav = self.agent:getNavigation()
 	local rot = self.agent:getBodyRotationControl()
 
-	-- WARNING: Might need to check if the path is the same but fuck it
-	if self.state == "WALKING" and nav.finished then
-		-- AWFUL HACK ALERT, i shouldnt do this but i SHOULD
+	if self.state == "WALKING" and nav.finished and not self.isAtTargetPost then
 		nav.finished = false
 		self.state = "STAYING"
 		self.isAtTargetPost = true
 		self.timeToReleasePost = math.random(4, 7)
 		rot:setRotateToDirection(self.targetPost.cframe.LookVector)
-		--warn("Walk to finished. Staying for...", self.timeToReleasePost, "seconds")
 	elseif self.state == "STAYING" then
-		--local remaining = self.releaseUntil - tick()
+		--local remaining = self.timeToReleasePost
 		--print(`Still waiting at post for {math.ceil(remaining)}s...`)
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
 			self.state = "UNEMPLOYED"
 			self.targetPost:vacate()
 			self.targetPost = nil
+			self.isAtTargetPost = false
 			rot:setRotateToDirection(nil)
 			nav:stop()
 		end
