@@ -20,7 +20,7 @@ REMOTE.OnClientEvent:Connect(function(statusType, bool)
 	if ui then
 		ui.Visible = bool
 		if bool then
-			ui.Parent = game.Players.LocalPlayer.PlayerGui.Status.Bar
+			ui.Parent = game.Players.LocalPlayer.PlayerGui.Status.SafeArea.Bar
 		else
 			ui.Parent = game.Players.LocalPlayer.PlayerGui.Status
 		end

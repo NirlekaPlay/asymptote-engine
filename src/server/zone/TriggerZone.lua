@@ -77,7 +77,7 @@ function TriggerZone.update(self: TriggerZone): ()
 			continue
 		end
 
-		if not self:isPartWithinZone(humanoidRootPart) then
+		if not self:isPointWithinZone(humanoidRootPart.Position) then
 			continue
 		end
 
