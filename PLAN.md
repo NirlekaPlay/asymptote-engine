@@ -62,3 +62,24 @@ restricted area such as security rooms, then it gives the Player a Major Trespas
 
 If a Player wears a disguise, then Minor Trespassing zones will not give them its status. And 
 Major Trespassing zones will now give them Minor Trespassing status.
+
+4. Questioning and Chasing. If a Player is caught in a Minor Trespas-
+sing zone, it will result in the following outcomes:
+
+ a. The Player is close to the Guard. If true, the Guard will immedi-
+    ately question the Player.
+ b. The player is far away or fleeing. If true, the Guard will chase
+    the Player. And if close enough, goes to 4(a).
+ c. The Player is out of sight. If true, the Guard will sprint towards
+    the last known position the Player was caught. And if the Player
+    is on sight again, goes to 4(b). If not, the Guard will go to a
+    random Post starting from the ones in its direction.
+
+      i. If a specific amount of time has passed without success, the
+         Guard gives up and raises the alert level.
+     ii. If the Player is SEEN exiting the trespassing zone then the
+         Guard will return to its original state.
+    iii. Note that during this state, higher priority events mat inte-
+         rrupt this state, such as an armed player.
+
+
