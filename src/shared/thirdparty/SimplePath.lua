@@ -40,7 +40,7 @@ local Path = {
 	},
 }
 
-Path.__index = function(table: SimplePath, index: any)
+Path.__index = function(table: SimplePathInternal, index: any)
 	if index == "Stopped" and not table._humanoid then
 		output(error, "Attempt to use Path.Stopped on a non-humanoid.")
 	end
@@ -50,7 +50,28 @@ Path.__index = function(table: SimplePath, index: any)
 		or Path[index]
 end
 
-export type SimplePath = typeof(setmetatable({} :: {
+export type SimplePath = {
+	Run: (self: SimplePath, target: Vector3 | BasePart) -> boolean,
+	Stop: (self: SimplePath) -> (),
+	Destroy: (self: SimplePath) -> (),
+	--
+	Visualize: boolean,
+	Status: SimplePathStatusType,
+	LastError: ErrorType,
+	--
+	Reached: RBXScriptSignal<Model, PathWaypoint>,
+	WaypointReached: RBXScriptSignal<Model, PathWaypoint, PathWaypoint>,
+	Blocked: RBXScriptSignal<Model, PathWaypoint>,
+	Error: RBXScriptSignal<Model, ErrorType>,
+	Stopped: RBXScriptSignal<Model>
+}
+
+type ErrorType = "LimitReached"
+	| "TargetUnreachable"
+	| "ComputationError"
+	| "AgentStuck"
+
+export type SimplePathInternal = typeof(setmetatable({} :: {
 	_settings: SimplePathConfig,
 	_events: {
 		Reached: BindableEvent,
@@ -101,7 +122,7 @@ visualWaypoint.Material = Enum.Material.Neon
 visualWaypoint.Shape = Enum.PartType.Ball
 
 --[[ PRIVATE FUNCTIONS ]]--
-local function declareError(self: SimplePath, errorType)
+local function declareError(self: SimplePathInternal, errorType)
 	self._lastError = errorType
 	self._events.Error:Fire(errorType)
 end
@@ -133,7 +154,7 @@ local function destroyVisualWaypoints(waypoints: { BasePart }?)
 end
 
 --Get initial waypoint for non-humanoid
-local function getNonHumanoidWaypoint(self: SimplePath)
+local function getNonHumanoidWaypoint(self: SimplePathInternal)
 	--Account for multiple waypoints that are sometimes in the same place
 	for i = 2, #self._waypoints do
 		if (self._waypoints[i].Position - self._waypoints[i - 1].Position).Magnitude > 0.1 then
@@ -144,7 +165,7 @@ local function getNonHumanoidWaypoint(self: SimplePath)
 end
 
 --Make NPC jump
-local function setJumpState(self: SimplePath)
+local function setJumpState(self: SimplePathInternal)
 	pcall(function()
 		if self._humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and self._humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
 			self._humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -153,7 +174,7 @@ local function setJumpState(self: SimplePath)
 end
 
 --Primary move function
-local function move(self: SimplePath)
+local function move(self: SimplePathInternal)
 	if self._waypoints[self._currentWaypoint].Action == Enum.PathWaypointAction.Jump then
 		setJumpState(self)
 	end
@@ -161,19 +182,19 @@ local function move(self: SimplePath)
 end
 
 --Disconnect MoveToFinished connection when pathfinding ends
-local function disconnectMoveConnection(self: SimplePath)
+local function disconnectMoveConnection(self: SimplePathInternal)
 	self._moveConnection:Disconnect()
 	self._moveConnection = nil
 end
 
 --Fire the WaypointReached event
-local function invokeWaypointReached(self: SimplePath)
+local function invokeWaypointReached(self: SimplePathInternal)
 	local lastWaypoint = self._waypoints[self._currentWaypoint - 1]
 	local nextWaypoint = self._waypoints[self._currentWaypoint]
 	self._events.WaypointReached:Fire(self._agent, lastWaypoint, nextWaypoint)
 end
 
-local function moveToFinished(self: SimplePath, reached)
+local function moveToFinished(self: SimplePathInternal, reached)
 	
 	--Stop execution if Path is destroyed
 	if not getmetatable(self) then return end
@@ -215,7 +236,7 @@ local function moveToFinished(self: SimplePath, reached)
 end
 
 --Refer to Settings.COMPARISON_CHECKS
-local function comparePosition(self: SimplePath)
+local function comparePosition(self: SimplePathInternal)
 	if self._currentWaypoint == #self._waypoints then return end
 	self._position._count = ((self._agent.PrimaryPart.Position - self._position._last).Magnitude <= 0.07 and (self._position._count + 1)) or 0
 	self._position._last = self._agent.PrimaryPart.Position
@@ -239,7 +260,7 @@ function Path.GetNearestCharacter(fromPosition: Vector3)
 end
 
 --[[ CONSTRUCTOR ]]--
-function Path.new(agent: Model, agentParameters: AgentParameters, override: SimplePathConfig): SimplePath
+function Path.new(agent: Model, agentParameters: AgentParameters?, override: SimplePathConfig?): SimplePath
 	if not (agent and agent:IsA("Model") and agent.PrimaryPart) then
 		output(error, "Pathfinding agent must be a valid Model Instance with a set PrimaryPart.")
 	end
@@ -262,7 +283,7 @@ function Path.new(agent: Model, agentParameters: AgentParameters, override: Simp
 			_last = Vector3.new(),
 			_count = 0,
 		},
-	}, Path) :: SimplePath
+	}, Path) :: SimplePathInternal
 
 	--Configure settings
 	for setting, value in pairs(DEFAULT_SETTINGS) do
@@ -282,7 +303,7 @@ end
 
 
 --[[ NON-STATIC METHODS ]]--
-function Path.Destroy(self: SimplePath)
+function Path.Destroy(self: SimplePathInternal)
 	for _, event in pairs(self._events :: { [string]: BindableEvent }) do
 		event:Destroy()
 	end
@@ -297,7 +318,7 @@ function Path.Destroy(self: SimplePath)
 	end
 end
 
-function Path.Stop(self: SimplePath)
+function Path.Stop(self: SimplePathInternal)
 	if not self._humanoid then
 		output(error, "Attempt to call Path:Stop() on a non-humanoid.")
 		return
@@ -314,7 +335,7 @@ function Path.Stop(self: SimplePath)
 	self._events.Stopped:Fire(self._model)
 end
 
-function Path.Run(self: SimplePath, target: Vector3): boolean
+function Path.Run(self: SimplePathInternal, target: Vector3): boolean
 
 	--Non-humanoid handle case
 	if not target and not self._humanoid and self._target then
@@ -393,4 +414,7 @@ function Path.Run(self: SimplePath, target: Vector3): boolean
 	return true
 end
 
-return Path
+return Path :: {
+	new: typeof(Path.new),
+	GetNearestCharacter: typeof(Path.GetNearestCharacter)
+}
