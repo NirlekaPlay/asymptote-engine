@@ -4,6 +4,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
 local LookAtSuspectGoal = require(ServerScriptService.server.ai.goal.LookAtSuspectGoal)
+local PursueTrespasserGoal = require(ServerScriptService.server.ai.goal.PursueTrespasserGoal)
 local RandomPostGoal = require(ServerScriptService.server.ai.goal.RandomPostGoal)
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -49,7 +50,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 end
 
 function Guard.registerGoals(self: Guard): ()
-	--self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
+	self.goalSelector:addGoal(PursueTrespasserGoal.new(self), 3)
 	self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
 end
 

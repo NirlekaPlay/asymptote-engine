@@ -1,103 +1,55 @@
---!nonstrict
+--!strict
 
-local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SimplePath = require(ReplicatedStorage.shared.thirdparty.SimplePath)
 
 local PathNavigation = {}
 PathNavigation.__index = PathNavigation
 
-export type AgentParameters = {
-	AgentRadius: number?, -- these 2 values are useful so the agent wont get stuck in tight corners
-	AgentHeight: number?,
-	AgentCanJump: boolean?, -- due to the nature of our games, these 2 values are not necessary, leave them as false
-	AgentCanClimb: boolean?,
-	WaypointSpacing: number?,
-	Costs: {any}?
-}
-
 export type PathNavigation = typeof(setmetatable({} :: {
-	character: Model,
-	path: Path?,
-	pathAgentParams: AgentParameters?,
-	waypoints: { PathWaypoint },
-	currentWaypointIndex: number,
-	humanoidMoveToFinishedConnection: RBXScriptConnection?,
+	pathfinder: SimplePath.SimplePath,
+	reachedConnection: RBXScriptConnection?,
 	finished: boolean
 }, PathNavigation))
 
+type AgentParameters = SimplePath.AgentParameters
+
 function PathNavigation.new(character: Model, agentParams: AgentParameters?): PathNavigation
 	return setmetatable({
-		character = character,
-		path = nil :: Path?,
-		pathAgentParams = agentParams,
-		waypoints = {},
-		currentWaypointIndex = 1,
-		humanoidMoveToFinishedConnection = nil :: RBXScriptConnection?,
+		pathfinder = SimplePath.new(character, agentParams),
+		reachedConnection = nil :: RBXScriptConnection?,
 		finished = false
 	}, PathNavigation)
 end
 
-function PathNavigation.createPath(self: PathNavigation, toPos: Vector3): Path
-	-- pathfinding service in roblox is very weird.
-	-- a "path" is just a configured class that we use to compute and also
-	-- get the waypoints.
-
-	local path = PathfindingService:CreatePath(self.pathAgentParams)
-	path:ComputeAsync(self.character.PrimaryPart.Position, toPos)
-	local waypoints = path:GetWaypoints()
-
-	self.path = path
-	self.waypoints = waypoints
-	self.currentWaypointIndex = 2
-	self.finished = false
-
-	return path
-end
-
-function PathNavigation.disconnectMoveToConnection(self: PathNavigation): ()
-	local connection = self.humanoidMoveToFinishedConnection
-	if connection then
-		connection:Disconnect()
-		self.humanoidMoveToFinishedConnection = nil
+function PathNavigation.disconnectReachedConnection(self: PathNavigation): ()
+	if self.reachedConnection then
+		self.reachedConnection:Disconnect()
+		self.reachedConnection = nil
 	end
 end
 
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
-	-- reset for good measure (remove if causing performance problems)
-	-- for now, we dont implement a blocked or stuck handling
-
-	self:createPath(toPos)
-	self:disconnectMoveToConnection()
-	self.humanoidMoveToFinishedConnection = self.character.Humanoid.MoveToFinished:Connect(function()
-		self:onMoveToFinished()
-	end)
-
-	self.character.Humanoid:MoveTo(self.waypoints[self.currentWaypointIndex].Position)
-end
-
-function PathNavigation.onMoveToFinished(self: PathNavigation): ()
-	self.currentWaypointIndex += 1 -- move to the next waypoint first
-	local currentWaypointIndex = self.currentWaypointIndex
-	local waypoints = self.waypoints
-
-	if currentWaypointIndex > #waypoints then
+	warn("Moving to", toPos)
+	self.pathfinder.Visualize = true
+	self:disconnectReachedConnection()
+	self.finished = false
+	self.pathfinder:Run(toPos)
+	self.reachedConnection = self.pathfinder.Reached:Connect(function()
 		self.finished = true
-		self:disconnectMoveToConnection()
-		return
-	end
-
-	self.character.Humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+	end)
 end
 
 function PathNavigation.stop(self: PathNavigation)
-	self:disconnectMoveToConnection()
-	self.path = nil
+	--warn("Stopping navigation...")
+	self:disconnectReachedConnection()
+	if self.pathfinder.Status == "Active" then
+		self.pathfinder:Stop()
+	end
+end
 
-	local lastSpeed = self.character.Humanoid.WalkSpeed
-	local pos = self.character.HumanoidRootPart.Position
-	self.character.Humanoid.WalkSpeed = 0
-	-- move to its current position to stop moving
-	self.character.Humanoid:MoveTo(pos)
-	self.character.Humanoid.WalkSpeed = lastSpeed
+function PathNavigation.getPath(self: PathNavigation): Path
+	return (self.pathfinder :: SimplePath.SimplePathInternal)._path
 end
 
 return PathNavigation

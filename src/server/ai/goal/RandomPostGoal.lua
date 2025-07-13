@@ -13,6 +13,7 @@ export type RandomPostGoal = typeof(setmetatable({} :: {
 	timeToReleasePost: number,
 	posts: {GuardPost},
 	isAtTargetPost: boolean,
+	pathToPost: Path?
 }, RandomPostGoal)) & Goal.Goal
 
 type GuardPost = GuardPost.GuardPost
@@ -39,6 +40,7 @@ local function walkToPost(self: RandomPostGoal, post: GuardPost): ()
 	self.targetPost = post
 	self.state = "WALKING"
 	self.agent:getNavigation():moveTo(post.cframe.Position)
+	self.pathToPost = self.agent:getNavigation():getPath()
 end
 
 function RandomPostGoal.new(agent, posts: {GuardPost}): RandomPostGoal
@@ -49,7 +51,8 @@ function RandomPostGoal.new(agent, posts: {GuardPost}): RandomPostGoal
 		targetPost = nil,
 		isAtTargetPost = false,
 		timeToReleasePost = 0,
-		posts = posts
+		posts = posts,
+		pathToPost = nil
 	}, RandomPostGoal)
 end
 
@@ -72,7 +75,9 @@ end
 
 function RandomPostGoal.start(self: RandomPostGoal): ()
 	if self.targetPost and self.targetPost:isOccupied() then
-		if not self.isAtTargetPost then
+		-- quick hack to check if the agent has pathfinded when this goal got interrupted.
+		-- might add a more robust check to check if the agent is actually on the post.
+		if (not self.isAtTargetPost) or (self.isAtTargetPost and self.agent:getNavigation():getPath() ~= self.pathToPost) then
 			walkToPost(self, self.targetPost)
 		else
 			self.agent:getBodyRotationControl():setRotateToDirection(self.targetPost.cframe.LookVector)
@@ -90,6 +95,7 @@ function RandomPostGoal.start(self: RandomPostGoal): ()
 end
 
 function RandomPostGoal.stop(self: RandomPostGoal): ()
+	self.agent:getBodyRotationControl().targetDirection = nil
 	self.agent:getNavigation():stop()
 end
 
@@ -113,7 +119,7 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 			self.targetPost = nil
 			self.isAtTargetPost = false
 			rot:setRotateToDirection(nil)
-			nav:stop()
+			--nav:stop()
 		end
 	end
 

@@ -54,7 +54,7 @@ function BodyRotationControl.setRotateToDirection(self: BodyRotationControl, dir
 end
 
 function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number): ()
-	if self:isMoving() then
+	--[[if self:isMoving() then
 		return
 	end
 
@@ -65,7 +65,7 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 		local part = self.character.HumanoidRootPart
 		local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
 		part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
-	end
+	end]]
 end
 
 function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
