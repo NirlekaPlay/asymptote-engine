@@ -95,7 +95,7 @@ function RandomPostGoal.start(self: RandomPostGoal): ()
 end
 
 function RandomPostGoal.stop(self: RandomPostGoal): ()
-	self.agent:getBodyRotationControl().targetDirection = nil
+	self.agent:getBodyRotationControl():setRotateToDirection(nil)
 	self.agent:getNavigation():stop()
 end
 

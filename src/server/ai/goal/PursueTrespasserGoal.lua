@@ -88,7 +88,7 @@ function PursueTrespasserGoal.start(self: PursueTrespasserGoal): ()
 	else
 		print("the shit?")
 	end
-	self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingSuspect.Character.PrimaryPart.Position)
+	--self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingSuspect.Character.PrimaryPart.Position)
 end
 
 function PursueTrespasserGoal.stop(self: PursueTrespasserGoal): ()
@@ -139,6 +139,23 @@ local function disconnectConnections(self)
 	end
 end
 
+local playersLastPos: { [Player]: Vector3 } = {}
+local function isPlayerMoving(player: Player): boolean
+	local humanoidRootPart = player.Character.HumanoidRootPart
+	local curPos = humanoidRootPart.Position
+	local lastPos = playersLastPos[player]
+	if not lastPos then
+		playersLastPos[player] = curPos
+		return false
+	end
+
+	
+	curPos = Vector3.new(curPos.X, 0, curPos.Z)
+	lastPos = Vector3.new(lastPos.X, 0, lastPos.Z)
+	playersLastPos[player] = curPos
+	return (curPos - lastPos).Magnitude > 1e-6
+end
+
 function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: number): ()
 	-- oh god WHAT HAVE I CREATED.
 	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
@@ -179,12 +196,14 @@ function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: numb
 		end
 	end]]
 
-	self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingSuspect.Character.PrimaryPart.Position)
 	local distance = (agentPrimaryPart.Position - trespasserPrimaryPart.Position).Magnitude
 
 	if distance <= MIN_DISTANCE_TO_PLAYER then
-		nav:stop()
-		disconnectConnections(self)
+		if not isPlayerMoving(trespasser) then
+			print("player is not moving not stopping")
+			nav:stop()
+			disconnectConnections(self)
+		end
 	elseif distance >= MIN_DISTANCE_FROM_PLAYER then
 
 		-- ok. this might be more performant.
