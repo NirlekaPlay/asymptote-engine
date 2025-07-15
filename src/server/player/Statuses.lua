@@ -18,8 +18,8 @@ local StatusPriority: { PlayerStatus } = {
 }
 
 local StatusesWeight: { [PlayerStatus]: number } = {
-	MINOR_TRESPASSING = 3.5,
-	MAJOR_TRESPASSING = 4.0,
+	MINOR_TRESPASSING = 0,
+	MAJOR_TRESPASSING = 25,
 	MINOR_SUSPICIOUS = 2.0,
 	CRIMINAL_SUSPICIOUS = 5.0,
 	DISGUISED = 1.5,

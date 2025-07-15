@@ -1,20 +1,13 @@
 --!strict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
 local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
 
 local CONFIG = {
-	MAX_SUSPICION = 1.0,
-	SUSPICION_DECAY_RATE = 0.3,  -- How fast suspicion decreases per update
-	SUSPICION_RAISE_RATE = 0.1,  -- Base rate for raising suspicion,
-	SUSPICIOUS_THRESHOLD = 0.5
-}
-
-local SUSPICION_STATES = {
-	CALM = "CALM",
-	SUSPICIOUS = "SUSPICIOUS",
-	ALERTED = "ALERTED"
+	BASE_DETECTION_TIME = 2.5,
+	DECAY_RATE_PER_SECOND = 0.2222 -- Equivalent to 1% per 0.045s
 }
 
 --[=[
@@ -23,135 +16,62 @@ local SUSPICION_STATES = {
 ]=]
 local SuspicionManagement = {}
 SuspicionManagement.__index = SuspicionManagement
+
 export type SuspicionManagement = typeof(setmetatable({} :: {
 	model: Model,
 	suspicionLevels: { [Player]: number },
-	currentState: "CALM" | "SUSPICIOUS" | "ALERTED",
-	focusingSuspect: Player?
+	focusingOn: Player?
 }, SuspicionManagement))
+
+export type DetectableEntity = {
+
+}
 
 function SuspicionManagement.new(model: Model): SuspicionManagement
 	return setmetatable({
 		model = model,
 		suspicionLevels = {},
-		currentState = SUSPICION_STATES.CALM,
-		focusingSuspect = nil :: Player?
+		focusingOn = nil :: Player?
 	}, SuspicionManagement)
 end
 
-function SuspicionManagement.increaseSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
-	local suspicionWeight = PlayerStatusReg.getSuspiciousLevel(suspect):getWeight()
-	local increase = CONFIG.SUSPICION_RAISE_RATE * suspicionWeight * deltaTime
-	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
-	self.suspicionLevels[suspect] = math.min(CONFIG.MAX_SUSPICION, currentSuspicion + increase)
+function SuspicionManagement.update(
+	self: SuspicionManagement,
+	deltaTime: number,
+	visiblePlayers: { [Player]: true }
+): ()
 
-	if self.suspicionLevels[suspect] then 
-		TypedDetectionRemote:FireClient(suspect, self.suspicionLevels[suspect], self.model, self.model.PrimaryPart.Position)
-	end
-end
-
-function SuspicionManagement.decreaseSuspicion(self: SuspicionManagement, suspect: Player, deltaTime: number): ()
-	local currentSuspicion = self.suspicionLevels[suspect] or 0.0
-
-	if currentSuspicion > 0 then
-		local decrease = CONFIG.SUSPICION_DECAY_RATE * deltaTime
-		self.suspicionLevels[suspect] = math.max(0.0, currentSuspicion - decrease)
-
-		-- clean up once the level reaches zero
-		if self.suspicionLevels[suspect] <= 0 then
-			self.suspicionLevels[suspect] = nil
+	for player in pairs(visiblePlayers) do
+		local playerSusLevel = PlayerStatusReg.getSuspiciousLevel(player)
+		if not playerSusLevel:isSuspicious() then
+			continue
 		end
-	end
 
-	if self.suspicionLevels[suspect] then
-		TypedDetectionRemote:FireClient(suspect, self.suspicionLevels[suspect], self.model, self.model.PrimaryPart.Position)
-	end
-end
-
-function SuspicionManagement.getMostSuspiciousPlayer(self: SuspicionManagement): (Player?, number)
-	local highestPlayer = nil
-	local highestValue = -math.huge -- start with the smallest possible number
-
-	for player, suspicion in pairs(self.suspicionLevels) do
-		if suspicion > highestValue then
-			highestValue = suspicion
-			highestPlayer = player
+		local playerSus = self.suspicionLevels[player] or 0
+		if playerSus >= 1 then
+			continue
 		end
+		local weight = playerSusLevel:getWeight() or 0
+		local speedMultiplier = 1 + (weight / 100)
+		local increaseTime = CONFIG.BASE_DETECTION_TIME / speedMultiplier
+
+		playerSus = math.clamp(playerSus + increaseTime * deltaTime, 0.0, 1.0)
+		self.suspicionLevels[player] = playerSus
+
+		TypedDetectionRemote:FireClient(player, playerSus, self.model, self.model.PrimaryPart.Position)
 	end
 
-	return highestPlayer, highestValue
-end
-
-function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number, visiblePlayers: { [Player]: true }): ()
-	local currentState = self.currentState -- for the fucking typechecker to not complain like a bitch
-	local visiblePlayersSet: { [Player]: true } = {}
-	for player, _ in pairs(visiblePlayers) do
-		local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
-		if not susLevel then continue end
-
-		-- players with not sus statuses have 0 weight, making suspicion raising go stuck
-		if not susLevel:isSuspicious() then continue end
-
-		visiblePlayersSet[player] = true
-	end
-	
-	if currentState == SUSPICION_STATES.CALM then
-		-- increase suspicion for visible players, decrease for non-visible
-		for player, _ in visiblePlayersSet do
-			self:increaseSuspicion(player, deltaTime)
-		end
-		
-		-- decrease suspicion for all non visible players
-		for player, _ in pairs(self.suspicionLevels) do
-			if not visiblePlayersSet[player] then
-				self:decreaseSuspicion(player, deltaTime)
-			end
-		end
-		
-		-- check if any player reaches suspicious threshold
-		local mostSuspicious, highestValue = self:getMostSuspiciousPlayer()
-		if mostSuspicious and highestValue >= CONFIG.SUSPICIOUS_THRESHOLD then
-			self.currentState = SUSPICION_STATES.SUSPICIOUS
-			self.focusingSuspect = mostSuspicious
-		end
-		
-	elseif currentState == SUSPICION_STATES.SUSPICIOUS then
-		-- only raise suspicion for the focused suspect if they're visible
-		-- (fuck you typechecker)
-		if self.focusingSuspect :: Player and visiblePlayersSet[self.focusingSuspect :: Player] then
-			self:increaseSuspicion(self.focusingSuspect :: Player, deltaTime)
-		end
-		
-		-- decrease suspicion for all other players (including focused suspect if not visible)
-		for player, _ in pairs(self.suspicionLevels) do
-			if player ~= self.focusingSuspect or not visiblePlayersSet[player] then
-				self:decreaseSuspicion(player, deltaTime)
-			end
-		end
-		
-		-- check if focused suspect reaches maximum suspicion
-		local suspectValue = self.suspicionLevels[self.focusingSuspect :: Player]
-		if suspectValue and suspectValue >= CONFIG.MAX_SUSPICION then
-			self.currentState = SUSPICION_STATES.ALERTED
-		end
-
-		-- check if focused suspect's suspicion is below the threshold
-		if suspectValue and suspectValue < CONFIG.SUSPICIOUS_THRESHOLD then
-			self.currentState = SUSPICION_STATES.CALM
-			self.focusingSuspect = nil
-		end
-		
-	elseif currentState == SUSPICION_STATES.ALERTED then
-		-- only lower suspicion for all players except the focused suspect
-		for player, _ in pairs(self.suspicionLevels) do
-			if player ~= self.focusingSuspect then
-				self:decreaseSuspicion(player, deltaTime)
+	for player, level in pairs(self.suspicionLevels) do
+		if not visiblePlayers[player] then
+			local finalSus = math.max(0, level - CONFIG.DECAY_RATE_PER_SECOND * deltaTime)
+			if finalSus > 0 then
+				self.suspicionLevels[player] = finalSus
+				TypedDetectionRemote:FireClient(player, finalSus, self.model, self.model.PrimaryPart.Position)
+			else
+				self.suspicionLevels[player] = nil
 			end
 		end
 	end
-
-	--print(self.suspicionLevels)
-	--warn(`State: {self.currentState}, Focus: {self.focusingSuspect}`)
 end
 
 return SuspicionManagement
