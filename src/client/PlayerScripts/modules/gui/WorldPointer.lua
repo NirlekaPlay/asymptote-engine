@@ -2,17 +2,53 @@
 
 local camera = workspace.CurrentCamera
 
-local pointer = {}
+local WorldPointer = {}
+WorldPointer.__index = WorldPointer
 
-export type WorldPointer = {
-	read gui_frame: Frame,
-	read og_abs_pos: Vector2,
-	target_pos: Vector3
-}
+export type WorldPointer = typeof(setmetatable({} :: {
+	read guiFrame: Frame,
+	read originalAbsolutePos: Vector2,
+	targetPos: Vector3?
+}, WorldPointer))
 
-local function rotate_frame_by_anchor(frame: Frame, frame_og_abs_pos: Vector2, theta: number): ()
+local function calculateCenterCframe(camera: Camera)
+	local position = camera.CFrame.Position
+	local look_direction = camera.CFrame.LookVector * Vector3.new(1, 0, 1)
+	return CFrame.new(position, position + look_direction)
+end
+
+local function calculateAngle(center: CFrame, point: Vector3)
+	local relative_point = center:PointToObjectSpace(point)
+	local angle_radians = math.atan2(relative_point.Z, relative_point.X)
+	return math.deg(angle_radians) + 90
+end
+
+function WorldPointer.new(frame: Frame, targetPos: Vector3?): WorldPointer
+	return setmetatable({
+		guiFrame = frame,
+		originalAbsolutePos = frame.AbsolutePosition,
+		targetPos = targetPos :: Vector3?
+	}, WorldPointer)
+end
+
+function WorldPointer.update(self: WorldPointer): ()
+	if self.targetPos then
+		self:rotateFrameByAnchor()
+	end
+end
+
+function WorldPointer.setTargetPos(self: WorldPointer, pos: Vector3?): ()
+	self.targetPos = pos
+end
+
+function WorldPointer.rotateFrameByAnchor(self: WorldPointer): ()
+	local frame = self.guiFrame
 	local size = frame.AbsoluteSize;
-	local topLeftCorner = frame_og_abs_pos - size * frame.AnchorPoint
+	local topLeftCorner = self.originalAbsolutePos - size * frame.AnchorPoint
+
+	local centerCframe = calculateCenterCframe(camera)
+	local angle = calculateAngle(centerCframe, self.targetPos :: Vector3)
+	local theta = math.rad(angle)
 
 	local offset = size * frame.AnchorPoint;
 	local center = topLeftCorner + size / 2
@@ -29,36 +65,4 @@ local function rotate_frame_by_anchor(frame: Frame, frame_og_abs_pos: Vector2, t
 	frame.Rotation = math.deg(theta);
 end
 
-local function calculate_center_cframe(camera: Camera)
-	local position = camera.CFrame.Position
-	local look_direction = camera.CFrame.LookVector * Vector3.new(1, 0, 1)
-	return CFrame.new(position, position + look_direction)
-end
-
-local function calculate_angle(center: CFrame, point: Vector3)
-	local relative_point = center:PointToObjectSpace(point)
-	local angle_radians = math.atan2(relative_point.Z, relative_point.X)
-	return math.deg(angle_radians) + 90
-end
-
-local function rotate_frame_to_world_pos(world_pos: Vector3, frame: Frame, frame_og_abs_pos: Vector2)
-	local centerCFrame = calculate_center_cframe(camera)
-	local angle = calculate_angle(centerCFrame, world_pos)
-
-	rotate_frame_by_anchor(frame, frame_og_abs_pos, math.rad(angle))
-end
-
-
-function pointer.create(frame: Frame, target_pos: Vector3): WorldPointer
-	return {
-		gui_frame = frame,
-		og_abs_pos = frame.AbsolutePosition,
-		target_pos = target_pos
-	} :: WorldPointer
-end
-
-function pointer.update(self: WorldPointer)
-	rotate_frame_to_world_pos(self.target_pos, self.gui_frame, self.og_abs_pos)
-end
-
-return pointer
+return WorldPointer
