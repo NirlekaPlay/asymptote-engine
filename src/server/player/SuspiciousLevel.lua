@@ -21,7 +21,7 @@ function SuspiciousLevel.new(): SuspiciousLevel
 	}, SuspiciousLevel)
 end
 
-function SuspiciousLevel.getWeight(self: SuspiciousLevel): number
+function SuspiciousLevel.getTotalWeight(self: SuspiciousLevel): number
 	if self._weightNeedUpdate then
 		local totalWeight = 0
 		for status, _ in pairs(self.statuses) do
@@ -33,6 +33,10 @@ function SuspiciousLevel.getWeight(self: SuspiciousLevel): number
 	else
 		return self._weight
 	end
+end
+
+function SuspiciousLevel.getHighestPriorityStatus(self: SuspiciousLevel): Statuses.PlayerStatus
+	local maxPriority = 1
 end
 
 function SuspiciousLevel.getStatuses(self: SuspiciousLevel): { [PlayerStatus]: true }
