@@ -23,6 +23,7 @@ type DetectionMeterObject = {
 	worldPointer: WorldPointer,     -- The WorldPointer instance for rotating to its origin
 	meterUi: DetectionMeterUI,      -- Associated UI object
 	lastValue: number,              -- Last recorded detection value
+	lastRaiseTime: number,         -- Last time (in seconds) the detection value increased
 	currentRtween: RTween.RTween,   -- Tween controlling the fill animation
 	isRaising: boolean,             -- Whether detection value is currently increasing
 	doRotate: boolean               -- Whether WorldPointer should rotate the UI object
@@ -30,8 +31,8 @@ type DetectionMeterObject = {
 
 type WorldPointer = WorldPointer.WorldPointer
 
-local MIN_SUS_FOR_VISIBILITY = 0.3
-local ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.temp_undertale_alert
+local ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
+local WOOSH_SOUND = ReplicatedStorage.shared.assets.sounds.detection_woosh
 local REMOTE = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
 local DETECTION_GUI = Players.LocalPlayer.PlayerGui:WaitForChild("Detection")
 local FRAME_METER_REF = DETECTION_GUI.SusMeter
@@ -62,29 +63,40 @@ local function createMeterGuiObject(ui: Frame): DetectionMeterUI
 	return newDetectionMeterUi
 end
 
-local function createMeterObject(origin: Vector3): DetectionMeterObject
+local function createMeterObject(): DetectionMeterObject
 	local newUiInst = createMeterGuiObject(cloneMeterUi())
 	local newMeterObject = {}
 	newMeterObject.currentRtween = RTween.create(Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	newMeterObject.doRotate = true
 	newMeterObject.isRaising = false
 	newMeterObject.lastValue = 0
+	newMeterObject.lastRaiseTime = 2
 	newMeterObject.meterUi = newUiInst
-	newMeterObject.worldPointer = WorldPointer.new(newUiInst.rootFrame, origin)
+	newMeterObject.worldPointer = WorldPointer.new(newUiInst.rootFrame)
 
 	return newMeterObject
 end
 
-local function gerOrRegisterNewMeterObjectOf(character: Model, origin: Vector3): DetectionMeterObject
+local function gerOrRegisterNewMeterObjectOf(character: Model): DetectionMeterObject
 	local currentMeter = activeMeters[character]
 	if not currentMeter then
-		local newMeter = createMeterObject(origin)
+		local newMeter = createMeterObject()
 		newMeter.currentRtween:set_parallel(true)
 		activeMeters[character] = newMeter
 		currentMeter = newMeter
 	end
 
 	return currentMeter
+end
+
+local function getForwardUdim(posUdim: UDim2, rotDeg: number, distance: number): UDim2
+	local rotRad = math.rad(rotDeg - 90)
+	local direction = Vector2.new(math.cos(rotRad), math.sin(rotRad))
+
+	local xOffset = posUdim.X.Offset + direction.X * distance
+	local yOffset = posUdim.Y.Offset + direction.Y * distance
+
+	return UDim2.new(posUdim.X.Scale, xOffset, posUdim.Y.Scale, yOffset)
 end
 
 RunService.RenderStepped:Connect(function()
@@ -98,23 +110,76 @@ RunService.RenderStepped:Connect(function()
 end)
 
 REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, origin: Vector3)
-	local currentMeter = gerOrRegisterNewMeterObjectOf(character, origin)
+	--print(suspicionValue)
+	local currentMeter = gerOrRegisterNewMeterObjectOf(character)
 
 	-- keeps the suspicionValue between 0 and 1
 	local clampedSusValue = math.clamp(suspicionValue, 0, 1)
 	currentMeter.worldPointer:setTargetPos(origin)
+	currentMeter.worldPointer:update()
 	currentMeter.meterUi.fillController.Size = UDim2.fromScale(clampedSusValue, 1)
 
 	if suspicionValue > currentMeter.lastValue then
+		--warn("more than last value, increase")
 		currentMeter.meterUi.fillBar.ImageColor3 = Color3.new(1, 1, 1)
+		currentMeter.lastRaiseTime = 2
 		currentMeter.isRaising = true
 	elseif suspicionValue < currentMeter.lastValue then
 		currentMeter.meterUi.fillBar.ImageColor3 = Color3.new(0.509804, 0.509804, 0.509804)
+		currentMeter.lastRaiseTime -= RunService.RenderStepped:Wait()
 		currentMeter.isRaising = false
+	end
+
+	local isPlaying = WOOSH_SOUND.IsPlaying
+	if currentMeter.isRaising then
+		
+		if not isPlaying then
+			WOOSH_SOUND:Play()
+		end
+
+		WOOSH_SOUND.Volume = math.map(suspicionValue, 0, 1, 0, 3)
+	else
+		if not isPlaying then
+			WOOSH_SOUND:Play()
+		end
+
+		WOOSH_SOUND.Volume = math.map(currentMeter.lastRaiseTime, 0, 2, 0, 0.5)
+	end
+
+	currentMeter.lastValue = suspicionValue
+
+	if (currentMeter.lastRaiseTime <= 0) or (suspicionValue <= 0.01) then
+		WOOSH_SOUND:Stop()
+		currentMeter.meterUi.rootFrame.Visible = false
+		return
+	else
+		currentMeter.meterUi.rootFrame.Visible = true
+	end
+
+	if suspicionValue == 1 then
+		WOOSH_SOUND:Stop()
+		local currentMeterUi = currentMeter.meterUi
+		local rootFrame = currentMeterUi.rootFrame
+		local currentTween = currentMeter.currentRtween
+		local distance = 30
+		local udimPos = getForwardUdim(rootFrame.Position, rootFrame.Rotation, distance)
+
+		local isTweenPlaying = currentTween.is_playing
+		if isTweenPlaying then
+			currentTween:kill() -- FYM TRUE??!?!?! THIS SHIT AINT A BOOLEAN YOU CUNT
+		end
+		currentMeter.doRotate = false -- due to the meter constantly rotating, tweening it up while rotating can make it rotate weirdly. so a lazy solution to this is to not rotate it.
+		currentTween:tween_instance(currentMeterUi.backgroundBar, {ImageTransparency = 1}, .3)
+		currentTween:tween_instance(currentMeterUi.fillBar, {ImageTransparency = 1}, .3)
+		currentTween:tween_instance(currentMeterUi.rootFrame, {Position = udimPos}, .3)
+		currentTween:tween_instance(currentMeterUi.fillBar, {ImageColor3 = Color3.new(1, 0, 0)}, .3)
+		currentTween:play()
+		ALERTED_SOUND:Play()
+		return
+	else
+		currentMeter.doRotate = true
 	end
 
 	currentMeter.meterUi.fillBar.ImageTransparency = 0
 	currentMeter.meterUi.backgroundBar.ImageTransparency = 0.5
-
-	currentMeter.lastValue = suspicionValue
 end)
