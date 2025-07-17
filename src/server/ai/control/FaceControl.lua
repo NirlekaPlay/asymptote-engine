@@ -17,9 +17,16 @@ local FACE_ALIAS_ASSET_ID = {
 	Angry = {
 		9806562460,
 		13873040061,
-		13716274037,
+		9806560629,
 		13873041494,
 		13716272920
+	},
+	Unconscious = {
+		13873048302,
+		13716143698,
+		9806562460,
+		13873045657,
+		13716145376
 	}
 }
 
@@ -41,6 +48,7 @@ export type FaceControl = typeof(setmetatable({} :: {
 type FaceAlias = "Neutral"
 	| "Shocked"
 	| "Angry"
+	| "Unconscious"
 	| "None"
 
 function FaceControl.new(character: Model): FaceControl
@@ -68,6 +76,8 @@ function FaceControl.setFace(self: FaceControl, faceAlias: FaceAlias): ()
 		local newDecal = self:createDecal(id :: number) -- how are you this fucking retarded
 		table.insert(self.currentFaceDecals, newDecal)
 	end
+
+	self.currentFaceAlias = faceAlias
 end
 
 function FaceControl.createDecal(self: FaceControl, assetId: number): Decal
