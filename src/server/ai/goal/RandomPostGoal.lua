@@ -1,68 +1,43 @@
 --!nonstrict
-local ServerScriptService = game:GetService("ServerScriptService")
 
-local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+local Agent = require("../../Agent")
 local GuardPost = require("../navigation/GuardPost")
 local Goal = require("./Goal")
 
 local MIN_TIME_TO_PATROL_AGAIN = 1 -- seconds
+local MIN_RANDOM_WAIT_TIME = 5
+local MAX_RANDOM_WAIT_TIME = 10
 
 local RandomPostGoal = {}
 RandomPostGoal.__index = RandomPostGoal
 
 export type RandomPostGoal = typeof(setmetatable({} :: {
-	agent: any,
+	agent: Agent.Agent,
 	state: "UNEMPLOYED" | "WALKING" | "STAYING" | "RESUMING",
 	targetPost: GuardPost?,
 	timeToReleasePost: number,
-	posts: {GuardPost},
+	posts: { GuardPost },
 	isAtTargetPost: boolean,
 	pathToPost: Path?
 }, RandomPostGoal)) & Goal.Goal
 
 type GuardPost = GuardPost.GuardPost
 
-local function getRandomUnoccupiedPost(posts: { GuardPost }): GuardPost?
-	local unoccupied = {}
-
-	for _, post in ipairs(posts) do
-		if not post:isOccupied() then
-			table.insert(unoccupied, post)
-		end
-	end
-
-	if #unoccupied == 0 then
-		return nil
-	end
-
-	return unoccupied[math.random(1, #unoccupied)]
-end
-
-local function walkToPost(self: RandomPostGoal, post: GuardPost): ()
-	post:occupy()
-	self.isAtTargetPost = false
-	self.targetPost = post
-	self.state = "WALKING"
-	self.agent:getNavigation():moveTo(post.cframe.Position)
-	self.pathToPost = self.agent:getNavigation():getPath()
-end
-
-function RandomPostGoal.new(agent, posts: {GuardPost}): RandomPostGoal
+function RandomPostGoal.new(agent, posts: { GuardPost }): RandomPostGoal
 	return setmetatable({
 		flags = { "MOVING" },
 		agent = agent,
 		state = "UNEMPLOYED",
-		targetPost = nil,
+		targetPost = nil :: GuardPost?,
 		isAtTargetPost = false,
 		timeToReleasePost = 0,
 		posts = posts,
-		pathToPost = nil
+		pathToPost = nil :: Path?
 	}, RandomPostGoal)
 end
 
 function RandomPostGoal.canUse(self: RandomPostGoal): boolean
-	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
-	return not susMan.amICurious
+	return not (self.agent:getSuspicionManager().amICurious)
 end
 
 function RandomPostGoal.canContinueToUse(self: RandomPostGoal): boolean
@@ -94,21 +69,24 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	if self.state == "RESUMING" then
 		self.resumeDelayRemaining -= deltaTime
 		if self.resumeDelayRemaining <= 0 then
-			-- now begin regular logic
-			if self.targetPost and self.targetPost:isOccupied() then
-				if (not self.isAtTargetPost) or (self.isAtTargetPost and nav:getPath() ~= self.pathToPost) then
-					walkToPost(self, self.targetPost)
-				else
-					rot:setRotateToDirection(self.targetPost.cframe.LookVector)
-					self.state = "STAYING"
-				end
+			return
+		end
+
+		-- now begin regular logic
+		if self.targetPost and self.targetPost:isOccupied() then
+			if (not self.isAtTargetPost) or (self.isAtTargetPost and nav:getPath() ~= self.pathToPost) then
+				self:moveToPost(self.targetPost)
 			else
-				local post = getRandomUnoccupiedPost(self.posts)
-				if post then
-					walkToPost(self, post)
-				end
+				rot:setRotateToDirection(self.targetPost.cframe.LookVector)
+				self.state = "STAYING"
+			end
+		else
+			local post = self:getRandomUnoccupiedPost()
+			if post then
+				self:moveToPost(post)
 			end
 		end
+
 		return -- prevent further logic this frame
 	end
 
@@ -116,7 +94,7 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 		nav.finished = false
 		self.state = "STAYING"
 		self.isAtTargetPost = true
-		self.timeToReleasePost = math.random(4, 7)
+		self.timeToReleasePost = math.random(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
 		rot:setRotateToDirection(self.targetPost.cframe.LookVector)
 	elseif self.state == "STAYING" then
 		self.timeToReleasePost -= deltaTime
@@ -132,6 +110,31 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	if self.state == "UNEMPLOYED" then
 		self:start()
 	end
+end
+
+function RandomPostGoal.moveToPost(self: RandomPostGoal, post: GuardPost): ()
+	post:occupy()
+	self.isAtTargetPost = false
+	self.targetPost = post
+	self.state = "WALKING"
+	self.agent:getNavigation():moveTo(post.cframe.Position)
+	self.pathToPost = self.agent:getNavigation():getPath()
+end
+
+function RandomPostGoal.getRandomUnoccupiedPost(self: RandomPostGoal): GuardPost?
+	local unoccupied = {}
+
+	for _, post in ipairs(self.posts) do
+		if not post:isOccupied() then
+			table.insert(unoccupied, post)
+		end
+	end
+
+	if #unoccupied == 0 then
+		return nil
+	end
+
+	return unoccupied[math.random(1, #unoccupied)]
 end
 
 function RandomPostGoal.requiresUpdating(self: RandomPostGoal): boolean
