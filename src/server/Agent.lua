@@ -1,0 +1,64 @@
+--!strict
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
+local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
+local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
+local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
+local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
+local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
+local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
+local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+
+--[=[
+	@class Agent
+
+	An abstract Agent.
+]=]
+local Agent = {}
+Agent.__index = Agent
+
+export type Agent = typeof(setmetatable({} :: {
+	character: Model,
+	alive: boolean,
+	bodyRotationControl: BodyRotationControl.BodyRotationControl,
+	bubbleChatControl: BubbleChatControl.BubbleChatControl,
+	lookControl: LookControl.LookControl,
+	faceControl: FaceControl.FaceControl,
+	goalSelector: GoalSelector.GoalSelector,
+	pathNavigation: PathNavigation.PathNavigation,
+	suspicionManager: SuspicionManagement.SuspicionManagement,
+	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> },
+	sensors: { any }
+}, Agent))
+
+function Agent.isAlive(self: Agent): boolean
+	return self.alive
+end
+
+function Agent.getNavigation(self: Agent): PathNavigation.PathNavigation
+	return self.pathNavigation
+end
+
+function Agent.getSuspicionManager(self: Agent): SuspicionManagement.SuspicionManagement
+	return self.suspicionManager
+end
+
+function Agent.getBodyRotationControl(self: Agent): BodyRotationControl.BodyRotationControl
+	return self.bodyRotationControl
+end
+
+function Agent.getLookControl(self: Agent): LookControl.LookControl
+	return self.lookControl
+end
+
+function Agent.getBubbleChatControl(self: Agent): BubbleChatControl.BubbleChatControl
+	return self.bubbleChatControl
+end
+
+function Agent.getPrimaryPart(self: Agent): BasePart
+	return self.character.PrimaryPart :: BasePart
+end
+
+return Agent
