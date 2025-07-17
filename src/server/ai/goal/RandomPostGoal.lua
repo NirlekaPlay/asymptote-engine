@@ -1,14 +1,18 @@
 --!nonstrict
+local ServerScriptService = game:GetService("ServerScriptService")
 
+local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local GuardPost = require("../navigation/GuardPost")
 local Goal = require("./Goal")
+
+local MIN_TIME_TO_PATROL_AGAIN = 1 -- seconds
 
 local RandomPostGoal = {}
 RandomPostGoal.__index = RandomPostGoal
 
 export type RandomPostGoal = typeof(setmetatable({} :: {
 	agent: any,
-	state: "UNEMPLOYED" | "WALKING" | "STAYING",
+	state: "UNEMPLOYED" | "WALKING" | "STAYING" | "RESUMING",
 	targetPost: GuardPost?,
 	timeToReleasePost: number,
 	posts: {GuardPost},
@@ -45,7 +49,7 @@ end
 
 function RandomPostGoal.new(agent, posts: {GuardPost}): RandomPostGoal
 	return setmetatable({
-		flags = {},
+		flags = { "MOVING" },
 		agent = agent,
 		state = "UNEMPLOYED",
 		targetPost = nil,
@@ -57,8 +61,8 @@ function RandomPostGoal.new(agent, posts: {GuardPost}): RandomPostGoal
 end
 
 function RandomPostGoal.canUse(self: RandomPostGoal): boolean
-	local susMan = self.agent:getSuspicionManager()
-	return susMan.currentState ~= "SUSPICIOUS" and susMan.currentState ~= "ALERTED"
+	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
+	return not susMan.amICurious
 end
 
 function RandomPostGoal.canContinueToUse(self: RandomPostGoal): boolean
@@ -74,24 +78,8 @@ function RandomPostGoal.getFlags(self: RandomPostGoal): {Flag}
 end
 
 function RandomPostGoal.start(self: RandomPostGoal): ()
-	if self.targetPost and self.targetPost:isOccupied() then
-		-- quick hack to check if the agent has pathfinded when this goal got interrupted.
-		-- might add a more robust check to check if the agent is actually on the post.
-		if (not self.isAtTargetPost) or (self.isAtTargetPost and self.agent:getNavigation():getPath() ~= self.pathToPost) then
-			walkToPost(self, self.targetPost)
-		else
-			self.agent:getBodyRotationControl():setRotateToDirection(self.targetPost.cframe.LookVector)
-		end
-	else
-		--warn("Attempt to find post...")
-		local post = getRandomUnoccupiedPost(self.posts)
-		if not post then
-			--warn("No unoccupied posts found")
-			return
-		end
-
-		walkToPost(self, post)
-	end
+	self.resumeDelayRemaining = MIN_TIME_TO_PATROL_AGAIN
+	self.state = "RESUMING" -- introduce a temporary state
 end
 
 function RandomPostGoal.stop(self: RandomPostGoal): ()
@@ -103,6 +91,27 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	local nav = self.agent:getNavigation()
 	local rot = self.agent:getBodyRotationControl()
 
+	if self.state == "RESUMING" then
+		self.resumeDelayRemaining -= deltaTime
+		if self.resumeDelayRemaining <= 0 then
+			-- now begin regular logic
+			if self.targetPost and self.targetPost:isOccupied() then
+				if (not self.isAtTargetPost) or (self.isAtTargetPost and nav:getPath() ~= self.pathToPost) then
+					walkToPost(self, self.targetPost)
+				else
+					rot:setRotateToDirection(self.targetPost.cframe.LookVector)
+					self.state = "STAYING"
+				end
+			else
+				local post = getRandomUnoccupiedPost(self.posts)
+				if post then
+					walkToPost(self, post)
+				end
+			end
+		end
+		return -- prevent further logic this frame
+	end
+
 	if self.state == "WALKING" and nav.finished and not self.isAtTargetPost then
 		nav.finished = false
 		self.state = "STAYING"
@@ -110,8 +119,6 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 		self.timeToReleasePost = math.random(4, 7)
 		rot:setRotateToDirection(self.targetPost.cframe.LookVector)
 	elseif self.state == "STAYING" then
-		--local remaining = self.timeToReleasePost
-		--print(`Still waiting at post for {math.ceil(remaining)}s...`)
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
 			self.state = "UNEMPLOYED"
@@ -119,7 +126,6 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 			self.targetPost = nil
 			self.isAtTargetPost = false
 			rot:setRotateToDirection(nil)
-			--nav:stop()
 		end
 	end
 

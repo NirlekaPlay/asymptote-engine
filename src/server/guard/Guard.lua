@@ -2,6 +2,9 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
+local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
+local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
+local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
 local LookAtSuspectGoal = require(ServerScriptService.server.ai.goal.LookAtSuspectGoal)
 local PursueTrespasserGoal = require(ServerScriptService.server.ai.goal.PursueTrespasserGoal)
@@ -18,7 +21,11 @@ Guard.__index = Guard
 
 export type Guard = typeof(setmetatable({} :: {
 	character: Model,
+	alive: boolean,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
+	lookControl: LookControl.LookControl,
+	faceControl: FaceControl.FaceControl,
+	bubbleChatControl: BubbleChatControl.BubbleChatControl,
 	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
@@ -31,6 +38,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	local self = {}
 
 	self.character = character
+	self.alive = true
 	self.bodyRotationControl = BodyRotationControl.new(character)
 	self.goalSelector = GoalSelector.new()
 	self.pathNavigation = PathNavigation.new(character, {
@@ -45,22 +53,69 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.memories = {
 		[MemoryModuleTypes.VISIBLE_PLAYERS] = ExpireableValue.new({}, math.huge)
 	}
+	self.lookControl = LookControl.new(character)
+	self.faceControl = FaceControl.new(character)
+	self.faceControl:setFace("Neutral")
+	self.bubbleChatControl = BubbleChatControl.new(character)
+
+	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
+	humanoid.Died:Once(function()
+		self:onDied()
+		self.alive = false
+	end)
 
 	return setmetatable(self, Guard)
 end
 
 function Guard.registerGoals(self: Guard): ()
+	self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 2)
 	self.goalSelector:addGoal(PursueTrespasserGoal.new(self), 3)
 	self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
+	if not self:isAlive() then
+		return
+	end
+
 	for _, sensor in  ipairs(self.sensors) do
 		sensor:update()
 	end
 	self.suspicionManager:update(deltaTime, self.memories[MemoryModuleTypes.VISIBLE_PLAYERS].value)
 	self.goalSelector:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
+	self.lookControl:update()
+	
+	local hasExcludedSuspect = self.suspicionManager.excludedSuspect
+	if hasExcludedSuspect then
+		self.faceControl:setFace("Angry")
+	else
+		self.faceControl:setFace("Neutral")
+	end
+
+	if not self.memories.IS_DEALING_WITH_SOMETHING_HERE then
+		self.memories.IS_DEALING_WITH_SOMETHING_HERE = ExpireableValue.nonExpiring(false)
+	end
+
+	if not self.memories.IS_DEALING_WITH_SOMETHING_HERE.value then
+		for player, expireableValue in pairs(self.memories.WARNED_PLAYERS) do
+			if expireableValue:isExpired() then
+				self.memories.WARNED_PLAYERS[player] = nil
+				continue
+			end
+			expireableValue:update(deltaTime)
+		end
+	end
+
+	--print(self.memories.WARNED_PLAYERS)
+end
+
+function Guard.onDied(self: Guard)
+	self.faceControl:setFace("Unconscious")
+end
+
+function Guard.isAlive(self: Guard): boolean
+	return self.alive
 end
 
 function Guard.getNavigation(self: Guard): PathNavigation.PathNavigation
@@ -73,6 +128,14 @@ end
 
 function Guard.getBodyRotationControl(self: Guard): BodyRotationControl.BodyRotationControl
 	return self.bodyRotationControl
+end
+
+function Guard.getLookControl(self: Guard): LookControl.LookControl
+	return self.lookControl
+end
+
+function Guard.getBubbleChatControl(self: Guard): BubbleChatControl.BubbleChatControl
+	return self.bubbleChatControl
 end
 
 function Guard.getPrimaryPart(self: Guard): BasePart

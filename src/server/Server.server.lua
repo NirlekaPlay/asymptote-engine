@@ -26,7 +26,7 @@ local MAJOR_TRESPASSING_ZONE: TrespassingZone.ZoneConfig = {
 }
 
 local zones: { TrespassingZone.TrespassingZone } = {}
-local guards: { Guard.Guard } = {}
+local guards: { [Model]: Guard.Guard } = {}
 local currentGuardPosts: { GuardPost.GuardPost } = {}
 
 local function setupGuardPosts()
@@ -54,9 +54,16 @@ setupTrespassingZones()
 
 local function setupGuards()
 	for _, guard in ipairs(CollectionService:GetTagged(GUARD_TAG_NAME)) do
+		local humanoid = guard:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Died:Once(function()
+				--guards[guard]:destroy()
+				--guards[guard] = nil
+			end)
+		end
 		local newGuard = Guard.new(guard, currentGuardPosts)
 		newGuard:registerGoals()
-		table.insert(guards, newGuard)
+		guards[guard] = newGuard
 	end
 end
 
@@ -67,7 +74,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		zone:update()
 	end
 
-	for _, guard in ipairs(guards) do
+	for model, guard in pairs(guards) do
 		guard:update(deltaTime)
 	end
 end)

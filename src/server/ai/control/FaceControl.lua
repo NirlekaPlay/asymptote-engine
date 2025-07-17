@@ -84,7 +84,7 @@ function FaceControl.createDecal(self: FaceControl, assetId: number): Decal
 	local newDecal = Instance.new("Decal")
 	newDecal.TextureContent = Content.fromAssetId(assetId)
 	newDecal.Face = Enum.NormalId.Front
-	newDecal.Parent = self.head
+	newDecal.Parent = self.head:FindFirstChild("Face Decals") -- use the HDIfy plugin so it can have HD faces
 
 	return newDecal
 end

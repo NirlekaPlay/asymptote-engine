@@ -59,12 +59,30 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 	end
 
 	if self.targetDirection then
-		if not (self.targetDirection.Magnitude > 0) then
-			return
+		if not self.character:FindFirstChild("FBB") then
+			if not (self.targetDirection.Magnitude > 0) then
+				return
+			end
+			local part = self.character.HumanoidRootPart
+			local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
+			part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
+		else
+			if not (self.targetDirection.Magnitude > 0) then
+				return
+			end
+			local part = self.character.HumanoidRootPart
+
+			-- Construct the base CFrame looking toward the target direction
+			local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
+
+			-- Add an additional 30-degree rotation around the Y-axis
+			local rotationOffset = CFrame.Angles(0, math.rad(57), 0)
+			targetCFrame = targetCFrame * rotationOffset
+
+			-- Smoothly interpolate towards the new rotated target
+			part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
+
 		end
-		local part = self.character.HumanoidRootPart
-		local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
-		part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
 	end
 end
 
