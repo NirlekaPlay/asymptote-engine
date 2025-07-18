@@ -39,12 +39,12 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 
 	self.character = character
 	self.alive = true
-	self.bodyRotationControl = BodyRotationControl.new(character)
 	self.goalSelector = GoalSelector.new()
 	self.pathNavigation = PathNavigation.new(character, {
 		AgentRadius = 8,
 		AgentHeight = 8
 	})
+	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.suspicionManager = SuspicionManagement.new(character)
 	self.designatedPosts = designatedPosts
 	self.sensors = {
@@ -63,6 +63,14 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 		self:onDied()
 		self.alive = false
 	end)
+
+	-- to fix the motherfucking shitty ass walk animation
+	local isPathfinding = Instance.new("BoolValue")
+	isPathfinding.Value = false
+	isPathfinding.Name = "isPathfinding"
+	isPathfinding.Parent = character
+
+	self.isPathfindingValue = isPathfinding
 
 	return setmetatable(self, Guard)
 end
@@ -85,6 +93,12 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	self.goalSelector:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
+
+	if self.pathNavigation.pathfinder.Status == "Active" then
+		self.isPathfindingValue.Value = true
+	else
+		self.isPathfindingValue.Value = false
+	end
 	
 	local hasExcludedSuspect = self.suspicionManager.excludedSuspect
 	if hasExcludedSuspect then
@@ -106,8 +120,6 @@ function Guard.update(self: Guard, deltaTime: number): ()
 			expireableValue:update(deltaTime)
 		end
 	end
-
-	--print(self.memories.WARNED_PLAYERS)
 end
 
 function Guard.onDied(self: Guard)

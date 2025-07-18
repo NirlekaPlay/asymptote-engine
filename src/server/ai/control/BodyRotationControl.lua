@@ -1,5 +1,8 @@
 --!nonstrict
 
+local PathNavigation = require("../navigation/PathNavigation")
+local MAX_ROTATION_COOLDOWN = 0 -- default to 0.3
+
 --[=[
 	@class BodyRotationControl
 
@@ -10,16 +13,20 @@ BodyRotationControl.__index = BodyRotationControl
 
 export type BodyRotationControl = typeof(setmetatable({} :: {
 	character: Model,
+	pathNav: PathNavigation.PathNavigation, -- to avoid circular dependency
 	lastPos: Vector3,
 	targetDirection: Vector3?,
-	rotationSpeed: number
+	rotationSpeed: number,
+	rotationCooldown: number
 }, BodyRotationControl))
 
-function BodyRotationControl.new(character: Model, speed: number?): BodyRotationControl
+function BodyRotationControl.new(character: Model, pathNav: PathNavigation.PathNavigation, speed: number?): BodyRotationControl
 	return setmetatable({
 		character = character,
+		pathNav = pathNav,
 		targetDirection = nil :: Vector3?,
 		rotationSpeed = speed or 7,
+		rotationCooldown = MAX_ROTATION_COOLDOWN,
 		lastPos = character.HumanoidRootPart.Position
 	}, BodyRotationControl)
 end
@@ -54,7 +61,13 @@ function BodyRotationControl.setRotateToDirection(self: BodyRotationControl, dir
 end
 
 function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number): ()
-	if self:isMoving() then
+	if self.pathNav:isMoving() then
+		self.rotationCooldown = MAX_ROTATION_COOLDOWN
+		return
+	end
+
+	if not (self.rotationCooldown <= 0) then
+		self.rotationCooldown -= deltaTime
 		return
 	end
 

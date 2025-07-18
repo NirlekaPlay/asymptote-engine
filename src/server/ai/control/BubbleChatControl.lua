@@ -1,4 +1,5 @@
---!strict
+--!nonstrict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TypedBubbleChatRemote = require(ReplicatedStorage.shared.network.TypedBubbleChatRemote)
 

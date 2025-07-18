@@ -30,7 +30,6 @@ function PathNavigation.disconnectReachedConnection(self: PathNavigation): ()
 end
 
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
-	warn("Moving to", toPos)
 	self.pathfinder.Visualize = true
 	self:disconnectReachedConnection()
 	self.finished = false
@@ -40,8 +39,11 @@ function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
 	end)
 end
 
+function PathNavigation.isMoving(self: PathNavigation): boolean
+	return self.pathfinder.Status == "Active"
+end
+
 function PathNavigation.stop(self: PathNavigation)
-	--warn("Stopping navigation...")
 	self:disconnectReachedConnection()
 	if self.pathfinder.Status == "Active" then
 		self.pathfinder:Stop()
