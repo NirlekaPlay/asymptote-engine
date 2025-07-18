@@ -2,7 +2,7 @@
 
 local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
-local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
 	@class TargetNearbySensor
@@ -34,11 +34,11 @@ function TargetNearbySensor.update(self: TargetNearbySensor, agentPosition: Vect
 		if not primaryPart then
 			continue
 		end
-		local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
+		local susLevel = PlayerStatusRegistry.getPlayerStatuses(player)
 		if not susLevel then
 			continue
 		end
-		if not susLevel:isSuspicious() then
+		if not susLevel:hasAnyStatus() then
 			continue
 		end
 

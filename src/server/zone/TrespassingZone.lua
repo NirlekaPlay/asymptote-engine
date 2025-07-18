@@ -3,8 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedStatusRemote)
-local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.server.player.Statuses)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local TriggerZone = require("./TriggerZone")
 
 --[=[
@@ -54,8 +53,8 @@ function TrespassingZone.fromPart(part: BasePart, config: ZoneConfig): Trespassi
 end
 
 function TrespassingZone.onPlayerEnter(self: TrespassingZone, player: Player): ()
-	local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
-	local isDisguised = susLevel:hasStatus(Statuses.PLAYER_STATUSES.DISGUISED)
+	local susLevel = PlayerStatusRegistry.getPlayerStatuses(player)
+	local isDisguised = susLevel:hasStatus("DISGUISED")
 	local finalStatus: TrespassingStatusType
 
 	if isDisguised then
@@ -66,17 +65,17 @@ function TrespassingZone.onPlayerEnter(self: TrespassingZone, player: Player): (
 
 	if finalStatus then
 		self.playersGivenStatus[player] = finalStatus
-		susLevel:setStatus(finalStatus, true)
+		susLevel:addStatus(finalStatus)
 		TypedStatusRemote:FireClient(player, finalStatus, true)
 	end
 end
 
 function TrespassingZone.onPlayerLeave(self: TrespassingZone, player: Player): ()
-	local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
+	local susLevel = PlayerStatusRegistry.getPlayerStatuses(player)
 	local givenStatus = self.playersGivenStatus[player]
 
 	if givenStatus then
-		susLevel:setStatus(givenStatus, false)
+		susLevel:removeStatus(givenStatus)
 		TypedStatusRemote:FireClient(player, givenStatus, false)
 	end
 end

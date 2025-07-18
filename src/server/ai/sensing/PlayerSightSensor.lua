@@ -14,14 +14,20 @@ PlayerSightSensor.__index = PlayerSightSensor
 export type PlayerSightSensor = typeof(setmetatable({} :: {
 	agent: any,
 	sightRadius: number,
-	sightPeriphAngle: number
+	sightPeriphAngle: number,
+	rayParams: RaycastParams
 }, PlayerSightSensor))
 
 function PlayerSightSensor.new(agent, sightRadius: number, sightPeriphAngle: number): PlayerSightSensor
 	return setmetatable({
 		agent = agent,
 		sightRadius = sightRadius,
-		sightPeriphAngle = sightPeriphAngle
+		sightPeriphAngle = sightPeriphAngle,
+		rayParams = (function()
+			local newRayParams = RaycastParams.new()
+			newRayParams.FilterDescendantsInstances = { agent.character }
+			return newRayParams
+		end)()
 	}, PlayerSightSensor)
 end
 

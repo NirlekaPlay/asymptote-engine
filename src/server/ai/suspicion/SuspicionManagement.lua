@@ -1,23 +1,15 @@
 --!strict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
+
+local PlayerStatus = require("../../player/PlayerStatus")
+local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
 local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
-local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.server.player.Statuses)
 
 local CONFIG = {
 	BASE_DETECTION_TIME = 2.5,      -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
 	DECAY_RATE_PER_SECOND = 0.2222, -- Equivalent to 1% per 0.045s
 	FOCUS_DISTANCE_THRESHOLD = 50,  -- Maximum distance to consider for focusing
-}
-
-local STATUSES_BY_PRIORITY = {
-	DISGUISED = 1,
-	MINOR_TRESPASSING = 2,
-	MINOR_SUSPICIOUS = 3,
-	MAJOR_TRESPASSING = 4,
-	CRIMINAL_SUSPICIOUS = 5,
-	ARMED = 6
 }
 
 --[=[
@@ -32,7 +24,7 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 	suspicionLevels: { [Player]: number },
 	excludedSuspect: {
 		suspect: Player,
-		forStatus: Statuses.PlayerStatus
+		forStatus: PlayerStatus.PlayerStatusType
 	}?,
 	focusingOn: Player?,
 	curiousTimer: number,
@@ -75,13 +67,13 @@ function SuspicionManagement.calculatePlayerPriority(
 	end
 	
 	-- Get highest priority status
-	local highestStatus = self:getHighestPriorityStatusOfPlayer(player)
-	local statusPriority = highestStatus and STATUSES_BY_PRIORITY[highestStatus] or 0
+	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+	local _, statusPriority = playerStatus:getHighestPriorityStatus()
 	
 	-- Calculate priority score (higher = more priority)
 	-- Closer distance and higher status = higher priority
 	local distanceScore = math.max(0, CONFIG.FOCUS_DISTANCE_THRESHOLD - distance)
-	local priority = (statusPriority * 10) + distanceScore
+	local priority = (statusPriority :: number * 10) + distanceScore
 	
 	return priority
 end
@@ -95,8 +87,8 @@ function SuspicionManagement.updateFocusTarget(
 	
 	-- Find the player with highest priority (closest + highest status)
 	for player in pairs(visiblePlayers) do
-		local playerSusLevel = PlayerStatusReg.getSuspiciousLevel(player)
-		if not playerSusLevel:isSuspicious() then
+		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		if not playerStatus:hasAnyStatus() then
 			continue
 		end
 
@@ -121,8 +113,8 @@ function SuspicionManagement.update(
 	
 	-- Raise suspicion for visible suspicious players
 	for player in pairs(visiblePlayers) do
-		local playerSusLevel = PlayerStatusReg.getSuspiciousLevel(player)
-		if not playerSusLevel:isSuspicious() then
+		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		if not playerStatus:hasAnyStatus() then
 			continue
 		end
 		
@@ -130,9 +122,10 @@ function SuspicionManagement.update(
 		if playerSus >= 1 then
 			continue
 		end
-		
-		local weight = playerSusLevel:getTotalWeight() or 0
-		local detectionSpeed = 1 + (weight / 100)
+
+		local highestPriorityStatus = playerStatus:getHighestPriorityStatus()
+		local speedModifier = PlayerStatus.getStatusDetectionSpeedModifier(highestPriorityStatus)
+		local detectionSpeed = 1 + (speedModifier / 100)
 		
 		local progressRate = (1 / CONFIG.BASE_DETECTION_TIME) * detectionSpeed
 		playerSus = math.clamp(playerSus + progressRate * deltaTime, 0.0, 1.0)
@@ -144,15 +137,15 @@ function SuspicionManagement.update(
 	if self.focusingOn and self.suspicionLevels[self.focusingOn] >= 1 then
 		self.excludedSuspect = {
 			suspect = self.focusingOn,
-			forStatus = self:getHighestPriorityStatusOfPlayer(self.focusingOn)
+			forStatus = PlayerStatusRegistry.getPlayerStatuses(self.focusingOn):getHighestPriorityStatus()
 		}
 		self.amICurious = false
 	end
 	
 	-- Decay suspicion for players not visible or not suspicious
 	for player, level in pairs(self.suspicionLevels) do
-		local susLevel = PlayerStatusReg.getSuspiciousLevel(player)
-		local isSus = susLevel:isSuspicious()
+		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		local isSus = playerStatus:hasAnyStatus()
 
 		if self.excludedSuspect and player == self.excludedSuspect.suspect then
 			if not isSus then
@@ -191,21 +184,19 @@ function SuspicionManagement.update(
 	end
 end
 
-function SuspicionManagement.getHighestPriorityStatusOfPlayer(self: SuspicionManagement, player: Player): Statuses.PlayerStatus?
-	local playerStatuses = PlayerStatusReg.getSuspiciousLevel(player):getStatuses()
-	local highestStatus = next(playerStatuses)
-	
-	if highestStatus == nil then
-		return nil
-	end
-	
-	for status in pairs(playerStatuses) do
-		if STATUSES_BY_PRIORITY[status] > STATUSES_BY_PRIORITY[highestStatus] then
-			highestStatus = status
+function SuspicionManagement.decaySuspicionOnAllPlayers(self: SuspicionManagement, deltaTime: number): ()
+	for player, level in pairs(self.suspicionLevels) do
+		if level >= 1 then
+			continue
+		end
+		local finalSus = math.max(0, level - CONFIG.DECAY_RATE_PER_SECOND * deltaTime)
+		if finalSus > 0 then
+			self.suspicionLevels[player] = finalSus
+			self:syncSuspicionToPlayer(player, finalSus)
+		else
+			self.suspicionLevels[player] = nil
 		end
 	end
-	
-	return highestStatus
 end
 
 function SuspicionManagement.syncSuspicionToPlayer(
@@ -223,7 +214,6 @@ function SuspicionManagement.syncSuspicionToPlayer(
 	)
 end
 
--- Helper function to get current focus target
 function SuspicionManagement.getFocusTarget(self: SuspicionManagement): Player?
 	return self.focusingOn
 end

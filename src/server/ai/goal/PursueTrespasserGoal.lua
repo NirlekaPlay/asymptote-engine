@@ -1,20 +1,18 @@
 --!strict
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
 
+local Agent = require("../../Agent")
+local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
-local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
-local PlayerStatusReg = require(ServerScriptService.server.player.PlayerStatusReg)
-local Statuses = require(ServerScriptService.server.player.Statuses)
 local Goal = require("./Goal")
 
 local PursueTrespasserGoal = {}
 PursueTrespasserGoal.__index = PursueTrespasserGoal
 
 export type PursueTrespasserGoal = typeof(setmetatable({} :: {
-	agent: any,
+	agent: Agent.Agent,
 	giveUpTimer: number,
 	shouldContinue: boolean,
 	plrsLastKnownLocation: { [Player]: Vector3 },
@@ -28,7 +26,8 @@ export type PursueTrespasserGoal = typeof(setmetatable({} :: {
 function PursueTrespasserGoal.new(agent): PursueTrespasserGoal
 	return setmetatable({
 		flags = {
-			"PURSUING"
+			"PURSUING",
+			"SHOCKED"
 		},
 		agent = agent,
 		giveUpTimer = 5,
@@ -46,11 +45,18 @@ end
 
 function PursueTrespasserGoal.canUse(self: PursueTrespasserGoal): boolean
 	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
-	local isSus = susMan.excludedSuspect
-	if isSus then
+	local hasSuspect = susMan.excludedSuspect
+	if not hasSuspect then
+		return false
+	end
+	local highestStatus = PlayerStatusRegistry.getPlayerStatuses(hasSuspect.suspect):getHighestPriorityStatus()
+	local isTrespassing = highestStatus == "MINOR_TRESPASSING" or highestStatus == "MAJOR_TRESPASSING"
+
+	if isTrespassing then
 		self.shouldContinue = true
 	end
-	return isSus and self.shouldContinue
+
+	return isTrespassing and self.shouldContinue
 end
 
 function PursueTrespasserGoal.canContinueToUse(self: PursueTrespasserGoal): boolean
@@ -79,6 +85,8 @@ function PursueTrespasserGoal.start(self: PursueTrespasserGoal): ()
 		-- how tf did we even got here in the first place?
 		return
 	end
+
+	self.agent:getFaceControl():setFace("Angry")
 
 	if not self.agent.memories.IS_DEALING_WITH_SOMETHING_HERE then
 		self.agent.memories.IS_DEALING_WITH_SOMETHING_HERE = ExpireableValue.nonExpiring(true)
@@ -138,12 +146,36 @@ function PursueTrespasserGoal.start(self: PursueTrespasserGoal): ()
 	--self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingSuspect.Character.PrimaryPart.Position)
 end
 
+local function disconnectConnections(self)
+	if self.reachedConnection then
+		self.reachedConnection:Disconnect()
+		self.reachedConnection = nil
+	end
+
+	if self.waypointReachedConnection then
+		self.waypointReachedConnection:Disconnect()
+		self.waypointReachedConnection = nil
+	end
+
+	if self.blockedConnection then
+		self.blockedConnection:Disconnect()
+		self.blockedConnection = nil
+	end
+
+	if self.errorConnection then
+		self.errorConnection:Disconnect()
+		self.errorConnection = nil
+	end
+end
+
 function PursueTrespasserGoal.stop(self: PursueTrespasserGoal): ()
+	self.agent:getFaceControl():setFace("Neutral")
 	self.agent.memories.IS_DEALING_WITH_SOMETHING_HERE.value = false
 	self.patienceCountdown = 5
 	self.triggerFingerPatience = 5
 	self.killingOn = nil
 	local bubControl = self.agent:getBubbleChatControl()
+	disconnectConnections(self)
 	if self.agent.character:FindFirstChild("FBB") then
 		local fbb = self.agent.character.FBB
 		--local humanoid = self.agent.character.Humanoid :: Humanoid
@@ -151,7 +183,7 @@ function PursueTrespasserGoal.stop(self: PursueTrespasserGoal): ()
 		--humanoid:UnequipTools()
 		task.wait(1)
 		fbb.Parent = game.ServerStorage
-		bubControl:displayBubble("Piece of shit.")
+		--bubControl:displayBubble("Piece of shit.")
 	end
 end
 
@@ -175,28 +207,6 @@ local function moveToFuckingTarget(self: PursueTrespasserGoal, trespasserPrimary
 	end)
 
 	nav:moveTo(trespasserPrimaryPart.Position)
-end
-
-local function disconnectConnections(self)
-	if self.reachedConnection then
-		self.reachedConnection:Disconnect()
-		self.reachedConnection = nil
-	end
-
-	if self.waypointReachedConnection then
-		self.waypointReachedConnection:Disconnect()
-		self.waypointReachedConnection = nil
-	end
-
-	if self.blockedConnection then
-		self.blockedConnection:Disconnect()
-		self.blockedConnection = nil
-	end
-
-	if self.errorConnection then
-		self.errorConnection:Disconnect()
-		self.errorConnection = nil
-	end
 end
 
 local playersLastPos: { [Player]: Vector3 } = {}
@@ -225,6 +235,30 @@ function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: numb
 	local nav = self.agent:getNavigation() :: PathNavigation.PathNavigation
 	local bubControl = self.agent:getBubbleChatControl()
 
+	local warnedMemory = self.warnedPlayers[trespasser]
+	
+	local inMag = 10
+	local maxRoundsInMag = 10
+	local shootSpeed = 0.3
+
+	if warnedMemory then
+		local timeToLive = self.warnedPlayers[trespasser].timeToLive
+		
+		if timeToLive > 10 and timeToLive < 25 then
+			inMag = 10
+			maxRoundsInMag = 10
+			shootSpeed = 0.3
+		elseif timeToLive > 25 and timeToLive < 35 then
+			inMag = 0
+			maxRoundsInMag = 30
+			shootSpeed = 0.1
+		else
+			inMag = 0
+			maxRoundsInMag = 100
+			shootSpeed = 0.01
+		end
+	end
+
 	if self.patienceCountdown <= 0 then
 
 		if self.killingOn == nil then
@@ -237,7 +271,11 @@ function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: numb
 			end
 			
 			if not self.agent.character:FindFirstChild("FBB") then
-				game.ServerStorage.FBB.Parent = self.agent.character
+				local fbb = game.ServerStorage.FBB
+				fbb.Parent = self.agent.character
+				fbb.settings.inmag.Value = inMag
+				fbb.settings.maxmagcapacity.Value = maxRoundsInMag
+				fbb.settings.speed.Value = shootSpeed
 			end
 		end
 

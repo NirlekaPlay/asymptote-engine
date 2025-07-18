@@ -1,6 +1,8 @@
 --!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
+
+local ShockedGoal = require("../ai/goal/ShockedGoal")
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
@@ -76,6 +78,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 end
 
 function Guard.registerGoals(self: Guard): ()
+	self.goalSelector:addGoal(ShockedGoal.new(self), 1)
 	self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 2)
 	self.goalSelector:addGoal(PursueTrespasserGoal.new(self), 3)
 	self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
@@ -83,6 +86,7 @@ end
 
 function Guard.update(self: Guard, deltaTime: number): ()
 	if not self:isAlive() then
+		self.suspicionManager:decaySuspicionOnAllPlayers(deltaTime)
 		return
 	end
 
@@ -98,13 +102,6 @@ function Guard.update(self: Guard, deltaTime: number): ()
 		self.isPathfindingValue.Value = true
 	else
 		self.isPathfindingValue.Value = false
-	end
-	
-	local hasExcludedSuspect = self.suspicionManager.excludedSuspect
-	if hasExcludedSuspect then
-		self.faceControl:setFace("Angry")
-	else
-		self.faceControl:setFace("Neutral")
 	end
 
 	if not self.memories.IS_DEALING_WITH_SOMETHING_HERE then
@@ -128,6 +125,10 @@ end
 
 function Guard.isAlive(self: Guard): boolean
 	return self.alive
+end
+
+function Guard.getFaceControl(self: Guard): FaceControl.FaceControl
+	return self.faceControl
 end
 
 function Guard.getNavigation(self: Guard): PathNavigation.PathNavigation

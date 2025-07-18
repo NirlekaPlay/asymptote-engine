@@ -37,6 +37,10 @@ function Agent.isAlive(self: Agent): boolean
 	return self.alive
 end
 
+function Agent.getFaceControl(self: Agent): FaceControl.FaceControl
+	return self.faceControl
+end
+
 function Agent.getNavigation(self: Agent): PathNavigation.PathNavigation
 	return self.pathNavigation
 end

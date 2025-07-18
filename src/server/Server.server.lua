@@ -3,7 +3,6 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local Guard = require(ServerScriptService.server.guard.Guard)
-local Statuses = require(ServerScriptService.server.player.Statuses)
 local TrespassingZone = require(ServerScriptService.server.zone.TrespassingZone)
 
 local GUARD_TAG_NAME = "Guard"
@@ -14,14 +13,14 @@ local MAJOR_TRESPASSING_ZONE_TAG_NAME = "MajorTrespassingZone"
 local MINOR_TRESPASSING_CONFIG: TrespassingZone.ZoneConfig = {
 	penalties = {
 		disguised = nil,
-		undisguised = Statuses.PLAYER_STATUSES.MINOR_TRESPASSING
+		undisguised = "MINOR_TRESPASSING"
 	}
 }
 
 local MAJOR_TRESPASSING_ZONE: TrespassingZone.ZoneConfig = {
 	penalties = {
-		disguised = Statuses.PLAYER_STATUSES.MINOR_TRESPASSING,
-		undisguised = Statuses.PLAYER_STATUSES.MAJOR_TRESPASSING
+		disguised = "MINOR_TRESPASSING",
+		undisguised = "MAJOR_TRESPASSING"
 	}
 }
 
@@ -54,6 +53,9 @@ setupTrespassingZones()
 
 local function setupGuards()
 	for _, guard in ipairs(CollectionService:GetTagged(GUARD_TAG_NAME)) do
+		if guard.Parent ~= workspace then
+			continue
+		end
 		local humanoid = guard:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.Died:Once(function()
@@ -68,6 +70,24 @@ local function setupGuards()
 end
 
 setupGuards()
+
+CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
+	if guard.Parent ~= workspace then
+		local connection = guard.GetPropertyChangedSignal("Parent"):Connect(function()
+			if guard.Parent == workspace then
+				connection:Disconnect()
+				local newGuard = Guard.new(guard, currentGuardPosts)
+				newGuard:registerGoals()
+				guards[guard] = newGuard
+			end
+		end)
+		return
+	end
+
+	local newGuard = Guard.new(guard, currentGuardPosts)
+	newGuard:registerGoals()
+	guards[guard] = newGuard
+end)
 
 RunService.PostSimulation:Connect(function(deltaTime)
 	for _, zone in ipairs(zones) do

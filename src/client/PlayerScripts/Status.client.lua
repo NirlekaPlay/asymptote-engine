@@ -12,7 +12,8 @@ local Statuses = {
 
 local StatusTypePerUi = {
 	[Statuses.MINOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").A_Trespassing,
-	[Statuses.MAJOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").B_TrespassingRed
+	[Statuses.MAJOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").B_TrespassingRed,
+	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_Armed
 }
 
 REMOTE.OnClientEvent:Connect(function(statusType, bool)
