@@ -7,24 +7,24 @@ local PlayerStatus = require("./PlayerStatus")
 	@class PlayerStatusRegistry
 ]=]
 local PlayerStatusRegistry = {}
-local playersStatusObjects: { [Player]: PlayerStatus.PlayerStatus} = {}
+local playersStatusObjects: { [number]: PlayerStatus.PlayerStatus} = {}
 
 Players.PlayerAdded:Connect(function(player)
-	playersStatusObjects[player] = PlayerStatus.new()
+	playersStatusObjects[player.UserId] = PlayerStatus.new(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-	playersStatusObjects[player] = nil
+	playersStatusObjects[player.UserId] = nil
 end)
 
 for _, player in ipairs(Players:GetPlayers()) do
-	if not playersStatusObjects[player] then
-		playersStatusObjects[player] = PlayerStatus.new()
+	if not playersStatusObjects[player.UserId] then
+		playersStatusObjects[player.UserId] = PlayerStatus.new(player)
 	end
 end
 
 function PlayerStatusRegistry.getPlayerStatuses(player: Player): PlayerStatus.PlayerStatus
-	return playersStatusObjects[player]
+	return playersStatusObjects[player.UserId]
 end
 
 return PlayerStatusRegistry

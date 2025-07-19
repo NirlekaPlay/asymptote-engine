@@ -1,5 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedStatusRemote)
+
 --[=[
 	@class PlayerStatus
 ]=]
@@ -7,6 +10,7 @@ local PlayerStatus = {}
 PlayerStatus.__index = PlayerStatus
 
 export type PlayerStatus = typeof(setmetatable({} :: {
+	player: Player,
 	currentStatusesMap: { [PlayerStatusType]: true }
 }, PlayerStatus))
 
@@ -17,7 +21,7 @@ export type PlayerStatusType = "DISGUISED"
 	| "CRIMINAL_SUSPICIOUS"
 	| "ARMED"
 
-local PLAYER_STATUSES_BY_PRIORITY = {
+local PLAYER_STATUSES_BY_PRIORITY: { PlayerStatusType } = {
 	"DISGUISED",
 	"MINOR_TRESPASSING",
 	"MINOR_SUSPICIOUS",
@@ -35,18 +39,28 @@ local PLAYER_STATUSES_BY_DETECTION_SPEED_MODIFIER = {
 	ARMED = 50
 }
 
-function PlayerStatus.new(): PlayerStatus
+function PlayerStatus.new(player: Player): PlayerStatus
 	return setmetatable({
+		player = player,
 		currentStatusesMap = {}
 	}, PlayerStatus)
 end
 
 function PlayerStatus.addStatus(self: PlayerStatus, statusType: PlayerStatusType): ()
 	self.currentStatusesMap[statusType] = true
+	self:syncStatusesToClient()
+end
+
+function PlayerStatus.clearAllStatus(self: PlayerStatus): ()
+	for statusType in pairs(self.currentStatusesMap) do
+		self.currentStatusesMap[statusType] = nil
+	end
+	self:syncStatusesToClient()
 end
 
 function PlayerStatus.removeStatus(self: PlayerStatus, statusType: PlayerStatusType): ()
 	self.currentStatusesMap[statusType] = nil
+	self:syncStatusesToClient()
 end
 
 function PlayerStatus.hasStatus(self: PlayerStatus, statusType: PlayerStatusType): boolean
@@ -65,6 +79,10 @@ function PlayerStatus.getHighestPriorityStatus(self: PlayerStatus): (PlayerStatu
 		end
 	end
 	return nil, nil
+end
+
+function PlayerStatus.syncStatusesToClient(self: PlayerStatus): ()
+	TypedStatusRemote:FireClient(self.player, self.currentStatusesMap)
 end
 
 function PlayerStatus.getStatusDetectionSpeedModifier(statusType: PlayerStatusType): number

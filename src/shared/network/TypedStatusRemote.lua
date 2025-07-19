@@ -17,4 +17,4 @@ local _, RE = TypedRemote.parent(script)
 type RF<T..., R...> = TypedRemote.Function<T..., R...>
 type RE<T...> = TypedRemote.Event<T...>
 
-return RE("Status") :: RE<PlayerStatus, boolean>
+return RE("Status") :: RE<{ [PlayerStatus]: true }>

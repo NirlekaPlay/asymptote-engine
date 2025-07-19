@@ -1,3 +1,5 @@
+--!nonstrict
+
 local REMOTE = require(game.ReplicatedStorage.shared.network.TypedStatusRemote)
 
 -- too fucking lazy to port them.
@@ -16,14 +18,30 @@ local StatusTypePerUi = {
 	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_Armed
 }
 
-REMOTE.OnClientEvent:Connect(function(statusType, bool)
-	local ui = StatusTypePerUi[statusType]
-	if ui then
-		ui.Visible = bool
-		if bool then
+local currentStatuses = {}
+
+REMOTE.OnClientEvent:Connect(function(statusTypes)
+	for statusType in pairs(statusTypes) do
+		if currentStatuses[statusType] then
+			continue
+		end
+
+		currentStatuses[statusType] = true
+		local ui = StatusTypePerUi[statusType]
+		if ui then
+			ui.Visible = true
 			ui.Parent = game.Players.LocalPlayer.PlayerGui.Status.SafeArea.Bar
-		else
-			ui.Parent = game.Players.LocalPlayer.PlayerGui.Status
+		end
+	end
+
+	for statusType in pairs(currentStatuses) do
+		if not statusTypes[statusType] then
+			currentStatuses[statusType] = nil
+			local ui = StatusTypePerUi[statusType]
+			if ui then
+				ui.Visible = false
+				ui.Parent = game.Players.LocalPlayer.PlayerGui.Status
+			end
 		end
 	end
 end)

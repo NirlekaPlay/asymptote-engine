@@ -1,6 +1,9 @@
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
+
+local PlayerStatusRegistry = require("./player/PlayerStatusRegistry")
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local Guard = require(ServerScriptService.server.guard.Guard)
 local TrespassingZone = require(ServerScriptService.server.zone.TrespassingZone)
@@ -97,4 +100,16 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	for model, guard in pairs(guards) do
 		guard:update(deltaTime)
 	end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Died:Once(function()
+				local plrStatuses = PlayerStatusRegistry.getPlayerStatuses(player)
+				plrStatuses:clearAllStatus()
+			end)
+		end
+	end)
 end)

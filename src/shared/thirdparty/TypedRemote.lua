@@ -28,13 +28,13 @@ type PlayerSignal<T...> = {
 	.FireAllClients (self: Event<T...>, T...) -> (),
 	.FireServer (self: Event<T...>, T...) -> (),
 ]=]
-export type Event<T...> = Instance & {
+export type Event<T...> = {
 	OnClientEvent: Signal<T...>,
 	OnServerEvent: PlayerSignal<T...>,
 	FireClient: (self: Event<T...>, player: Player, T...) -> (),
 	FireAllClients: (self: Event<T...>, T...) -> (),
 	FireServer: (self: Event<T...>, T...) -> (),
-}
+} & Instance
 
 --[=[
 	@within TypedRemote

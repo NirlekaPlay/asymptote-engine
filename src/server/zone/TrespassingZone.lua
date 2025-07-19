@@ -1,8 +1,6 @@
---!strict
+--!nonstrict
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedStatusRemote)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local TriggerZone = require("./TriggerZone")
 
@@ -66,7 +64,6 @@ function TrespassingZone.onPlayerEnter(self: TrespassingZone, player: Player): (
 	if finalStatus then
 		self.playersGivenStatus[player] = finalStatus
 		susLevel:addStatus(finalStatus)
-		TypedStatusRemote:FireClient(player, finalStatus, true)
 	end
 end
 
@@ -74,9 +71,8 @@ function TrespassingZone.onPlayerLeave(self: TrespassingZone, player: Player): (
 	local susLevel = PlayerStatusRegistry.getPlayerStatuses(player)
 	local givenStatus = self.playersGivenStatus[player]
 
-	if givenStatus then
+	if givenStatus and susLevel then
 		susLevel:removeStatus(givenStatus)
-		TypedStatusRemote:FireClient(player, givenStatus, false)
 	end
 end
 
