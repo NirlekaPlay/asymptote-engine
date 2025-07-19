@@ -78,6 +78,32 @@ end
 
 function TrespassingZone.update(self: TrespassingZone): ()
 	self.triggerZone:update()
+
+	for player in pairs(self.triggerZone.playersInZone) do
+		-- in cases where the player wears a disguise while still in a trespassing zone
+		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		local isDisguised = playerStatus:hasStatus("DISGUISED")
+
+		local expectedStatus: TrespassingStatusType?
+		local currentStatus = self.playersGivenStatus[player]
+		if isDisguised then
+			expectedStatus = self.config.penalties.disguised
+		else
+			expectedStatus = self.config.penalties.undisguised
+		end
+
+		if expectedStatus ~= currentStatus then
+			if currentStatus then
+				playerStatus:removeStatus(currentStatus)
+				self.playersGivenStatus[player] = nil
+			end
+
+			if expectedStatus then
+				playerStatus:addStatus(expectedStatus)
+				self.playersGivenStatus[player] = expectedStatus
+			end
+		end
+	end
 end
 
 return TrespassingZone

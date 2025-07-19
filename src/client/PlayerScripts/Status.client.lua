@@ -14,10 +14,13 @@ local Statuses = {
 }
 
 local StatusTypePerUi = {
-	[Statuses.MINOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").A_Trespassing,
-	[Statuses.MAJOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").B_TrespassingRed,
-	[Statuses.DANGEROUS_ITEM] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_DangerousItem,
-	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").E_Armed
+	[Statuses.DISGUISED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").A_Disguised,
+	[Statuses.MINOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").B_Trespassing,
+	[Statuses.MINOR_SUSPICIOUS] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_Suspicious,
+	[Statuses.MAJOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").D_TrespassingRed,
+	[Statuses.CRIMINAL_SUSPICIOUS] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").E_SuspiciousRed,
+	[Statuses.DANGEROUS_ITEM] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").F_DangerousItem,
+	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").G_Armed
 }
 
 local currentStatuses = {}
