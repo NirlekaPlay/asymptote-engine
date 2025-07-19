@@ -50,6 +50,9 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 	newProxPrompt.KeyboardKeyCode = Enum.KeyCode.E
 	newProxPrompt.RequiresLineOfSight = true
 	newProxPrompt.Parent = triggerAttachment
+	-- TODO: Clean up connections.
+	-- I dont know why cuz these props are always active in the map but eh
+	-- "just in case"
 	newProxPrompt.Triggered:Connect(function(player)
 		self:applyDisguiseToPlayer(player)
 	end)
@@ -65,7 +68,8 @@ end
 
 function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player: Player): ()
 	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
-	if playerStatus:hasStatus("DISGUISED") then
+	local isDisguised = playerStatus:hasStatus("DISGUISED") -- for some fucking reason, placing it directly to an if statement makes a "unknown" type error bullshit
+	if isDisguised then
 		return
 	end
 
@@ -83,9 +87,9 @@ function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player
 	local disguiseShirtContent = self.disguiseClothings.Shirt
 	local disguisePantsContent = self.disguiseClothings.Pants
 	local shirtClothing = Instance.new("Shirt")
-	shirtClothing.ShirtTemplate = disguiseShirtContent.Uri
+	shirtClothing.ShirtTemplate = disguiseShirtContent.Uri :: string
 	local pantsClothing = Instance.new("Pants")
-	pantsClothing.PantsTemplate = disguisePantsContent.Uri
+	pantsClothing.PantsTemplate = disguisePantsContent.Uri :: string
 
 	shirtClothing.Parent = playerCharacter
 	pantsClothing.Parent = playerCharacter
@@ -93,7 +97,7 @@ function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player
 	playerStatus:addStatus("DISGUISED")
 
 	local disguiseOnSound = DISGUISE_ON_SOUND:Clone()
-	disguiseOnSound.Parent = playerCharacter.PrimaryPart
+	disguiseOnSound.Parent = playerCharacter:FindFirstChild("HumanoidRootPart") or playerCharacter
 	disguiseOnSound.PlayOnRemove = true
 	disguiseOnSound:Destroy()
 end

@@ -3,13 +3,14 @@
 
 --local Statuses = require(ServerScriptService.server.player.Statuses)
 -- FUCK YOU
-export type PlayerStatus =
-	"MINOR_TRESPASSING"
-	| "MAJOR_TRESPASSING"
+export type PlayerStatus = "DISGUISED"
+	| "MINOR_TRESPASSING"
 	| "MINOR_SUSPICIOUS"
+	| "MAJOR_TRESPASSING"
 	| "CRIMINAL_SUSPICIOUS"
-	| "DISGUISED"
+	| "DANGEROUS_ITEM"
 	| "ARMED"
+
 local TypedRemote = require("../thirdparty/TypedRemote")
 
 local _, RE = TypedRemote.parent(script)
