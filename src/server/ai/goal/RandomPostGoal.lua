@@ -1,4 +1,5 @@
 --!nonstrict
+local TouchInputService = game:GetService("TouchInputService")
 
 local Agent = require("../../Agent")
 local GuardPost = require("../navigation/GuardPost")
@@ -28,7 +29,7 @@ type GuardPost = GuardPost.GuardPost
 
 function RandomPostGoal.new(agent, posts: { GuardPost }): RandomPostGoal
 	return setmetatable({
-		flags = { "MOVING" },
+		flags = { "MOVING", "SHOCKED"},
 		agent = agent,
 		state = "UNEMPLOYED",
 		targetPost = nil :: GuardPost?,
@@ -93,9 +94,11 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	local nav = self.agent:getNavigation()
 	local rot = self.agent:getBodyRotationControl()
 
-	self.agent.character.Head.RandomPostDebugGui.Frame.State.Text = `state: {self.state}`
-	self.agent.character.Head.RandomPostDebugGui.Frame.TimeToReleasePost.Text = `wait timer: {math.ceil(self.timeToReleasePost)}`
-	self.agent.character.Head.RandomPostDebugGui.Frame.ResumingTimer.Text = `resume timer: {math.ceil(self.resumeDelayRemaining)}`
+	if self.agent.character.Head:FindFirstChild("RandomPostDebugGui") then
+		self.agent.character.Head.RandomPostDebugGui.Frame.State.Text = `state: {self.state}`
+		self.agent.character.Head.RandomPostDebugGui.Frame.TimeToReleasePost.Text = `wait timer: {math.ceil(self.timeToReleasePost)}`
+		self.agent.character.Head.RandomPostDebugGui.Frame.ResumingTimer.Text = `resume timer: {math.ceil(self.resumeDelayRemaining)}`
+	end
 
 	if self.state == "RESUMING" then
 		if self.resumeDelayRemaining > 0 then
@@ -140,7 +143,6 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	end
 
 	if self.state == "UNEMPLOYED" then
-		warn("I am fucking unemployed!", self.agent.character)
 		local post = self:getRandomUnoccupiedPost()
 		if post then
 			self:moveToPost(post)

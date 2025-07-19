@@ -225,6 +225,38 @@ local function isPlayerMoving(player: Player): boolean
 	return (curPos - lastPos).Magnitude > 1e-6
 end
 
+local function giveOrGetAgentGun(self: PursueTrespasserGoal, inMag, maxRoundsInMag, shootSpeed): Tool
+	local fbb = self.agent.character:FindFirstChild("FBB")
+	if not fbb then
+		local newFbb = game.ServerStorage.FBB:Clone()
+		newFbb.Parent = self.agent.character
+		newFbb.settings.inmag.Value = inMag
+		newFbb.settings.maxmagcapacity.Value = maxRoundsInMag
+		newFbb.settings.speed.Value = shootSpeed
+		fbb = newFbb
+	end
+
+	if inMag and maxRoundsInMag and shootSpeed then
+		fbb.settings.inmag.Value = inMag
+		fbb.settings.maxmagcapacity.Value = maxRoundsInMag
+		fbb.settings.speed.Value = shootSpeed
+	end
+
+	return fbb
+end
+
+local function fireAgentGun(self: PursueTrespasserGoal): ()
+	local suspect = self.agent:getSuspicionManager().excludedSuspect
+	if not suspect then
+		return
+	end
+	suspect = suspect.suspect
+	local fbb = giveOrGetAgentGun(self)
+
+	local remote = fbb.fire :: BindableEvent
+	remote:Fire("2", suspect.Character.PrimaryPart.Position)
+end
+
 function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: number): ()
 	-- oh god WHAT HAVE I CREATED.
 	--print(self.warnedPlayers)
@@ -270,13 +302,7 @@ function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: numb
 				--print("repeat offender")
 			end
 			
-			if not self.agent.character:FindFirstChild("FBB") then
-				local fbb = game.ServerStorage.FBB
-				fbb.Parent = self.agent.character
-				fbb.settings.inmag.Value = inMag
-				fbb.settings.maxmagcapacity.Value = maxRoundsInMag
-				fbb.settings.speed.Value = shootSpeed
-			end
+			giveOrGetAgentGun(self, inMag, maxRoundsInMag, shootSpeed)
 		end
 
 		if self.triggerFingerPatience <= 1 and not self.warnedPlayers[trespasser] then
@@ -287,11 +313,7 @@ function PursueTrespasserGoal.update(self: PursueTrespasserGoal, deltaTime: numb
 		if self.triggerFingerPatience <= 0 then
 			local character = self.agent.character
 			if character and character:FindFirstChild("FBB") then
-				local remote = self.agent.character.FBB.fire :: BindableEvent
-				--local dir = workspace:Raycast(character.Head.Position, character.Head.CFrame.LookVector.Unit * 90)
-				--warn(dir)
-
-				remote:Fire("2", trespasser.Character.PrimaryPart.Position)
+				fireAgentGun(self)
 			end
 		else
 			self.triggerFingerPatience -= deltaTime

@@ -9,13 +9,15 @@ local Statuses = {
 	MINOR_SUSPICIOUS = "MINOR_SUSPICIOUS",
 	CRIMINAL_SUSPICIOUS = "CRIMINAL_SUSPICIOUS",
 	DISGUISED = "DISGUISED",
+	DANGEROUS_ITEM = "DANGEROUS_ITEM",
 	ARMED = "ARMED"
 }
 
 local StatusTypePerUi = {
 	[Statuses.MINOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").A_Trespassing,
 	[Statuses.MAJOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").B_TrespassingRed,
-	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_Armed
+	[Statuses.DANGEROUS_ITEM] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_DangerousItem,
+	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").E_Armed
 }
 
 local currentStatuses = {}
