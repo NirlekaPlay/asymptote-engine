@@ -59,6 +59,14 @@ local function goalCanBeReplacedForAllFlags(goal: WrappedGoal, flagLocks: {[any]
 	return true
 end
 
+function GoalSelector.stopAllRunningGoals(self: GoalSelector): ()
+	for _, goal in self.availableGoals do
+		if goal:isRunning() then
+			goal:stop()
+		end
+	end
+end
+
 function GoalSelector.update(self: GoalSelector, delta: number)
 	-- Cleanup phase
 	for _, goal in ipairs(self.availableGoals) do

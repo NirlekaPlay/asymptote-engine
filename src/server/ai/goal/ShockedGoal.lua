@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Agent = require("../../Agent")
 local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
+local BubbleChatControl = require("../control/BubbleChatControl")
 local Goal = require("./Goal")
 
 local ShockedGoal = {}
@@ -47,15 +48,15 @@ function ShockedGoal.getFlags(self: ShockedGoal): {Flag}
 	return self.flags
 end
 
-local randomDialogues = {
-	function(bubControl, self)
+local randomDialogues: {(BubbleChatControl.BubbleChatControl, ShockedGoal) -> ()} = {
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
 		bubControl:displayBubble("Wait wait wait!")
 		task.wait(1)
 		bubControl:displayBubble("Lets talk about this!")
 		task.wait(1)
 		self.isSpeaking = false
 	end,
-	function(bubControl, self)
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
 		bubControl:displayBubble("Woah woah woah!")
 		task.wait(.6)
 		bubControl:displayBubble("Holy shit you have a gun?!")
@@ -64,14 +65,14 @@ local randomDialogues = {
 		task.wait(1)
 		self.isSpeaking = false
 	end,
-	function(bubControl, self)
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
 		bubControl:displayBubble("Wait wait wait!")
 		task.wait(.7)
 		bubControl:displayBubble("Don't shoot!!!")
 		task.wait(1)
 		self.isSpeaking = false
 	end,
-	function(bubControl, self)
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
 		bubControl:displayBubble("Awh fuck!")
 		task.wait(.7)
 		bubControl:displayBubble("Okay okay!")
@@ -104,9 +105,9 @@ function ShockedGoal.start(self: ShockedGoal): ()
 	local speakThread = task.spawn(function()
 		task.wait(0.3)
 		randomDialogues[randomIndexDialogue](bubControl, self)
-	end)
+	end);
 
-	self.agent.character.Humanoid.Died:Connect(function()
+	(self.agent.character.Humanoid :: Humanoid).Died:Once(function()
 		if self.isSpeaking then
 			task.cancel(speakThread)
 			bubControl:displayBubble(randomDeathDialogues[math.random(1, #randomDeathDialogues)])

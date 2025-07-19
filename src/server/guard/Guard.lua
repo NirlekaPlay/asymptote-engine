@@ -62,15 +62,19 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
 	humanoid.Died:Once(function()
-		self:onDied()
 		self.alive = false
+		self:onDied()
 	end)
 
 	-- to fix the motherfucking shitty ass walk animation
-	local isPathfinding = Instance.new("BoolValue")
-	isPathfinding.Value = false
-	isPathfinding.Name = "isPathfinding"
-	isPathfinding.Parent = character
+	local isPathfinding = character:FindFirstChild("isPathfinding")
+	
+	if not isPathfinding then
+		isPathfinding = Instance.new("BoolValue")
+		isPathfinding.Value = false
+		isPathfinding.Name = "isPathfinding"
+		isPathfinding.Parent = character
+	end
 
 	self.isPathfindingValue = isPathfinding
 
@@ -121,6 +125,7 @@ end
 
 function Guard.onDied(self: Guard)
 	self.faceControl:setFace("Unconscious")
+	self.goalSelector:stopAllRunningGoals()
 end
 
 function Guard.isAlive(self: Guard): boolean

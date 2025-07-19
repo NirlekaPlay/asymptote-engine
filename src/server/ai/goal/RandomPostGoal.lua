@@ -15,10 +15,13 @@ export type RandomPostGoal = typeof(setmetatable({} :: {
 	agent: Agent.Agent,
 	state: "UNEMPLOYED" | "WALKING" | "STAYING" | "RESUMING",
 	targetPost: GuardPost?,
+	previousPost: GuardPost?,
 	timeToReleasePost: number,
+	resumeDelayRemaining: number,
 	posts: { GuardPost },
 	isAtTargetPost: boolean,
-	pathToPost: Path?
+	pathToPost: Path?,
+	diedConnection: RBXScriptConnection?
 }, RandomPostGoal)) & Goal.Goal
 
 type GuardPost = GuardPost.GuardPost
@@ -32,7 +35,8 @@ function RandomPostGoal.new(agent, posts: { GuardPost }): RandomPostGoal
 		isAtTargetPost = false,
 		timeToReleasePost = 0,
 		posts = posts,
-		pathToPost = nil :: Path?
+		pathToPost = nil :: Path?,
+		resumeDelayRemaining = 0
 	}, RandomPostGoal)
 end
 
@@ -53,6 +57,23 @@ function RandomPostGoal.getFlags(self: RandomPostGoal): {Flag}
 end
 
 function RandomPostGoal.start(self: RandomPostGoal): ()
+	if not self.diedConnection then
+		local humanoid = self.agent.character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			self.diedConnection = humanoid.Died:Once(function()
+				if self.targetPost then
+					self.targetPost:vacate()
+					return
+				end
+
+				if self.state == "UNEMPLOYED" then
+					if self.previousPost then
+						self.previousPost:vacate()
+					end
+				end
+			end)
+		end
+	end
 	self.resumeDelayRemaining = MIN_TIME_TO_PATROL_AGAIN
 	self.state = "RESUMING" -- introduce a temporary state
 end
@@ -60,15 +81,25 @@ end
 function RandomPostGoal.stop(self: RandomPostGoal): ()
 	self.agent:getBodyRotationControl():setRotateToDirection(nil)
 	self.agent:getNavigation():stop()
+	if not self.agent:isAlive() then
+		if not self.targetPost then
+			return
+		end
+		self.targetPost:vacate()
+	end
 end
 
 function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	local nav = self.agent:getNavigation()
 	local rot = self.agent:getBodyRotationControl()
 
+	self.agent.character.Head.RandomPostDebugGui.Frame.State.Text = `state: {self.state}`
+	self.agent.character.Head.RandomPostDebugGui.Frame.TimeToReleasePost.Text = `wait timer: {math.ceil(self.timeToReleasePost)}`
+	self.agent.character.Head.RandomPostDebugGui.Frame.ResumingTimer.Text = `resume timer: {math.ceil(self.resumeDelayRemaining)}`
+
 	if self.state == "RESUMING" then
-		self.resumeDelayRemaining -= deltaTime
-		if self.resumeDelayRemaining <= 0 then
+		if self.resumeDelayRemaining > 0 then
+			self.resumeDelayRemaining -= deltaTime
 			return
 		end
 
@@ -100,7 +131,8 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
 			self.state = "UNEMPLOYED"
-			self.targetPost:vacate()
+			--self.targetPost:vacate()
+			self.previousPost = self.targetPost
 			self.targetPost = nil
 			self.isAtTargetPost = false
 			rot:setRotateToDirection(nil)
@@ -108,13 +140,20 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	end
 
 	if self.state == "UNEMPLOYED" then
-		self:start()
+		warn("I am fucking unemployed!", self.agent.character)
+		local post = self:getRandomUnoccupiedPost()
+		if post then
+			self:moveToPost(post)
+		end
 	end
 end
 
 function RandomPostGoal.moveToPost(self: RandomPostGoal, post: GuardPost): ()
 	post:occupy()
 	self.isAtTargetPost = false
+	if self.previousPost then
+		self.previousPost:vacate()
+	end
 	self.targetPost = post
 	self.state = "WALKING"
 	self.agent:getNavigation():moveTo(post.cframe.Position)
