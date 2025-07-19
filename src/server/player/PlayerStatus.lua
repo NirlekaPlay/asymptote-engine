@@ -74,18 +74,27 @@ function PlayerStatus.hasAnyStatus(self: PlayerStatus): boolean
 	return next(self.currentStatusesMap) ~= nil
 end
 
-function PlayerStatus.getHighestPriorityStatus(self: PlayerStatus): (PlayerStatusType?, number?)
+function PlayerStatus.getHighestPriorityStatus(self: PlayerStatus): PlayerStatusType?
 	for i = #PLAYER_STATUSES_BY_PRIORITY, 1, -1 do
 		local status = PLAYER_STATUSES_BY_PRIORITY[i]
 		if self.currentStatusesMap[status] then
-			return status, i
+			return status
 		end
 	end
-	return nil, nil
+	return nil
 end
 
 function PlayerStatus.syncStatusesToClient(self: PlayerStatus): ()
 	TypedStatusRemote:FireClient(self.player, self.currentStatusesMap)
+end
+
+function PlayerStatus.getStatusPriorityValue(statusType: PlayerStatusType): number
+	for i, status in ipairs(PLAYER_STATUSES_BY_PRIORITY) do
+		if status == statusType then
+			return i
+		end
+	end
+	return 0
 end
 
 function PlayerStatus.getStatusDetectionSpeedModifier(statusType: PlayerStatusType): number
