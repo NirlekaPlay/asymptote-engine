@@ -1,7 +1,8 @@
 --!nonstrict
 
 local PathNavigation = require("../navigation/PathNavigation")
-local MAX_ROTATION_COOLDOWN = 0 -- default to 0.3
+local DEFAULT_ROTATION_SPEED = 5.5
+local MAX_ROTATION_COOLDOWN = 0.25 -- How many seconds it takes after the Agent was moving before we can rotate again
 
 --[=[
 	@class BodyRotationControl
@@ -25,7 +26,7 @@ function BodyRotationControl.new(character: Model, pathNav: PathNavigation.PathN
 		character = character,
 		pathNav = pathNav,
 		targetDirection = nil :: Vector3?,
-		rotationSpeed = speed or 7,
+		rotationSpeed = speed or DEFAULT_ROTATION_SPEED,
 		rotationCooldown = MAX_ROTATION_COOLDOWN,
 		lastPos = character.HumanoidRootPart.Position
 	}, BodyRotationControl)
@@ -61,53 +62,36 @@ function BodyRotationControl.setRotateToDirection(self: BodyRotationControl, dir
 end
 
 function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number): ()
-	if self.pathNav:isMoving() then
+	if self:isMoving() then
 		self.rotationCooldown = MAX_ROTATION_COOLDOWN
 		return
 	end
 
-	if not (self.rotationCooldown <= 0) then
+	if self.rotationCooldown > 0 then
 		self.rotationCooldown -= deltaTime
 		return
 	end
 
-	if self.targetDirection then
-		if not self.character:FindFirstChild("FBB") then
-			if not (self.targetDirection.Magnitude > 0) then
-				return
-			end
-			local part = self.character.HumanoidRootPart
-			local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
-			part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
-		else
-			if not (self.targetDirection.Magnitude > 0) then
-				return
-			end
-			local part = self.character.HumanoidRootPart
-
-			-- Construct the base CFrame looking toward the target direction
-			local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection)
-
-			-- Add an additional 30-degree rotation around the Y-axis
-			local rotationOffset = CFrame.Angles(0, math.rad(57), 0)
-			targetCFrame = targetCFrame * rotationOffset
-
-			-- Smoothly interpolate towards the new rotated target
-			part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
-
-		end
+	local direction = self.targetDirection
+	if not direction or direction.Magnitude == 0 then
+		return
 	end
+
+	local rootPart = self.character.HumanoidRootPart
+	local targetCFrame = CFrame.new(rootPart.Position, rootPart.Position + direction)
+	rootPart.CFrame = rootPart.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
 end
 
 function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
+	if self.pathNav:isMoving() then
+		return true
+	end
+
 	local humanoidRootPart: BasePart? = self.character:FindFirstChild("HumanoidRootPart")
 	if not humanoidRootPart then
 		return false
 	end
-	-- turns out, MoveDirection doesnt even get fucking updated.
-	-- so we need to do this terribleness.
-	-- and also since this control only rotates on Y axis, why bother with Y axis changes?
-	-- but hey, if it works, IT WORKS.
+
 	local curPos = humanoidRootPart.Position
 	curPos = Vector3.new(curPos.X, 0, curPos.Z)
 	local lastPos = self.lastPos
