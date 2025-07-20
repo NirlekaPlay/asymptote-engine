@@ -1,7 +1,6 @@
 --!nonstrict
-local ServerScriptService = game:GetService("ServerScriptService")
 
-local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
+local ServerScriptService = game:GetService("ServerScriptService")
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local Goal = require("./Goal")
 
@@ -24,7 +23,7 @@ end
 
 function LookAtSuspectGoal.canUse(self: LookAtSuspectGoal): boolean
 	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
-	return susMan:isCurious() and susMan:getFocusingTarget()
+	return susMan:isCurious()
 end
 
 function LookAtSuspectGoal.canContinueToUse(self: LookAtSuspectGoal): boolean
@@ -40,11 +39,21 @@ function LookAtSuspectGoal.getFlags(self: LookAtSuspectGoal): {Flag}
 end
 
 function LookAtSuspectGoal.start(self: LookAtSuspectGoal): ()
-	self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
-	self.agent:getLookControl():setLookAtPos(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
+	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
+	if self.agent.character.Head.QuestionMarkIcon then
+		self.agent.character.Head.QuestionMarkIcon.Enabled = true
+	end
+
+	if susMan:getFocusingTarget() then
+		self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
+		self.agent:getLookControl():setLookAtPos(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
+	end
 end
 
 function LookAtSuspectGoal.stop(self: LookAtSuspectGoal): ()
+	if self.agent.character.Head.QuestionMarkIcon then
+		self.agent.character.Head.QuestionMarkIcon.Enabled = false
+	end
 	self.agent:getBodyRotationControl():setRotateTowards(nil)
 	self.agent:getLookControl():setLookAtPos(nil)
 end
