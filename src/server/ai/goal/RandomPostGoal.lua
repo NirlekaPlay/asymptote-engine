@@ -1,5 +1,4 @@
 --!nonstrict
-local TouchInputService = game:GetService("TouchInputService")
 
 local Agent = require("../../Agent")
 local GuardPost = require("../navigation/GuardPost")
@@ -42,7 +41,7 @@ function RandomPostGoal.new(agent, posts: { GuardPost }): RandomPostGoal
 end
 
 function RandomPostGoal.canUse(self: RandomPostGoal): boolean
-	return not (self.agent:getSuspicionManager().amICurious)
+	return not (self.agent:getSuspicionManager():isCurious())
 end
 
 function RandomPostGoal.canContinueToUse(self: RandomPostGoal): boolean

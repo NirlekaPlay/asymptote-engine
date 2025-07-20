@@ -24,7 +24,7 @@ end
 
 function LookAtSuspectGoal.canUse(self: LookAtSuspectGoal): boolean
 	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
-	return susMan.amICurious and susMan.focusingOn
+	return susMan:isCurious() and susMan:getFocusingTarget()
 end
 
 function LookAtSuspectGoal.canContinueToUse(self: LookAtSuspectGoal): boolean
@@ -40,11 +40,8 @@ function LookAtSuspectGoal.getFlags(self: LookAtSuspectGoal): {Flag}
 end
 
 function LookAtSuspectGoal.start(self: LookAtSuspectGoal): ()
-	if (self.agent:getNavigation() :: PathNavigation.PathNavigation).pathfinder.Status ~= "Active" then
-		--print("Not active")
-		self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
-		self.agent:getLookControl():setLookAtPos(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
-	end
+	self.agent:getBodyRotationControl():setRotateTowards(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
+	self.agent:getLookControl():setLookAtPos(self.agent:getSuspicionManager().focusingOn.Character.PrimaryPart.Position)
 end
 
 function LookAtSuspectGoal.stop(self: LookAtSuspectGoal): ()

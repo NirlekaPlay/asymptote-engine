@@ -83,8 +83,8 @@ end
 
 function Guard.registerGoals(self: Guard): ()
 	self.goalSelector:addGoal(ShockedGoal.new(self), 1)
-	self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 2)
-	self.goalSelector:addGoal(PursueTrespasserGoal.new(self), 3)
+	self.goalSelector:addGoal(PursueTrespasserGoal.new(self), 2)
+	self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
 	self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
 end
 

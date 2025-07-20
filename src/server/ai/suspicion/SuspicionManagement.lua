@@ -7,7 +7,7 @@ local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
 local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
 
 local CONFIG = {
-	BASE_DETECTION_TIME = 1.25,        -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
+	BASE_DETECTION_TIME = 3.25,        -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
 	QUICK_DETECTION_RANGE = 10,        -- In studs
 	QUICK_DETECTION_MULTIPLIER = 3.33, -- 
 	DECAY_RATE_PER_SECOND = 0.2222,    -- Equivalent to 1% per 0.045s
@@ -33,6 +33,7 @@ SuspicionManagement.__index = SuspicionManagement
 export type SuspicionManagement = typeof(setmetatable({} :: {
 	character: Model,
 	focusingOn: Player?,
+	detectionLocks: { [Player]: PlayerStatus.PlayerStatusType },
 	suspicionLevels: { [Player]: number },
 	curious: boolean,
 	curiousCooldown: number
@@ -41,11 +42,16 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 function SuspicionManagement.new(character: Model): SuspicionManagement
 	return setmetatable({
 		character = character,
+		detectionLocks = {},
 		suspicionLevels = {},
 		focusingOn = nil :: Player?,
 		curious = false,
 		curiousCooldown = CONFIG.CURIOUS_COOLDOWN_TIME
 	}, SuspicionManagement)
+end
+
+function SuspicionManagement.getFocusingTarget(self: SuspicionManagement): Player?
+	return self.focusingOn
 end
 
 function SuspicionManagement.isCurious(self: SuspicionManagement): boolean
@@ -59,11 +65,16 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		self:raiseSuspicion(self.focusingOn, deltaTime)
 		if self.suspicionLevels[self.focusingOn] >= CONFIG.CURIOUS_THRESHOLD then
 			self.curious = true
+			self.curiousCooldown = CONFIG.CURIOUS_COOLDOWN_TIME
 		end
 	else
 		if self.curious and self.curiousCooldown > 0 then
 			self.curiousCooldown -= deltaTime
 		end
+	end
+
+	if self.curiousCooldown <= 0 then
+		self.curious = false
 	end
 
 	for player in pairs(self.suspicionLevels) do
@@ -72,10 +83,6 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		end
 
 		self:lowerSuspicion(player, deltaTime)
-	end
-
-	if self.curiousCooldown <= 0 then
-		self.curious = false
 	end
 end
 
@@ -119,7 +126,20 @@ end
 function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: Player, deltaTime: number): ()
 	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
 	local playerSus = self.suspicionLevels[player] or 0
-	if playerSus >= 1 then return end
+
+	local highestStatus = playerStatus:getHighestPriorityStatus() :: PlayerStatus.PlayerStatusType
+	local statusPriority = PlayerStatus.getStatusPriorityValue(highestStatus)
+	local lockedStatus = self.detectionLocks[player]
+	if playerSus >= 1 then
+		-- Already fully detected
+		if lockedStatus then
+			local lockedPriority = PlayerStatus.getStatusPriorityValue(lockedStatus)
+			if statusPriority <= lockedPriority then
+				-- Ignore further suspicion because no escalation
+				return
+			end
+		end
+	end
 
 	local highestPriorityStatus = playerStatus:getHighestPriorityStatus() :: PlayerStatus.PlayerStatusType
 	local speedModifier = PlayerStatus.getStatusDetectionSpeedModifier(highestPriorityStatus)
@@ -127,12 +147,14 @@ function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: P
 	if distance <= CONFIG.QUICK_DETECTION_RANGE then
 		speedModifier *= CONFIG.QUICK_DETECTION_MULTIPLIER
 	end
-	warn("distance", distance)
-	warn("speed modifier", speedModifier)
 	local detectionSpeed = 1 + (speedModifier / 100)
 
 	local progressRate = (1 / CONFIG.BASE_DETECTION_TIME) * detectionSpeed
 	playerSus = math.clamp(playerSus + progressRate * deltaTime, 0.0, 1.0)
+
+	if playerSus >= 1 then
+		self.detectionLocks[player] = highestStatus
+	end
 	
 	self.suspicionLevels[player] = playerSus
 	self:syncSuspicionToPlayer(player, playerSus)
@@ -148,6 +170,14 @@ function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, player: P
 		self:syncSuspicionToPlayer(player, finalSus)
 	else
 		self.suspicionLevels[player] = nil
+	end
+end
+
+function SuspicionManagement.decaySuspicionOnAllPlayers(self: SuspicionManagement, deltaTime: number): ()
+	for player, level in pairs(self.suspicionLevels) do
+		if not (level >= 1) then
+			self:lowerSuspicion(player, deltaTime)
+		end
 	end
 end
 
