@@ -1,9 +1,10 @@
 --!nonstrict
 
 local REMOTE = require(game.ReplicatedStorage.shared.network.TypedStatusRemote)
+local GUI = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").Frame1
 
 -- too fucking lazy to port them.
-local Statuses = {
+local ScreenGuies = {
 	MINOR_TRESPASSING = "MINOR_TRESPASSING",
 	MAJOR_TRESPASSING = "MAJOR_TRESPASSING",
 	MINOR_SUSPICIOUS = "MINOR_SUSPICIOUS",
@@ -13,39 +14,37 @@ local Statuses = {
 	ARMED = "ARMED"
 }
 
-local StatusTypePerUi = {
-	[Statuses.DISGUISED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").A_Disguised,
-	[Statuses.MINOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").B_Trespassing,
-	[Statuses.MINOR_SUSPICIOUS] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").C_Suspicious,
-	[Statuses.MAJOR_TRESPASSING] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").D_TrespassingRed,
-	[Statuses.CRIMINAL_SUSPICIOUS] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").E_SuspiciousRed,
-	[Statuses.DANGEROUS_ITEM] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").F_DangerousItem,
-	[Statuses.ARMED] = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").G_Armed
+local ScreenGuiTypePerUi = {
+	[ScreenGuies.DISGUISED] = GUI.Frame.A_Disguised,
+	[ScreenGuies.MINOR_TRESPASSING] = GUI.Frame.B_Trespassing,
+	[ScreenGuies.MINOR_SUSPICIOUS] = GUI.Frame.C_Suspicious,
+	[ScreenGuies.MAJOR_TRESPASSING] = GUI.Frame.D_TrespassingRed,
+	[ScreenGuies.CRIMINAL_SUSPICIOUS] = GUI.Frame.E_SuspiciousRed,
+	[ScreenGuies.DANGEROUS_ITEM] = GUI.Frame.F_DangerousItem,
+	[ScreenGuies.ARMED] = GUI.Frame.G_Armed
 }
 
-local currentStatuses = {}
+local currentScreenGuies = {}
 
-REMOTE.OnClientEvent:Connect(function(statusTypes)
-	for statusType in pairs(statusTypes) do
-		if currentStatuses[statusType] then
+REMOTE.OnClientEvent:Connect(function(ScreenGuiTypes)
+	for ScreenGuiType in pairs(ScreenGuiTypes) do
+		if currentScreenGuies[ScreenGuiType] then
 			continue
 		end
 
-		currentStatuses[statusType] = true
-		local ui = StatusTypePerUi[statusType]
+		currentScreenGuies[ScreenGuiType] = true
+		local ui = ScreenGuiTypePerUi[ScreenGuiType]
 		if ui then
 			ui.Visible = true
-			ui.Parent = game.Players.LocalPlayer.PlayerGui.Status.SafeArea.Bar
 		end
 	end
 
-	for statusType in pairs(currentStatuses) do
-		if not statusTypes[statusType] then
-			currentStatuses[statusType] = nil
-			local ui = StatusTypePerUi[statusType]
+	for ScreenGuiType in pairs(currentScreenGuies) do
+		if not ScreenGuiTypes[ScreenGuiType] then
+			currentScreenGuies[ScreenGuiType] = nil
+			local ui = ScreenGuiTypePerUi[ScreenGuiType]
 			if ui then
 				ui.Visible = false
-				ui.Parent = game.Players.LocalPlayer.PlayerGui.Status
 			end
 		end
 	end
