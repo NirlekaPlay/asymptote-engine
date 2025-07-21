@@ -22,7 +22,7 @@ export type PlayerStatusType = "DISGUISED"
 	| "DANGEROUS_ITEM"
 	| "ARMED"
 
-local PLAYER_STATUSES_BY_PRIORITY: { PlayerStatusType } = {
+local PLAYER_STATUS_PRIORITY_ORDER: { PlayerStatusType } = {
 	"DISGUISED",
 	"MINOR_TRESPASSING",
 	"MINOR_SUSPICIOUS",
@@ -54,7 +54,7 @@ function PlayerStatus.addStatus(self: PlayerStatus, statusType: PlayerStatusType
 	self:syncStatusesToClient()
 end
 
-function PlayerStatus.clearAllStatus(self: PlayerStatus): ()
+function PlayerStatus.clearAllStatuses(self: PlayerStatus): ()
 	for statusType in pairs(self.currentStatusesMap) do
 		self.currentStatusesMap[statusType] = nil
 	end
@@ -75,8 +75,8 @@ function PlayerStatus.hasAnyStatus(self: PlayerStatus): boolean
 end
 
 function PlayerStatus.getHighestPriorityStatus(self: PlayerStatus): PlayerStatusType?
-	for i = #PLAYER_STATUSES_BY_PRIORITY, 1, -1 do
-		local status = PLAYER_STATUSES_BY_PRIORITY[i]
+	for i = #PLAYER_STATUS_PRIORITY_ORDER, 1, -1 do
+		local status = PLAYER_STATUS_PRIORITY_ORDER[i]
 		if self.currentStatusesMap[status] then
 			return status
 		end
@@ -89,7 +89,7 @@ function PlayerStatus.syncStatusesToClient(self: PlayerStatus): ()
 end
 
 function PlayerStatus.getStatusPriorityValue(statusType: PlayerStatusType): number
-	for i, status in ipairs(PLAYER_STATUSES_BY_PRIORITY) do
+	for i, status in ipairs(PLAYER_STATUS_PRIORITY_ORDER) do
 		if status == statusType then
 			return i
 		end

@@ -109,7 +109,7 @@ Players.PlayerAdded:Connect(function(player)
 		if humanoid then
 			humanoid.Died:Once(function()
 				local plrStatuses = PlayerStatusRegistry.getPlayerStatuses(player)
-				plrStatuses:clearAllStatus()
+				plrStatuses:clearAllStatuses()
 			end)
 		end
 	end)
