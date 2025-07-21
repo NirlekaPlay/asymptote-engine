@@ -145,7 +145,30 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local tweenInfoFast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tweenInfoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
-	local promptUI = Instance.new("BillboardGui")
+	local promptParentAttatchment = prompt.Parent :: Attachment
+
+	-- To know if the ProximityPrompt can be the normal one or the flat one.
+	local isOmniDir = promptParentAttatchment:GetAttribute("OmniDir")
+
+	local promptPart
+	if not isOmniDir then
+		promptPart = Instance.new("Part")
+		promptPart.Anchored = true
+		promptPart.CanCollide = false
+		promptPart.CanTouch = false
+		promptPart.CanQuery = false
+		promptPart.CastShadow = false
+		promptPart.Transparency = 1
+		promptPart.CFrame = promptParentAttatchment.WorldCFrame
+		promptPart.Parent = prompt.Parent.Parent
+	end
+
+	local promptUI
+	if isOmniDir then 
+		promptUI = Instance.new("BillboardGui")
+	else
+		promptUI = Instance.new("SurfaceGui")
+	end
 	promptUI.Name = "Prompt"
 	promptUI.AlwaysOnTop = true
 
@@ -182,11 +205,14 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	)
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(inputFrameScaler, tweenInfoFast, { Scale = 1 }))
 
+	local actionTextFontSize = 19
+	local objectTextFontSize = 14
+
 	local actionText = Instance.new("TextLabel")
 	actionText.Name = "ActionText"
 	actionText.Size = UDim2.fromScale(1, 1)
-	actionText.Font = Enum.Font.GothamMedium
-	actionText.TextSize = 19
+	actionText.FontFace = Font.fromName("Zekton")
+	actionText.TextSize = actionTextFontSize
 	actionText.BackgroundTransparency = 1
 	actionText.TextTransparency = 1
 	actionText.TextColor3 = Color3.new(1, 1, 1)
@@ -200,8 +226,8 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local objectText = Instance.new("TextLabel")
 	objectText.Name = "ObjectText"
 	objectText.Size = UDim2.fromScale(1, 1)
-	objectText.Font = Enum.Font.GothamMedium
-	objectText.TextSize = 14
+	objectText.FontFace = Font.fromName("Zekton")
+	objectText.TextSize = objectTextFontSize
 	objectText.BackgroundTransparency = 1
 	objectText.TextTransparency = 1
 	objectText.TextColor3 = Color3.new(0.7, 0.7, 0.7)
@@ -422,9 +448,9 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local function updateUIFromPrompt()
 		-- todo: Use AutomaticSize instead of GetTextSize when that feature becomes available
 		local actionTextSize =
-			TextService:GetTextSize(prompt.ActionText, 19, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
+			TextService:GetTextSize(prompt.ActionText, actionTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
 		local objectTextSize =
-			TextService:GetTextSize(prompt.ObjectText, 14, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
+			TextService:GetTextSize(prompt.ObjectText, objectTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
 		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
 		local promptHeight = 72
 		local promptWidth = 72
@@ -452,16 +478,31 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		objectText.AutoLocalize = prompt.AutoLocalize
 		objectText.RootLocalizationTable = prompt.RootLocalizationTable
 
-		promptUI.Size = UDim2.fromOffset(promptWidth, promptHeight)
-		promptUI.SizeOffset =
-			Vector2.new(prompt.UIOffset.X / promptUI.Size.Width.Offset, prompt.UIOffset.Y / promptUI.Size.Height.Offset)
+		if isOmniDir and promptUI:IsA("BillboardGui") then
+			promptUI.Size = UDim2.fromOffset(promptWidth, promptHeight)
+			promptUI.SizeOffset =
+				Vector2.new(prompt.UIOffset.X / promptUI.Size.Width.Offset, prompt.UIOffset.Y / promptUI.Size.Height.Offset)
+		else
+			local pixelsPerStud = 45
+
+			-- Convert pixels to studs
+			promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
+			local partWidth = promptWidth / pixelsPerStud
+			local partHeight = promptHeight / pixelsPerStud
+			promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
+		end
 	end
 
 	local changedConnection = prompt.Changed:Connect(updateUIFromPrompt)
 	updateUIFromPrompt()
 
-	promptUI.Adornee = prompt.Parent
-	promptUI.Parent = gui
+	if isOmniDir then 
+		promptUI.Adornee = prompt.Parent
+		promptUI.Parent = gui
+	else
+		promptUI.Adornee = promptPart
+		promptUI.Parent = gui
+	end
 
 	for _, tween in ipairs(tweensForFadeIn) do
 		tween:Play()
@@ -487,6 +528,9 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		task.wait(0.2)
 
 		promptUI.Parent = nil
+		if not isOmniDir then
+			promptPart.Parent = nil
+		end
 	end
 
 	return cleanup

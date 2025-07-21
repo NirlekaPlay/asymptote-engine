@@ -42,25 +42,32 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 		return
 	end
 
-	local newProxPrompt = Instance.new("ProximityPrompt")
-	newProxPrompt.ActionText = "Disguise"
-	newProxPrompt.ObjectText = self.disguiseName
-	newProxPrompt.ClickablePrompt = true
-	newProxPrompt.HoldDuration = 5
-	newProxPrompt.KeyboardKeyCode = Enum.KeyCode.E
-	newProxPrompt.RequiresLineOfSight = true
-	newProxPrompt.Parent = triggerAttachment
+	triggerAttachment:SetAttribute("OmniDir", false)
+
+	local proximityPrompt = triggerAttachment:FindFirstChildOfClass("ProximityPrompt")
+	if not proximityPrompt then
+		proximityPrompt = Instance.new("ProximityPrompt")
+		proximityPrompt.MaxActivationDistance = 5
+		proximityPrompt.ActionText = "Disguise"
+		proximityPrompt.ObjectText = self.disguiseName
+		proximityPrompt.ClickablePrompt = true
+		proximityPrompt.HoldDuration = 5
+		proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
+		proximityPrompt.RequiresLineOfSight = true
+		proximityPrompt.Style = Enum.ProximityPromptStyle.Custom
+		proximityPrompt.Parent = triggerAttachment
+	end
 	-- TODO: Clean up connections.
 	-- I dont know why cuz these props are always active in the map but eh
 	-- "just in case"
-	newProxPrompt.Triggered:Connect(function(player)
+	proximityPrompt.Triggered:Connect(function(player)
 		self:applyDisguiseToPlayer(player)
 	end)
-	newProxPrompt.PromptButtonHoldBegan:Connect(function(player)
+	proximityPrompt.PromptButtonHoldBegan:Connect(function(player)
 		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
 		playerStatus:addStatus("CRIMINAL_SUSPICIOUS")
 	end)
-	newProxPrompt.PromptButtonHoldEnded:Connect(function(player)
+	proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
 		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
 		playerStatus:removeStatus("CRIMINAL_SUSPICIOUS")
 	end)
