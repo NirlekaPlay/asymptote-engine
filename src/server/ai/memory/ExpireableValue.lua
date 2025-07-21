@@ -4,7 +4,7 @@ local ExpireableValue = {}
 ExpireableValue.__index = ExpireableValue
 
 export type ExpireableValue<T> = typeof(setmetatable({} :: {
-	value: T?,
+	value: T,
 	timeToLive: number
 }, ExpireableValue))
 
@@ -19,7 +19,7 @@ function ExpireableValue.nonExpiring<T>(value: T): ExpireableValue<T>
 	return ExpireableValue.new(value, math.huge)
 end
 
-function ExpireableValue.getValue<T>(self: ExpireableValue<T>): T?
+function ExpireableValue.getValue<T>(self: ExpireableValue<T>): T
 	return self.value
 end
 
