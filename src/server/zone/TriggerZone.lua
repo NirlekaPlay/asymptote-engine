@@ -16,18 +16,21 @@ export type TriggerZone = typeof(setmetatable({} :: {
 	playersInZone: { [Player]: true },
 	lastPlayersInZone: { [Player]: true },
 	onPlayerEnterCallback: Callback?,
-	onPlayerLeaveCallback: Callback?
+	onPlayerLeaveCallback: Callback?,
+	predicateCallback: PredicateCallback
 }, TriggerZone))
 
 type Callback = ( Player ) -> ()
+type PredicateCallback = ( Player ) -> boolean
 
-function TriggerZone.new(min: Vector3, max: Vector3, onEnter: Callback?, onLeave: Callback?): TriggerZone
+function TriggerZone.new(min: Vector3, max: Vector3, onEnter: Callback?, onLeave: Callback?, predicate: PredicateCallback?): TriggerZone
 	return setmetatable({
 		region = Region3.new(min, max),
 		playersInZone = {},
 		lastPlayersInZone = {},
 		onPlayerEnterCallback = onEnter,
-		onPlayerLeaveCallback = onLeave
+		onPlayerLeaveCallback = onLeave,
+		predicateCallback = predicate
 	}, TriggerZone)
 end
 
@@ -69,6 +72,10 @@ function TriggerZone.update(self: TriggerZone): ()
 	for _, player in ipairs(players) do
 		local character = player.Character
 		if not character then
+			continue
+		end
+
+		if self.predicateCallback and not self.predicateCallback(player) then
 			continue
 		end
 

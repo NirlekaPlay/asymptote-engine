@@ -42,6 +42,19 @@ function TrespassingZone.new(triggerZone: TriggerZone, config: ZoneConfig): Tres
 		self:onPlayerLeave(player)
 	end
 
+	self.triggerZone.predicateCallback = function(player: Player)
+		local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return false
+		end
+
+		if humanoid.Health <= 0 then
+			return false
+		end
+
+		return true
+	end
+
 	return self
 end
 
