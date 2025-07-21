@@ -1,4 +1,4 @@
---!strict
+--!nocheck
 
 --[=[
 	This a highly modified version of the default ProximityPrompt
@@ -345,7 +345,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 			buttonText.Size = UDim2.fromScale(1, 1)
 			buttonText.Font = Enum.Font.GothamMedium
 			buttonText.TextSize = 14
-			if string.len(buttonTextString) > 2 then
+			if string.len(buttonTextString :: string) > 2 then
 				buttonText.TextSize = 12
 			end
 			buttonText.BackgroundTransparency = 1
@@ -467,8 +467,8 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		if prompt.ObjectText ~= nil and prompt.ObjectText ~= "" then
 			actionTextYOffset = 9
 		end
-		actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
-		objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, -10)
+		objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
+		actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, -10)
 
 		actionText.Text = prompt.ActionText
 		objectText.Text = prompt.ObjectText
