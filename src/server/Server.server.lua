@@ -99,6 +99,11 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	end
 
 	for model, guard in pairs(guards) do
+		if not model.PrimaryPart then
+			guards[model] = nil
+			model.Parent = nil
+			continue
+		end
 		guard:update(deltaTime)
 	end
 end)
