@@ -78,8 +78,17 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 	end
 
 	local rootPart = self.character.HumanoidRootPart
+	local currentLookVector = rootPart.CFrame.LookVector
+	local desiredLookVector = direction.Unit
+
+	local dot = currentLookVector:Dot(desiredLookVector)
+	if dot > 0.999 then
+		return
+	end
+
 	local targetCFrame = CFrame.new(rootPart.Position, rootPart.Position + direction)
-	rootPart.CFrame = rootPart.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
+	local alpha = 1 - math.exp(-self.rotationSpeed * deltaTime)
+	rootPart.CFrame = rootPart.CFrame:Lerp(targetCFrame, alpha)
 end
 
 function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
