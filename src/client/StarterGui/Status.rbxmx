@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBXc9a5de344bfc476c8a9f7f33841b4fc7">
+	<Item class="ScreenGui" referent="RBX68f2dd4cf1334cdd8b6a062e4ad01ede">
 		<Properties>
 			<BinaryString name="AttributesSerialize"></BinaryString>
 			<bool name="AutoLocalize">true</bool>
@@ -25,7 +25,7 @@
 			<BinaryString name="Tags"></BinaryString>
 			<token name="ZIndexBehavior">1</token>
 		</Properties>
-		<Item class="Frame" referent="RBX17644539924e479e96db0c98414ef35a">
+		<Item class="Frame" referent="RBXd120841d855f4d40af456a50fbe95fd4">
 			<Properties>
 				<bool name="Active">false</bool>
 				<Vector2 name="AnchorPoint">
@@ -88,7 +88,7 @@
 				<bool name="Visible">true</bool>
 				<int name="ZIndex">1</int>
 			</Properties>
-			<Item class="Frame" referent="RBX05c36b7866754f26bf941004e26825dc">
+			<Item class="Frame" referent="RBX3d7323b4dc044b3fba1bbba84f4321f0">
 				<Properties>
 					<bool name="Active">false</bool>
 					<Vector2 name="AnchorPoint">
@@ -151,7 +151,7 @@
 					<bool name="Visible">true</bool>
 					<int name="ZIndex">1</int>
 				</Properties>
-				<Item class="UIListLayout" referent="RBXb0ad68398cd54b3b8bf2a85e5b9e84cd">
+				<Item class="UIListLayout" referent="RBX1036aa34d8f3404cbe7ea8b681d53639">
 					<Properties>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -173,7 +173,7 @@
 						<bool name="Wraps">false</bool>
 					</Properties>
 				</Item>
-				<Item class="Frame" referent="RBX848b780ac7d94ef7a735fbbc9695723c">
+				<Item class="Frame" referent="RBX0d6114418a224ee0a338bc4cd9b5eb27">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -236,7 +236,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBX3f9a56c292294a658414c95c5804780c">
+					<Item class="TextLabel" referent="RBX0c85cea4e8f14596954cf50ed8bfa0da">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -313,8 +313,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -330,7 +330,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBX563e2ed7751b4a2bbe000d3f8014e1d9">
+					<Item class="UIPadding" referent="RBX57a19bc022ee4fad848ca4748708f4ff">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -356,7 +356,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBXa2adcb3577124db2a411708397a8c335">
+					<Item class="UICorner" referent="RBX90da91d86e914c75a292f8133eba6a22">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -370,7 +370,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBX995d39e018894fa1a200b0255700d8ad">
+					<Item class="UIAspectRatioConstraint" referent="RBXb18e46a5b185441baf8729e499271c07">
 						<Properties>
 							<float name="AspectRatio">3.10526323</float>
 							<token name="AspectType">0</token>
@@ -384,7 +384,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="Frame" referent="RBX27e76732f7564dd6bf0ef2ad83820523">
+				<Item class="Frame" referent="RBX6bbb6379fd4849d195b4de685d38598d">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -447,7 +447,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBXea05a5a9cffe4ec78d21011dbd3e6544">
+					<Item class="TextLabel" referent="RBXa368bf7716744bc2ad32e94325c4728d">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -524,8 +524,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -541,7 +541,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBX7bf5f5478cb549d9a25894c38e12cf48">
+					<Item class="UIPadding" referent="RBX4c1f8d65b0a5449d83cb0a5e4e3c5091">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -567,7 +567,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBXb4f5192d2c184159a22a9efce7a2bb0d">
+					<Item class="UICorner" referent="RBXfdcc57caf0c64af8a17ed7efc85d04fb">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -581,7 +581,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBX7a1374e4778d4d0bb10c37c221ec6011">
+					<Item class="UIAspectRatioConstraint" referent="RBXe12909f7237a438f9f2c7237436c9d68">
 						<Properties>
 							<float name="AspectRatio">3.86842108</float>
 							<token name="AspectType">0</token>
@@ -595,7 +595,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="Frame" referent="RBX6c1bb3cbe29247a184fd9aefa13fbe8d">
+				<Item class="Frame" referent="RBX7e4c2510072f42d3b55f8b715cf45ac8">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -658,7 +658,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBXd6b38a5d229d4596b53f98b5084cdb2b">
+					<Item class="TextLabel" referent="RBXfce376425a1c4a519b906662d50c102e">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -735,8 +735,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -752,7 +752,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBX1b956743fcae4325ab670b93dfb6413e">
+					<Item class="UIPadding" referent="RBX38e95584246f4e75a8bb34a0eab9418f">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -778,7 +778,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBXa08a210c04974b2baa33b277f469dda0">
+					<Item class="UICorner" referent="RBXcd05e96342bd4cea8385d888e88d8225">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -792,7 +792,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBXb9feaa04d83444e6b14e16a1bf262b0d">
+					<Item class="UIAspectRatioConstraint" referent="RBX678529b9ec06418ea26438447e6fb21d">
 						<Properties>
 							<float name="AspectRatio">3.39473677</float>
 							<token name="AspectType">0</token>
@@ -806,7 +806,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="Frame" referent="RBXbba1056880cb4659a19c9c144a22af91">
+				<Item class="Frame" referent="RBXdbc0590a5a4a485eabcb7e90789c493c">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -869,7 +869,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBX91473f94fb4e4525ae72582794c51d1c">
+					<Item class="TextLabel" referent="RBXabe7c425a1fe48d79efdad6089e2b344">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -946,8 +946,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -963,7 +963,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBX0278229bb93e4f3e8b5f7d3345120bf5">
+					<Item class="UIPadding" referent="RBX404371ddc010455597b49b6c7897cb1d">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -989,7 +989,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBXb8db49274d93492293599b55b023ae28">
+					<Item class="UICorner" referent="RBXc5b64b14b2354483bf8ce66e8c3bb60a">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1003,7 +1003,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBXf0e70c9d8fb04e6194749c034fae930b">
+					<Item class="UIAspectRatioConstraint" referent="RBX133e3ff13bfb4729b85e9fb79537c4b7">
 						<Properties>
 							<float name="AspectRatio">3.86842108</float>
 							<token name="AspectType">0</token>
@@ -1017,7 +1017,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="Frame" referent="RBXcfe18ea991cd474eb956642ec6337f9d">
+				<Item class="Frame" referent="RBX7705f02ec47f4536b44f64b4327727f4">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -1080,7 +1080,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBX14527c35bd1748c6931d2b3a69456ce2">
+					<Item class="TextLabel" referent="RBXa9d4f815ae0a4faa924950cdff1bafa1">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -1157,8 +1157,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -1174,7 +1174,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBX58b256c68a3547849b2e84a6cc14222b">
+					<Item class="UIPadding" referent="RBX98f39c5b108d4895bdd941df67ddcd8c">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1200,7 +1200,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBX79359836bc974f1a81a8f54c19c91f1e">
+					<Item class="UICorner" referent="RBX22d466cf400f45809db6ca6de2ba49b6">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1214,7 +1214,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBXb8171cb61d2e461fa1b2ba59c8e81683">
+					<Item class="UIAspectRatioConstraint" referent="RBXbf7c451e9c714cd9801b0abd3522bae7">
 						<Properties>
 							<float name="AspectRatio">3.39473677</float>
 							<token name="AspectType">0</token>
@@ -1228,7 +1228,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="Folder" referent="RBX0b6981fa949b4676b94a5f50672e10d5">
+				<Item class="Folder" referent="RBX017431b73c96417daf1a1710be360e24">
 					<Properties>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1237,7 +1237,7 @@
 						<int64 name="SourceAssetId">-1</int64>
 						<BinaryString name="Tags"></BinaryString>
 					</Properties>
-					<Item class="Frame" referent="RBXd139d83d0c2c4018858a159d9dcb5d14">
+					<Item class="Frame" referent="RBXd5b5f863b81145a181a62b1abb0a9e14">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -1300,7 +1300,7 @@
 							<bool name="Visible">false</bool>
 							<int name="ZIndex">1</int>
 						</Properties>
-						<Item class="TextLabel" referent="RBX1670153c0d494b9796387b8ce2b105eb">
+						<Item class="TextLabel" referent="RBX1d4c9fc2ac304375846ace753343ab19">
 							<Properties>
 								<bool name="Active">false</bool>
 								<Vector2 name="AnchorPoint">
@@ -1394,7 +1394,7 @@
 								<int name="ZIndex">1</int>
 							</Properties>
 						</Item>
-						<Item class="UIPadding" referent="RBX159665afae724864b4b1f0d4a7d26524">
+						<Item class="UIPadding" referent="RBX6519dbbc96104adcb12dd3446921c963">
 							<Properties>
 								<BinaryString name="AttributesSerialize"></BinaryString>
 								<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1420,7 +1420,7 @@
 								<BinaryString name="Tags"></BinaryString>
 							</Properties>
 						</Item>
-						<Item class="UICorner" referent="RBX6d6c5b27f25044fbaf04630469b6db0b">
+						<Item class="UICorner" referent="RBX3514cfa2c3fd44659a0c984927884594">
 							<Properties>
 								<BinaryString name="AttributesSerialize"></BinaryString>
 								<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1436,7 +1436,7 @@
 						</Item>
 					</Item>
 				</Item>
-				<Item class="Frame" referent="RBXba0b84fddceb4051893c20385a38f770">
+				<Item class="Frame" referent="RBX7d48fd8e22e943be962c0a15a9ca0115">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -1499,7 +1499,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBXafccf5cb9f744fdba2b7d23423880376">
+					<Item class="TextLabel" referent="RBX39ede64f439f45e0857408791baf11a5">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -1576,8 +1576,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -1593,7 +1593,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBXb0d7948381224d4fb86071b4b5cef5d6">
+					<Item class="UIPadding" referent="RBXf0c81a5035c64083b52242a13dcad371">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1619,7 +1619,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBXc18fd3c0b09544328a932dd60bd52371">
+					<Item class="UICorner" referent="RBX9bc8d7945feb4389ab635d63f2c7f054">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1633,7 +1633,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBX82a5c5972ae146d08f8a51ecce669f4f">
+					<Item class="UIAspectRatioConstraint" referent="RBXf41ed94b88fe4b35bba595bb37668f85">
 						<Properties>
 							<float name="AspectRatio">4.73684216</float>
 							<token name="AspectType">0</token>
@@ -1647,7 +1647,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="Frame" referent="RBX52cbaeb02ab04b6c9960220af0677852">
+				<Item class="Frame" referent="RBX15c3b9fc84be474581f5e73384cf3a85">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -1682,9 +1682,9 @@
 						<Ref name="NextSelectionRight">null</Ref>
 						<Ref name="NextSelectionUp">null</Ref>
 						<UDim2 name="Position">
-							<XS>0.827272713</XS>
+							<XS>0.145918369</XS>
 							<XO>0</XO>
-							<YS>0.922131121</YS>
+							<YS>0.920833349</YS>
 							<YO>0</YO>
 						</UDim2>
 						<Ref name="RootLocalizationTable">null</Ref>
@@ -1699,7 +1699,7 @@
 						<int name="SelectionOrder">0</int>
 						<UDim2 name="Size">
 							<XS>0</XS>
-							<XO>100</XO>
+							<XO>87</XO>
 							<YS>0</YS>
 							<YO>38</YO>
 						</UDim2>
@@ -1710,7 +1710,7 @@
 						<bool name="Visible">false</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="TextLabel" referent="RBXe7fec3a87f2841e7ae1e2c2cafd33fee">
+					<Item class="TextLabel" referent="RBXc1077b65cf124870a13cd97b6bbb62cc">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -1787,8 +1787,8 @@
 								<B>0</B>
 							</Color3>
 							<token name="TextDirection">0</token>
-							<bool name="TextScaled">true</bool>
-							<float name="TextSize">14</float>
+							<bool name="TextScaled">false</bool>
+							<float name="TextSize">25</float>
 							<Color3 name="TextStrokeColor3">
 								<R>0</R>
 								<G>0</G>
@@ -1804,7 +1804,7 @@
 							<int name="ZIndex">1</int>
 						</Properties>
 					</Item>
-					<Item class="UIPadding" referent="RBXfbcf7f851014407fb112d51aa1fc7579">
+					<Item class="UIPadding" referent="RBX8d6fb94509264e3bbaec085cc240fbe7">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1830,7 +1830,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UICorner" referent="RBXfa52dd3d97da4fbcb9065fa5deb5fad1">
+					<Item class="UICorner" referent="RBXef3769b8d1584ac5b9712895beee0266">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1844,9 +1844,9 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="UIAspectRatioConstraint" referent="RBXbd7566d641364e1293b345e78d396c31">
+					<Item class="UIAspectRatioConstraint" referent="RBX13fb3cc47d574e6fbe1c55f6fbcdbfb9">
 						<Properties>
-							<float name="AspectRatio">2.63157892</float>
+							<float name="AspectRatio">2.28947377</float>
 							<token name="AspectType">0</token>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1858,7 +1858,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="CanvasGroup" referent="RBX3590e2c31c8c43c78c946b499423515d">
+				<Item class="CanvasGroup" referent="RBX1a28062709ff470895bddae106253d8a">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -1899,9 +1899,9 @@
 						<Ref name="NextSelectionRight">null</Ref>
 						<Ref name="NextSelectionUp">null</Ref>
 						<UDim2 name="Position">
-							<XS>0</XS>
+							<XS>-3.89254806e-09</XS>
 							<XO>0</XO>
-							<YS>0.922131121</YS>
+							<YS>0.920833349</YS>
 							<YO>0</YO>
 						</UDim2>
 						<Ref name="RootLocalizationTable">null</Ref>
@@ -1916,7 +1916,7 @@
 						<int name="SelectionOrder">0</int>
 						<UDim2 name="Size">
 							<XS>0</XS>
-							<XO>133</XO>
+							<XO>120</XO>
 							<YS>0</YS>
 							<YO>38</YO>
 						</UDim2>
@@ -1926,7 +1926,7 @@
 						<bool name="Visible">true</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="UICorner" referent="RBX75865d8bf98741af84733a8ffc9809fa">
+					<Item class="UICorner" referent="RBXa1dea9e4a9554a099a8603e0eae351a6">
 						<Properties>
 							<BinaryString name="AttributesSerialize"></BinaryString>
 							<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -1940,7 +1940,7 @@
 							<BinaryString name="Tags"></BinaryString>
 						</Properties>
 					</Item>
-					<Item class="Frame" referent="RBX27d7b70ef55e451b9ae1fd85e8a5f9f9">
+					<Item class="Frame" referent="RBXde99c85e9e744eb8835c5043a461fce9">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -1991,7 +1991,7 @@
 							<Ref name="SelectionImageObject">null</Ref>
 							<int name="SelectionOrder">0</int>
 							<UDim2 name="Size">
-								<XS>0.300292701</XS>
+								<XS>0.34179756</XS>
 								<XO>0</XO>
 								<YS>1</YS>
 								<YO>0</YO>
@@ -2003,7 +2003,7 @@
 							<bool name="Visible">true</bool>
 							<int name="ZIndex">1</int>
 						</Properties>
-						<Item class="TextLabel" referent="RBXc7b9e92f55c646358019ffb5b7563910">
+						<Item class="TextLabel" referent="RBX8c47d519178943fe9514bde2db5a1623">
 							<Properties>
 								<bool name="Active">false</bool>
 								<Vector2 name="AnchorPoint">
@@ -2098,7 +2098,7 @@
 							</Properties>
 						</Item>
 					</Item>
-					<Item class="Frame" referent="RBX4ec534b72de346a599db43e4cce2beab">
+					<Item class="Frame" referent="RBX707fb01117e94606b4f5da41af5c3939">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -2133,7 +2133,7 @@
 							<Ref name="NextSelectionRight">null</Ref>
 							<Ref name="NextSelectionUp">null</Ref>
 							<UDim2 name="Position">
-								<XS>0.30029273</XS>
+								<XS>0.34179756</XS>
 								<XO>0</XO>
 								<YS>0</YS>
 								<YO>0</YO>
@@ -2149,7 +2149,7 @@
 							<Ref name="SelectionImageObject">null</Ref>
 							<int name="SelectionOrder">0</int>
 							<UDim2 name="Size">
-								<XS>0.692073703</XS>
+								<XS>0.650568783</XS>
 								<XO>1</XO>
 								<YS>1</YS>
 								<YO>0</YO>
@@ -2161,7 +2161,7 @@
 							<bool name="Visible">true</bool>
 							<int name="ZIndex">1</int>
 						</Properties>
-						<Item class="TextLabel" referent="RBX9daa41815b02415a96e28eedd1c994ee">
+						<Item class="TextLabel" referent="RBX54f6f80e304146618372f48502259302">
 							<Properties>
 								<bool name="Active">false</bool>
 								<Vector2 name="AnchorPoint">
@@ -2255,7 +2255,7 @@
 								<int name="ZIndex">1</int>
 							</Properties>
 						</Item>
-						<Item class="UIPadding" referent="RBX67087ffe209c437c889db45624359bf7">
+						<Item class="UIPadding" referent="RBXe93bca927a354ac092c315f211535029">
 							<Properties>
 								<BinaryString name="AttributesSerialize"></BinaryString>
 								<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -2284,7 +2284,7 @@
 					</Item>
 				</Item>
 			</Item>
-			<Item class="UIPadding" referent="RBXe06aa41048234e8a9c089a4a2e6bfc3d">
+			<Item class="UIPadding" referent="RBXbbec5fef770d4af08fef36b51d9a0d62">
 				<Properties>
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>

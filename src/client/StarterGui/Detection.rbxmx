@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX184630a8adc244fa865fb2cf1afa546b">
+	<Item class="ScreenGui" referent="RBXc3396a274b7d4044847aa6bbe7cf3fa8">
 		<Properties>
 			<BinaryString name="AttributesSerialize"></BinaryString>
 			<bool name="AutoLocalize">true</bool>
@@ -25,7 +25,7 @@
 			<BinaryString name="Tags"></BinaryString>
 			<token name="ZIndexBehavior">1</token>
 		</Properties>
-		<Item class="Frame" referent="RBXf3c6782aac474e8c9d367ff393972f2c">
+		<Item class="Frame" referent="RBX13c62b5bc9024571ab8208107bab006e">
 			<Properties>
 				<bool name="Active">false</bool>
 				<Vector2 name="AnchorPoint">
@@ -88,7 +88,7 @@
 				<bool name="Visible">false</bool>
 				<int name="ZIndex">1</int>
 			</Properties>
-			<Item class="Frame" referent="RBX188f8d8b04b94adbbfdf212beb4e4c94">
+			<Item class="Frame" referent="RBX9c9fa88b52924858b86c3441af1d3e48">
 				<Properties>
 					<bool name="Active">false</bool>
 					<Vector2 name="AnchorPoint">
@@ -151,7 +151,7 @@
 					<bool name="Visible">true</bool>
 					<int name="ZIndex">1</int>
 				</Properties>
-				<Item class="ImageLabel" referent="RBX7ca9694579204ac885d5b85cdd0ff757">
+				<Item class="ImageLabel" referent="RBX5fd2e8ace57a4e90ae1adff2be82dba0">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -248,7 +248,7 @@
 						<int name="ZIndex">1</int>
 					</Properties>
 				</Item>
-				<Item class="CanvasGroup" referent="RBXddfecf24e6d343569bec54f6c59814d2">
+				<Item class="CanvasGroup" referent="RBXa00b5db9fdd54ff595bd4160ee843888">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -316,7 +316,7 @@
 						<bool name="Visible">true</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="ImageLabel" referent="RBXb64ea07a14f8440698a5465d03394088">
+					<Item class="ImageLabel" referent="RBXc47f7bfd434845b39f3d3d3d420e10b1">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -343,7 +343,7 @@
 							<bool name="ClipsDescendants">false</bool>
 							<bool name="DefinesCapabilities">false</bool>
 							<bool name="Draggable">false</bool>
-							<Content name="Image"><url>http://www.roblox.com/asset/?id=17598010335</url></Content>
+							<Content name="Image"><url>rbxassetid://96615701415115</url></Content>
 							<Color3 name="ImageColor3">
 								<R>1</R>
 								<G>1</G>
@@ -414,7 +414,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="UIAspectRatioConstraint" referent="RBX10a06de98b694406b670f53ba8e6270a">
+				<Item class="UIAspectRatioConstraint" referent="RBX53b53245d97742008d93d9461a60d5a1">
 					<Properties>
 						<float name="AspectRatio">2.95707321</float>
 						<token name="AspectType">0</token>
