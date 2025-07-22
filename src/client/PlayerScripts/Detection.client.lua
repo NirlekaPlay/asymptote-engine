@@ -23,10 +23,11 @@ type DetectionMeterObject = {
 	worldPointer: WorldPointer,     -- The WorldPointer instance for rotating to its origin
 	meterUi: DetectionMeterUI,      -- Associated UI object
 	lastValue: number,              -- Last recorded detection value
-	lastRaiseTime: number,         -- Last time (in seconds) the detection value increased
+	lastRaiseTime: number,          -- Last time (in seconds) the detection value increased
 	currentRtween: RTween.RTween,   -- Tween controlling the fill animation
 	isRaising: boolean,             -- Whether detection value is currently increasing
-	doRotate: boolean               -- Whether WorldPointer should rotate the UI object
+	doRotate: boolean,              -- Whether WorldPointer should rotate the UI object,
+	wooshSound: Sound
 }
 
 type WorldPointer = WorldPointer.WorldPointer
@@ -38,6 +39,7 @@ local DETECTION_GUI = Players.LocalPlayer.PlayerGui:WaitForChild("Detection")
 local FRAME_METER_REF = DETECTION_GUI.SusMeter
 
 local activeMeters: { [Model]: DetectionMeterObject } = {}
+local random = Random.new(tick())
 
 local function cloneMeterUi(): Frame
 	local cloned = FRAME_METER_REF:Clone() :: any -- use any so the typechecker will stfu
@@ -73,6 +75,14 @@ local function createMeterObject(): DetectionMeterObject
 	newMeterObject.lastRaiseTime = 2
 	newMeterObject.meterUi = newUiInst
 	newMeterObject.worldPointer = WorldPointer.new(newUiInst.rootFrame)
+	newMeterObject.wooshSound = (function()
+		local newWooshSound = WOOSH_SOUND:Clone()
+		local newPitchSfx = Instance.new("PitchShiftSoundEffect")
+		newWooshSound.Parent = newUiInst.rootFrame
+		newPitchSfx.Octave = random:NextNumber(1, 1.16)
+		newPitchSfx.Parent = newWooshSound
+		return newWooshSound
+	end)() :: Sound
 
 	return newMeterObject
 end
@@ -130,26 +140,26 @@ REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, 
 		currentMeter.isRaising = false
 	end
 
-	local isPlaying = WOOSH_SOUND.IsPlaying
+	local isPlaying = currentMeter.wooshSound.IsPlaying
 	if currentMeter.isRaising then
 		
 		if not isPlaying then
-			WOOSH_SOUND:Play()
+			currentMeter.wooshSound:Play()
 		end
 
-		WOOSH_SOUND.Volume = math.map(suspicionValue, 0, 1, 0, 3)
+		currentMeter.wooshSound.Volume = math.map(suspicionValue, 0, 1, 0, 3)
 	else
 		if not isPlaying then
-			WOOSH_SOUND:Play()
+			currentMeter.wooshSound:Play()
 		end
 
-		WOOSH_SOUND.Volume = math.map(currentMeter.lastRaiseTime, 0, 2, 0, 0.5)
+		currentMeter.wooshSound.Volume = math.map(currentMeter.lastRaiseTime, 0, 2, 0, 0.5)
 	end
 
 	currentMeter.lastValue = suspicionValue
 
 	if (currentMeter.lastRaiseTime <= 0) or (suspicionValue <= 0.01) then
-		WOOSH_SOUND:Stop()
+		currentMeter.wooshSound:Stop()
 		currentMeter.meterUi.rootFrame.Visible = false
 		return
 	else
@@ -157,7 +167,7 @@ REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, 
 	end
 
 	if suspicionValue == 1 then
-		WOOSH_SOUND:Stop()
+		currentMeter.wooshSound:Stop()
 		local currentMeterUi = currentMeter.meterUi
 		local rootFrame = currentMeterUi.rootFrame
 		local currentTween = currentMeter.currentRtween
