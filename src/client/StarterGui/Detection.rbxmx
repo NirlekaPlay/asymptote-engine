@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ScreenGui" referent="RBX3606a8683c744325be96717456b5e1ab">
+	<Item class="ScreenGui" referent="RBX184630a8adc244fa865fb2cf1afa546b">
 		<Properties>
 			<BinaryString name="AttributesSerialize"></BinaryString>
 			<bool name="AutoLocalize">true</bool>
@@ -15,7 +15,7 @@
 			<bool name="ResetOnSpawn">false</bool>
 			<Ref name="RootLocalizationTable">null</Ref>
 			<token name="SafeAreaCompatibility">1</token>
-			<token name="ScreenInsets">2</token>
+			<token name="ScreenInsets">1</token>
 			<token name="SelectionBehaviorDown">0</token>
 			<token name="SelectionBehaviorLeft">0</token>
 			<token name="SelectionBehaviorRight">0</token>
@@ -25,7 +25,7 @@
 			<BinaryString name="Tags"></BinaryString>
 			<token name="ZIndexBehavior">1</token>
 		</Properties>
-		<Item class="Frame" referent="RBXd03127ac97db452bb7f89ad70c1ce320">
+		<Item class="Frame" referent="RBXf3c6782aac474e8c9d367ff393972f2c">
 			<Properties>
 				<bool name="Active">false</bool>
 				<Vector2 name="AnchorPoint">
@@ -88,7 +88,7 @@
 				<bool name="Visible">false</bool>
 				<int name="ZIndex">1</int>
 			</Properties>
-			<Item class="Frame" referent="RBXe4c1040d9bc3436b99358eae2a29bc37">
+			<Item class="Frame" referent="RBX188f8d8b04b94adbbfdf212beb4e4c94">
 				<Properties>
 					<bool name="Active">false</bool>
 					<Vector2 name="AnchorPoint">
@@ -151,7 +151,7 @@
 					<bool name="Visible">true</bool>
 					<int name="ZIndex">1</int>
 				</Properties>
-				<Item class="ImageLabel" referent="RBXcc3328ee537e45ae8a09a4cf7392db85">
+				<Item class="ImageLabel" referent="RBX7ca9694579204ac885d5b85cdd0ff757">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -248,7 +248,7 @@
 						<int name="ZIndex">1</int>
 					</Properties>
 				</Item>
-				<Item class="CanvasGroup" referent="RBXa8dbadd9a14d4dbdb70495d8616e0db7">
+				<Item class="CanvasGroup" referent="RBXddfecf24e6d343569bec54f6c59814d2">
 					<Properties>
 						<bool name="Active">false</bool>
 						<Vector2 name="AnchorPoint">
@@ -316,7 +316,7 @@
 						<bool name="Visible">true</bool>
 						<int name="ZIndex">1</int>
 					</Properties>
-					<Item class="ImageLabel" referent="RBXcf331dda39c647c7929beb684f6fea58">
+					<Item class="ImageLabel" referent="RBXb64ea07a14f8440698a5465d03394088">
 						<Properties>
 							<bool name="Active">false</bool>
 							<Vector2 name="AnchorPoint">
@@ -414,7 +414,7 @@
 						</Properties>
 					</Item>
 				</Item>
-				<Item class="UIAspectRatioConstraint" referent="RBX7f55f09d5fb14b93baa79ec7ed190cd7">
+				<Item class="UIAspectRatioConstraint" referent="RBX10a06de98b694406b670f53ba8e6270a">
 					<Properties>
 						<float name="AspectRatio">2.95707321</float>
 						<token name="AspectType">0</token>
