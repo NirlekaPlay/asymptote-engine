@@ -108,13 +108,23 @@ function GunControl.unequipGun(self: GunControl): ()
 end
 
 function GunControl.shoot(self: GunControl, atPos: Vector3): ()
-	-- why do we do this again???????
 	local originPos = self.agent:getPrimaryPart().Position
-	local direction = (atPos - originPos).Unit * 500 -- thats pretty high.
-	local rayResult = workspace:Raycast(originPos, direction)
+	local direction = (atPos - originPos).Unit
+	
+	local spreadAngle = math.rad(20) -- in degrees, controls how much inaccuracy there is
+	
+	-- create a random inaccuracy within a cone of 'spreadAngle' radius
+	local function applySpread(direction: Vector3, angle: number): Vector3
+		local randomAxis = Vector3.new(math.random(), math.random(), math.random()).Unit
+		local spreadRotation = CFrame.fromAxisAngle(randomAxis, math.random() * angle)
+		return (spreadRotation * direction).Unit
+	end
+
+	local spreadDirection = applySpread(direction, spreadAngle) * 500
+
+	local rayResult = workspace:Raycast(originPos, spreadDirection)
 
 	if rayResult then
-		-- what the fuck
 		self.fbb.remoteFire:Fire("2", rayResult.Position)
 	end
 end
