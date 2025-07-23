@@ -18,7 +18,8 @@ export type BodyRotationControl = typeof(setmetatable({} :: {
 	lastPos: Vector3,
 	targetDirection: Vector3?,
 	rotationSpeed: number,
-	rotationCooldown: number
+	rotationCooldown: number,
+	customRotator: ((self: BodyRotationControl, deltaTime: number) -> ())?
 }, BodyRotationControl))
 
 function BodyRotationControl.new(character: Model, pathNav: PathNavigation.PathNavigation, speed: number?): BodyRotationControl
@@ -83,6 +84,14 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 
 	local dot = currentLookVector:Dot(desiredLookVector)
 	if dot > 0.999 then
+		return
+	end
+
+	-- created just for GunControl, so the stupid FBB doesnt rotate the body
+	-- off by a few degrees. we should probably just make a degree offset
+	-- property. or not? as this is more flexible? hmm? i dunno.
+	if self.customRotator then
+		self:customRotator(deltaTime)
 		return
 	end
 

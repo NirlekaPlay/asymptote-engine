@@ -3,12 +3,13 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
+local BodyRotationControl = require(script.Parent.BodyRotationControl)
 local Agent = require(ServerScriptService.server.Agent)
 
 --[=[
 	@class GunControl
 
-	Lol. Gun control. This is america--
+	Lol. Gun control. This is America--
 	Anyways, this Control class is made to abstract
 	the toolbox gun that is the FB Beryl (FBB).
 ]=]
@@ -74,12 +75,19 @@ function GunControl.equipGun(self: GunControl, gunConfig: GunConfg?): ()
 	if not self:isEquipped() then
 		self.equipped = true
 
+		-- sets the settings of the FBB
 		if gunConfig then
 			for settingType: string, settingValue: any in pairs(gunConfig) do
 				local fbbSettingType = GUN_CONFIG_TO_FBB_SETTINGS[settingType]
 				self.fbb.settingsFolder[fbbSettingType].Value = settingValue
 			end
 		end
+
+		-- sets the custom rotator, as having the FBB equipped makes the
+		-- body rotate off
+		local agentRot = self.agent:getBodyRotationControl()
+		agentRot.customRotator = GunControl.rotateBody
+
 		self.fbb.tool.Parent = self.agent.character
 	end
 end
@@ -87,6 +95,10 @@ end
 function GunControl.unequipGun(self: GunControl): ()
 	if self:isEquipped() then
 		self.equipped = false
+
+		local agentRot = self.agent:getBodyRotationControl()
+		agentRot.customRotator = nil
+
 		self.fbb.remoteUnequip:Fire()
 		task.spawn(function()
 			task.wait(1)
@@ -139,6 +151,14 @@ function GunControl.getFbb(toChar: Model): Fbb
 	}
 
 	return newFbbObject
+end
+
+function GunControl.rotateBody(self: BodyRotationControl.BodyRotationControl, deltaTime: number): ()
+	local part = self.character:FindFirstChild("HumanoidRootPart") :: BasePart
+	local targetCFrame = CFrame.new(part.Position, part.Position + self.targetDirection :: Vector3)
+	local rotationOffset = CFrame.Angles(0, math.rad(57), 0)
+	targetCFrame = targetCFrame * rotationOffset
+	part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
 end
 
 return GunControl
