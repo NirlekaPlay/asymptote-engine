@@ -14,8 +14,7 @@ export type LookAtSuspectGoal = typeof(setmetatable({} :: {
 function LookAtSuspectGoal.new(agent): LookAtSuspectGoal
 	return setmetatable({
 		flags = {
-			"LOOKING",
-			"MOVING"
+			"LOOKING"
 		},
 		agent = agent
 	}, LookAtSuspectGoal)

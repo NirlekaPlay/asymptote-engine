@@ -1,8 +1,9 @@
---!strict
+--!nocheck
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
+local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local Agent = require("../../Agent")
 local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
 local BubbleChatControl = require("../control/BubbleChatControl")
@@ -14,14 +15,17 @@ ShockedGoal.__index = ShockedGoal
 export type ShockedGoal = typeof(setmetatable({} :: {
 	agent: Agent.Agent,
 	hasBeenShocked: boolean,
+	shockedBy: Player?,
+	initialShockerDistance: number?,
 	isSpeaking: boolean,
 }, ShockedGoal)) & Goal.Goal
 
 function ShockedGoal.new(agent: Agent.Agent): ShockedGoal
 	return setmetatable({
 		agent = agent,
-		flags = { "SHOCKED" },
+		flags = { "SHOCKED", "MOVING" },
 		hasBeenShocked = false,
+		shockedBy = nil,
 		isSpeaking = false
 	}, ShockedGoal)
 end
@@ -37,6 +41,10 @@ function ShockedGoal.canUse(self: ShockedGoal): boolean
 	end
 	local highestStatus = PlayerStatusRegistry.getPlayerStatuses(hasSuspect):getHighestPriorityStatus()
 	local isArmed = highestStatus == "ARMED"
+
+	if isArmed then
+		self.shockedBy = hasSuspect
+	end
 
 	return isArmed
 end
@@ -88,6 +96,28 @@ local randomDialogues: {(BubbleChatControl.BubbleChatControl, ShockedGoal) -> ()
 	end,
 }
 
+local randomShooterDialogues: {(BubbleChatControl.BubbleChatControl, ShockedGoal) -> ()} = {
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
+		bubControl:displayBubble("Oh shit! Hes got a gun!")
+		task.wait(1.66)
+		bubControl:displayBubble("Open fire!")
+		task.wait(0.98)
+		self.isSpeaking = false
+	end,
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
+		bubControl:displayBubble("Control! Ive got an armed trespasser here!!!!")
+		task.wait(2.83)
+		self.isSpeaking = false
+	end,
+	function(bubControl: BubbleChatControl.BubbleChatControl, self: ShockedGoal)
+		bubControl:displayBubble("We got a shooter!")
+		task.wait(1.49)
+		bubControl:displayBubble("Envvy! Save us!!")
+		task.wait(1.47)
+		self.isSpeaking = false
+	end
+}
+
 local randomDeathDialogues = {
 	"Agh-",
 	"Egh-",
@@ -95,7 +125,9 @@ local randomDeathDialogues = {
 	"NO--",
 	"NO WAIT-",
 	"No-",
-	"WAIT-"
+	"WAIT-",
+	"AGH--",
+	"SHI-"
 }
 
 function ShockedGoal.start(self: ShockedGoal): ()
@@ -107,13 +139,26 @@ function ShockedGoal.start(self: ShockedGoal): ()
 	self.isSpeaking = true
 	local speakThread
 
-	self.hasBeenAtGunpoint = true
-	local randomIndexDialogue = math.random(1, #randomDialogues)
+	local charPos = self.shockedBy.Character.PrimaryPart.Position
+	local selfPos = self.agent:getPrimaryPart().Position
+	local distance = ( charPos - selfPos ).Magnitude
+	self.initialShockerDistance = distance
 
-	speakThread = task.spawn(function()
-		task.wait(0.3)
-		randomDialogues[randomIndexDialogue](bubControl, self)
-	end);
+	self.hasBeenAtGunpoint = true
+
+	if distance < 15 and self.agent:canBeIntimidated() then
+		local randomIndexDialogue = math.random(1, #randomDialogues)
+		speakThread = task.spawn(function()
+			task.wait(0.3)
+			randomDialogues[randomIndexDialogue](bubControl, self)
+		end);
+	elseif (not self.agent:canBeIntimidated()) or distance > 20 then
+		local randomIndexDialogue = math.random(1, #randomShooterDialogues)
+		speakThread = task.spawn(function()
+			task.wait(0.3)
+			randomShooterDialogues[randomIndexDialogue](bubControl, self)
+		end);
+	end
 
 	(self.agent.character.Humanoid :: Humanoid).Died:Once(function()
 		if self.isSpeaking then
@@ -129,11 +174,39 @@ function ShockedGoal.stop(self: ShockedGoal): ()
 end
 
 function ShockedGoal.update(self: ShockedGoal, delta: number?): ()
-	return
+	local shockerChar = self.shockedBy.Character
+	if not shockerChar then return end
+
+	self.agent:getBodyRotationControl():setRotateTowards(shockerChar.PrimaryPart.Position)
+	self.agent:getLookControl():setLookAtPos(shockerChar.PrimaryPart.Position)
+
+	local shockerHumanoid = shockerChar:FindFirstChildOfClass("Humanoid")
+
+	if shockerHumanoid.Health <= 0 then
+		return
+	end
+
+	if self.agent:canBeIntimidated() and self.initialShockerDistance < 15 then
+		self.agent:getGunControl():unequipGun()
+		return
+	end
+
+	local charPos = self.shockedBy.Character.PrimaryPart.Position
+
+	local config: GunControl.GunConfg = {}
+	config.fireDelay = 0.01
+	config.chamberedBullet = 0
+	config.roundsInMagazine = 0
+	config.magazineRoundsCapacity = 30
+	self.agent:getGunControl():equipGun(config)
+	self.agent:getGunControl():shoot(charPos)
+	if self.agent:getGunControl():isEmpty() then
+		self.agent:getGunControl():reload()
+	end
 end
 
 function ShockedGoal.requiresUpdating(self: ShockedGoal): boolean
-	return false
+	return true
 end
 
 return ShockedGoal
