@@ -1,4 +1,4 @@
---!strict
+--!nonstrict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -34,7 +34,7 @@ type Fbb = {
 		maxwpenetration: NumberValue,
 		mode: StringValue,
 		speed: NumberValue
-	} & Folder,
+	},
 	remoteFire: BindableEvent,
 	remoteReload: BindableEvent,
 	remoteUnequip: BindableEvent
