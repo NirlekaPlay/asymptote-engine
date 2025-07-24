@@ -67,7 +67,6 @@ local function setupGuards()
 			end)
 		end
 		local newGuard = Guard.new(guard, currentGuardPosts)
-		newGuard:registerGoals()
 		guards[guard] = newGuard
 	end
 end
@@ -81,7 +80,6 @@ CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
 			if guard.Parent == workspace then
 				connection:Disconnect()
 				local newGuard = Guard.new(guard, currentGuardPosts)
-				newGuard:registerGoals()
 				guards[guard] = newGuard
 			end
 		end)
@@ -89,7 +87,6 @@ CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
 	end
 
 	local newGuard = Guard.new(guard, currentGuardPosts)
-	newGuard:registerGoals()
 	guards[guard] = newGuard
 end)
 

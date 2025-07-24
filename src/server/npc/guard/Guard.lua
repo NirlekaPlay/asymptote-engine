@@ -4,13 +4,15 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
+local Activity = require(ServerScriptService.server.ai.behaviour.Activity)
+local LookAndFaceAtTarget = require(ServerScriptService.server.ai.behaviour.LookAndFaceAtTarget)
+local SetLookAtSusiciousPlayer = require(ServerScriptService.server.ai.behaviour.SetLookAtSusiciousPlayer)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
-local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
@@ -48,9 +50,6 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.suspicionManager = SuspicionManagement.new(self)
 	self.designatedPosts = designatedPosts
-	self.memories = {
-		[MemoryModuleTypes.VISIBLE_PLAYERS] = ExpireableValue.new({}, math.huge)
-	}
 	self.gunControl = GunControl.new(self)
 	self.lookControl = LookControl.new(character)
 	self.faceControl = FaceControl.new(character)
@@ -74,15 +73,17 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end
 
 	self.isPathfindingValue = isPathfinding
-	self.brain = Brain.new(self, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
+	self.brain = Brain.new(self, {
+		MemoryModuleTypes.LOOK_TARGET
+	}, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
+	self.brain:addActivity(Activity.CORE, 0, {
+		SetLookAtSusiciousPlayer.new(),
+		LookAndFaceAtTarget.new()
+	})
+	self.brain:setDefaultActivity(Activity.CORE)
+	self.brain:useDefaultActivity()
 
 	return setmetatable(self, Guard)
-end
-
-function Guard.registerGoals(self: Guard): ()
-	--self.goalSelector:addGoal(ShockedGoal.new(self), 1)
-	--self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
-	--self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
@@ -92,6 +93,13 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	end
 
 	self.brain:update(deltaTime)
+	local visiblePlayers = self.brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
+	if visiblePlayers:isPresent() then
+		visiblePlayers = visiblePlayers:get():getValue()
+	else
+		visiblePlayers = {}
+	end
+	self.suspicionManager:update(deltaTime, visiblePlayers)
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
 
@@ -111,7 +119,6 @@ function Guard.canBeIntimidated(self: Guard): boolean
 end
 
 function Guard.onDied(self: Guard)
-	self.goalSelector:stopAllRunningGoals()
 	self.faceControl:setFace("Unconscious")
 end
 
