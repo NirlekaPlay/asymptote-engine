@@ -5,7 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local PlayerStatusRegistry = require("./player/PlayerStatusRegistry")
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
-local Guard = require(ServerScriptService.server.guard.Guard)
+local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local TrespassingZone = require(ServerScriptService.server.zone.TrespassingZone)
 
 local GUARD_TAG_NAME = "Guard"
