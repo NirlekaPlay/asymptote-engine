@@ -77,7 +77,7 @@ setupGuards()
 CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
 	if guard.Parent ~= workspace then
 		local connection: RBXScriptConnection
-		connection = guard.GetPropertyChangedSignal("Parent"):Connect(function()
+		connection = guard:GetPropertyChangedSignal("Parent"):Connect(function()
 			if guard.Parent == workspace then
 				connection:Disconnect()
 				local newGuard = Guard.new(guard, currentGuardPosts)
