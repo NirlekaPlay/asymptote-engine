@@ -44,7 +44,7 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 
 	triggerAttachment:SetAttribute("OmniDir", false)
 
-	local proximityPrompt = triggerAttachment:FindFirstChildOfClass("ProximityPrompt")
+	local proximityPrompt = triggerAttachment:FindFirstChildOfClass("ProximityPrompt") :: ProximityPrompt
 	if not proximityPrompt then
 		proximityPrompt = Instance.new("ProximityPrompt")
 		proximityPrompt.MaxActivationDistance = 5
