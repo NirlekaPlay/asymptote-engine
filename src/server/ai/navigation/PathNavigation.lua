@@ -30,7 +30,7 @@ function PathNavigation.disconnectReachedConnection(self: PathNavigation): ()
 end
 
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
-	self.pathfinder.Visualize = true
+	self.pathfinder.Visualize = false
 	self:disconnectReachedConnection()
 	self.finished = false
 	self.pathfinder:Run(toPos)
