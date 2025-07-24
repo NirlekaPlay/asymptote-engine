@@ -1,7 +1,9 @@
---!strict
+--!nonstrict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
+local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local PlayerStatus = require("../../player/PlayerStatus")
 local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
 local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
@@ -31,7 +33,7 @@ local SuspicionManagement = {}
 SuspicionManagement.__index = SuspicionManagement
 
 export type SuspicionManagement = typeof(setmetatable({} :: {
-	character: Model,
+	agent: DetectionAgent.DetectionAgent,
 	focusingOn: Player?,
 	detectionLocks: { [Player]: PlayerStatus.PlayerStatusType },
 	suspicionLevels: { [Player]: number },
@@ -39,9 +41,9 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 	curiousCooldown: number
 }, SuspicionManagement))
 
-function SuspicionManagement.new(character: Model): SuspicionManagement
+function SuspicionManagement.new(agent: DetectionAgent.DetectionAgent): SuspicionManagement
 	return setmetatable({
-		character = character,
+		agent = agent,
 		detectionLocks = {},
 		suspicionLevels = {},
 		focusingOn = nil :: Player?,
@@ -87,7 +89,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 end
 
 function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement, players: { [Player]: true }): Player?
-	local character = self.character
+	local character = self.agent.character
 	local characterPos = character.PrimaryPart.Position
 
 	local bestPlayer = nil
@@ -99,6 +101,10 @@ function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement,
 		local priorityStatus = statuses:getHighestPriorityStatus()
 
 		if not priorityStatus then
+			continue
+		end
+
+		if priorityStatus == "DISGUISED" and not self.agent:canDetectThroughDisguises() then
 			continue
 		end
 
@@ -143,7 +149,7 @@ function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: P
 
 	local highestPriorityStatus = playerStatus:getHighestPriorityStatus() :: PlayerStatus.PlayerStatusType
 	local speedModifier = PlayerStatus.getStatusDetectionSpeedModifier(highestPriorityStatus)
-	local distance = (self.character.PrimaryPart.Position - player.Character.PrimaryPart.Position).Magnitude
+	local distance = (self.agent.character.PrimaryPart.Position - player.Character.PrimaryPart.Position).Magnitude
 	if distance <= CONFIG.QUICK_DETECTION_RANGE then
 		speedModifier *= CONFIG.QUICK_DETECTION_MULTIPLIER
 	end
@@ -186,7 +192,7 @@ function SuspicionManagement.syncSuspicionToPlayer(
 	player: Player,
 	susValue: number
 ): ()
-	local character = self.character
+	local character = self.agent.character
 	local fromPos = character.PrimaryPart.Position
 	TypedDetectionRemote:FireClient(
 		player,
