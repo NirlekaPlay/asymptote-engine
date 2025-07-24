@@ -2,21 +2,21 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local ShockedGoal = require("../ai/goal/ShockedGoal")
+local Agent = require(ServerScriptService.server.Agent)
+local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
+local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
-local LookAtSuspectGoal = require(ServerScriptService.server.ai.goal.LookAtSuspectGoal)
-local PursueTrespasserGoal = require(ServerScriptService.server.ai.goal.PursueTrespasserGoal)
-local RandomPostGoal = require(ServerScriptService.server.ai.goal.RandomPostGoal)
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
-local PlayerSightSensor = require(ServerScriptService.server.ai.sensing.PlayerSightSensor)
+local SensorTypes = require(ServerScriptService.server.ai.sensing.SensorTypes)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+
 
 local Guard = {}
 Guard.__index = Guard
@@ -24,16 +24,16 @@ Guard.__index = Guard
 export type Guard = typeof(setmetatable({} :: {
 	character: Model,
 	alive: boolean,
+	brain: Brain.Brain<Agent.Agent>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
+	gunControl: GunControl.GunControl,
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
 	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
-	designatedPosts: { GuardPost.GuardPost },
-	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> },
-	sensors: { any }
+	designatedPosts: { GuardPost.GuardPost }
 }, Guard))
 
 function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): Guard
@@ -41,20 +41,17 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 
 	self.character = character
 	self.alive = true
-	self.goalSelector = GoalSelector.new()
 	self.pathNavigation = PathNavigation.new(character, {
-		AgentRadius = 8,
-		AgentHeight = 8
+		AgentRadius = 6,
+		AgentHeight = 6
 	})
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
-	self.suspicionManager = SuspicionManagement.new(character)
+	self.suspicionManager = SuspicionManagement.new(self)
 	self.designatedPosts = designatedPosts
-	self.sensors = {
-		PlayerSightSensor.new(self, 20, 180)
-	}
 	self.memories = {
 		[MemoryModuleTypes.VISIBLE_PLAYERS] = ExpireableValue.new({}, math.huge)
 	}
+	self.gunControl = GunControl.new(self)
 	self.lookControl = LookControl.new(character)
 	self.faceControl = FaceControl.new(character)
 	self.faceControl:setFace("Neutral")
@@ -77,15 +74,15 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end
 
 	self.isPathfindingValue = isPathfinding
+	self.brain = Brain.new(self, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
 
 	return setmetatable(self, Guard)
 end
 
 function Guard.registerGoals(self: Guard): ()
-	self.goalSelector:addGoal(ShockedGoal.new(self), 1)
-	self.goalSelector:addGoal(PursueTrespasserGoal.new(self), 2)
-	self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
-	self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
+	--self.goalSelector:addGoal(ShockedGoal.new(self), 1)
+	--self.goalSelector:addGoal(LookAtSuspectGoal.new(self), 3)
+	--self.goalSelector:addGoal(RandomPostGoal.new(self, self.designatedPosts), 4)
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
@@ -94,11 +91,7 @@ function Guard.update(self: Guard, deltaTime: number): ()
 		return
 	end
 
-	for _, sensor in  ipairs(self.sensors) do
-		sensor:update()
-	end
-	self.suspicionManager:update(deltaTime, self.memories[MemoryModuleTypes.VISIBLE_PLAYERS].value)
-	self.goalSelector:update(deltaTime)
+	self.brain:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
 
@@ -107,29 +100,31 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	else
 		self.isPathfindingValue.Value = false
 	end
+end
 
-	if not self.memories.IS_DEALING_WITH_SOMETHING_HERE then
-		self.memories.IS_DEALING_WITH_SOMETHING_HERE = ExpireableValue.nonExpiring(false)
-	end
+function Guard.canDetectThroughDisguises(self: Guard): boolean
+	return self.character:GetAttribute("CanSeeThroughDisguises")
+end
 
-	if not self.memories.IS_DEALING_WITH_SOMETHING_HERE.value then
-		for player, expireableValue in pairs(self.memories.WARNED_PLAYERS) do
-			if expireableValue:isExpired() then
-				self.memories.WARNED_PLAYERS[player] = nil
-				continue
-			end
-			expireableValue:update(deltaTime)
-		end
-	end
+function Guard.canBeIntimidated(self: Guard): boolean
+	return self.character:GetAttribute("CanBeIntimidated")
 end
 
 function Guard.onDied(self: Guard)
-	self.faceControl:setFace("Unconscious")
 	self.goalSelector:stopAllRunningGoals()
+	self.faceControl:setFace("Unconscious")
 end
 
 function Guard.isAlive(self: Guard): boolean
 	return self.alive
+end
+
+function Guard.getBrain(self: Guard): Brain.Brain<Agent.Agent>
+	return self.brain
+end
+
+function Guard.getGunControl(self: Guard): GunControl.GunControl
+	return self.gunControl
 end
 
 function Guard.getFaceControl(self: Guard): FaceControl.FaceControl
