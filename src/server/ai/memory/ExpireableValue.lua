@@ -1,4 +1,4 @@
---!strict
+--!nonstrict
 
 local ExpireableValue = {}
 ExpireableValue.__index = ExpireableValue

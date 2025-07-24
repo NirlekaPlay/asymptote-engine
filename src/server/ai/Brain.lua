@@ -29,7 +29,7 @@ type SensorType<T> = SensorType.SensorType<T>
 type Sensor<T> = Sensor.Sensor<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
 
-function Brain.new<T>(agent: T, sensors: { SensorType<any> } ): Brain<T>
+function Brain.new<T>(agent: T, sensors: { SensorType<T> } ): Brain<T>
 	local self = {} :: self<T>
 
 	self.activities = {}
@@ -62,7 +62,7 @@ end
 function Brain.getMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): Optional<ExpireableValue<U>>
 	local optional = self.memories[memoryType]
 	if (optional :: any) == nil then
-		error(`Attempt to fetch non-registered {memoryType.name} memory`)
+		error(`Attempt to fetch unregistered {memoryType.name} memory`)
 	else
 		return optional
 	end
@@ -115,12 +115,28 @@ function Brain.setMemoryInternal<T, U>(self: Brain<T>, memoryType: MemoryModuleT
 end
 
 function Brain.update<T>(self: Brain<T>, deltaTime: number): ()
+	self:forgetExpiredMemories(deltaTime)
 	self:updateSensors(deltaTime)
 end
 
 function Brain.updateSensors<T>(self: Brain<T>, deltaTime: number): ()
 	for _, sensor in pairs(self.sensors) do
 		sensor:update(self.agent, deltaTime)
+	end
+end
+
+function Brain.forgetExpiredMemories<T>(self: Brain<T>, deltaTime: number): ()
+	for memoryType, optional in pairs(self.memories) do
+		if not optional:isPresent() then
+			continue
+		end
+
+		local expireableValue = optional:get()
+		if expireableValue:isExpired() then
+			self:eraseMemory(memoryType)
+		end
+
+		expireableValue:update(deltaTime)
 	end
 end
 
