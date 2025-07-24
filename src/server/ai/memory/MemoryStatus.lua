@@ -1,0 +1,17 @@
+--!strict
+
+local MemoryStatus = {
+	REGISTERED = "REGISTERED",
+	VALUE_PRESENT = "VALUE_PRESENT",
+	VALUE_ABSENT = "VALUE_ABSENT"
+} :: {
+	REGISTERED: "REGISTERED",
+	VALUE_PRESENT: "VALUE_PRESENT",
+	VALUE_ABSENT: "VALUE_ABSENT"
+}
+
+export type MemoryStatus = "REGISTERED"
+	| "VALUE_PRESENT"
+	| "VALUE_ABSENT"
+
+return MemoryStatus

@@ -1,6 +1,8 @@
 --!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
+
+local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
@@ -22,6 +24,7 @@ Agent.__index = Agent
 export type Agent = typeof(setmetatable({} :: {
 	character: Model,
 	alive: boolean,
+	brain: Brain.Brain<Agent>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
 	lookControl: LookControl.LookControl,
@@ -35,6 +38,10 @@ export type Agent = typeof(setmetatable({} :: {
 
 function Agent.isAlive(self: Agent): boolean
 	return self.alive
+end
+
+function Agent.getBrain(self: Agent): Brain.Brain<Agent>
+	return self.brain
 end
 
 function Agent.getFaceControl(self: Agent): FaceControl.FaceControl
