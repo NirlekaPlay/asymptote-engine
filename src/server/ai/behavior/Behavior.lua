@@ -1,9 +1,14 @@
 --!strict
 
-export type Status = "RUNNING"
-	| "STOPPED"
+local Behavior = {}
+Behavior.__index = Behavior
 
-return {
+Behavior.Status = {
 	RUNNING = "RUNNING" :: "RUNNING",
 	STOPPED = "STOPPED" :: "STOPPED"
 }
+
+export type Status = "RUNNING"
+	| "STOPPED"
+
+return Behavior

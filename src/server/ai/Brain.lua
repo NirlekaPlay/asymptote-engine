@@ -3,6 +3,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
+local Behavior = require(ServerScriptService.server.ai.behavior.Behavior)
 local BehaviorControl = require(ServerScriptService.server.ai.behavior.BehaviorControl)
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -160,7 +161,7 @@ function Brain.getRunningBehaviors<T>(self: Brain<T>): { BehaviorControl<T> }
 	for _, activity in pairs(self.availableBehaviorsByPriority) do
 		for _, BehaviorControls in pairs(activity) do
 			for BehaviorControl in pairs(BehaviorControls) do
-				if BehaviorControl:getStatus() ~= "RUNNING" then
+				if BehaviorControl:getStatus() ~= Behavior.Status.RUNNING then
 					continue
 				end
 
@@ -208,7 +209,7 @@ function Brain.startEachNonRunningBehavior<T>(self: Brain<T>): ()
 			end
 
 			for BehaviorControl in pairs(BehaviorControls) do
-				if BehaviorControl:getStatus() ~= "STOPPED" then
+				if BehaviorControl:getStatus() ~= Behavior.Status.STOPPED then
 					continue
 				end
 
