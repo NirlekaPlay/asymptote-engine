@@ -1,12 +1,18 @@
 --!strict
 
-local Behavior = require(script.Parent.Behavior)
+export type Status = "RUNNING"
+	| "STOPPED"
 
 export type BehaviorControl<T> = {
-	getStatus: (self: BehaviorControl<T>) -> Behavior.Status,
-	tryStart: (self: BehaviorControl<T>, agent: T) -> boolean,
-	updateOrStop: (self: BehaviorControl<T>, agent: T) -> (),
-	doStop: (self: BehaviorControl<T>, agent: T) -> ()
+	getStatus: (self: BehaviorControl<T>) -> Status,
+	tryStart: (self: BehaviorControl<T>, agent: T, currentTime: number) -> boolean,
+	updateOrStop: (self: BehaviorControl<T>, agent: T, currentTime: number) -> (),
+	stop: (self: BehaviorControl<T>, agent: T) -> ()
 }
 
-return nil
+return {
+	Status = {
+		RUNNING = "RUNNING" :: "RUNNING",
+		STOPPED = "STOPPED" :: "STOPPED"
+	}
+}

@@ -31,6 +31,7 @@ export type Agent = typeof(setmetatable({} :: {
 	faceControl: FaceControl.FaceControl,
 	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
+	random: Random,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
 	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> },
 	sensors: { any }
@@ -50,6 +51,10 @@ end
 
 function Agent.getNavigation(self: Agent): PathNavigation.PathNavigation
 	return self.pathNavigation
+end
+
+function Agent.getRandom(self: Agent): Random
+	return self.random
 end
 
 function Agent.getSuspicionManager(self: Agent): SuspicionManagement.SuspicionManagement
