@@ -43,6 +43,20 @@ function Optional.isPresent<T>(self: Optional<T>): boolean
 	return (self.value :: any) ~= nil
 end
 
+function Optional.ifPresent<T>(self: Optional<T>, callback: (T) -> ()): ()
+	if self.value ~= nil then
+		callback(self.value)
+	end
+end
+
+function Optional.filter<T>(self: Optional<T>, predicate: (T) -> boolean): Optional<T>
+	if self:isEmpty() then
+		return self
+	else
+		return if predicate(self.value) then self else EMPTY
+	end
+end
+
 function Optional.map<T, U>(self: Optional<T>, mapper: (T) -> U): Optional<U>
 	if self:isEmpty() then
 		return EMPTY
