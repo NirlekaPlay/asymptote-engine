@@ -5,8 +5,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
-local LookAndFaceAtTarget = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTarget)
-local SetLookAtSusiciousPlayer = require(ServerScriptService.server.ai.behavior.SetLookAtSusiciousPlayer)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
@@ -77,8 +75,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 		MemoryModuleTypes.LOOK_TARGET
 	}, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
 	self.brain:addActivity(Activity.CORE, 0, {
-		SetLookAtSusiciousPlayer.new(),
-		LookAndFaceAtTarget.new()
+		
 	})
 	self.brain:setDefaultActivity(Activity.CORE)
 	self.brain:useDefaultActivity()
