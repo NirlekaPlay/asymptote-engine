@@ -11,13 +11,15 @@ export type Optional<T> = typeof(setmetatable({} :: {
 
 function Optional.empty(): Optional<nil>
 	if not EMPTY then
-		EMPTY = Optional.of(nil)
+		local newEmpty = setmetatable({ value = nil }, Optional)
+		EMPTY = newEmpty
 	end
 
 	return EMPTY
 end
 
 function Optional.of<T>(value: T): Optional<T>
+	assert(value ~= nil, "Optional.of() received a nil value. Use Optional.ofNullable(nil) if a nil value is expected.")
 	return setmetatable({ value = value }, Optional)
 end
 
