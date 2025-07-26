@@ -6,7 +6,10 @@ Optional.__index = Optional
 local EMPTY: Optional<nil>
 
 export type Optional<T> = typeof(setmetatable({} :: {
-	value: T
+	value: T,
+	filter: (self: Optional<T>, predicate: (T) -> boolean) -> Optional<T>,
+	ifPresent: (self: Optional<T>, callback: (T) -> ()) -> (),
+	map: (self: Optional<T>, mapper: (T) -> any) -> Optional<any>
 }, Optional))
 
 function Optional.empty(): Optional<nil>
@@ -61,7 +64,7 @@ function Optional.map<T, U>(self: Optional<T>, mapper: (T) -> U): Optional<U>
 	if self:isEmpty() then
 		return EMPTY
 	else
-		return Optional.ofNullable(mapper(self:get()))
+		return Optional.ofNullable(mapper(self.value))
 	end
 end
 
