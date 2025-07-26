@@ -139,10 +139,10 @@ function Brain.useDefaultActivity<T>(self: Brain<T>): ()
 	self:setActiveActivity(self.defaultActivity)
 end
 
-function Brain.addActivity<T>(self: Brain<T>, activity: Activity, priority: number, BehaviorControls: { BehaviorControl<T> }): ()
+function Brain.addActivity<T>(self: Brain<T>, activity: Activity, priority: number, behaviorControls: { BehaviorControl<T> }): ()
 	local behaviorControlSets: { [BehaviorControl<T>]: true } = {}
-	for _, BehaviorControl in ipairs(BehaviorControls) do
-		behaviorControlSets[BehaviorControl] = true
+	for _, behaviorControl in ipairs(behaviorControls) do
+		behaviorControlSets[behaviorControl] = true
 	end
 
 	self.availableBehaviorsByPriority[priority] = {
@@ -159,12 +159,12 @@ function Brain.getRunningBehaviors<T>(self: Brain<T>): { BehaviorControl<T> }
 
 	for _, activity in pairs(self.availableBehaviorsByPriority) do
 		for _, behaviorControls in pairs(activity) do
-			for behaviorControl in pairs(behaviorControlsArray) do
+			for behaviorControl in pairs(behaviorControls) do
 				if behaviorControl:getStatus() ~= BehaviorControl.Status.RUNNING then
 					continue
 				end
 
-				table.insert(behaviorControlsArray, BehaviorControl)
+				table.insert(behaviorControlsArray, behaviorControl)
 			end
 		end
 	end

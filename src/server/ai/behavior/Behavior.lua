@@ -53,27 +53,27 @@ function Behavior.doStart(self: Behavior): ()
 end
 
 function Behavior.updateOrStop(self: Behavior, agent: Agent, currentTime: number): ()
-	if not self:isTimedOut(currentTime) and self:canStillUse() then
-		self:doUpdate()
+	if not self:isTimedOut(currentTime) and self:canStillUse(agent) then
+		self:doUpdate(agent)
 	else
-		self:stop()
+		self:stop(agent)
 	end
 end
 
-function Behavior.doUpdate(self: Behavior): ()
+function Behavior.doUpdate(self: Behavior, agent: Agent): ()
 	return
 end
 
-function Behavior.stop(self: Behavior): ()
+function Behavior.stop(self: Behavior, agent: Agent): ()
 	self.status = BehaviorControl.Status.STOPPED
-	self:doStop()
+	self:doStop(agent)
 end
 
-function Behavior.doStop(self: Behavior): ()
+function Behavior.doStop(self: Behavior, agent: Agent): ()
 	return
 end
 
-function Behavior.canStillUse(self: Behavior): boolean
+function Behavior.canStillUse(self: Behavior, agent: Agent): boolean
 	return false
 end
 
