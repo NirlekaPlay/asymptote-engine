@@ -5,11 +5,13 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
+local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local BrainDebugger = require(ServerScriptService.server.ai.debug.BrainDebugger)
 local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
@@ -33,7 +35,8 @@ export type Guard = typeof(setmetatable({} :: {
 	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
-	designatedPosts: { GuardPost.GuardPost }
+	designatedPosts: { GuardPost.GuardPost },
+	random: Random
 }, Guard))
 
 function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): Guard
@@ -53,6 +56,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.faceControl = FaceControl.new(character)
 	self.faceControl:setFace("Neutral")
 	self.bubbleChatControl = BubbleChatControl.new(character)
+	self.random = Random.new(tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
 	humanoid.Died:Once(function()
@@ -74,11 +78,15 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.brain = Brain.new(self, {
 		MemoryModuleTypes.LOOK_TARGET
 	}, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
-	self.brain:addActivity(Activity.CORE, 0, {
-		
+	self.brain:addActivity(Activity.IDLE, 0, {
 	})
-	self.brain:setDefaultActivity(Activity.CORE)
+	self.brain:addActivity(Activity.CORE, 1, {
+		LookAndFaceAtTargetSink.new()
+	})
+	self.brain:setCoreActivities({Activity.CORE})
+	self.brain:setDefaultActivity(Activity.IDLE)
 	self.brain:useDefaultActivity()
+	self.brainDebugger = BrainDebugger.new(self)
 
 	return setmetatable(self, Guard)
 end
@@ -97,8 +105,14 @@ function Guard.update(self: Guard, deltaTime: number): ()
 		visiblePlayers = {}
 	end
 	self.suspicionManager:update(deltaTime, visiblePlayers)
+	if self.suspicionManager:isCurious() then
+		self:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, self.suspicionManager.focusingOn)
+	else
+		self:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, nil)
+	end
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
+	self.brainDebugger:update()
 
 	if self.pathNavigation.pathfinder.Status == "Active" then
 		self.isPathfindingValue.Value = true
@@ -137,6 +151,10 @@ end
 
 function Guard.getNavigation(self: Guard): PathNavigation.PathNavigation
 	return self.pathNavigation
+end
+
+function Guard.getRandom(self: Guard): Random
+	return self.random
 end
 
 function Guard.getSuspicionManager(self: Guard): SuspicionManagement.SuspicionManagement

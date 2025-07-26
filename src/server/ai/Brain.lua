@@ -20,7 +20,10 @@ type self<T> = {
 	memories: { [MemoryModuleType<any>]: Optional<ExpireableValue<any>> },
 	sensors: { [SensorType<any>]: Sensor<any> },
 	activeActivities: { [Activity]: true },
-	availableBehaviorsByPriority: { [number]: { [Activity]: { [BehaviorControl<T>]: true } } }
+	activityRequirements: { [Activity]: { [MemoryModuleType<any>]: MemoryStatus } },
+	activityMemoriesToEraseWhenStopped: { [Activity]: { [MemoryModuleType<any>]: true } },
+	availableBehaviorsByPriority: { [number]: { [Activity]: { [BehaviorControl<T>]: true } } },
+	coreActivities: { [Activity]: true }
 }
 
 export type Brain<T> = typeof(setmetatable({} :: self<T>, Brain))
@@ -40,7 +43,10 @@ function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { 
 	self.agent = agent
 	self.defaultActivity = Activity.IDLE
 	self.activeActivities = {}
+	self.activityMemoriesToEraseWhenStopped = {}
+	self.activityRequirements = {}
 	self.availableBehaviorsByPriority = {}
+	self.coreActivities = {}
 	self.memories = {}
 	self.sensors = {}
 
@@ -124,14 +130,44 @@ function Brain.setMemoryInternal<T, U>(self: Brain<T>, memoryType: MemoryModuleT
 	end
 end
 
+function Brain.setCoreActivities<T>(self: Brain<T>, activities: { Activity }): ()
+	local coreActivitiesSet = {}
+	for _, activity in ipairs(activities) do
+		coreActivitiesSet[activity] = true
+	end
+
+	self.coreActivities = coreActivitiesSet
+end
+
 function Brain.setDefaultActivity<T>(self: Brain<T>, activity: Activity): ()
 	self.defaultActivity = activity
 end
 
 function Brain.setActiveActivity<T>(self: Brain<T>, activity: Activity): ()
 	if not self:isActivityActive(activity) then
+		self:eraseMemoriesForOtherActivitiesThan(activity)
 		table.clear(self.activeActivities)
+		for activity in pairs(self.coreActivities) do
+			self.activeActivities[activity] = true
+		end
 		self.activeActivities[activity] = true
+	end
+end
+
+function Brain.eraseMemoriesForOtherActivitiesThan<T>(self: Brain<T>, activity: Activity): ()
+	for activeActivity in pairs(self.activeActivities) do
+		if activeActivity == activity then
+			continue
+		end
+
+		local set = self.activityMemoriesToEraseWhenStopped[activeActivity]
+		if set == nil then
+			continue
+		end
+
+		for memoryType in pairs(set) do
+			self:eraseMemory(memoryType)
+		end
 	end
 end
 
@@ -139,15 +175,64 @@ function Brain.useDefaultActivity<T>(self: Brain<T>): ()
 	self:setActiveActivity(self.defaultActivity)
 end
 
-function Brain.addActivity<T>(self: Brain<T>, activity: Activity, priority: number, behaviorControls: { BehaviorControl<T> }): ()
-	local behaviorControlSets: { [BehaviorControl<T>]: true } = {}
-	for _, behaviorControl in ipairs(behaviorControls) do
-		behaviorControlSets[behaviorControl] = true
+function Brain.addActivity<T>(
+	self: Brain<T>,
+	activity: Activity,
+	priority: number,
+	behaviorControls: { BehaviorControl<T> }
+): ()
+	self:addActivityAndRemoveMemoriesWhenStopped(activity, self.createPriorityPairs(priority, behaviorControls), {}, {})
+end
+
+function Brain.addActivityAndRemoveMemoriesWhenStopped<T>(
+	self: Brain<T>,
+	activity: Activity,
+	behaviorPairs: { { priority: number, behavior: BehaviorControl<T> } },
+	memoryRequirementsSet: { [MemoryModuleType<any>]: MemoryStatus },
+	memoriesToEraseSet: { [MemoryModuleType<any>]: true }
+): ()
+	self.activityRequirements[activity] = memoryRequirementsSet
+
+	if not isEmptyTable(memoriesToEraseSet) then
+		self.activityMemoriesToEraseWhenStopped[activity] = memoriesToEraseSet
 	end
 
-	self.availableBehaviorsByPriority[priority] = {
-		[activity] = behaviorControlSets
-	}
+	for _, pair in ipairs(behaviorPairs) do
+		local priority = pair.priority
+		local behaviorControl = pair.behavior
+
+		if self.availableBehaviorsByPriority[priority] == nil then
+			self.availableBehaviorsByPriority[priority] = {}
+		end
+
+		local behaviorsByActivity = self.availableBehaviorsByPriority[priority]
+
+		if behaviorsByActivity[activity] == nil then
+			behaviorsByActivity[activity] = {}
+		end
+
+		local behaviorSet = behaviorsByActivity[activity]
+
+		behaviorSet[behaviorControl] = true
+	end
+end
+
+function Brain.createPriorityPairs<T>(
+	startPriority: number,
+	behaviors: { BehaviorControl<T> }
+): { { priority: number, behavior: BehaviorControl<T> } }
+	local priorityPairs = {}
+
+	local currentPriority = startPriority
+	for _, behaviorControl in ipairs(behaviors) do
+		table.insert(priorityPairs, {
+			priority = currentPriority,
+			behavior = behaviorControl
+		})
+		currentPriority += 1
+	end
+
+	return priorityPairs
 end
 
 function Brain.isActivityActive<T>(self: Brain<T>, activity: Activity): boolean
