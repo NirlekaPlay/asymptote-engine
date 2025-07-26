@@ -2,7 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Behaviour = require(script.Parent.Behaviour)
+local Behavior = require(script.Parent.Behavior)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 
@@ -10,12 +10,12 @@ local LookAndFaceAtTarget = {}
 LookAndFaceAtTarget.__index = LookAndFaceAtTarget
 
 export type LookAndFaceAtTarget = typeof(setmetatable({} :: {
-	status: Behaviour.Status
+	status: Behavior.Status
 }, LookAndFaceAtTarget))
 
 function LookAndFaceAtTarget.new(): LookAndFaceAtTarget
 	return setmetatable({
-		status = Behaviour.STOPPED :: Behaviour.Status
+		status = Behavior.STOPPED :: Behavior.Status
 	}, LookAndFaceAtTarget)
 end
 

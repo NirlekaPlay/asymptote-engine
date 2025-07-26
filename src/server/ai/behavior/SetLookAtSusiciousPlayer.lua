@@ -2,7 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Behaviour = require(script.Parent.Behaviour)
+local Behavior = require(script.Parent.Behavior)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 
@@ -10,12 +10,12 @@ local SetLookAtSusiciousPlayer = {}
 SetLookAtSusiciousPlayer.__index = SetLookAtSusiciousPlayer
 
 export type SetLookAtSusiciousPlayer = typeof(setmetatable({} :: {
-	status: Behaviour.Status
+	status: Behavior.Status
 }, SetLookAtSusiciousPlayer))
 
 function SetLookAtSusiciousPlayer.new(): SetLookAtSusiciousPlayer
 	return setmetatable({
-		status = Behaviour.STOPPED :: Behaviour.Status
+		status = Behavior.STOPPED :: Behavior.Status
 	}, SetLookAtSusiciousPlayer)
 end
 
@@ -26,8 +26,10 @@ end
 function SetLookAtSusiciousPlayer.tryStart(self: SetLookAtSusiciousPlayer, agent: Agent.Agent): ()
 	local susMan = agent:getSuspicionManager()
 	local focusingTarget = susMan:getFocusingTarget()
-	if focusingTarget and susMan:isCurious() then
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, focusingTarget)
+	if susMan:isCurious() then
+		if focusingTarget then
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, focusingTarget)
+		end
 	else
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, nil)
 	end

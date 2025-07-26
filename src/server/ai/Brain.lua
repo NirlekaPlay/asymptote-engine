@@ -2,8 +2,8 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Activity = require(ServerScriptService.server.ai.behaviour.Activity)
-local BehaviourControl = require(ServerScriptService.server.ai.behaviour.BehaviourControl)
+local Activity = require(ServerScriptService.server.ai.behavior.Activity)
+local BehaviorControl = require(ServerScriptService.server.ai.behavior.BehaviorControl)
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -20,7 +20,7 @@ type self<T> = {
 	memories: { [MemoryModuleType<any>]: Optional<ExpireableValue<any>> },
 	sensors: { [SensorType<any>]: Sensor<any> },
 	activeActivities: { [Activity]: true },
-	availableBehavioursByPriority: { [number]: { [Activity]: { [BehaviourControl<T>]: true } } }
+	availableBehaviorsByPriority: { [number]: { [Activity]: { [BehaviorControl<T>]: true } } }
 }
 
 export type Brain<T> = typeof(setmetatable({} :: self<T>, Brain))
@@ -31,7 +31,7 @@ type ExpireableValue<T> = ExpireableValue.ExpireableValue<T>
 type SensorType<T> = SensorType.SensorType<T>
 type Sensor<T> = Sensor.Sensor<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type BehaviourControl<T> = BehaviourControl.BehaviourControl<T>
+type BehaviorControl<T> = BehaviorControl.BehaviorControl<T>
 type Activity = Activity.Activity
 
 function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { SensorType<T> } ): Brain<T>
@@ -40,7 +40,7 @@ function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { 
 	self.agent = agent
 	self.defaultActivity = Activity.IDLE
 	self.activeActivities = {}
-	self.availableBehavioursByPriority = {}
+	self.availableBehaviorsByPriority = {}
 	self.memories = {}
 	self.sensors = {}
 
@@ -139,14 +139,14 @@ function Brain.useDefaultActivity<T>(self: Brain<T>): ()
 	self:setActiveActivity(self.defaultActivity)
 end
 
-function Brain.addActivity<T>(self: Brain<T>, activity: Activity, priority: number, behaviourControls: { BehaviourControl<T> }): ()
-	local behaviourControlSets: { [BehaviourControl<T>]: true } = {}
-	for _, behaviourControl in ipairs(behaviourControls) do
-		behaviourControlSets[behaviourControl] = true
+function Brain.addActivity<T>(self: Brain<T>, activity: Activity, priority: number, BehaviorControls: { BehaviorControl<T> }): ()
+	local BehaviorControlSets: { [BehaviorControl<T>]: true } = {}
+	for _, BehaviorControl in ipairs(BehaviorControls) do
+		BehaviorControlSets[BehaviorControl] = true
 	end
 
-	self.availableBehavioursByPriority[priority] = {
-		[activity] = behaviourControlSets
+	self.availableBehaviorsByPriority[priority] = {
+		[activity] = BehaviorControlSets
 	}
 end
 
@@ -154,29 +154,29 @@ function Brain.isActivityActive<T>(self: Brain<T>, activity: Activity): boolean
 	return self.activeActivities[activity] ~= nil
 end
 
-function Brain.getRunningBehaviours<T>(self: Brain<T>): { BehaviourControl<T> }
-	local behaviourControlsArray = {}
+function Brain.getRunningBehaviors<T>(self: Brain<T>): { BehaviorControl<T> }
+	local BehaviorControlsArray = {}
 
-	for _, activity in pairs(self.availableBehavioursByPriority) do
-		for _, behaviourControls in pairs(activity) do
-			for behaviourControl in pairs(behaviourControls) do
-				if behaviourControl:getStatus() ~= "RUNNING" then
+	for _, activity in pairs(self.availableBehaviorsByPriority) do
+		for _, BehaviorControls in pairs(activity) do
+			for BehaviorControl in pairs(BehaviorControls) do
+				if BehaviorControl:getStatus() ~= "RUNNING" then
 					continue
 				end
 
-				table.insert(behaviourControlsArray, behaviourControl)
+				table.insert(BehaviorControlsArray, BehaviorControl)
 			end
 		end
 	end
 
-	return behaviourControlsArray
+	return BehaviorControlsArray
 end
 
 function Brain.update<T>(self: Brain<T>, deltaTime: number): ()
 	self:forgetExpiredMemories(deltaTime)
 	self:updateSensors(deltaTime)
-	self:startEachNonRunningBehaviour()
-	self:updateEachRunningBehaviour()
+	self:startEachNonRunningBehavior()
+	self:updateEachRunningBehavior()
 end
 
 function Brain.updateSensors<T>(self: Brain<T>, deltaTime: number): ()
@@ -200,27 +200,27 @@ function Brain.forgetExpiredMemories<T>(self: Brain<T>, deltaTime: number): ()
 	end
 end
 
-function Brain.startEachNonRunningBehaviour<T>(self: Brain<T>): ()
-	for priority, activities in pairs(self.availableBehavioursByPriority) do
-		for activity, behaviourControls in pairs(activities) do
+function Brain.startEachNonRunningBehavior<T>(self: Brain<T>): ()
+	for priority, activities in pairs(self.availableBehaviorsByPriority) do
+		for activity, BehaviorControls in pairs(activities) do
 			if not self.activeActivities[activity] then
 				continue
 			end
 
-			for behaviourControl in pairs(behaviourControls) do
-				if behaviourControl:getStatus() ~= "STOPPED" then
+			for BehaviorControl in pairs(BehaviorControls) do
+				if BehaviorControl:getStatus() ~= "STOPPED" then
 					continue
 				end
 
-				behaviourControl:tryStart(self.agent)
+				BehaviorControl:tryStart(self.agent)
 			end
 		end
 	end
 end
 
-function Brain.updateEachRunningBehaviour<T>(self: Brain<T>): ()
-	for _, behaviourControl in ipairs(self:getRunningBehaviours()) do
-		behaviourControl:updateOrStop(self.agent)
+function Brain.updateEachRunningBehavior<T>(self: Brain<T>): ()
+	for _, BehaviorControl in ipairs(self:getRunningBehaviors()) do
+		BehaviorControl:updateOrStop(self.agent)
 	end
 end
 
