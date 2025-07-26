@@ -1,6 +1,7 @@
 --!nonstrict
 
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Agent = require(ServerScriptService.server.Agent)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
@@ -9,10 +10,21 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local BrainDebugger = {}
 BrainDebugger.__index = BrainDebugger
 
+local function getDebugGui(character: Model): BillboardGui
+	local findGuiInChar = character.Head:FindFirstChild("BrainDebugGui")
+	if not findGuiInChar then
+		local new = ServerStorage.BrainDebugGui:Clone()
+		new.Parent = character.Head
+		return new
+	end
+
+	return findGuiInChar
+end
+
 function BrainDebugger.new(agent: Agent.Agent)
 	return setmetatable({
 		agent = agent,
-		agentBrainDebuggerGui = agent.character.Head.BrainDebugGui :: BillboardGui,
+		agentBrainDebuggerGui = getDebugGui(agent.character),
 		textlabelsByMemories = {} :: { [MemoryModuleTypes.MemoryModuleType<any>]: TextLabel},
 		textlabelsByActivities = {} :: { [Activity.Activity]: TextLabel}
 	}, BrainDebugger)
