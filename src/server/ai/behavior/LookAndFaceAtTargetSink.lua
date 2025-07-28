@@ -11,7 +11,7 @@ local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
 setmetatable(LookAndFaceAtTargetSink, { __index = Behavior })
 
-function LookAndFaceAtTargetSink.new()
+function LookAndFaceAtTargetSink.new(): LookAndFaceAtTargetSink
 	local self = Behavior.new({
 		[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.VALUE_PRESENT
 	})
