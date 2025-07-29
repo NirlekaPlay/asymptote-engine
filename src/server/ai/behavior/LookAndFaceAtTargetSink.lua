@@ -1,25 +1,39 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
-local Behavior = require(ServerScriptService.server.ai.behavior.Behavior)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 
 local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
-setmetatable(LookAndFaceAtTargetSink, { __index = Behavior })
+
+export type LookAndFaceAtTargetSink = typeof(setmetatable({} :: {
+}, LookAndFaceAtTargetSink))
 
 function LookAndFaceAtTargetSink.new(): LookAndFaceAtTargetSink
-	local self = Behavior.new({
-		[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.VALUE_PRESENT
-	})
-	setmetatable(self, LookAndFaceAtTargetSink)
-	return self
+	return setmetatable({
+		minDuration = nil :: number?,
+		maxDuration = nil :: number?
+	}, LookAndFaceAtTargetSink)
 end
 
-export type LookAndFaceAtTargetSink = typeof(LookAndFaceAtTargetSink.new())
+type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
+type MemoryStatus = MemoryStatus.MemoryStatus
+type Agent = Agent.Agent
+
+local MEMORY_REQUIREMENTS = {
+	[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.VALUE_PRESENT
+}
+
+function LookAndFaceAtTargetSink.getMemoryRequirements(self: LookAndFaceAtTargetSink): { [MemoryModuleType<any>]: MemoryStatus }
+	return MEMORY_REQUIREMENTS
+end
+
+function LookAndFaceAtTargetSink.checkExtraStartConditions(self: LookAndFaceAtTargetSink, agent: Agent): boolean
+	return true
+end
 
 function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agent: Agent.Agent): boolean
 	local brain = agent:getBrain()
@@ -33,11 +47,16 @@ function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agen
 	end):isPresent()
 end
 
-function LookAndFaceAtTargetSink.doStop(self: LookAndFaceAtTargetSink, agent: Agent.Agent): ()
+
+function LookAndFaceAtTargetSink.doStart(self: LookAndFaceAtTargetSink, agent: Agent): ()
+	return
+end
+
+function LookAndFaceAtTargetSink.doStop(self: LookAndFaceAtTargetSink, agent: Agent): ()
 	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 end
 
-function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: Agent.Agent): ()
+function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: Agent, deltaTime: number): ()
 	local lookTarget = agent:getBrain():getMemory(MemoryModuleTypes.LOOK_TARGET)
 	if lookTarget:isPresent() then
 		local charPos = lookTarget:get():getValue().Character.PrimaryPart.Position

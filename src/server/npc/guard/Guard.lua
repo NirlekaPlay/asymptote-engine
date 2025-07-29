@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
+local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
@@ -81,7 +82,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.brain:addActivity(Activity.IDLE, 0, {
 	})
 	self.brain:addActivity(Activity.CORE, 1, {
-		LookAndFaceAtTargetSink.new()
+		BehaviorWrapper.new(LookAndFaceAtTargetSink.new())
 	})
 	self.brain:setCoreActivities({Activity.CORE})
 	self.brain:setDefaultActivity(Activity.IDLE)

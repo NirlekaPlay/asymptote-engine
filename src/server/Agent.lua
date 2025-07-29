@@ -7,7 +7,6 @@ local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRo
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
-local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
@@ -29,7 +28,6 @@ export type Agent = typeof(setmetatable({} :: {
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
-	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
 	suspicionManager: SuspicionManagement.SuspicionManagement,

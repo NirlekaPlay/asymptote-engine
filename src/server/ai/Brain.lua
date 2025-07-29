@@ -261,7 +261,7 @@ function Brain.update<T>(self: Brain<T>, deltaTime: number): ()
 	self:forgetExpiredMemories(deltaTime)
 	self:updateSensors(deltaTime)
 	self:startEachNonRunningBehavior()
-	self:updateEachRunningBehavior()
+	self:updateEachRunningBehavior(deltaTime)
 end
 
 function Brain.updateSensors<T>(self: Brain<T>, deltaTime: number): ()
@@ -305,11 +305,11 @@ function Brain.startEachNonRunningBehavior<T>(self: Brain<T>): ()
 	end
 end
 
-function Brain.updateEachRunningBehavior<T>(self: Brain<T>): ()
+function Brain.updateEachRunningBehavior<T>(self: Brain<T>, deltaTime: number): ()
 	local currentTime = tick()
 
 	for _, behaviorControl in ipairs(self:getRunningBehaviors()) do
-		behaviorControl:updateOrStop(self.agent, currentTime)
+		behaviorControl:updateOrStop(self.agent, currentTime, deltaTime)
 	end
 end
 
