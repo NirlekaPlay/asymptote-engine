@@ -49,7 +49,8 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.alive = true
 	self.pathNavigation = PathNavigation.new(character, {
 		AgentRadius = 6,
-		AgentHeight = 6
+		AgentHeight = 6,
+		AgentCanJump = false
 	})
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.suspicionManager = SuspicionManagement.new(self)
