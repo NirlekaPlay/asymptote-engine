@@ -7,6 +7,8 @@ local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
+local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
+local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
@@ -77,15 +79,23 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 
 	self.isPathfindingValue = isPathfinding
 	self.brain = Brain.new(self, {
-		MemoryModuleTypes.LOOK_TARGET
+		MemoryModuleTypes.LOOK_TARGET,
+		MemoryModuleTypes.IS_CURIOUS,
+		MemoryModuleTypes.DESIGNATED_POSTS,
+		MemoryModuleTypes.PATROL_STATE,
+		MemoryModuleTypes.TARGET_POST,
+		MemoryModuleTypes.POST_VACATE_COOLDOWN,
 	}, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
-	self.brain:addActivity(Activity.IDLE, 0, {
+	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, self.designatedPosts)
+	self.brain:addActivity(Activity.WORK, 2, {
+		BehaviorWrapper.new(WalkToRandomPost.new())
 	})
 	self.brain:addActivity(Activity.CORE, 1, {
-		BehaviorWrapper.new(LookAndFaceAtTargetSink.new())
+		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
+		BehaviorWrapper.new(SetIsCuriousMemory.new())
 	})
 	self.brain:setCoreActivities({Activity.CORE})
-	self.brain:setDefaultActivity(Activity.IDLE)
+	self.brain:setDefaultActivity(Activity.WORK)
 	self.brain:useDefaultActivity()
 	self.brainDebugger = BrainDebugger.new(self)
 
