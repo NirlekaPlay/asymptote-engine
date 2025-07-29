@@ -66,7 +66,10 @@ function BrainDebugger.update(self: BrainDebugger): ()
 				finalEndText = finalEndText .. " " .. string.format(`\{ [{k}]: {v} \}`)
 			end
 			memoryText.Text = memoryType.name .. ": " .. finalEndText
+			continue
 		end
+
+		memoryText.Text = memoryType.name .. ": " .. tostring(memoryValue)
 	end
 
 	for activity in pairs(agentBrain.activeActivities) do
