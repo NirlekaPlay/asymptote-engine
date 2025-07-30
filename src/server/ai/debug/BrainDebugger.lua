@@ -33,6 +33,7 @@ end
 export type BrainDebugger = typeof(BrainDebugger.new())
 
 function BrainDebugger.update(self: BrainDebugger): ()
+	if not self.agent:isAlive() then return end
 	local agentBrain = self.agent:getBrain()
 
 	for memoryType, memoryOptional in pairs(agentBrain.memories) do
@@ -92,6 +93,12 @@ function BrainDebugger.update(self: BrainDebugger): ()
 			self.textlabelsByActivities[activity] = nil
 			textLabel:Destroy()
 		end
+	end
+end
+
+function BrainDebugger.destroyGui(self: BrainDebugger): ()
+	if self.agentBrainDebuggerGui then
+		self.agentBrainDebuggerGui:Destroy()
 	end
 end
 
