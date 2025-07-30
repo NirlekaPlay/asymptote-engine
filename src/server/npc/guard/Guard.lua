@@ -6,8 +6,10 @@ local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
+local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
+local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
@@ -15,8 +17,8 @@ local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local BrainDebugger = require(ServerScriptService.server.ai.debug.BrainDebugger)
-local GoalSelector = require(ServerScriptService.server.ai.goal.GoalSelector)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
+local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local SensorTypes = require(ServerScriptService.server.ai.sensing.SensorTypes)
@@ -35,7 +37,6 @@ export type Guard = typeof(setmetatable({} :: {
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
-	goalSelector: GoalSelector.GoalSelector,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
 	designatedPosts: { GuardPost.GuardPost },
@@ -86,14 +87,23 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 		MemoryModuleTypes.PATROL_STATE,
 		MemoryModuleTypes.TARGET_POST,
 		MemoryModuleTypes.POST_VACATE_COOLDOWN,
+		MemoryModuleTypes.IS_PANICKING
 	}, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
 	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, self.designatedPosts)
-	self.brain:addActivity(Activity.WORK, 2, {
+	self.brain:addActivityWithConditions(Activity.WORK, 2, {
 		BehaviorWrapper.new(WalkToRandomPost.new())
+	}, {
+		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT
 	})
 	self.brain:addActivity(Activity.CORE, 1, {
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
-		BehaviorWrapper.new(SetIsCuriousMemory.new())
+		BehaviorWrapper.new(SetIsCuriousMemory.new()),
+		BehaviorWrapper.new(GuardPanic.new())
+	})
+	self.brain:addActivityWithConditions(Activity.PANIC, 0, {
+		BehaviorWrapper.new(SetPanicFace.new())
+	}, {
+		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT
 	})
 	self.brain:setCoreActivities({Activity.CORE})
 	self.brain:setDefaultActivity(Activity.WORK)
@@ -110,6 +120,7 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	end
 
 	self.brain:update(deltaTime)
+	self.brain:setActiveActivityToFirstValid({Activity.PANIC})
 	local visiblePlayers = self.brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
 	if visiblePlayers:isPresent() then
 		visiblePlayers = visiblePlayers:get():getValue()

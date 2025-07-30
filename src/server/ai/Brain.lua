@@ -154,6 +154,29 @@ function Brain.setActiveActivity<T>(self: Brain<T>, activity: Activity): ()
 	end
 end
 
+function Brain.setActiveActivityToFirstValid<T>(self: Brain<T>, activities: {Activity}): ()
+	for _, activity in ipairs(activities) do
+		if self:activityRequirementsAreMet(activity) then
+			self:setActiveActivity(activity)
+			break
+		end
+	end
+end
+
+function Brain.activityRequirementsAreMet<T>(self: Brain<T>, activity: Activity): boolean
+	if not self.activityRequirements[activity] then
+		return false
+	else
+		for memoryType, memoryStatus in pairs(self.activityRequirements[activity]) do
+			if not self:checkMemory(memoryType, memoryStatus) then
+				return false
+			end
+		end
+
+		return true
+	end
+end
+
 function Brain.eraseMemoriesForOtherActivitiesThan<T>(self: Brain<T>, activity: Activity): ()
 	for activeActivity in pairs(self.activeActivities) do
 		if activeActivity == activity then
@@ -182,6 +205,16 @@ function Brain.addActivity<T>(
 	behaviorControls: { BehaviorControl<T> }
 ): ()
 	self:addActivityAndRemoveMemoriesWhenStopped(activity, self.createPriorityPairs(priority, behaviorControls), {}, {})
+end
+
+function Brain.addActivityWithConditions<T>(
+	self: Brain<T>,
+	activity: Activity,
+	priority: number,
+	behaviorControls: { BehaviorControl<T> },
+	entryConditions: { [MemoryModuleType<any>]: MemoryStatus }
+): ()
+	self:addActivityAndRemoveMemoriesWhenStopped(activity, self.createPriorityPairs(priority, behaviorControls), entryConditions, {})
 end
 
 function Brain.addActivityAndRemoveMemoriesWhenStopped<T>(

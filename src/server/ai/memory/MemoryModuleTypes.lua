@@ -26,7 +26,8 @@ local MemoryModuleTypes = {
 	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{GuardPost.GuardPost}>,
 	PATROL_STATE = register("patrol_state") :: MemoryModuleType<"RESUMING" | "UNEMPLOYED" | "WALKING" | "STAYING">,
 	POST_VACATE_COOLDOWN = register("post_vacate_cooldown") :: MemoryModuleType<number>,
-	IS_CURIOUS = register("is_curious") :: MemoryModuleType<boolean>
+	IS_CURIOUS = register("is_curious") :: MemoryModuleType<boolean>,
+	IS_PANICKING = register("is_panicking") :: MemoryModuleType<boolean>
 }
 
 return MemoryModuleTypes
