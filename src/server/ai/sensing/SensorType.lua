@@ -1,6 +1,7 @@
 --!strict
 
 local Sensor = require(script.Parent.Sensor)
+local SensorWrapper = require(script.Parent.SensorWrapper)
 
 local SensorType = {}
 SensorType.__index = SensorType
@@ -11,7 +12,9 @@ export type SensorType<T> = typeof(setmetatable({} :: {
 
 function SensorType.new(sensorConstructor: () -> Sensor.Sensor<any>): SensorType<any>
 	return setmetatable({
-		create = sensorConstructor
+		create = function()
+			return SensorWrapper.new(sensorConstructor())
+		end
 	}, SensorType)
 end
 

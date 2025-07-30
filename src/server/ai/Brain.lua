@@ -59,7 +59,7 @@ function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { 
 	end
 
 	for _, sensor in pairs(self.sensors) do
-		for _, memoryModuleType in ipairs(sensor:requires()) do
+		for _, memoryModuleType in ipairs(sensor:getRequiredMemories()) do
 			self.memories[memoryModuleType] = Optional.empty()
 		end
 	end

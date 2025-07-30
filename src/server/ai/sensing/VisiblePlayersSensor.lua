@@ -2,41 +2,32 @@
 
 local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
+
 local Agent = require(ServerScriptService.server.Agent)
+local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 
 local VisiblePlayersSensor = {}
 VisiblePlayersSensor.__index = VisiblePlayersSensor
 
 export type VisiblePlayersSensor = typeof(setmetatable({} :: {
-	sightRadius: number,
-	sightPeriphAngle: number,
 	rayParams: RaycastParams?,
-	_timeAccumulator: number,
 }, VisiblePlayersSensor))
 
-type Agent = Agent.Agent
+type Agent = Agent.Agent & PerceptiveAgent.PerceptiveAgent
 
 function VisiblePlayersSensor.new(): VisiblePlayersSensor
 	return setmetatable({
-		sightRadius = 50,
-		sightPeriphAngle = 180,
-		rayParams = nil :: RaycastParams?,
-		_timeAccumulator = 0
+		rayParams = nil :: RaycastParams?
 	}, VisiblePlayersSensor)
 end
 
-function VisiblePlayersSensor.requires(self: VisiblePlayersSensor): { MemoryModuleTypes.MemoryModuleType<any> }
+function VisiblePlayersSensor.getRequiredMemories(self: VisiblePlayersSensor): { MemoryModuleTypes.MemoryModuleType<any> }
 	return { MemoryModuleTypes.VISIBLE_PLAYERS }
 end
 
-function VisiblePlayersSensor.update(self: VisiblePlayersSensor, agent: Agent, deltaTime: number): ()
-	self._timeAccumulator += deltaTime
-
-	if self._timeAccumulator >= 1 then
-		self._timeAccumulator = 0
-		self:doUpdate(agent, deltaTime)
-	end
+function VisiblePlayersSensor.getScanRate(self: VisiblePlayersSensor): number
+	return 1/20
 end
 
 function VisiblePlayersSensor.doUpdate(self: VisiblePlayersSensor, agent: Agent, deltaTime: number)
@@ -70,13 +61,13 @@ function VisiblePlayersSensor.isInVision(self: VisiblePlayersSensor, agent: Agen
 	local diff = playerPos - agentPos
 	local dist = diff.Magnitude
 
-	if dist > self.sightRadius then
+	if dist > agent:getSightRadius() then
 		return false
 	end
 
 	local dot = agentPrimaryPart.CFrame.LookVector:Dot(diff.Unit)
 
-	local cosHalfAngle = math.cos(math.rad(self.sightPeriphAngle / 2))
+	local cosHalfAngle = math.cos(math.rad(agent:getPeripheralVisionAngle() / 2))
 	if dot < cosHalfAngle then
 		return false
 	end
@@ -89,7 +80,7 @@ function VisiblePlayersSensor.isInVision(self: VisiblePlayersSensor, agent: Agen
 		rayParams = newRayParams
 	end
 
-	local rayResult = workspace:Raycast(agentPos, diff.Unit * self.sightRadius, rayParams)
+	local rayResult = workspace:Raycast(agentPos, diff.Unit * agent:getSightRadius(), rayParams)
 	if rayResult and rayResult.Instance:IsDescendantOf(playerCharacter) then
 		return true
 	end
