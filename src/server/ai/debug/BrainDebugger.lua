@@ -86,6 +86,13 @@ function BrainDebugger.update(self: BrainDebugger): ()
 		end
 		activityText.Visible = true
 	end
+
+	for activity, textLabel in pairs(self.textlabelsByActivities) do
+		if not agentBrain.activeActivities[activity] then
+			self.textlabelsByActivities[activity] = nil
+			textLabel:Destroy()
+		end
+	end
 end
 
 return BrainDebugger
