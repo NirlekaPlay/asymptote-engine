@@ -49,7 +49,7 @@ function SetIsCuriousMemory.doStart(self: SetIsCuriousMemory, agent: Agent): ()
 end
 
 function SetIsCuriousMemory.doStop(self: SetIsCuriousMemory, agent: Agent): ()
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_CURIOUS, false)
+	agent:getBrain():eraseMemory(MemoryModuleTypes.IS_CURIOUS)
 end
 
 function SetIsCuriousMemory.doUpdate(self: SetIsCuriousMemory, agent: Agent, deltaTime: number): ()
