@@ -27,7 +27,7 @@ function Optional.of<T>(value: T): Optional<T>
 end
 
 function Optional.ofNullable<T>(value: T): Optional<T>
-	if not value then
+	if value == nil then
 		return EMPTY
 	else
 		return Optional.of(value) :: Optional<T>
