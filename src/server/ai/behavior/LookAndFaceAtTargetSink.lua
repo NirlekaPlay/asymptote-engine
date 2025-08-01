@@ -8,6 +8,7 @@ local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 
 local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
+LookAndFaceAtTargetSink.ClassName = "LookAndFaceAtTargetSink"
 
 export type LookAndFaceAtTargetSink = typeof(setmetatable({} :: {
 }, LookAndFaceAtTargetSink))

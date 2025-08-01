@@ -15,6 +15,7 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 ]=]
 local WalkToRandomPost = {}
 WalkToRandomPost.__index = WalkToRandomPost
+WalkToRandomPost.ClassName = "WalkToRandomPost"
 
 export type WalkToRandomPost = typeof(setmetatable({} :: {
 	diedConnection: RBXScriptConnection?,
@@ -56,7 +57,8 @@ function WalkToRandomPost.getMemoryRequirements(self: WalkToRandomPost): { [Memo
 end
 
 function WalkToRandomPost.checkExtraStartConditions(self: WalkToRandomPost, agent: Agent): boolean
-	return true
+	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER) or
+		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING)
 end
 
 function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boolean

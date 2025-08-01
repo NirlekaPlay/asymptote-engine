@@ -5,6 +5,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Agent = require(ServerScriptService.server.Agent)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
+local BehaviorControl = require(ServerScriptService.server.ai.behavior.BehaviorControl)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 
 local BrainDebugger = {}
@@ -26,7 +27,8 @@ function BrainDebugger.new(agent: Agent.Agent)
 		agent = agent,
 		agentBrainDebuggerGui = getDebugGui(agent.character),
 		textlabelsByMemories = {} :: { [MemoryModuleTypes.MemoryModuleType<any>]: TextLabel},
-		textlabelsByActivities = {} :: { [Activity.Activity]: TextLabel}
+		textlabelsByActivities = {} :: { [Activity.Activity]: TextLabel},
+		textlabelsByBehaviors = {} :: { [BehaviorControl.BehaviorControl<Agent.Agent>]: TextLabel}
 	}, BrainDebugger)
 end
 
@@ -80,7 +82,7 @@ function BrainDebugger.update(self: BrainDebugger): ()
 			newText.Visible = true
 			newText.Name = "B" .. activity.name
 			newText.Text = activity.name
-			newText.TextColor3 = Color3.new(0, 0.898039, 1)
+			newText.TextColor3 = Color3.new(0.282353, 1, 0)
 			newText.Parent = self.agentBrainDebuggerGui.Frame
 			self.textlabelsByActivities[activity] = newText
 			activityText = newText
@@ -91,6 +93,33 @@ function BrainDebugger.update(self: BrainDebugger): ()
 	for activity, textLabel in pairs(self.textlabelsByActivities) do
 		if not agentBrain.activeActivities[activity] then
 			self.textlabelsByActivities[activity] = nil
+			textLabel:Destroy()
+		end
+	end
+
+	local runningBehaviorsSet = {} :: { [BehaviorControl.BehaviorControl<Agent.Agent>]: true }
+	for _, behaviorControl in ipairs(agentBrain:getRunningBehaviors()) do
+		runningBehaviorsSet[behaviorControl] = true
+	end
+
+	for behaviorControl in pairs(runningBehaviorsSet) do
+		local activityText = self.textlabelsByBehaviors[behaviorControl]
+		if not self.textlabelsByBehaviors[behaviorControl] then
+			local newText = self.agentBrainDebuggerGui.Frame.REFERENCE:Clone() :: TextLabel
+			newText.Visible = true
+			newText.Name = "C" .. behaviorControl.name
+			newText.Text = behaviorControl.name
+			newText.TextColor3 = Color3.new(0, 0.898039, 1)
+			newText.Parent = self.agentBrainDebuggerGui.Frame
+			self.textlabelsByBehaviors[behaviorControl] = newText
+			activityText = newText
+		end
+		activityText.Visible = true
+	end
+
+	for behaviorControl, textLabel in pairs(self.textlabelsByBehaviors) do
+		if not runningBehaviorsSet[behaviorControl] then
+			self.textlabelsByBehaviors[behaviorControl] = nil
 			textLabel:Destroy()
 		end
 	end

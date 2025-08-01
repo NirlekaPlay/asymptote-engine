@@ -11,6 +11,7 @@ local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 ]=]
 local SetPanicFace = {}
 SetPanicFace.__index = SetPanicFace
+SetPanicFace.ClassName = "SetPanicFace"
 
 export type SetPanicFace = typeof(setmetatable({} :: {
 }, SetPanicFace))

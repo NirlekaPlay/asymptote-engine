@@ -11,6 +11,7 @@ local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 ]=]
 local DummyBehavior = {}
 DummyBehavior.__index = DummyBehavior
+DummyBehavior.ClassName = "DummyBehavior"
 
 export type DummyBehavior = typeof(setmetatable({} :: {
 }, DummyBehavior))

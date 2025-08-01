@@ -12,6 +12,7 @@ local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 ]=]
 local GuardPanic = {}
 GuardPanic.__index = GuardPanic
+GuardPanic.ClassName = "GuardPanic"
 
 export type GuardPanic = typeof(setmetatable({} :: {
 }, GuardPanic))

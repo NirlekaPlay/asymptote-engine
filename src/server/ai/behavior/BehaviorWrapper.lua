@@ -30,7 +30,8 @@ function BehaviorWrapper.new(behavior: Behavior): BehaviorWrapper
 		behavior = behavior,
 		minDuration = behavior.minDuration or 60,
 		maxDuration = behavior.maxDuration or 60,
-		endTimesStamp = 0
+		endTimesStamp = 0,
+		name = behavior.ClassName or "UntitledBehavior"
 	}, BehaviorWrapper)
 end
 

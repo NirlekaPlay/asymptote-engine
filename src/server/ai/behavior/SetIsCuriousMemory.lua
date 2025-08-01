@@ -13,6 +13,7 @@ local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 ]=]
 local SetIsCuriousMemory = {}
 SetIsCuriousMemory.__index = SetIsCuriousMemory
+SetIsCuriousMemory.ClassName = "SetIsCuriousMemory"
 
 export type SetIsCuriousMemory = typeof(setmetatable({} :: {
 }, SetIsCuriousMemory))

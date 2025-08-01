@@ -11,6 +11,7 @@ local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 ]=]
 local LookAtSuspiciousPlayer = {}
 LookAtSuspiciousPlayer.__index = LookAtSuspiciousPlayer
+LookAtSuspiciousPlayer.ClassName = "LookAtSuspiciousPlayer"
 
 export type LookAtSuspiciousPlayer = typeof(setmetatable({} :: {
 }, LookAtSuspiciousPlayer))

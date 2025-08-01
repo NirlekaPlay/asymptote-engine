@@ -13,6 +13,7 @@ local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 ]=]
 local Behavior = {}
 Behavior.__index = Behavior
+Behavior.ClassName = "Behavior"
 
 export type Behavior = typeof(setmetatable({} :: {
 	read minDuration: number?,
