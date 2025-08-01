@@ -28,7 +28,8 @@ function BrainDebugger.new(agent: Agent.Agent)
 		agentBrainDebuggerGui = getDebugGui(agent.character),
 		textlabelsByMemories = {} :: { [MemoryModuleTypes.MemoryModuleType<any>]: TextLabel},
 		textlabelsByActivities = {} :: { [Activity.Activity]: TextLabel},
-		textlabelsByBehaviors = {} :: { [BehaviorControl.BehaviorControl<Agent.Agent>]: TextLabel}
+		textlabelsByBehaviors = {} :: { [BehaviorControl.BehaviorControl<Agent.Agent>]: TextLabel},
+		miscsTextLabels = {} :: { [string]: TextLabel }
 	}, BrainDebugger)
 end
 
@@ -123,6 +124,20 @@ function BrainDebugger.update(self: BrainDebugger): ()
 			textLabel:Destroy()
 		end
 	end
+
+	local humanoid = self.agent.character:FindFirstChildOfClass("Humanoid")
+	local healthText = self.miscsTextLabels["health"]
+	if not healthText then
+		local newText = self.agentBrainDebuggerGui.Frame.REFERENCE:Clone() :: TextLabel
+		newText.Visible = true
+		newText.Name = "D" .. "health"
+		newText.Text = ""
+		newText.Parent = self.agentBrainDebuggerGui.Frame
+		self.miscsTextLabels["health"] = newText
+		healthText = newText
+	end
+
+	healthText.Text = `health: {humanoid.Health} / {humanoid.MaxHealth}`
 end
 
 function BrainDebugger.destroyGui(self: BrainDebugger): ()
