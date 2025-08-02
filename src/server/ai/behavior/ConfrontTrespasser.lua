@@ -89,7 +89,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	trespasserWarns += 1
 	trespasser:SetAttribute(Attributes.TRESPASSING_WARNS.name, trespasserWarns)
 	self.patienceCooldown = 5
-	agent:getBubbleChatControl():displayBubble(agent:getTrespasserEncounterDialogue(trespasser, trespasserWarns))
+	agent:getTalkControl():say(agent:getTrespasserEncounterDialogue(trespasser, trespasserWarns))
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
@@ -116,7 +116,7 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 		return
 	end
 
-	agent:getBubbleChatControl():displayBubble(agent:getTrespasserEncounterDialogue(trespasser, trespasserWarns))
+	agent:getTalkControl():say(agent:getTrespasserEncounterDialogue(trespasser, trespasserWarns))
 	if trespasserWarns >= MAX_WARNS then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
 	end

@@ -20,6 +20,7 @@ local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleCh
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local BrainDebugger = require(ServerScriptService.server.ai.debug.BrainDebugger)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -42,6 +43,7 @@ export type Guard = typeof(setmetatable({} :: {
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
+	talkControl: TalkControl.TalkControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
 	designatedPosts: { GuardPost.GuardPost },
@@ -66,6 +68,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.faceControl = FaceControl.new(character)
 	self.faceControl:setFace("Neutral")
 	self.bubbleChatControl = BubbleChatControl.new(character)
+	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
 	self.random = Random.new(tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
@@ -174,6 +177,10 @@ end
 
 function Guard.getBubbleChatControl(self: Guard): BubbleChatControl.BubbleChatControl
 	return self.bubbleChatControl
+end
+
+function Guard.getTalkControl(self: Guard): TalkControl.TalkControl
+	return self.talkControl
 end
 
 function Guard.getPrimaryPart(self: Guard): BasePart

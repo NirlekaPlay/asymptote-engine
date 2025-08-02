@@ -7,6 +7,7 @@ local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRo
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
@@ -27,6 +28,7 @@ export type Agent = typeof(setmetatable({} :: {
 	brain: Brain.Brain<Agent>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
+	talkControl: TalkControl.TalkControl,
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	pathNavigation: PathNavigation.PathNavigation,
@@ -82,6 +84,10 @@ end
 
 function Agent.getBubbleChatControl(self: Agent): BubbleChatControl.BubbleChatControl
 	return self.bubbleChatControl
+end
+
+function Agent.getTalkControl(self: Agent): TalkControl.TalkControl
+	return self.talkControl
 end
 
 function Agent.getPrimaryPart(self: Agent): BasePart
