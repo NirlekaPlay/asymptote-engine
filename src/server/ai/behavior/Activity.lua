@@ -13,6 +13,7 @@ end
 return {
 	IDLE = register("idle"),
 	CORE = register("core"),
+	CONFRONT = register("confront"),
 	WORK = register("work"),
 	INVESTIGATE = register("investigate"),
 	PANIC = register("panic")
