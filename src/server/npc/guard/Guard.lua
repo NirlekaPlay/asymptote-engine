@@ -1,13 +1,17 @@
 --!strict
 
+local HttpService = game:GetService("HttpService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local GuardAi = require(script.Parent.GuardAi)
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
+local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
+local LookAtSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousPlayer)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
@@ -29,6 +33,7 @@ local Guard = {}
 Guard.__index = Guard
 
 export type Guard = typeof(setmetatable({} :: {
+	uuid: string,
 	character: Model,
 	alive: boolean,
 	brain: Brain.Brain<Agent.Agent>,
@@ -49,8 +54,8 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.character = character
 	self.alive = true
 	self.pathNavigation = PathNavigation.new(character, {
-		AgentRadius = 6,
-		AgentHeight = 6,
+		AgentRadius = 2,
+		AgentHeight = 2,
 		AgentCanJump = false
 	})
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
@@ -80,35 +85,9 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end
 
 	self.isPathfindingValue = isPathfinding
-	self.brain = Brain.new(self, {
-		MemoryModuleTypes.LOOK_TARGET,
-		MemoryModuleTypes.IS_CURIOUS,
-		MemoryModuleTypes.DESIGNATED_POSTS,
-		MemoryModuleTypes.PATROL_STATE,
-		MemoryModuleTypes.TARGET_POST,
-		MemoryModuleTypes.POST_VACATE_COOLDOWN,
-		MemoryModuleTypes.IS_PANICKING
-	}, { SensorTypes.VISIBLE_PLAYERS_SENSOR })
-	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, self.designatedPosts)
-	self.brain:addActivityWithConditions(Activity.WORK, 2, {
-		BehaviorWrapper.new(WalkToRandomPost.new())
-	}, {
-		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT
-	})
-	self.brain:addActivity(Activity.CORE, 1, {
-		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
-		BehaviorWrapper.new(SetIsCuriousMemory.new()),
-		BehaviorWrapper.new(GuardPanic.new())
-	})
-	self.brain:addActivityWithConditions(Activity.PANIC, 0, {
-		BehaviorWrapper.new(SetPanicFace.new())
-	}, {
-		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT
-	})
-	self.brain:setCoreActivities({Activity.CORE})
-	self.brain:setDefaultActivity(Activity.WORK)
-	self.brain:useDefaultActivity()
 	self.brainDebugger = BrainDebugger.new(self)
+	self.uuid = HttpService:GenerateGUID()
+	self.brain = GuardAi.makeBrain(self)
 
 	return setmetatable(self, Guard)
 end
@@ -120,7 +99,7 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	end
 
 	self.brain:update(deltaTime)
-	self.brain:setActiveActivityToFirstValid({Activity.PANIC})
+	GuardAi.updateActivity(self)
 	local visiblePlayers = self.brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
 	if visiblePlayers:isPresent() then
 		visiblePlayers = visiblePlayers:get():getValue()
@@ -128,11 +107,11 @@ function Guard.update(self: Guard, deltaTime: number): ()
 		visiblePlayers = {}
 	end
 	self.suspicionManager:update(deltaTime, visiblePlayers)
-	if self.suspicionManager:isCurious() then
+	--[[if self.suspicionManager:isCurious() then
 		self:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, self.suspicionManager.focusingOn)
 	else
 		self:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, nil)
-	end
+	end]]
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
 	self.brainDebugger:update()
@@ -153,6 +132,7 @@ function Guard.canBeIntimidated(self: Guard): boolean
 end
 
 function Guard.onDied(self: Guard)
+	self.brainDebugger:destroyGui()
 	self.faceControl:setFace("Unconscious")
 end
 
@@ -198,6 +178,52 @@ end
 
 function Guard.getPrimaryPart(self: Guard): BasePart
 	return self.character.PrimaryPart :: BasePart
+end
+
+--
+
+function Guard.getSightRadius(self: Guard): number
+	return self.character:GetAttribute("SightRadius") :: number? or 50
+end
+
+function Guard.getPeripheralVisionAngle(self: Guard): number
+	return self.character:GetAttribute("PeriphAngle") :: number? or 180
+end
+
+--
+
+local trespasserEncounterRandom = {
+	[1] = {
+		"This is a restricted area. You need to leave.",
+		"Hey! This is a restricted area! You need to leave!",
+		"This area is restricted. You gotta leave.",
+		"You should leave this restricted area this instance!"
+	},
+	[2] = {
+		"Hey! I've warned you! Leave this area now!",
+		"Im warning you!"
+	},
+	[3] = {
+		"Alright! Thats it!",
+		"Third warn! You know what that means!"
+	},
+	[4] = {
+		"Open fire!"
+	}
+}
+
+local function randomSelect<T>(t: { T }): T
+	return t[math.random(1, #t)]
+end
+
+function Guard.getTrespasserEncounterDialogue(self: Guard, trespasser: Player, warns: number): string
+	return randomSelect(trespasserEncounterRandom[warns])
+end
+
+--
+
+function Guard.getUuid(self: Guard)
+	return self.uuid
 end
 
 return Guard

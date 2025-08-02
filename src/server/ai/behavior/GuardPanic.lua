@@ -46,6 +46,8 @@ function GuardPanic.checkExtraStartConditions(self: GuardPanic, agent: Agent): b
 
 	for player, playerStatus in pairs(susMan.detectionLocks) do
 		if ALARMING_STATUSES[playerStatus] then
+			-- what the fuck.
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_POSITION, player.Character.PrimaryPart.Position)
 			return true
 		end
 	end
