@@ -21,6 +21,7 @@ local Agent = {}
 Agent.__index = Agent
 
 export type Agent = typeof(setmetatable({} :: {
+	uuid: string,
 	character: Model,
 	alive: boolean,
 	brain: Brain.Brain<Agent>,
@@ -39,6 +40,14 @@ function Agent.isAlive(self: Agent): boolean
 	return self.alive
 end
 
+function Agent.canBeIntimidated(self: Agent): boolean
+	return true
+end
+
+function Agent.canDetectThroughDisguises(self: Agent): boolean
+	return false
+end
+
 function Agent.getBrain(self: Agent): Brain.Brain<Agent>
 	return self.brain
 end
@@ -53,6 +62,10 @@ end
 
 function Agent.getRandom(self: Agent): Random
 	return self.random
+end
+
+function Agent.getUuid(self: Agent): string
+	return self.uuid
 end
 
 function Agent.getSuspicionManager(self: Agent): SuspicionManagement.SuspicionManagement
