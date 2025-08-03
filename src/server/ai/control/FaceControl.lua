@@ -52,16 +52,32 @@ type FaceAlias = "Neutral"
 	| "None"
 
 function FaceControl.new(character: Model): FaceControl
-	return setmetatable({
-		head = character:FindFirstChild("Head") :: BasePart,
-		currentFaceAlias = "None",
-		currentFaceDecals = {}
-	}, FaceControl)
+	local self = {}
+
+	self.head = character:FindFirstChild("Head") :: BasePart
+	self.currentFaceAlias = "None"
+	self.currentFaceDecals = {}
+
+	local faceDecals = self.head:FindFirstChild("Face Decals")
+	if not faceDecals then
+		FaceControl.createHdifyFaceDecals(self.head)
+		for _, decal in ipairs(self.head:GetChildren()) do
+			if decal:IsA("Decal") then
+				decal:Destroy()
+			end
+		end
+	elseif faceDecals ~= nil then
+		for _, decal in ipairs(faceDecals:GetChildren()) do
+			if decal:IsA("Decal") then
+				decal:Destroy()
+			end
+		end
+	end
+
+	return setmetatable(self, FaceControl)
 end
 
 function FaceControl.setFace(self: FaceControl, faceAlias: FaceAlias): ()
-	-- TODO: Automatically remove the default smiley face from the rig if present
-	-- If you do not do this, the mf is gonna have some pennywise face shit
 	local isSame = self.currentFaceAlias == faceAlias -- fuck you typechecker
 	if isSame then return end
 
@@ -87,6 +103,30 @@ function FaceControl.createDecal(self: FaceControl, assetId: number): Decal
 	newDecal.Parent = self.head:FindFirstChild("Face Decals") -- use the HDIfy plugin so it can have HD faces
 
 	return newDecal
+end
+
+function FaceControl.createHdifyFaceDecals(head: BasePart): BasePart
+	-- this mimics the HDify plugin to make faces on R6 not look like utter shit
+	local part = Instance.new("Part")
+	part.Name = "Face Decals"
+	part.Size = Vector3.new(2, 1, 1)
+	part.CFrame = CFrame.new(-7, 4.5, -8.5)
+	--part.Origin = CFrame.new(-7, 0, -8.5)
+	part.PivotOffset = CFrame.new(0, -4.5, 0)
+
+	local mesh = Instance.new("SpecialMesh")
+	mesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+	mesh.Parent = part
+
+	local weld = Instance.new("Weld")
+	weld.Name = "HeadWeld"
+	weld.Part0 = head
+	weld.Part1 = part
+	weld.Parent = part
+
+	part.Parent = head
+
+	return part
 end
 
 return FaceControl
