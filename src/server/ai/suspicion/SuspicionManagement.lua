@@ -6,7 +6,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local PlayerStatus = require("../../player/PlayerStatus")
 local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
-local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
+local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedRemotes).Detection
 
 local CONFIG = {
 	BASE_DETECTION_TIME = 1.25,        -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
@@ -173,10 +173,10 @@ function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, player: P
 	local finalSus = math.max(0, level - CONFIG.DECAY_RATE_PER_SECOND * deltaTime)
 	if finalSus > 0 then
 		self.suspicionLevels[player] = finalSus
-		self:syncSuspicionToPlayer(player, finalSus)
 	else
 		self.suspicionLevels[player] = nil
 	end
+	self:syncSuspicionToPlayer(player, finalSus)
 end
 
 function SuspicionManagement.decaySuspicionOnAllPlayers(self: SuspicionManagement, deltaTime: number): ()
