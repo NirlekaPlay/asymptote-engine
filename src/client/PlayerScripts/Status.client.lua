@@ -1,6 +1,6 @@
 --!nonstrict
 
-local REMOTE = require(game.ReplicatedStorage.shared.network.TypedStatusRemote)
+local REMOTE = require(game.ReplicatedStorage.shared.network.TypedRemotes).Status
 local GUI = game.Players.LocalPlayer.PlayerGui:WaitForChild("Status").Frame1
 
 -- too fucking lazy to port them.
@@ -27,6 +27,7 @@ local ScreenGuiTypePerUi = {
 local currentScreenGuies = {}
 
 REMOTE.OnClientEvent:Connect(function(ScreenGuiTypes)
+	print(ScreenGuiTypes)
 	for ScreenGuiType in pairs(ScreenGuiTypes) do
 		if currentScreenGuies[ScreenGuiType] then
 			continue

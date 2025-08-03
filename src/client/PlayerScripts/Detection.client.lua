@@ -34,7 +34,7 @@ type WorldPointer = WorldPointer.WorldPointer
 
 local ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 local WOOSH_SOUND = ReplicatedStorage.shared.assets.sounds.detection_woosh
-local REMOTE = require(ReplicatedStorage.shared.network.TypedDetectionRemote)
+local REMOTE = require(ReplicatedStorage.shared.network.TypedRemotes).Detection
 local DETECTION_GUI = Players.LocalPlayer.PlayerGui:WaitForChild("Detection")
 local FRAME_METER_REF = DETECTION_GUI.SusMeter
 

@@ -1,7 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedStatusRemote)
+local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedRemotes).Status
 
 --[=[
 	@class PlayerStatus

@@ -38,6 +38,17 @@ export type Event<T...> = {
 
 --[=[
 	@within TypedRemote
+	@interface UnreliableEvent<T...>
+	.OnClientEvent Signal<T...>,
+	.OnServerEvent PlayerSignal<T...>,
+	.FireClient (self: Event<T...>, player: Player, T...) -> (),
+	.FireAllClients (self: Event<T...>, T...) -> (),
+	.FireServer (self: Event<T...>, T...) -> (),
+]=]
+export type UnreliableEvent<T...> = Event<T...>
+
+--[=[
+	@within TypedRemote
 	@interface Function<T..., R...>
 	.InvokeServer (self: Function<T..., R...>, T...) -> R...,
 	.OnServerInvoke (player: Player, T...) -> R...,
@@ -46,6 +57,8 @@ export type Function<T..., R...> = Instance & {
 	InvokeServer: (self: Function<T..., R...>, T...) -> R...,
 	OnServerInvoke: (player: Player, T...) -> R...,
 }
+
+type CreatorFn<T> = (name: string) -> T
 
 local IS_SERVER = game:GetService("RunService"):IsServer()
 
@@ -59,21 +72,25 @@ local IS_SERVER = game:GetService("RunService"):IsServer()
 
 	local TypedRemote = require(ReplicatedStorage.Packages.TypedRemote)
 
-	-- Get the RF and RE instance creators, which create RemoteEvents/RemoteFunctions
-	-- within the given parent (the script in this case):
-	local RF, RE = TypedRemote.parent(script)
+	-- Get the RF, RE and URE instance creators, which create RemoteFunctions/RemoteEvents/UnreliableRemoteEvents
+	-- within the given parent (the script by default):
+	local RF, RE, URE = TypedRemote.parent()
 
 	-- Redeclare the TypedRemote types for simplicity:
 	type RF<T..., R...> = TypedRemote.Function<T..., R...>
 	type RE<T...> = TypedRemote.Event<T...>
+	type URE<T...> = TypedRemote.UnreliableEvent<T...>
 
 	-- Define network table:
 	return {
+		-- RemoteFunction that takes two arguments (boolean, string) and returns a number:
+		MyFunc = RF("MyFunc") :: RF<(boolean, string), (number)>,
+
 		-- RemoteEvent that takes two arguments - a string and a number:
 		MyEvent = RE("MyEvent") :: RE<string, number>,
 
-		-- RemoteFunction that takes two arguments (boolean, string) and returns a number:
-		MyFunc = RF("MyFunc") :: RF<(boolean, string), (number)>,
+		-- UnreliableRemoteEvent that takes two arguments - a string and a number:
+		MyUnreliableEvent = URE("MyUnreliableEvent") :: URE<string, number>,
 	}
 	```
 
@@ -110,11 +127,15 @@ local TypedRemote = {}
 	local remoteFunc = RF("RemoteFunc")
 	```
 ]=]
-function TypedRemote.parent(parent: Instance)
+function TypedRemote.parent(
+	parent: Instance?
+): (CreatorFn<RemoteFunction>, CreatorFn<RemoteEvent>, CreatorFn<UnreliableRemoteEvent>)
 	return function(name: string)
 		return TypedRemote.func(name, parent)
 	end, function(name: string)
 		return TypedRemote.event(name, parent)
+	end, function(name: string)
+		return TypedRemote.unreliableEvent(name, parent)
 	end
 end
 
@@ -124,14 +145,14 @@ end
 	If the `parent` argument is not included or is `nil`, then it defaults to the parent of
 	this TypedRemote ModuleScript.
 ]=]
-function TypedRemote.func(name: string, parent: Instance): RemoteFunction
+function TypedRemote.func(name: string, parent: Instance?): RemoteFunction
 	local rf: RemoteFunction
 	if IS_SERVER then
 		rf = Instance.new("RemoteFunction")
 		rf.Name = name
 		rf.Parent = if parent then parent else script
 	else
-		rf = (if parent then parent else script :: ModuleScript):WaitForChild(name) :: RemoteFunction
+		rf = ((if parent then parent else script) :: Instance):WaitForChild(name) :: RemoteFunction
 		assert(rf:IsA("RemoteFunction"), "expected remote function")
 	end
 	return rf
@@ -150,10 +171,29 @@ function TypedRemote.event(name: string, parent: Instance?): RemoteEvent
 		re.Name = name
 		re.Parent = if parent then parent else script
 	else
-		re = (if parent then parent else script :: ModuleScript):WaitForChild(name) :: RemoteEvent
+		re = ((if parent then parent else script) :: Instance):WaitForChild(name) :: RemoteEvent
 		assert(re:IsA("RemoteEvent"), "expected remote event")
 	end
 	return re
+end
+
+--[=[
+	Creates an UnreliableRemoteEvent with `name` and parents it inside of `parent`.
+	
+	If the `parent` argument is not included or is `nil`, then it defaults to the parent of
+	this TypedRemote ModuleScript.
+]=]
+function TypedRemote.unreliableEvent(name: string, parent: Instance?): UnreliableRemoteEvent
+	local ure: UnreliableRemoteEvent
+	if IS_SERVER then
+		ure = Instance.new("UnreliableRemoteEvent")
+		ure.Name = name
+		ure.Parent = if parent then parent else script
+	else
+		ure = ((if parent then parent else script) :: Instance):WaitForChild(name) :: UnreliableRemoteEvent
+		assert(ure:IsA("UnreliableRemoteEvent"), "expected unreliable remote event")
+	end
+	return ure
 end
 
 table.freeze(TypedRemote)
