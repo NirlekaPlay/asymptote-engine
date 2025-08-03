@@ -1,20 +1,57 @@
 --!nonstrict
 
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
 
 local Agent = require(ServerScriptService.server.Agent)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorControl = require(ServerScriptService.server.ai.behavior.BehaviorControl)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 
+local BILLBOARD_GUI_NAME = "BrainDebugGui"
+
 local BrainDebugger = {}
 BrainDebugger.__index = BrainDebugger
 
+local function createDebugGui(): BillboardGui
+	local billboardGui = Instance.new("BillboardGui")
+	billboardGui.ExtentsOffset = Vector3.new(0, 7, 0)
+	billboardGui.LightInfluence = 0
+	billboardGui.ResetOnSpawn = false
+	billboardGui.Name = BILLBOARD_GUI_NAME
+	billboardGui.Size = UDim2.fromScale(40, 40)
+	billboardGui.StudsOffset = Vector3.new(20, 17, 0)
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundTransparency = 1
+	frame.Parent = billboardGui
+
+	local uiListLayout = Instance.new("UIListLayout")
+	uiListLayout.FillDirection = Enum.FillDirection.Vertical
+	uiListLayout.SortOrder = Enum.SortOrder.Name
+	uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	uiListLayout.Parent = frame
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.BackgroundTransparency = 1
+	textLabel.Name = "REFERENCE"
+	textLabel.Size = UDim2.fromScale(1, 0.025)
+	textLabel.FontFace = Font.fromName("Inconsolata")
+	textLabel.TextColor3 = Color3.new(1, 1, 1)
+	textLabel.TextScaled = true
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.TextYAlignment = Enum.TextYAlignment.Top
+	textLabel.Visible = false
+	textLabel.Parent = frame
+
+	return billboardGui
+end
+
 local function getDebugGui(character: Model): BillboardGui
-	local findGuiInChar = character.Head:FindFirstChild("BrainDebugGui")
+	local findGuiInChar = character.Head:FindFirstChild(BILLBOARD_GUI_NAME)
 	if not findGuiInChar then
-		local new = ServerStorage.BrainDebugGui:Clone()
+		local new = createDebugGui()
 		new.Parent = character.Head
 		return new
 	end
