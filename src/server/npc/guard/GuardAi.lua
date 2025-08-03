@@ -10,6 +10,7 @@ local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeTo
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local LookAtSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousPlayer)
+local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
@@ -74,7 +75,8 @@ end
 function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.PANIC, 0, {
 		BehaviorWrapper.new(SetPanicFace.new()),
-		BehaviorWrapper.new(FleeToEscapePoints.new())
+		BehaviorWrapper.new(FleeToEscapePoints.new()),
+		BehaviorWrapper.new(PleaForMercy.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT
 	})
