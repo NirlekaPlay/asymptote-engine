@@ -39,6 +39,7 @@ local DETECTION_GUI = Players.LocalPlayer.PlayerGui:WaitForChild("Detection")
 local FRAME_METER_REF = DETECTION_GUI.SusMeter
 
 local activeMeters: { [Model]: DetectionMeterObject } = {}
+local characterDiedConnections: { [Model]: RBXScriptConnection } = {}
 local random = Random.new(tick())
 
 local function cloneMeterUi(): Frame
@@ -120,7 +121,18 @@ RunService.RenderStepped:Connect(function()
 end)
 
 REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, origin: Vector3)
-	--print(suspicionValue)
+	if not characterDiedConnections[character] then
+		local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
+		characterDiedConnections[character] = humanoid.Died:Once(function()
+			local activeMeter = activeMeters[character]
+			activeMeters[character] = nil
+
+			activeMeter.currentRtween:kill()
+			activeMeter.meterUi.rootFrame:Destroy()
+			characterDiedConnections[character] = nil
+		end)
+	end
+
 	local currentMeter = gerOrRegisterNewMeterObjectOf(character)
 
 	-- keeps the suspicionValue between 0 and 1
