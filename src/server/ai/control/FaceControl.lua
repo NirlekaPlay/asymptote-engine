@@ -109,6 +109,7 @@ function FaceControl.createHdifyFaceDecals(head: BasePart): BasePart
 	-- this mimics the HDify plugin to make faces on R6 not look like utter shit
 	local part = Instance.new("Part")
 	part.Name = "Face Decals"
+	part.Color = head.Color
 	part.Size = Vector3.new(2, 1, 1)
 	part.CFrame = CFrame.new(-7, 4.5, -8.5)
 	--part.Origin = CFrame.new(-7, 0, -8.5)
