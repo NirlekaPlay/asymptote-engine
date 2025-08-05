@@ -23,6 +23,10 @@
     "StarterGui": {
       "$path": "src/client/StarterGui",
       "$ignoreUnknownInstances": true
+    },
+    "ReplicatedFirst": {
+      "$path": "src/client/ReplicatedFirst",
+      "$ignoreUnknownInstances": true
     }
   }
 }
