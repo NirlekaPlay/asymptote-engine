@@ -12,6 +12,7 @@ local FOV_GAIN_PERCENTAGE = 25
 
 local window_focused = true
 local menu_open = false
+local last_animation_played: {RTweenAnimation}? = nil
 
 type RTweenAnimation = {
 	instance: Instance,
@@ -98,7 +99,7 @@ local function animate(animations: { RTweenAnimation }): ()
 	mainRtween:play()
 end
 
-local function onFocusChange(): ()
+local function onFocusChange()
 	local animation
 	if not menu_open and window_focused then
 		animation = FOCUS_CHANGE_ANIMATIONS.FOCUS_ACQUIRED
@@ -106,7 +107,10 @@ local function onFocusChange(): ()
 		animation = FOCUS_CHANGE_ANIMATIONS.FOCUS_RELEASED
 	end
 
-	animate(animation)
+	if animation ~= last_animation_played then
+		last_animation_played = animation
+		animate(animation)
+	end
 end
 
 if GuiService.MenuIsOpen then
