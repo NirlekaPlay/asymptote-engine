@@ -26,13 +26,16 @@ weapons, dead bodies, hostages, and damaged property.
     reaches 1.0. Which can be expressed by:
    `FinalDetectionTime = BaseTime ÷ SpeedModifier %`
  b. Detection Priority. As defined in Sec. 1, the speed of
-    detection and how an Agen reacts upon detection is de-
+    detection and how an Agent reacts upon detection is de-
     termined by the Player's highest priority status.
- c. Detection Visibility. For circumstances such as an un-
-    disguised Player walking in a trespassing zone, and
-    being heard by an Agent, that Agent cannot see the
-    Player's current statuses. Therefor Some statuses
-    must require line of sight.
+ c. Detection Visibility. Most statuses requires visibility
+    such as ARMED, SUSPICIOUS, etc. And some can be heard,
+    such as MINOR_TRESPASSING and MAJOR_TRESPASSING. An Agent
+    determines the highest priority status by their visibility.
+    For example, a Player is walking behind an Agent, with the
+    statuses of MINOR_TRESPASSING and ARMED. Since the Agent
+    cannot see the Player, the Agent detects the Player based
+    on the MINOR_TRESPASSING status.
  d. Detection Registry. Each Agent stores the suspicion map
     that stores the suspicion value of each suspect.
     e.g. `{ Jimmy: 0.23, DeadBody: 0.97 }`
