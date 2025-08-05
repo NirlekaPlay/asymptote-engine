@@ -36,7 +36,7 @@ type DetectionMeterObject = {
 
 type WorldPointer = WorldPointer.WorldPointer
 
-local ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
+--local ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 local WOOSH_SOUND = ReplicatedStorage.shared.assets.sounds.detection_woosh
 WOOSH_SOUND.Looped = true
 local REMOTE = require(ReplicatedStorage.shared.network.TypedRemotes).Detection
@@ -122,7 +122,7 @@ local function animateMeterAlert(currentMeter: DetectionMeterObject)
 	currentTween:tween_instance(currentMeterUi.rootFrame, {Position = udimPos}, .3)
 	currentTween:tween_instance(currentMeterUi.fillBar, {ImageColor3 = Color3.new(1, 0, 0)}, .3)
 	currentTween:play()
-	ALERTED_SOUND:Play()
+	--ALERTED_SOUND:Play()
 end
 
 local function setMeterVisibility(currentMeter: DetectionMeterObject, visible: boolean): ()
