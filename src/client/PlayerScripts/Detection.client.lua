@@ -26,7 +26,9 @@ type DetectionMeterObject = {
 	meterUi: DetectionMeterUI,      -- Associated UI object
 	lastValue: number,              -- Last recorded detection value
 	lastRaiseTime: number,          -- Last time (in seconds) the detection value increased
+	lastUpdateTime: number,         -- Last time (in seconds) the meter was updated
 	currentRtween: RTween.RTween,   -- Tween controlling the fill animation
+	isVisible: boolean,             -- The meter is visible or not.
 	isRaising: boolean,             -- Whether detection value is currently increasing
 	doRotate: boolean,              -- Whether WorldPointer should rotate the UI object,
 	wooshSound: Sound
@@ -75,8 +77,10 @@ local function createMeterObject(): DetectionMeterObject
 	newMeterObject.currentRtween = RTween.create(Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	newMeterObject.doRotate = true
 	newMeterObject.isRaising = false
+	newMeterObject.isVisible = false
 	newMeterObject.lastValue = 0
 	newMeterObject.lastRaiseTime = 2
+	newMeterObject.lastUpdateTime = os.clock()
 	newMeterObject.meterUi = newUiInst
 	newMeterObject.worldPointer = WorldPointer.new(newUiInst.rootFrame)
 	newMeterObject.wooshSound = (function()
@@ -89,18 +93,6 @@ local function createMeterObject(): DetectionMeterObject
 	end)() :: Sound
 
 	return newMeterObject
-end
-
-local function getOrRegisterNewMeterObjectOf(character: Model): DetectionMeterObject
-	local currentMeter = activeMeters[character]
-	if not currentMeter then
-		local newMeter = createMeterObject()
-		newMeter.currentRtween:set_parallel(true)
-		activeMeters[character] = newMeter
-		currentMeter = newMeter
-	end
-
-	return currentMeter
 end
 
 local function getForwardUdim(posUdim: UDim2, rotDeg: number, distance: number): UDim2
@@ -135,15 +127,30 @@ end
 
 local function setMeterVisibility(currentMeter: DetectionMeterObject, visible: boolean): ()
 	if visible then
+		currentMeter.isVisible = true
 		currentMeter.meterUi.fillBar.ImageTransparency = 0
 		currentMeter.meterUi.backgroundBar.ImageTransparency = 0.5
 		currentMeter.doRotate = true
 	else
+		currentMeter.isVisible = false
 		currentMeter.meterUi.fillBar.ImageTransparency = 1
 		currentMeter.meterUi.backgroundBar.ImageTransparency = 1
 		currentMeter.doRotate = false
 		currentMeter.wooshSound:Stop()
 	end
+end
+
+local function getOrRegisterNewMeterObjectOf(character: Model): DetectionMeterObject
+	local currentMeter = activeMeters[character]
+	if not currentMeter then
+		local newMeter = createMeterObject()
+		setMeterVisibility(newMeter, false)
+		newMeter.currentRtween:set_parallel(true)
+		activeMeters[character] = newMeter
+		currentMeter = newMeter
+	end
+
+	return currentMeter
 end
 
 local function destroyMeter(character: Model)
@@ -157,6 +164,10 @@ end
 
 RunService.RenderStepped:Connect(function()
 	for _, meter in pairs(activeMeters) do
+		if (os.clock() - meter.lastUpdateTime) > 0.1 then
+			setMeterVisibility(meter, false)
+		end
+
 		if not meter.doRotate then
 			continue
 		end
@@ -166,6 +177,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, origin: Vector3)
+	print(`Received value of {suspicionValue} from {character.Name}`)
 	if not characterDiedConnections[character] then
 		local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
 		characterDiedConnections[character] = humanoid.Died:Once(function()
@@ -190,6 +202,8 @@ REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, 
 		currentMeter.isRaising = false
 	end
 
+	currentMeter.lastValue = suspicionValue
+
 	if currentMeter.isRaising then
 		currentMeter.wooshSound.Volume = math.map(suspicionValue, 0, 1, 0, MAX_WOOSH_VOLUME)
 	else
@@ -202,13 +216,15 @@ REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, 
 
 	if suspicionValue >= 1 then
 		animateMeterAlert(currentMeter)
-	elseif currentMeter.lastRaiseTime <= 0 then
-		setMeterVisibility(currentMeter, false)
-	elseif suspicionValue <= 0 then
-		setMeterVisibility(currentMeter, false)
-	elseif suspicionValue > 0 then
-		setMeterVisibility(currentMeter, true)
 	end
 
-	currentMeter.lastValue = suspicionValue
+	local shouldHide = suspicionValue <= 0 or currentMeter.lastRaiseTime <= 0
+
+	if not shouldHide and not currentMeter.isVisible then
+		setMeterVisibility(currentMeter, true)
+	elseif shouldHide and currentMeter.isVisible then
+		setMeterVisibility(currentMeter, false)
+	end
+
+	currentMeter.lastUpdateTime = os.clock()
 end)
