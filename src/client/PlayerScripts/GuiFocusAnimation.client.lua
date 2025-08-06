@@ -8,7 +8,7 @@ local currentCamera = workspace.CurrentCamera
 local mainRtween = RTween.create(Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 mainRtween:set_parallel(true)
 
-local FOV_GAIN_PERCENTAGE = 25
+--local FOV_GAIN_PERCENTAGE = 25
 
 local window_focused = true
 local menu_open = false
@@ -49,13 +49,13 @@ local FOCUS_CHANGE_ANIMATIONS = {
 			properties = { Contrast = 0, Saturation = 0 },
 			duration = .5
 		},
-		{
+		--[[{
 			instance = currentCamera,
 			properties = function()
 				return { FieldOfView = currentCamera.FieldOfView * ( 1 + math.abs(FOV_GAIN_PERCENTAGE) / 100) }
 			end,
 			duration = 1
-		},
+		},]]
 	} :: {RTweenAnimation},
 	FOCUS_RELEASED = {
 		{
@@ -68,7 +68,7 @@ local FOCUS_CHANGE_ANIMATIONS = {
 			properties = { Contrast = 1, Saturation = -1 },
 			duration = .5
 		},
-		{
+		--[[{
 			instance = currentCamera,
 			properties = function()
 				local fovLoss = FOV_GAIN_PERCENTAGE
@@ -78,7 +78,7 @@ local FOCUS_CHANGE_ANIMATIONS = {
 				return { FieldOfView = currentCamera.FieldOfView * ( 1 + fovLoss / 100) }
 			end,
 			duration = 1
-		},
+		},]]
 	} :: {RTweenAnimation}
 }
 
