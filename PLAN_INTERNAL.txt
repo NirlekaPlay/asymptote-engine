@@ -1,0 +1,25 @@
+Project Asymptote Engine Internal Design Document
+
+    This document will outline the low-level implementation
+    of defined systems in PLAN.txt of the engine's repository's
+    root directory.
+
+1. Entities. (a) Definition. An Entity is defined as any dynamic,
+interactive object within the game world that is not part of the static
+environment such as buildings, structural elements, or immobile props.
+Entities includes all objects that possess runtime behavior, mobility,
+or state changes independent of the terrain or architecture.
+
+This includes, but not limited to:
+     i. Non-Player Characters (NPCs);
+    ii. Armed or unarmed explosives (e.g., placed C4s);
+   iii. Dead bodies or corpses; and
+    iv. Dropped or throwable items
+
+However, entities do not include interactive static elements such as doors,
+breaker boxes, or any object that is fixed to the environment and lacks
+independent simulation logic.
+
+ (b) Implementation. The sole purpose of this entire system is to improve
+the AI detection. Instead of detecting Players, it can detect dead bodies,
+other NPCs being held hostage, dropped weapons, placed C4s, etc.
