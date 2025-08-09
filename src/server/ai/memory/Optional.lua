@@ -9,7 +9,8 @@ export type Optional<T> = typeof(setmetatable({} :: {
 	value: T,
 	filter: (self: Optional<T>, predicate: (T) -> boolean) -> Optional<T>,
 	ifPresent: (self: Optional<T>, callback: (T) -> ()) -> (),
-	map: (self: Optional<T>, mapper: (T) -> any) -> Optional<any>
+	map: (self: Optional<T>, mapper: (T) -> any) -> Optional<any>,
+	flatMap: (self: Optional<T>, mapper: (T)) -> Optional<any>
 }, Optional))
 
 function Optional.empty(): Optional<nil>
@@ -66,6 +67,20 @@ function Optional.map<T, U>(self: Optional<T>, mapper: (T) -> U): Optional<U>
 	else
 		return Optional.ofNullable(mapper(self.value))
 	end
+end
+
+function Optional.flatMap<T, U>(self: Optional<T>, mapper: (T) -> Optional<U>): U
+	if self:isEmpty() then
+		return EMPTY
+	else
+		local result = mapper(self.value)
+		assert(result ~= nil, "Optional<T>::flatMap(): mapper returns nil")
+		return result
+	end
+end
+
+function Optional.orElse<T, U>(self: Optional<T>, other: U): T | U
+	return if (self.value :: any) ~= nil then self.value else other
 end
 
 return Optional
