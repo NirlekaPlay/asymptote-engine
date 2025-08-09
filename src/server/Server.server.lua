@@ -1,4 +1,5 @@
 local CollectionService = game:GetService("CollectionService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -105,14 +106,25 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	end
 end)
 
+if not PhysicsService:IsCollisionGroupRegistered("NonCollideWithPlayer") then
+	PhysicsService:RegisterCollisionGroup("NonCollideWithPlayer")
+end
+PhysicsService:CollisionGroupSetCollidable("NonCollideWithPlayer", "NonCollideWithPlayer", false)
+
 Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(character)
+	player.CharacterAppearanceLoaded:Connect(function(character)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.Died:Once(function()
 				local plrStatuses = PlayerStatusRegistry.getPlayerStatuses(player)
 				plrStatuses:clearAllStatuses()
 			end)
+		end
+
+		for _, part in ipairs(character:GetChildren()) do
+			if part:IsA("BasePart") then
+				part.CollisionGroup = "NonCollideWithPlayer"
+			end
 		end
 	end)
 end)
