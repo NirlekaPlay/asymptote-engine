@@ -37,13 +37,15 @@ SuspicionManagement.__index = SuspicionManagement
 
 export type SuspicionManagement = typeof(setmetatable({} :: {
 	agent: DetectionAgent.DetectionAgent & BrainOwner.BrainOwner,
-	suspicionLevels: { [Player]: { [PlayerStatus.PlayerStatusType]: number } }
+	suspicionLevels: { [Player]: { [PlayerStatus.PlayerStatusType]: number } },
+	detectedStatuses: { [PlayerStatus.PlayerStatusType]: Player }
 }, SuspicionManagement))
 
 function SuspicionManagement.new(agent: DetectionAgent.DetectionAgent & BrainOwner.BrainOwner): SuspicionManagement
 	return setmetatable({
 		agent = agent,
 		detectionLocks = {},
+		detectedStatuses = {},
 		suspicionLevels = {},
 	}, SuspicionManagement)
 end
@@ -88,7 +90,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 
 	local focusingTarget, highestStatus = self:getHighestPriorityPlayer(totalDetectedPlayers)
 
-	if focusingTarget and highestStatus then
+	if (focusingTarget and highestStatus) and (not self.detectedStatuses[highestStatus]) then
 		if not self.suspicionLevels[focusingTarget] then
 			self.suspicionLevels[focusingTarget] = {}
 		end
@@ -133,7 +135,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 
 	for player, statusLevels in pairs(self.suspicionLevels) do
 		for status, level in pairs(statusLevels) do
-			if status == highestStatus then
+			if (status == highestStatus) or (highestStatus and self.detectedStatuses[highestStatus]) then
 				continue
 			end
 			self:lowerSuspicion(player, status, deltaTime)
@@ -159,6 +161,9 @@ function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: P
 	playerSus = math.clamp(playerSus + progressRate * deltaTime, 0.0, 1.0)
 
 	self.suspicionLevels[player][highestStatus] = playerSus
+	if playerSus >= 1 then
+		self.detectedStatuses[highestStatus] = player
+	end
 	self:syncSuspicionToPlayer(player, playerSus)
 end
 
