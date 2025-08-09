@@ -177,7 +177,6 @@ RunService.RenderStepped:Connect(function()
 end)
 
 REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, origin: Vector3)
-	print(`Received value of {suspicionValue} from {character.Name}`)
 	if not characterDiedConnections[character] then
 		local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
 		characterDiedConnections[character] = humanoid.Died:Once(function()
