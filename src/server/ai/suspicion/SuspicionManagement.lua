@@ -131,13 +131,11 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		self:raiseSuspicion(focusingTarget, highestStatus, deltaTime)
 	end
 
-	-- i think im forgetting some shit here
 	for player, statusLevels in pairs(self.suspicionLevels) do
-		if player == focusingTarget then
-			continue
-		end
-
 		for status, level in pairs(statusLevels) do
+			if status == highestStatus then
+				continue
+			end
 			self:lowerSuspicion(player, status, deltaTime)
 		end
 	end
