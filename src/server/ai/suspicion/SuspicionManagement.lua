@@ -93,40 +93,41 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 			self.suspicionLevels[focusingTarget] = {}
 		end
 
-		for status, number in pairs(self.suspicionLevels[focusingTarget]) do
+		local suspicionTable = self.suspicionLevels[focusingTarget]
+
+		local highestPriority = PlayerStatus.getStatusPriorityValue(highestStatus)
+		for status, level in pairs(suspicionTable) do
 			local currentPriority = PlayerStatus.getStatusPriorityValue(status)
-			local newPriority = PlayerStatus.getStatusPriorityValue(highestStatus)
-
-			-- If the old status no longer applies but another one exists, transfer suspicion
-			if status ~= highestStatus and not totalDetectedPlayers[focusingTarget][status] then
-				-- Transfer suspicion progress to the new active status
-				self.suspicionLevels[focusingTarget][highestStatus] = math.max(
-					self.suspicionLevels[focusingTarget][highestStatus] or 0,
-					number
-				)
-				self.suspicionLevels[focusingTarget][status] = nil
-			end
-
-			-- Prevent downgrading from a maxed high-priority status
-			if currentPriority > newPriority and number >= 1.0 then
+			if currentPriority > highestPriority and level >= 1.0 then
 				highestStatus = status
+				highestPriority = currentPriority
 				break
 			end
+		end
 
-			-- Upgrade logic
-			if currentPriority < newPriority then
-				-- If the old status was maxed, start the new one at 0 and keep the old one
-				if number >= 1.0 then
-					self.suspicionLevels[focusingTarget][highestStatus] = 0
-					-- Keep old status — do NOT remove it
+		for status, level in pairs(suspicionTable) do
+			if status ~= highestStatus and not totalDetectedPlayers[focusingTarget][status] then
+				if level < 1.0 then
+					suspicionTable[highestStatus] = math.max(suspicionTable[highestStatus] or 0, level)
 				else
-					self.suspicionLevels[focusingTarget][highestStatus] = number
-					self.suspicionLevels[focusingTarget][status] = nil
+					suspicionTable[highestStatus] = suspicionTable[highestStatus] or 0
 				end
 			end
 		end
 
-		-- what the fuck?
+		for status, level in pairs(suspicionTable) do
+			if status ~= highestStatus then
+				local currentPriority = PlayerStatus.getStatusPriorityValue(status)
+				if currentPriority < highestPriority and level < 1.0 then
+					suspicionTable[status] = nil
+				end
+			end
+		end
+
+		if suspicionTable[highestStatus] == nil then
+			suspicionTable[highestStatus] = 0
+		end
+
 		self:raiseSuspicion(focusingTarget, highestStatus, deltaTime)
 	end
 
