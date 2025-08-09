@@ -42,6 +42,11 @@ local PLAYER_STATUSES_BY_DETECTION_SPEED_MODIFIER = {
 	ARMED = 50
 }
 
+local PLAYERS_STATUSES_HEARABLE: { PlayerStatusType } = {
+	"MINOR_TRESPASSING",
+	"MAJOR_TRESPASSING"
+}
+
 function PlayerStatus.new(player: Player): PlayerStatus
 	return setmetatable({
 		player = player,
@@ -79,6 +84,29 @@ function PlayerStatus.getHighestPriorityStatus(self: PlayerStatus): PlayerStatus
 		local status = PLAYER_STATUS_PRIORITY_ORDER[i]
 		if self.currentStatusesMap[status] then
 			return status
+		end
+	end
+	return nil
+end
+
+function PlayerStatus.getHighestDetectableStatus(self: PlayerStatus, isVisible: boolean, isHeard: boolean): PlayerStatusType?
+	for i = #PLAYER_STATUS_PRIORITY_ORDER, 1, -1 do
+		local status = PLAYER_STATUS_PRIORITY_ORDER[i]
+		if self.currentStatusesMap[status] then
+			-- Check if this status can be detected
+			local isHearableStatus = false
+			for _, hearableStatus in ipairs(PLAYERS_STATUSES_HEARABLE) do
+				if status == hearableStatus then
+					isHearableStatus = true
+					break
+				end
+			end
+			
+			-- If visible, can detect ANY status
+			-- If only heard, can only detect hearable statuses
+			if isVisible or (isHearableStatus and isHeard) then
+				return status
+			end
 		end
 	end
 	return nil
