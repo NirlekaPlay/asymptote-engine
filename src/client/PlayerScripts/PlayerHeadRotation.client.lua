@@ -82,7 +82,7 @@ if localPlayer.Character then
 	connectPlayerDiedConnection(localPlayer)
 end
 
-localPlayer.CharacterAdded:Connect(function(character)
+localPlayer.CharacterAppearanceLoaded:Connect(function(character)
 	currentCharacter = localPlayer.Character
 	connectPlayerDiedConnection(localPlayer)
 end)
