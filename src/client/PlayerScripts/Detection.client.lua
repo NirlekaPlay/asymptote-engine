@@ -26,6 +26,7 @@ type DetectionMeterObject = {
 	meterUi: DetectionMeterUI,      -- Associated UI object
 	lastValue: number,              -- Last recorded detection value
 	lastRaiseTime: number,          -- Last time (in seconds) the detection value increased
+	lastRaiseValue: number,         -- 
 	lastUpdateTime: number,         -- Last time (in seconds) the meter was updated
 	currentRtween: RTween.RTween,   -- Tween controlling the fill animation
 	isVisible: boolean,             -- The meter is visible or not.
@@ -80,6 +81,7 @@ local function createMeterObject(): DetectionMeterObject
 	newMeterObject.isVisible = false
 	newMeterObject.lastValue = 0
 	newMeterObject.lastRaiseTime = 2
+	newMeterObject.lastRaiseValue = 0
 	newMeterObject.lastUpdateTime = os.clock()
 	newMeterObject.meterUi = newUiInst
 	newMeterObject.worldPointer = WorldPointer.new(newUiInst.rootFrame)
@@ -127,6 +129,9 @@ end
 
 local function setMeterVisibility(currentMeter: DetectionMeterObject, visible: boolean): ()
 	if visible then
+		if currentMeter.currentRtween.is_playing then
+			currentMeter.currentRtween:kill()
+		end
 		currentMeter.isVisible = true
 		currentMeter.meterUi.fillBar.ImageTransparency = 0
 		currentMeter.meterUi.backgroundBar.ImageTransparency = 0.5
@@ -162,10 +167,14 @@ local function destroyMeter(character: Model)
 	characterDiedConnections[character] = nil
 end
 
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(deltaTime)
 	for _, meter in pairs(activeMeters) do
-		if (os.clock() - meter.lastUpdateTime) > 0.1 then
+		--[[if (os.clock() - meter.lastUpdateTime) > 0.1 then
 			setMeterVisibility(meter, false)
+		end]]
+
+		if meter.lastRaiseTime > 0 then
+			meter.lastRaiseTime -= deltaTime
 		end
 
 		if not meter.doRotate then
@@ -177,6 +186,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, origin: Vector3)
+	--print("received", suspicionValue)
 	if not characterDiedConnections[character] then
 		local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
 		characterDiedConnections[character] = humanoid.Died:Once(function()
@@ -184,6 +194,7 @@ REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, 
 		end)
 	end
 
+	local currentTime = os.clock()
 	local currentMeter = getOrRegisterNewMeterObjectOf(character)
 
 	local clampedSusValue = math.clamp(suspicionValue, 0, 1)
@@ -191,39 +202,39 @@ REMOTE.OnClientEvent:Connect(function(suspicionValue: number, character: Model, 
 	currentMeter.worldPointer:update()
 	currentMeter.meterUi.fillController.Size = UDim2.fromScale(clampedSusValue, 1)
 
-	if suspicionValue > currentMeter.lastValue then
+	if clampedSusValue > currentMeter.lastValue then
 		currentMeter.meterUi.fillBar.ImageColor3 = Color3.new(1, 1, 1)
 		currentMeter.lastRaiseTime = 2
+		currentMeter.lastRaiseValue = clampedSusValue
 		currentMeter.isRaising = true
-	elseif suspicionValue < currentMeter.lastValue then
+	elseif clampedSusValue < currentMeter.lastValue then
 		currentMeter.meterUi.fillBar.ImageColor3 = Color3.new(0.5, 0.5, 0.5)
-		currentMeter.lastRaiseTime -= RunService.RenderStepped:Wait()
+		--currentMeter.lastRaiseTime -= (currentTime - lastTime)
 		currentMeter.isRaising = false
 	end
 
-	currentMeter.lastValue = suspicionValue
+	currentMeter.lastValue = clampedSusValue
 
 	if currentMeter.isRaising then
-		currentMeter.wooshSound.Volume = math.map(suspicionValue, 0, 1, 0, MAX_WOOSH_VOLUME)
+		currentMeter.wooshSound.Volume = math.map(clampedSusValue, 0, 1, 0, MAX_WOOSH_VOLUME) -- max woosh volume is 3
 	else
-		currentMeter.wooshSound.Volume = math.map(currentMeter.lastRaiseTime, 0, 2, 0, 0.5)
+		currentMeter.wooshSound.Volume = math.map(currentMeter.lastRaiseTime, 0, 2, 0, currentMeter.lastRaiseValue)
 	end
 
 	if not currentMeter.wooshSound.IsPlaying then
 		currentMeter.wooshSound:Play()
 	end
 
-	if suspicionValue >= 1 then
+	if clampedSusValue >= 1 then
 		animateMeterAlert(currentMeter)
 	end
 
-	local shouldHide = suspicionValue <= 0 or currentMeter.lastRaiseTime <= 0
-
+	local shouldHide = clampedSusValue <= 0 or currentMeter.lastRaiseTime <= 0
 	if not shouldHide and not currentMeter.isVisible then
 		setMeterVisibility(currentMeter, true)
 	elseif shouldHide and currentMeter.isVisible then
 		setMeterVisibility(currentMeter, false)
 	end
 
-	currentMeter.lastUpdateTime = os.clock()
+	currentMeter.lastUpdateTime = currentTime
 end)
