@@ -6,13 +6,16 @@ local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
 local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
+local EquipWeaponOnFled = require(ServerScriptService.server.ai.behavior.EquipWeaponOnFled)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
+local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local LookAtSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousPlayer)
 local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
+local ValidateTrespasser = require(ServerScriptService.server.ai.behavior.ValidateTrespasser)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -25,6 +28,8 @@ type Brain<T> = Brain.Brain<T>
 
 local MEMORY_TYPES = {
 	MemoryModuleTypes.LOOK_TARGET,
+	MemoryModuleTypes.KILL_TARGET,
+	MemoryModuleTypes.PANIC_PLAYER_SOURCE,
 	MemoryModuleTypes.IS_CURIOUS,
 	MemoryModuleTypes.IS_PANICKING,
 	MemoryModuleTypes.IS_FLEEING,
@@ -38,7 +43,8 @@ local MEMORY_TYPES = {
 }
 
 local SENSOR_TYPES = {
-	SensorTypes.VISIBLE_PLAYERS_SENSOR
+	SensorTypes.VISIBLE_PLAYERS_SENSOR,
+	SensorTypes.HEARING_PLAYERS_SENSOR
 }
 
 function GuardAi.makeBrain(guard: Agent)
@@ -60,6 +66,7 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(SetIsCuriousMemory.new()),
 		BehaviorWrapper.new(LookAtSuspiciousPlayer.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
+		BehaviorWrapper.new(ValidateTrespasser.new())
 	})
 end
 
@@ -76,6 +83,8 @@ function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.PANIC, 0, {
 		BehaviorWrapper.new(SetPanicFace.new()),
 		BehaviorWrapper.new(FleeToEscapePoints.new()),
+		--BehaviorWrapper.new(EquipWeaponOnFled.new()),
+		BehaviorWrapper.new(KillTarget.new()),
 		BehaviorWrapper.new(PleaForMercy.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT

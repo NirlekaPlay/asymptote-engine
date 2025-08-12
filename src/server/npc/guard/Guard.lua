@@ -19,7 +19,9 @@ local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRo
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
+--local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local BrainDebugger = require(ServerScriptService.server.ai.debug.BrainDebugger)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -69,6 +71,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.faceControl:setFace("Neutral")
 	self.bubbleChatControl = BubbleChatControl.new(character)
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
+	self.ragdollControl = RagdollControl.new(character)
 	self.random = Random.new(tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
@@ -92,29 +95,34 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.uuid = HttpService:GenerateGUID()
 	self.brain = GuardAi.makeBrain(self)
 
+	for _, part in ipairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CollisionGroup = "NonCollideWithPlayer"
+		end
+	end
+
+	local descendantAddedConnection = character.DescendantAdded:Connect(function(inst)
+		-- to prevent ragdolls looking shitty
+		if inst:IsA("BasePart") and inst.Name ~= "RagdollColliderPart" then
+			inst.CollisionGroup = "NonCollideWithPlayer"
+		end
+	end)
+
+	character.Destroying:Once(function()
+		descendantAddedConnection:Disconnect()
+	end)
+
 	return setmetatable(self, Guard)
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
 	if not self:isAlive() then
-		self.suspicionManager:decaySuspicionOnAllPlayers(deltaTime)
 		return
 	end
 
 	self.brain:update(deltaTime)
 	GuardAi.updateActivity(self)
-	local visiblePlayers = self.brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
-	if visiblePlayers:isPresent() then
-		visiblePlayers = visiblePlayers:get():getValue()
-	else
-		visiblePlayers = {}
-	end
-	self.suspicionManager:update(deltaTime, visiblePlayers)
-	--[[if self.suspicionManager:isCurious() then
-		self:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, self.suspicionManager.focusingOn)
-	else
-		self:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, nil)
-	end]]
+	self.suspicionManager:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
 	self.brainDebugger:update()
@@ -141,6 +149,10 @@ end
 
 function Guard.isAlive(self: Guard): boolean
 	return self.alive
+end
+
+function Guard.getCharacterName(self: Guard): string
+	return self.character:GetAttribute("CharName") or "Unnamed"
 end
 
 function Guard.getBrain(self: Guard): Brain.Brain<Agent.Agent>
@@ -191,6 +203,10 @@ end
 
 function Guard.getSightRadius(self: Guard): number
 	return self.character:GetAttribute("SightRadius") :: number? or 50
+end
+
+function Guard.getHearingRadius(self: Guard): number
+	return self.character:GetAttribute("HearingRadius") :: number? or 10
 end
 
 function Guard.getPeripheralVisionAngle(self: Guard): number

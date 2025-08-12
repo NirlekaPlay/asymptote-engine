@@ -52,7 +52,7 @@ function LookAtSuspiciousPlayer.doStop(self: LookAtSuspiciousPlayer, agent: Agen
 end
 
 function LookAtSuspiciousPlayer.doUpdate(self: LookAtSuspiciousPlayer, agent: Agent, deltaTime: number): ()
-	local suspect = agent:getSuspicionManager().focusingOn
+	local suspect = agent:getSuspicionManager():getFocusingTarget()
 	if suspect ~= nil then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, suspect)
 	end

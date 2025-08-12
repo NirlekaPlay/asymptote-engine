@@ -36,6 +36,12 @@ function ValidateTrespasser.getMemoryRequirements(self: ValidateTrespasser): { [
 end
 
 function ValidateTrespasser.checkExtraStartConditions(self: ValidateTrespasser, agent: Agent): boolean
+	for status, player in pairs(agent:getSuspicionManager().detectedStatuses) do
+		if status == "MINOR_TRESPASSING" then
+			return true
+		end
+	end
+
 	return true
 end
 
@@ -44,15 +50,19 @@ function ValidateTrespasser.canStillUse(self: ValidateTrespasser, agent: Agent):
 end
 
 function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
-	print("ValidateTrespasser::doStart() called")
+	for status, player in pairs(agent:getSuspicionManager().detectedStatuses) do
+		if status == "MINOR_TRESPASSING" then
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, player)
+		end
+	end
 end
 
 function ValidateTrespasser.doStop(self: ValidateTrespasser, agent: Agent): ()
-	print("ValidateTrespasser::doStop() called")
+	return
 end
 
 function ValidateTrespasser.doUpdate(self: ValidateTrespasser, agent: Agent, deltaTime: number): ()
-	print("ValidateTrespasser::doUpdate() called")
+	return
 end
 
 return ValidateTrespasser

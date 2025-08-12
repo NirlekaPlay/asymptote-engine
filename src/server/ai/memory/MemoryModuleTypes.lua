@@ -23,6 +23,7 @@ local MemoryModuleTypes = {
 	HEARABLE_PLAYERS = register("hearable_players") :: MemoryModuleType< { [Player]: true } >,
 	LOOK_TARGET = register("look_target") :: MemoryModuleType<Player>,
 	KILL_TARGET = register("kill_target") :: MemoryModuleType<Player>,
+	PANIC_PLAYER_SOURCE = register("panic_player_source") :: MemoryModuleType<Player>,
 	TARGET_POST = register("target_post") :: MemoryModuleType<GuardPost.GuardPost>,
 	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{GuardPost.GuardPost}>,
 	PATROL_STATE = register("patrol_state") :: MemoryModuleType<"RESUMING" | "UNEMPLOYED" | "WALKING" | "STAYING">,

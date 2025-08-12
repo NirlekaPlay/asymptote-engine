@@ -23,8 +23,8 @@ type Agent = Agent.Agent
 
 function GuardPanic.new(): GuardPanic
 	return setmetatable({
-		minDuration = nil :: number?,
-		maxDuration = nil :: number?
+		minDuration = math.huge,
+		maxDuration = math.huge
 	}, GuardPanic)
 end
 
@@ -44,9 +44,10 @@ end
 function GuardPanic.checkExtraStartConditions(self: GuardPanic, agent: Agent): boolean
 	local susMan = agent:getSuspicionManager()
 
-	for player, playerStatus in pairs(susMan.detectionLocks) do
+	for playerStatus, player in pairs(susMan.detectedStatuses) do
 		if ALARMING_STATUSES[playerStatus] then
 			-- what the fuck.
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE, player)
 			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_POSITION, player.Character.PrimaryPart.Position)
 			return true
 		end
@@ -68,7 +69,10 @@ function GuardPanic.doStop(self: GuardPanic, agent: Agent): ()
 end
 
 function GuardPanic.doUpdate(self: GuardPanic, agent: Agent, deltaTime: number): ()
-	return
+	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get():getValue()
+	if agent:canBeIntimidated() and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.LOOK_TARGET) then
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, player)
+	end
 end
 
 return GuardPanic

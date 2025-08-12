@@ -14,6 +14,7 @@ SetPanicFace.__index = SetPanicFace
 SetPanicFace.ClassName = "SetPanicFace"
 
 export type SetPanicFace = typeof(setmetatable({} :: {
+	hasRun: boolean
 }, SetPanicFace))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
@@ -22,8 +23,9 @@ type Agent = Agent.Agent
 
 function SetPanicFace.new(): SetPanicFace
 	return setmetatable({
-		minDuration = nil :: number?,
-		maxDuration = nil :: number?
+		minDuration = 0,
+		maxDuration = 0,
+		hasRun = false
 	}, SetPanicFace)
 end
 
@@ -36,19 +38,23 @@ function SetPanicFace.getMemoryRequirements(self: SetPanicFace): { [MemoryModule
 end
 
 function SetPanicFace.checkExtraStartConditions(self: SetPanicFace, agent: Agent): boolean
+	if self.hasRun then
+		return false
+	end
 	return agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING)
 end
 
 function SetPanicFace.canStillUse(self: SetPanicFace, agent: Agent): boolean
-	return self:checkExtraStartConditions(agent)
+	return false
 end
 
 function SetPanicFace.doStart(self: SetPanicFace, agent: Agent): ()
+	self.hasRun = true
 	agent:getFaceControl():setFace("Shocked")
 end
 
 function SetPanicFace.doStop(self: SetPanicFace, agent: Agent): ()
-	agent:getFaceControl():setFace("Neutral")
+	return --agent:getFaceControl():setFace("Neutral")
 end
 
 function SetPanicFace.doUpdate(self: SetPanicFace, agent: Agent, deltaTime: number): ()

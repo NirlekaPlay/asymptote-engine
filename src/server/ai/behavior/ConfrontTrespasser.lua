@@ -37,7 +37,8 @@ function ConfrontTrespasser.new(): ConfrontTrespasser
 end
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT
+	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
+	[MemoryModuleTypes.CONFRONTING_TRESPASSER] = MemoryStatus.VALUE_PRESENT
 }
 
 function ConfrontTrespasser.getMemoryRequirements(self: ConfrontTrespasser): { [MemoryModuleType<any>]: MemoryStatus }
@@ -45,18 +46,8 @@ function ConfrontTrespasser.getMemoryRequirements(self: ConfrontTrespasser): { [
 end
 
 function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, agent: Agent): boolean
-	if agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER) then
-		return true
-	end
-
 	local susMan = agent:getSuspicionManager()
-	local trespasser: Player?
-	for player, status in pairs(susMan.detectionLocks) do
-		if status == "MINOR_TRESPASSING" then
-			trespasser = player
-			break
-		end
-	end
+	local trespasser = susMan.detectedStatuses["MINOR_TRESPASSING"]
 
 	if not trespasser then
 		return false
@@ -74,7 +65,11 @@ function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, 
 end
 
 function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent): boolean
-	return agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+	if agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) or (not agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER)) then
+		return false
+	else
+		return true
+	end
 end
 
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
@@ -93,7 +88,6 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
-	print("stopping")
 	return
 end
 

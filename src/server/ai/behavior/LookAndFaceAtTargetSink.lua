@@ -46,15 +46,14 @@ function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agen
 	-- do you understand what i did here? because i dont.
 	-- yet it works so im not touching it.
 	return lookTarget
-		:map(function(targetPlayer)
+		:flatMap(function(targetPlayer)
 			return brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
 				:map(function(visible)
 					return visible:getValue()[targetPlayer]
 			end)
 		end)
-		:isPresent() or
-		lookTarget
-			:map(function(targetPlayer)
+		:isPresent() or lookTarget
+		:flatMap(function(targetPlayer)
 				return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
 					:map(function(visible)
 						return visible:getValue()[targetPlayer]
