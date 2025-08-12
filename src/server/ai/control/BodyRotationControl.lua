@@ -115,7 +115,7 @@ function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
 	local lastPos = self.lastPos
 	lastPos = Vector3.new(lastPos.X, 0, lastPos.Z)
 	self.lastPos = self.character.HumanoidRootPart.Position
-	return (curPos - lastPos).Magnitude > 1e-6
+	return (curPos - lastPos).Magnitude > 0.1
 end
 
 return BodyRotationControl
