@@ -1,8 +1,11 @@
 --!strict
 
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
 local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -77,12 +80,22 @@ function VisiblePlayersSensor.isInVision(self: VisiblePlayersSensor, agent: Agen
 		local newRayParams = RaycastParams.new()
 		newRayParams.FilterType = Enum.RaycastFilterType.Exclude
 		newRayParams.FilterDescendantsInstances = { agent.character }
+		self.rayParams = newRayParams
 		rayParams = newRayParams
 	end
 
 	local rayResult = workspace:Raycast(agentPos, diff.Unit * agent:getSightRadius(), rayParams)
-	if rayResult and rayResult.Instance:IsDescendantOf(playerCharacter) then
+	if not rayResult then
+		Debris:AddItem(Draw.raycast(agentPos, diff.Unit * agent:getSightRadius(), Color3.new(1, 0, 0)), 0.05)
+		return false
+	end
+
+	local isDescendantOfPlayer = rayResult.Instance:IsDescendantOf(playerCharacter)
+	if rayResult and isDescendantOfPlayer then
+		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.082353, 1, 0)), 0.05)
 		return true
+	elseif rayResult and not isDescendantOfPlayer then
+		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(1, 0.482353, 0)), 0.05)
 	end
 
 	return false
