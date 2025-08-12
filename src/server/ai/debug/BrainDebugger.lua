@@ -16,6 +16,7 @@ local function createDebugGui(): BillboardGui
 	local billboardGui = Instance.new("BillboardGui")
 	billboardGui.ExtentsOffset = Vector3.new(0, 7, 0)
 	billboardGui.LightInfluence = 0
+	billboardGui.AlwaysOnTop = true
 	billboardGui.ResetOnSpawn = false
 	billboardGui.Name = BILLBOARD_GUI_NAME
 	billboardGui.Size = UDim2.fromScale(40, 40)
@@ -38,6 +39,8 @@ local function createDebugGui(): BillboardGui
 	textLabel.Name = "REFERENCE"
 	textLabel.Size = UDim2.fromScale(1, 0.025)
 	textLabel.FontFace = Font.fromName("Inconsolata")
+	--textLabel.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+	--textLabel.BackgroundTransparency = 0.5
 	textLabel.TextColor3 = Color3.new(1, 1, 1)
 	textLabel.TextScaled = true
 	textLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -57,6 +60,54 @@ local function getDebugGui(character: Model): BillboardGui
 	end
 
 	return findGuiInChar
+end
+
+local function isArray(t)
+	if type(t) ~= "table" then
+		return false
+	end
+
+	local count = 0
+	for k, _ in pairs(t) do
+		if type(k) ~= "number" or k <= 0 or math.floor(k) ~= k then
+			return false
+		end
+		if k > count then
+			count = k
+		end
+	end
+
+	for i = 1, count do
+		if t[i] == nil then
+			return false
+		end
+	end
+
+	return true
+end
+
+function dictToString(dict: { [any]: any })
+	local parts = {}
+	for k, v in pairs(dict) do
+		-- Format key
+		local keyStr
+		if type(k) == "string" then
+			keyStr = string.format("%q", k) -- quoted string
+		else
+			keyStr = tostring(k)
+		end
+
+		-- Format value
+		local valueStr
+		if type(v) == "string" then
+			valueStr = string.format("%q", v)
+		else
+			valueStr = tostring(v)
+		end
+
+		table.insert(parts, string.format("[ %s ]: %s", keyStr, valueStr))
+	end
+	return "{ " .. table.concat(parts, ", ") .. " }"
 end
 
 function BrainDebugger.new(agent: Agent.Agent)
@@ -100,13 +151,27 @@ function BrainDebugger.update(self: BrainDebugger): ()
 			continue
 		end
 
-		if typeof(memoryValue) == "table" then
-			local finalEndText = ""
+		if type(memoryValue) == "table" then
+			local isAnArray = isArray(memoryValue)
+			if isAnArray then
+				local result = {}
+				local length = #memoryValue
 
-			for k, v in pairs(memoryValue) do
-				finalEndText = finalEndText .. " " .. string.format(`\{ [{k}]: {v} \}`)
+				for i = 1, length do
+					local element = memoryValue[i]
+					if element == nil then
+						-- what.
+						element = "nil"
+					else
+						element = tostring(element)
+					end
+					result[i] = element
+				end
+				memoryText.Text = memoryType.name .. ": " .. "[ " .. table.concat(result, ", ") .. " ]"
+				continue
 			end
-			memoryText.Text = memoryType.name .. ": " .. finalEndText
+
+			memoryText.Text = memoryType.name .. ": " .. dictToString(memoryValue)
 			continue
 		end
 
@@ -175,6 +240,18 @@ function BrainDebugger.update(self: BrainDebugger): ()
 	end
 
 	healthText.Text = `health: {humanoid.Health} / {humanoid.MaxHealth}`
+
+	local nameText = self.miscsTextLabels["name"]
+	if not nameText then
+		local newText = self.agentBrainDebuggerGui.Frame.REFERENCE:Clone() :: TextLabel
+		newText.Visible = true
+		newText.Name = "E" .. "name"
+		newText.Text = self.agent:getCharacterName()
+		newText.Size = UDim2.fromScale(1, 0.035)
+		newText.Parent = self.agentBrainDebuggerGui.Frame
+		self.miscsTextLabels["name"] = newText
+		healthText = newText
+	end
 end
 
 function BrainDebugger.destroyGui(self: BrainDebugger): ()
