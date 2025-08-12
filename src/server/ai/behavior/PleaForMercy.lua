@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
 	@class PleaForMercy
@@ -48,7 +49,54 @@ end
 
 function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 	self.alreadyRun = true
-	agent:getTalkControl():saySequences({"Wait wait wait!", "Don't shoot!"})
+	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get():getValue()
+	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+	if not playerStatus then
+		return
+	end
+
+	local highestStatus = playerStatus:getHighestPriorityStatus()
+	if highestStatus then
+		if highestStatus == "ARMED" then
+			if agent:canBeIntimidated() then
+				agent:getTalkControl():sayRandomSequences(
+					{
+						{"Wait wait wait!", "Don't shoot!!!"},
+						{"Holy shit!", "You have a gun?!", "Do you even have a license for that?!"},
+						{"Awh fuck!", "Okay okay!", "Please! I have a family!"}
+					}
+				)
+			else
+				agent:getTalkControl():sayRandomSequences(
+					{
+						{"Oh shit he's got a gun!", "Open fire!!"},
+						{"Control! We got a shooter here!"},
+						{"There's someone with a gun!", "Envvy save us!!!"}
+					}
+				)
+			end
+		elseif highestStatus == "DANGEROUS_ITEM" then
+			if agent:canBeIntimidated() then
+				agent:getTalkControl():sayRandomSequences(
+					{
+						{"Whoa whoa whoa!", "Is that...", "is that a bomb?!", "Why would you even bring that here?!"},
+						{"Okay okay!", "Please put it down!", "I—I bruise easily!"},
+						{"Oh no no no!", "I didn't sign up for this!", "I just wanted a normal day at work!"},
+						{"Are you gonna use that shit to see me ragdoll?!", "This is absurd!"}
+					}
+				)
+			else
+				agent:getTalkControl():sayRandomSequences(
+					{
+						{"Control!! Someone here has a bomb!!"},
+						{"Control!!! Soemone here is carrying a bomb!!"},
+						{"Agh!", "He's got a bomb!"},
+						{"Agh fuck!", "Thats an armed bomb!"}
+					}
+				)
+			end
+		end
+	end
 end
 
 function PleaForMercy.doStop(self: PleaForMercy, agent: Agent): ()
