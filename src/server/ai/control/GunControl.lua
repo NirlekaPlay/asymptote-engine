@@ -20,7 +20,8 @@ export type GunControl = typeof(setmetatable({} :: {
 	agent: Agent.Agent,
 	equipped: boolean,
 	fbb: Fbb,
-	rayParams: RaycastParams
+	rayParams: RaycastParams,
+	lastLookPos: Vector3
 }, GunControl))
 
 type Fbb = {
@@ -37,7 +38,8 @@ type Fbb = {
 	},
 	remoteFire: BindableEvent,
 	remoteReload: BindableEvent,
-	remoteUnequip: BindableEvent
+	remoteUnequip: BindableEvent,
+	remoteLookAt: BindableEvent
 }
 
 export type GunConfg = {
@@ -67,7 +69,8 @@ function GunControl.new(agent: Agent.Agent): GunControl
 		agent = agent,
 		equipped = false,
 		fbb = GunControl.getFbb(agent.character),
-		rayParams = createRayParams(agent.character)
+		rayParams = createRayParams(agent.character),
+		lastLookPos = Vector3.zero
 	}, GunControl)
 end
 
@@ -85,8 +88,8 @@ function GunControl.equipGun(self: GunControl, gunConfig: GunConfg?): ()
 
 		-- sets the custom rotator, as having the FBB equipped makes the
 		-- body rotate off
-		local agentRot = self.agent:getBodyRotationControl()
-		agentRot.customRotator = GunControl.rotateBody
+		--[[local agentRot = self.agent:getBodyRotationControl()
+		agentRot.customRotator = GunControl.rotateBody]]
 
 		self.fbb.tool.Parent = self.agent.character
 	end
@@ -107,11 +110,22 @@ function GunControl.unequipGun(self: GunControl): ()
 	end
 end
 
+function GunControl.lookAt(self: GunControl, atPos: Vector3): ()
+	if (self.lastLookPos - atPos).Magnitude > 0.1 then
+		self.fbb.remoteLookAt:Fire((atPos - self.agent.character.Head.CFrame.Position).Unit.Y)
+		self.lastLookPos = atPos
+	end
+end
+
 function GunControl.shoot(self: GunControl, atPos: Vector3): ()
+	if self.fbb.settingsFolder.inmag.Value <= 0 then
+		self:reload()
+		return
+	end
 	local originPos = self.agent:getPrimaryPart().Position
 	local direction = (atPos - originPos).Unit
 	
-	local spreadAngle = math.rad(20) -- in degrees, controls how much inaccuracy there is
+	local spreadAngle = math.rad(25) -- in degrees, controls how much inaccuracy there is
 	
 	-- create a random inaccuracy within a cone of 'spreadAngle' radius
 	local function applySpread(direction: Vector3, angle: number): Vector3
@@ -157,7 +171,8 @@ function GunControl.getFbb(toChar: Model): Fbb
 		settingsFolder = settingsFolderTable,
 		remoteFire = clonedFbb:FindFirstChild("fire") :: BindableEvent,
 		remoteUnequip = clonedFbb:FindFirstChild("unequip") :: BindableEvent,
-		remoteReload = clonedFbb:FindFirstChild("reload") :: BindableEvent
+		remoteReload = clonedFbb:FindFirstChild("reload") :: BindableEvent,
+		remoteLookAt = clonedFbb:FindFirstChild("lookat") :: BindableEvent
 	}
 
 	return newFbbObject
