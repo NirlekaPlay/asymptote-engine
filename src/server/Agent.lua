@@ -23,6 +23,7 @@ Agent.__index = Agent
 
 export type Agent = typeof(setmetatable({} :: {
 	uuid: string,
+	characterName: string,
 	character: Model,
 	alive: boolean,
 	brain: Brain.Brain<Agent>,
@@ -48,6 +49,10 @@ end
 
 function Agent.canDetectThroughDisguises(self: Agent): boolean
 	return false
+end
+
+function Agent.getCharacterName(self: Agent): string
+	return self.characterName
 end
 
 function Agent.getBrain(self: Agent): Brain.Brain<Agent>
