@@ -35,4 +35,8 @@ function GuardPost.vacate(self: GuardPost): ()
 	self.occupied = false
 end
 
+function GuardPost.__tostring(self: GuardPost): string
+	return `GuardPost\{ occupied: {self.occupied}; \}`
+end
+
 return GuardPost
