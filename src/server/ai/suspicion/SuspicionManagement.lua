@@ -37,25 +37,30 @@ SuspicionManagement.__index = SuspicionManagement
 
 export type SuspicionManagement = typeof(setmetatable({} :: {
 	agent: DetectionAgent.DetectionAgent & BrainOwner.BrainOwner,
+	focusingOn: Player?,
 	suspicionLevels: { [Player]: { [PlayerStatus.PlayerStatusType]: number } },
-	detectedStatuses: { [PlayerStatus.PlayerStatusType]: Player }
+	detectedStatuses: { [PlayerStatus.PlayerStatusType]: Player },
+	curiousState: boolean,
+	curiousCooldown: number
 }, SuspicionManagement))
 
 function SuspicionManagement.new(agent: DetectionAgent.DetectionAgent & BrainOwner.BrainOwner): SuspicionManagement
 	return setmetatable({
 		agent = agent,
-		detectionLocks = {},
+		focusingOn = nil :: Player?,
 		detectedStatuses = {},
 		suspicionLevels = {},
+		curiousState = false,
+		curiousCooldown = 0
 	}, SuspicionManagement)
 end
 
 function SuspicionManagement.getFocusingTarget(self: SuspicionManagement): Player?
-	return nil
+	return self.focusingOn
 end
 
 function SuspicionManagement.isCurious(self: SuspicionManagement): boolean
-	return false
+	return self.curiousState
 end
 
 function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number): ()
@@ -90,14 +95,18 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 
 	local focusingTarget, highestStatus = self:getHighestPriorityPlayer(totalDetectedPlayers)
 
+	-- the complexity is necessary for the
+	-- actually, i cant explain shit.
 	if (focusingTarget and highestStatus) and (not self.detectedStatuses[highestStatus]) then
+		self.focusingOn = focusingTarget
 		if not self.suspicionLevels[focusingTarget] then
 			self.suspicionLevels[focusingTarget] = {}
 		end
 
 		local suspicionTable = self.suspicionLevels[focusingTarget]
-
 		local highestPriority = PlayerStatus.getStatusPriorityValue(highestStatus)
+
+		-- Step 1: Check for any maxed higher priority status, override highestStatus if found
 		for status, level in pairs(suspicionTable) do
 			local currentPriority = PlayerStatus.getStatusPriorityValue(status)
 			if currentPriority > highestPriority and level >= 1.0 then
@@ -107,42 +116,97 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 			end
 		end
 
-		for status, level in pairs(suspicionTable) do
-			if status ~= highestStatus and not totalDetectedPlayers[focusingTarget][status] then
-				if level < 1.0 then
-					suspicionTable[highestStatus] = math.max(suspicionTable[highestStatus] or 0, level)
-				else
-					suspicionTable[highestStatus] = suspicionTable[highestStatus] or 0
-				end
-			end
+		-- Step 2: Build list of currently detected statuses for this player
+		local detectedStatuses = {}
+		for status, _ in pairs(totalDetectedPlayers[focusingTarget] or {}) do
+			detectedStatuses[status] = true
 		end
+		detectedStatuses[highestStatus] = true
 
+		-- Step 3: For each suspicious status no longer detected, transfer suspicion to detected status of closest priority
 		for status, level in pairs(suspicionTable) do
-			if status ~= highestStatus then
-				local currentPriority = PlayerStatus.getStatusPriorityValue(status)
-				if currentPriority < highestPriority and level < 1.0 then
+			if not detectedStatuses[status] then
+				-- Find detected status with closest priority to 'status'
+				local statusPriority = PlayerStatus.getStatusPriorityValue(status)
+				local candidateStatus = nil
+				local bestDistance = math.huge  -- Initialize with huge distance
+
+				for detectedStatus, _ in pairs(detectedStatuses) do
+					local detectedPriority = PlayerStatus.getStatusPriorityValue(detectedStatus)
+					local currentDistance = math.abs(detectedPriority - statusPriority)
+					if currentDistance < bestDistance then
+						candidateStatus = detectedStatus
+						bestDistance = currentDistance
+					end
+				end
+
+				-- Transfer suspicion to candidateStatus if exists and suspicion is not maxed
+				if candidateStatus and candidateStatus ~= status then
+					if level < 1.0 then
+						suspicionTable[candidateStatus] = math.min(1.0, (suspicionTable[candidateStatus] or 0) + level)
+					else
+						suspicionTable[candidateStatus] = suspicionTable[candidateStatus] or 0
+					end
+				end
+
+				-- Remove old status if suspicion is not maxed
+				if level < 1.0 and (candidateStatus and suspicionTable[candidateStatus] < 1) then
 					suspicionTable[status] = nil
 				end
 			end
 		end
 
+		-- Step 3: Transfer suspicion FROM lower priority statuses TO highestStatus before removal
+		for status, level in pairs(suspicionTable) do
+			if status ~= highestStatus then
+				local currentPriority = PlayerStatus.getStatusPriorityValue(status)
+				if currentPriority < highestPriority and level < 1.0 then
+					-- Transfer suspicion to highestStatus before removing
+					suspicionTable[highestStatus] = math.max(suspicionTable[highestStatus] or 0, level)
+					suspicionTable[status] = nil
+				end
+			end
+		end
+
+		-- Step 5: Ensure highestStatus suspicion level initialized
 		if suspicionTable[highestStatus] == nil then
 			suspicionTable[highestStatus] = 0
 		end
 
+		-- Step 6: Raise suspicion on highestStatus
 		self:raiseSuspicion(focusingTarget, highestStatus, deltaTime)
+	else
+		self.focusingOn = nil
+	end
+
+	-- what the fuck.
+	if (focusingTarget and highestStatus) and (not self.detectedStatuses[highestStatus]) then
+		if self.suspicionLevels[focusingTarget][highestStatus] >= CONFIG.CURIOUS_THRESHOLD then
+			self.curiousState = true
+			self.curiousCooldown = CONFIG.CURIOUS_COOLDOWN_TIME
+		end
+	else
+		if self.curiousState and self.curiousCooldown > 0 then
+			self.curiousCooldown -= deltaTime
+		end
+	end
+
+	if self.curiousCooldown <= 0 then
+		self.curiousState = false
 	end
 
 	for player, statusLevels in pairs(self.suspicionLevels) do
 		for status, level in pairs(statusLevels) do
-			if (status == highestStatus) or (highestStatus and self.detectedStatuses[highestStatus]) then
-				continue
+			-- Skip lowering suspicion only if this status is the current highest detected status for this player
+			if not (player == focusingTarget and status == highestStatus) then
+				self:lowerSuspicion(player, status, deltaTime)
 			end
-			self:lowerSuspicion(player, status, deltaTime)
 		end
 	end
 
-	print(self.suspicionLevels)
+	if next(self.suspicionLevels) ~= nil then
+		--print(self.suspicionLevels)
+	end
 end
 
 function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: Player, highestStatus: PlayerStatus.PlayerStatusType, deltaTime: number): ()
@@ -191,6 +255,7 @@ function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement,
 
 	for player, profile in pairs(players) do
 		local statuses = PlayerStatusRegistry.getPlayerStatuses(player)
+		if not statuses then continue end
 		local priorityStatus = statuses:getHighestDetectableStatus(profile.isVisible or false, profile.isHeard or false)
 		--warn(`Player: '{player}' with highest detectable status of '{priorityStatus}'`)
 
@@ -198,6 +263,8 @@ function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement,
 			continue
 		end
 
+		-- TODO: this is dumb. should be a seperate logic.
+		-- but theres no other way i can implement this without causing an aneurysm.
 		if priorityStatus == "DISGUISED" and not self.agent:canDetectThroughDisguises() then
 			continue
 		end
