@@ -65,7 +65,11 @@ function BehaviorWrapper.stop(self: BehaviorWrapper, agent: Agent): ()
 end
 
 function BehaviorWrapper.isTimedOut(self: BehaviorWrapper, currentTime: number): boolean
-	return currentTime > self.endTimesStamp
+	if self.minDuration == math.huge or self.maxDuration == math.huge then
+		return false
+	else
+		return currentTime > self.endTimesStamp
+	end
 end
 
 function BehaviorWrapper.hasRequiredMemories(self: BehaviorWrapper, agent: Agent): boolean
