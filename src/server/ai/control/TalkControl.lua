@@ -66,6 +66,13 @@ function TalkControl.saySequences(self: TalkControl, textArray: {string}): ()
 	self:createTalkThread(self:createDialogueSegmentFromArray(textArray))
 end
 
+function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}): ()
+	local selectedDialogue = randomDialoguesArray[Random.new(tick()):NextInteger(1, #randomDialoguesArray)]
+	if selectedDialogue then
+		self:createTalkThread(self:createDialogueSegmentFromArray(selectedDialogue))
+	end
+end
+
 function TalkControl.saySegment(self: TalkControl, dialogueSegment: DialogueSegment): ()
 	self:createTalkThread(dialogueSegment)
 end
