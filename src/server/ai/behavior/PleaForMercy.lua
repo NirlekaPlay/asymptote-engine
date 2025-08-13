@@ -62,14 +62,14 @@ function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 				agent:getTalkControl():sayRandomSequences(
 					{
 						{"Wait wait wait!", "Don't shoot!!!"},
-						{"Holy shit!", "You have a gun?!", "Do you even have a license for that?!"},
-						{"Awh fuck!", "Okay okay!", "Please! I have a family!"}
+						{"Holy shrimp!", "You have a gun?!", "Do you even have a license for that?!"},
+						{"Awh holly Envvy!", "Okay okay!", "Please! I have a family!"}
 					}
 				)
 			else
 				agent:getTalkControl():sayRandomSequences(
 					{
-						{"Oh shit he's got a gun!", "Open fire!!"},
+						{"Oh crap! He's got a gun!", "Open fire!!"},
 						{"Control! We got a shooter here!"},
 						{"There's someone with a gun!", "Envvy save us!!!"}
 					}
@@ -82,16 +82,16 @@ function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 						{"Whoa whoa whoa!", "Is that...", "is that a bomb?!", "Why would you even bring that here?!"},
 						{"Okay okay!", "Please put it down!", "I—I bruise easily!"},
 						{"Oh no no no!", "I didn't sign up for this!", "I just wanted a normal day at work!"},
-						{"Are you gonna use that shit to see me ragdoll?!", "This is absurd!"}
+						{"Are you gonna use that..!", "Just to see me ragdoll?!", "This is absurd!"}
 					}
 				)
 			else
 				agent:getTalkControl():sayRandomSequences(
 					{
 						{"Control!! Someone here has a bomb!!"},
-						{"Control!!! Soemone here is carrying a bomb!!"},
+						{"Control!!! Someone here is carrying a bomb!!"},
 						{"Agh!", "He's got a bomb!"},
-						{"Agh fuck!", "Thats an armed bomb!"}
+						{"Agh shrimp!", "Thats an armed bomb!"}
 					}
 				)
 			end
