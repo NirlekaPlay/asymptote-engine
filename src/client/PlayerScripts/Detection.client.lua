@@ -3,7 +3,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local WorldPointer = require("./modules/gui/WorldPointer")
+local WorldPointer = require("./modules/ui/WorldPointer")
 local RTween = require("./modules/interpolation/RTween")
 
 local MAX_WOOSH_VOLUME = 3
