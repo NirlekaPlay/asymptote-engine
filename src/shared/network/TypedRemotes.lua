@@ -15,5 +15,8 @@ return {
 	Status = RE("Status") :: RE<{ [any]: true }>,
 	--
 	PlayerHeadRotationServer = playerHeadRotationJointRemote :: RE<Vector3>,
-	PlayerHeadRotationClient = playerHeadRotationJointRemote :: RE<Player, Vector3>
+	PlayerHeadRotationClient = playerHeadRotationJointRemote :: RE<Player, Vector3>,
+	--
+	JoinTestingServer = RE("JoinTestingServer") :: RE<>,
+	JoinStableServer = RE("JoinStableServer") :: RE<>,
 }
