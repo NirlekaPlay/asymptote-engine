@@ -56,4 +56,17 @@ function UITextShadow.createTextShadow(
 	return shadowText
 end
 
+--[=[
+	Updates the shadow TextLabel with the front text. Note that this does not
+	update the shadow's position as well.
+]=]
+function UITextShadow.updateShadowProperties(frontText: TextLabel, shadowText: TextLabel): ()
+	shadowText.Text = frontText.Text
+	shadowText.Font = frontText.Font
+	shadowText.TextSize = frontText.TextSize
+	shadowText.TextScaled = frontText.TextScaled
+	shadowText.TextWrapped = frontText.TextWrapped
+	shadowText.Size = frontText.Size
+end
+
 return UITextShadow
