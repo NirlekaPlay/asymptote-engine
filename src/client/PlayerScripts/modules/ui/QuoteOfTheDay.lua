@@ -5,7 +5,7 @@ local QuoteOfTheDaysList = require("./QuoteOfTheDayList")
 --[=[
 	@class QuoteOfTheDay
 
-	Gives you a quote of the day from a set a list,
+	Gives you a quote of the day from a list,
 	which are random for each day.
 
 	Failure to contribute to the Quote of The Day list
@@ -16,7 +16,7 @@ local QuoteOfTheDay = {}
 --[=[
 	Deterministic shuffle using a seeded Random.
 ]=]
-local function seededShuffle(list, seed)
+local function seededShuffle(list: { any }, seed: number)
 	local random = Random.new(seed)
 	local shuffled = table.clone(list)
 	for i = #shuffled, 2, -1 do
