@@ -8,6 +8,7 @@ local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorW
 local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
 local EquipWeaponOnFled = require(ServerScriptService.server.ai.behavior.EquipWeaponOnFled)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
+local FollowPlayerSink = require(ServerScriptService.server.ai.behavior.FollowPlayerSink)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
 local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
@@ -29,6 +30,7 @@ type Brain<T> = Brain.Brain<T>
 local MEMORY_TYPES = {
 	MemoryModuleTypes.LOOK_TARGET,
 	MemoryModuleTypes.KILL_TARGET,
+	MemoryModuleTypes.FOLLOW_TARGET,
 	MemoryModuleTypes.PANIC_PLAYER_SOURCE,
 	MemoryModuleTypes.IS_CURIOUS,
 	MemoryModuleTypes.IS_PANICKING,
@@ -38,6 +40,9 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.TARGET_POST,
 	MemoryModuleTypes.POST_VACATE_COOLDOWN,
 	MemoryModuleTypes.CONFRONTING_TRESPASSER,
+	MemoryModuleTypes.TRESPASSERS_WARNS,
+	MemoryModuleTypes.SPOTTED_TRESPASSER,
+	MemoryModuleTypes.REPORTING_ON,
 	MemoryModuleTypes.PANIC_POSITION,
 	MemoryModuleTypes.HAS_FLED
 }
@@ -53,6 +58,7 @@ function GuardAi.makeBrain(guard: Agent)
 	GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)
 	GuardAi.initConfrontActivity(brain)
+	GuardAi.initFightActivity(brain)
 	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, guard.designatedPosts)
 	brain:setCoreActivities({Activity.CORE})
 	brain:setDefaultActivity(Activity.IDLE)
@@ -61,26 +67,28 @@ function GuardAi.makeBrain(guard: Agent)
 end
 
 function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
-	brain:addActivity(Activity.CORE, 1, {
+	brain:addActivity(Activity.CORE, 2, {
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(SetIsCuriousMemory.new()),
 		BehaviorWrapper.new(LookAtSuspiciousPlayer.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
-		BehaviorWrapper.new(ValidateTrespasser.new())
+		BehaviorWrapper.new(ValidateTrespasser.new()),
+		BehaviorWrapper.new(FollowPlayerSink.new())
 	})
 end
 
 function GuardAi.initWorkActivity(brain: Brain<Agent>): ()
-	brain:addActivityWithConditions(Activity.WORK, 3, {
+	brain:addActivityWithConditions(Activity.WORK, 4, {
 		BehaviorWrapper.new(WalkToRandomPost.new()),
 	}, {
 		[MemoryModuleTypes.CONFRONTING_TRESPASSER] = MemoryStatus.VALUE_ABSENT,
-		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT
+		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
+		[MemoryModuleTypes.KILL_TARGET] = MemoryStatus.VALUE_ABSENT
 	})
 end
 
 function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
-	brain:addActivityWithConditions(Activity.PANIC, 0, {
+	brain:addActivityWithConditions(Activity.PANIC, 1, {
 		BehaviorWrapper.new(SetPanicFace.new()),
 		BehaviorWrapper.new(FleeToEscapePoints.new()),
 		--BehaviorWrapper.new(EquipWeaponOnFled.new()),
@@ -92,17 +100,25 @@ function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 end
 
 function GuardAi.initConfrontActivity(brain: Brain<Agent>): ()
-	brain:addActivityWithConditions(Activity.CONFRONT, 2, {
+	brain:addActivityWithConditions(Activity.CONFRONT, 3, {
 		BehaviorWrapper.new(ConfrontTrespasser.new()),
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
-		[MemoryModuleTypes.CONFRONTING_TRESPASSER] = MemoryStatus.VALUE_PRESENT,
+		[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.VALUE_PRESENT,
+	})
+end
+
+function GuardAi.initFightActivity(brain: Brain<Agent>): ()
+	brain:addActivityWithConditions(Activity.FIGHT, 1, {
+		BehaviorWrapper.new(KillTarget.new()),
+	}, {
+		[MemoryModuleTypes.KILL_TARGET] = MemoryStatus.VALUE_PRESENT,
 	})
 end
 
 function GuardAi.updateActivity(guard: Agent): ()
 	guard:getBrain():setActiveActivityToFirstValid({
-		Activity.PANIC, Activity.CONFRONT, Activity.WORK
+		Activity.FIGHT, Activity.PANIC, Activity.CONFRONT, Activity.WORK
 	})
 end
 

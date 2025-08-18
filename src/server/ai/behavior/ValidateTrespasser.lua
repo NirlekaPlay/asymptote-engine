@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 
 --[=[
 	@class ValidateTrespasser
@@ -28,7 +29,9 @@ function ValidateTrespasser.new(): ValidateTrespasser
 end
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.CONFRONTING_TRESPASSER] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
+	[MemoryModuleTypes.KILL_TARGET] = MemoryStatus.VALUE_ABSENT
 }
 
 function ValidateTrespasser.getMemoryRequirements(self: ValidateTrespasser): { [MemoryModuleType<any>]: MemoryStatus }
@@ -50,10 +53,24 @@ function ValidateTrespasser.canStillUse(self: ValidateTrespasser, agent: Agent):
 end
 
 function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
-	for status, player in pairs(agent:getSuspicionManager().detectedStatuses) do
-		if status == "MINOR_TRESPASSING" then
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, player)
+	local highestStatus: PlayerStatus.PlayerStatusType?
+	local player: Player?
+	local highestPriority = -math.huge
+
+	for status, plr in pairs(agent:getSuspicionManager().detectedStatuses) do
+		local statusPriority = PlayerStatus.getStatusPriorityValue(status)
+
+		if statusPriority > highestPriority then
+			highestPriority = statusPriority
+			highestStatus = status
+			player = plr
 		end
+	end
+
+	if highestStatus and highestStatus == "MINOR_TRESPASSING" then
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, player)
+	else
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, nil)
 	end
 end
 

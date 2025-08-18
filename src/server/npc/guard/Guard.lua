@@ -15,6 +15,7 @@ local LookAtSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.Lo
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
+local AnimationControl = require(ServerScriptService.server.ai.control.AnimationControl)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
@@ -65,6 +66,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.suspicionManager = SuspicionManagement.new(self)
 	self.designatedPosts = designatedPosts
+	self.animationControl = AnimationControl.new(self)
 	self.gunControl = GunControl.new(self)
 	self.lookControl = LookControl.new(character)
 	self.faceControl = FaceControl.new(character)

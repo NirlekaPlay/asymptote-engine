@@ -70,7 +70,7 @@ function LookAndFaceAtTargetSink.doStart(self: LookAndFaceAtTargetSink, agent: A
 end
 
 function LookAndFaceAtTargetSink.doStop(self: LookAndFaceAtTargetSink, agent: Agent): ()
-	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
+	--agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 	agent:getBodyRotationControl():setRotateTowards(nil)
 	agent:getLookControl():setLookAtPos(nil)
 end

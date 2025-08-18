@@ -207,6 +207,8 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 	if next(self.suspicionLevels) ~= nil then
 		--print(self.suspicionLevels)
 	end
+
+	--print(self.suspicionLevels)
 end
 
 function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: Player, highestStatus: PlayerStatus.PlayerStatusType, deltaTime: number): ()
