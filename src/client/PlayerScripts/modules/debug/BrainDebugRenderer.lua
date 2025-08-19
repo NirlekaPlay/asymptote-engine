@@ -7,10 +7,10 @@ local BrainDebugPayload = require(ReplicatedStorage.shared.network.BrainDebugPay
 
 local localPlayer = Players.LocalPlayer
 local mouse = localPlayer:GetMouse()
-local brainDumpsPerEntity: { [Model]: BrainDebugPayload.BrainDump } = {}
-local uiObjectsPerEntity: { [Model]: BrainDumpGuiObjects } = {}
-local lastLookedAtEntity: Model? = nil
-local lastLookedAtEntityUuid: number? = nil
+local entityByUuid: { [string]: Model } = {}
+local brainDumpsPerEntity: { [string]: BrainDebugPayload.BrainDump } = {}
+local uiObjectsPerEntity: { [string]: BrainDumpGuiObjects } = {}
+local lastLookedAtEntityUuid: string? = nil
 local brainDebugScreenGui: ScreenGui
 
 local SCREENGUI_NAME = "BrainDebug"
@@ -52,13 +52,14 @@ export type BrainDumpGuiObjects = {
 }
 
 function BrainDebugRenderer.addOrUpdateBrainDump(brainDump: BrainDebugPayload.BrainDump): ()
-	brainDumpsPerEntity[brainDump.character] = brainDump
+	entityByUuid[brainDump.uuid] = brainDump.character
+	brainDumpsPerEntity[brainDump.uuid] = brainDump
 end
 
 function BrainDebugRenderer.clear(): ()
 	table.clear(brainDumpsPerEntity)
+	table.clear(entityByUuid)
 	BrainDebugRenderer.destroyAllUis()
-	lastLookedAtEntity = nil
 	lastLookedAtEntityUuid = nil
 end
 
@@ -72,36 +73,40 @@ function BrainDebugRenderer.render()
 end
 
 function BrainDebugRenderer.clearRemovedEntities(): ()
-	for character in pairs(brainDumpsPerEntity) do
+	for uuid in pairs(brainDumpsPerEntity) do
+		local character = entityByUuid[uuid]
 		if not character:IsDescendantOf(workspace) then
-			brainDumpsPerEntity[character] = nil
+			brainDumpsPerEntity[uuid] = nil
+			entityByUuid[uuid] = nil
 			continue
 		end
 
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if not humanoid then
-			brainDumpsPerEntity[character] = nil
+			brainDumpsPerEntity[uuid] = nil
+			entityByUuid[uuid] = nil
 			continue
 		end
 
 		if humanoid.Health <= 0 then
-			brainDumpsPerEntity[character] = nil
+			brainDumpsPerEntity[uuid] = nil
+			entityByUuid[uuid] = nil
 			continue
 		end
 	end
 end
 
 function BrainDebugRenderer.destroyUiForRemovedEntities(): ()
-	for character, uiObjects in pairs(uiObjectsPerEntity) do
-		if not brainDumpsPerEntity[character] then
+	for uuid, uiObjects in pairs(uiObjectsPerEntity) do
+		if not brainDumpsPerEntity[uuid] then
 			uiObjects.billboard:Destroy()
-			uiObjectsPerEntity[character] = nil
+			uiObjectsPerEntity[uuid] = nil
 		end
 	end
 end
 
 function BrainDebugRenderer.destroyAllUis(): ()
-	for character, uiObjects in pairs(uiObjectsPerEntity) do
+	for _, uiObjects in pairs(uiObjectsPerEntity) do
 		uiObjects.billboard:Destroy()
 	end
 	
@@ -114,16 +119,16 @@ function BrainDebugRenderer.doRender(): ()
 	end
 
 	for _, brainDump in pairs(brainDumpsPerEntity) do
-		if BrainDebugRenderer.isPlayerCloseEnoughToNpc(brainDump) then
+		--if BrainDebugRenderer.isPlayerCloseEnoughToNpc(brainDump) then
 			BrainDebugRenderer.renderBrainInfo(brainDump)
-		end
+		--end
 	end
 end
 
 function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDump): ()
 	local isSelected = BrainDebugRenderer.isNpcSelected(brainDump)
 
-	if not uiObjectsPerEntity[brainDump.character] then
+	if not uiObjectsPerEntity[brainDump.uuid] then
 		local newBillboard, referenceTextLabel = BrainDebugRenderer.createNewBrainDumpBillboard(brainDump)
 		newBillboard.Parent = brainDebugScreenGui
 
@@ -155,10 +160,10 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 			behaviorsTextLabels = {}
 		}
 
-		uiObjectsPerEntity[brainDump.character] = newUiObject
+		uiObjectsPerEntity[brainDump.uuid] = newUiObject
 	end
 
-	local currentUiObject = uiObjectsPerEntity[brainDump.character]
+	local currentUiObject = uiObjectsPerEntity[brainDump.uuid]
 	if not currentUiObject.billboard.Adornee then
 		currentUiObject.billboard.Adornee = brainDump.character:FindFirstChild("Head") :: BasePart
 	end
@@ -270,9 +275,9 @@ function BrainDebugRenderer.updateLastLookedAtCharacter(): ()
 		return
 	end
 
-	for character, brainDump in pairs(brainDumpsPerEntity) do
+	for uuid, brainDump in pairs(brainDumpsPerEntity) do
+		local character = entityByUuid[uuid]
 		if currentMouseTarget:IsDescendantOf(character) then
-			lastLookedAtEntity = character
 			lastLookedAtEntityUuid = brainDump.uuid
 			break
 		end
