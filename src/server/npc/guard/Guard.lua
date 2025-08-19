@@ -1,35 +1,23 @@
 --!strict
 
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local GuardAi = require(script.Parent.GuardAi)
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
-local Activity = require(ServerScriptService.server.ai.behavior.Activity)
-local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
-local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
-local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
-local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
-local LookAtSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousPlayer)
-local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
-local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
-local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local AnimationControl = require(ServerScriptService.server.ai.control.AnimationControl)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
---local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
-local BrainDebugger = require(ServerScriptService.server.ai.debug.BrainDebugger)
-local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
-local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
-local SensorTypes = require(ServerScriptService.server.ai.sensing.SensorTypes)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
 
@@ -93,7 +81,6 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end
 
 	self.isPathfindingValue = isPathfinding
-	self.brainDebugger = BrainDebugger.new(self)
 	self.uuid = HttpService:GenerateGUID()
 	self.brain = GuardAi.makeBrain(self)
 
@@ -127,7 +114,7 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	self.suspicionManager:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
-	self.brainDebugger:update()
+	DebugPackets.sendBrainDumpToListeningClients(self)
 
 	if self.pathNavigation.pathfinder.Status == "Active" then
 		self.isPathfindingValue.Value = true
@@ -145,7 +132,6 @@ function Guard.canBeIntimidated(self: Guard): boolean
 end
 
 function Guard.onDied(self: Guard)
-	self.brainDebugger:destroyGui()
 	self.faceControl:setFace("Unconscious")
 end
 
@@ -213,36 +199,6 @@ end
 
 function Guard.getPeripheralVisionAngle(self: Guard): number
 	return self.character:GetAttribute("PeriphAngle") :: number? or 180
-end
-
---
-
-local trespasserEncounterRandom = {
-	[1] = {
-		"This is a restricted area. You need to leave.",
-		"Hey! This is a restricted area! You need to leave!",
-		"This area is restricted. You gotta leave.",
-		"You should leave this restricted area this instance!"
-	},
-	[2] = {
-		"Hey! I've warned you! Leave this area now!",
-		"Im warning you!"
-	},
-	[3] = {
-		"Alright! Thats it!",
-		"Third warn! You know what that means!"
-	},
-	[4] = {
-		"Open fire!"
-	}
-}
-
-local function randomSelect<T>(t: { T }): T
-	return t[math.random(1, #t)]
-end
-
-function Guard.getTrespasserEncounterDialogue(self: Guard, trespasser: Player, warns: number): string
-	return randomSelect(trespasserEncounterRandom[warns])
 end
 
 --

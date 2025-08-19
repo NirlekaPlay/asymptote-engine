@@ -1,6 +1,8 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
 local _, RE = TypedRemote.parent()
@@ -19,4 +21,7 @@ return {
 	--
 	JoinTestingServer = RE("JoinTestingServer") :: RE<>,
 	JoinStableServer = RE("JoinStableServer") :: RE<>,
+	--
+	BrainDebugDump = RE("BrainDebugDump") :: RE<BrainDebugPayload.BrainDump>,
+	SubscribeDebugDump = RE("SubscribeDebugDump") :: RE<string, boolean>
 }
