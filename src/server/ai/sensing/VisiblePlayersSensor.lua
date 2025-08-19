@@ -86,16 +86,16 @@ function VisiblePlayersSensor.isInVision(self: VisiblePlayersSensor, agent: Agen
 
 	local rayResult = workspace:Raycast(agentPos, diff.Unit * agent:getSightRadius(), rayParams)
 	if not rayResult then
-		Debris:AddItem(Draw.raycast(agentPos, diff.Unit * agent:getSightRadius(), Color3.new(1, 0, 0)), 0.05)
+		--Debris:AddItem(Draw.raycast(agentPos, diff.Unit * agent:getSightRadius(), Color3.new(1, 0, 0)), 0.05)
 		return false
 	end
 
 	local isDescendantOfPlayer = rayResult.Instance:IsDescendantOf(playerCharacter)
 	if rayResult and isDescendantOfPlayer then
-		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.082353, 1, 0)), 0.05)
+		--Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.082353, 1, 0)), 0.05)
 		return true
 	elseif rayResult and not isDescendantOfPlayer then
-		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(1, 0.482353, 0)), 0.05)
+		--Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(1, 0.482353, 0)), 0.05)
 	end
 
 	return false
