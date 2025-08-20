@@ -4,11 +4,11 @@ export type BrainDump = {
 	uuid: string,
 	name: string,
 	character: Model,
-	health: string,
-	maxHealth: string,
+	health: number,
+	maxHealth: number,
 	memories: { string },
-	behaviors: { [string]: true },
-	activites: { [string]: true }
+	behaviors: { string },
+	activites: { string }
 }
 
 return nil

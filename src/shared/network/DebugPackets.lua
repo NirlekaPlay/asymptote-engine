@@ -11,6 +11,7 @@ local PACKETS = {
 }
 
 local activeClientListeners: { [string]: { [Player]: true } } = {}
+local debugBatches: { [string]: { any } } = {}
 
 TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(function(player, debugName, subscribe)
 	if not activeClientListeners[debugName] then
@@ -25,6 +26,7 @@ end)
 	@class DebugPackets
 ]=]
 local DebugPackets = {}
+DebugPackets.Packets = PACKETS
 
 local function isArray(t)
 	if type(t) ~= "table" then
@@ -50,20 +52,49 @@ local function isArray(t)
 	return true
 end
 
-function DebugPackets.sendBrainDumpToListeningClients(agent: Agent.Agent): ()
-	if not activeClientListeners[PACKETS.DEBUG_BRAIN] then
-		activeClientListeners[PACKETS.DEBUG_BRAIN] = {}
+function DebugPackets.hasListeningClients(debugName: string): boolean
+	if not activeClientListeners[debugName] then
+		activeClientListeners[debugName] = {}
+		return false
+	end
+
+	if next(activeClientListeners[PACKETS.DEBUG_BRAIN]) == nil then
+		return false
+	end
+
+	return true
+end
+
+function DebugPackets.clearBatch(debugName: string): ()
+	if not debugBatches[debugName] then
 		return
 	end
 
+	table.clear(debugBatches[debugName])
+end
+
+function DebugPackets.queueDataToBatch(debugName: string, data: any): ()
+	if not debugBatches[debugName] then
+		debugBatches[debugName] = {}
+	end
+
+	table.insert(debugBatches[debugName], data)
+end
+
+function DebugPackets.flushBrainDumpsToListeningClients(): ()
 	if next(activeClientListeners[PACKETS.DEBUG_BRAIN]) == nil then
 		return
 	end
 
-	for player in pairs(activeClientListeners[PACKETS.DEBUG_BRAIN]) do
-		local brainDump = DebugPackets.createBrainDump(agent)
-		TypedRemotes.BrainDebugDump:FireClient(player, brainDump)
+	if next(debugBatches[PACKETS.DEBUG_BRAIN]) == nil then
+		return
 	end
+
+	for player in pairs(activeClientListeners[PACKETS.DEBUG_BRAIN]) do
+		TypedRemotes.BrainDebugDump:FireClient(player, debugBatches[PACKETS.DEBUG_BRAIN])
+	end
+
+	DebugPackets.clearBatch(DebugPackets.Packets.DEBUG_BRAIN)
 end
 
 function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.BrainDump
@@ -73,11 +104,11 @@ function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.Bra
 	brainDump.memories = DebugPackets.getMemoryDescriptions(agent)
 	brainDump.activites = {}
 	for activity, _ in pairs(brain.activeActivities) do
-		brainDump.activites[activity.name] = true
+		table.insert(brainDump.activites, activity.name)
 	end
 	brainDump.behaviors = {}
 	for _, behaviorControl in ipairs(brain:getRunningBehaviors()) do
-		brainDump.behaviors[behaviorControl.name] = true
+		table.insert(brainDump.behaviors, behaviorControl.name)
 	end
 	brainDump.character = agent.character
 	brainDump.health = agent.character.Humanoid.Health

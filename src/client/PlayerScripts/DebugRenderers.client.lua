@@ -50,10 +50,11 @@ local function onDebugRendererChanged(debugRendererName: string, enabled: boolea
 	showTextFor = 2
 end
 
-TypedRemotes.BrainDebugDump.OnClientEvent:Connect(function(brainDump)
+TypedRemotes.BrainDebugDump.OnClientEvent:Connect(function(brainDumps)
 	if SharedConstants.DEBUG_BRAIN then
-		BrainDebugRenderer.addOrUpdateBrainDump(brainDump)
-		BrainDebugRenderer:render()
+		for _, brainDump in ipairs(brainDumps) do
+			BrainDebugRenderer.addOrUpdateBrainDump(brainDump)
+		end
 	end
 end)
 
@@ -71,6 +72,8 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 end)
 
 RunService.RenderStepped:Connect(function(deltaTime)
+	BrainDebugRenderer:render()
+
 	if showTextFor > 0 then
 		showTextFor -= deltaTime
 

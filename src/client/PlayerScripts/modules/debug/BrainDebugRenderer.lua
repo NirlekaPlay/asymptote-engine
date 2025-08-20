@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.BrainDebugPayload)
 
+local currentCamera = workspace.CurrentCamera
 local localPlayer = Players.LocalPlayer
 local mouse = localPlayer:GetMouse()
 local entityByUuid: { [string]: Model } = {}
@@ -13,12 +14,16 @@ local uiObjectsPerEntity: { [string]: BrainDumpGuiObjects } = {}
 local lastLookedAtEntityUuid: string? = nil
 local brainDebugScreenGui: ScreenGui
 
-local SCREENGUI_NAME = "BrainDebug"
-local MEMORIES_TEXT_COLOR = Color3.new(0.9, 0.9, 0.9)
-local ACTIVITIES_TEXT_COLOR = Color3.new(0.3, 1, 0)
+local SCREENGUI_NAME = "DebugBrain"
+local MEMORIES_TEXT_COLOR = Color3.fromRGB(204, 204, 204)
+local ACTIVITIES_TEXT_COLOR = Color3.new(0, 1, 0)
 local BEHAVIORS_TEXT_COLOR = Color3.new(0, 1, 1)
 local HEALTH_TEXT_COLOR = Color3.new(1, 1, 1)
 local NAME_TEXT_COLOR = Color3.new(1, 1, 1)
+local MAX_RENDER_DIST_FOR_BRAIN_INFO = 30
+local MAX_TARGETING_DIST = 8
+local TEXT_SCALE = 0.025
+local LARGE_TEXT_SCALE = 0.035
 local LAYOUT_ORDERS = {
 	MEMORIES_START = 100,
 	ACTIVITIES_START = 200,
@@ -26,9 +31,6 @@ local LAYOUT_ORDERS = {
 	HEALTH = 400,
 	NAME = 500
 }
---
-local MIN_DISTANCE_TO_UPDATE_GUI = 30
-
 
 --[=[
 	@class BrainDebugRenderer
@@ -38,16 +40,13 @@ local MIN_DISTANCE_TO_UPDATE_GUI = 30
 	behaviors, health, and name.
 ]=]
 local BrainDebugRenderer = {}
-local self = BrainDebugRenderer
 
-export type BrainDebugRenderer = typeof(BrainDebugRenderer)
 export type BrainDumpGuiObjects = {
 	billboard: BillboardGui,
-	textlabelReference: TextLabel,
 	nameTextLabel: TextLabel,
 	healthTextLabel: TextLabel,
 	memoriesTextLabels: { [string]: TextLabel },
-	activitesTextLabels: { [string]: TextLabel },
+	activitiesTextLabels: { [string]: TextLabel },
 	behaviorsTextLabels: { [string]: TextLabel },
 }
 
@@ -66,43 +65,39 @@ end
 --
 
 function BrainDebugRenderer.render()
-	self.clearRemovedEntities()
-	self.destroyUiForRemovedEntities()
-	self.doRender()
-	self.updateLastLookedAtCharacter()
+	BrainDebugRenderer.clearRemovedEntities()
+	BrainDebugRenderer.doRender()
+	BrainDebugRenderer.updateLastLookedAtCharacter()
 end
 
 function BrainDebugRenderer.clearRemovedEntities(): ()
 	for uuid in pairs(brainDumpsPerEntity) do
 		local character = entityByUuid[uuid]
 		if not character:IsDescendantOf(workspace) then
-			brainDumpsPerEntity[uuid] = nil
-			entityByUuid[uuid] = nil
+			BrainDebugRenderer.cleanUpEntity(uuid)
 			continue
 		end
 
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if not humanoid then
-			brainDumpsPerEntity[uuid] = nil
-			entityByUuid[uuid] = nil
+			BrainDebugRenderer.cleanUpEntity(uuid)
 			continue
 		end
 
 		if humanoid.Health <= 0 then
-			brainDumpsPerEntity[uuid] = nil
-			entityByUuid[uuid] = nil
+			BrainDebugRenderer.cleanUpEntity(uuid)
 			continue
 		end
 	end
 end
 
-function BrainDebugRenderer.destroyUiForRemovedEntities(): ()
-	for uuid, uiObjects in pairs(uiObjectsPerEntity) do
-		if not brainDumpsPerEntity[uuid] then
-			uiObjects.billboard:Destroy()
-			uiObjectsPerEntity[uuid] = nil
-		end
+function BrainDebugRenderer.cleanUpEntity(uuid: string): ()
+	brainDumpsPerEntity[uuid] = nil
+	if uiObjectsPerEntity[uuid] and uiObjectsPerEntity[uuid].billboard then
+		uiObjectsPerEntity[uuid].billboard:Destroy()
 	end
+	uiObjectsPerEntity[uuid] = nil
+	entityByUuid[uuid] = nil
 end
 
 function BrainDebugRenderer.destroyAllUis(): ()
@@ -119,151 +114,145 @@ function BrainDebugRenderer.doRender(): ()
 	end
 
 	for _, brainDump in pairs(brainDumpsPerEntity) do
-		--if BrainDebugRenderer.isPlayerCloseEnoughToNpc(brainDump) then
+		if BrainDebugRenderer.isPlayerCloseEnoughToNpc(brainDump) then
 			BrainDebugRenderer.renderBrainInfo(brainDump)
-		--end
+		end
 	end
 end
 
 function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDump): ()
 	local isSelected = BrainDebugRenderer.isNpcSelected(brainDump)
-
-	if not uiObjectsPerEntity[brainDump.uuid] then
-		local newBillboard, referenceTextLabel = BrainDebugRenderer.createNewBrainDumpBillboard(brainDump)
-		newBillboard.Parent = brainDebugScreenGui
-
-		local frame = newBillboard:FindFirstChild("Frame") :: Frame
-		
-		-- health
-		local newHealthTextLabel = referenceTextLabel:Clone()
-		newHealthTextLabel.LayoutOrder = LAYOUT_ORDERS.HEALTH
-		newHealthTextLabel.TextColor3 = HEALTH_TEXT_COLOR
-		newHealthTextLabel.Name = "health"
-		newHealthTextLabel.Parent = frame
-		
-		-- name
-		local newNameTextLabel = referenceTextLabel:Clone()
-		newNameTextLabel.LayoutOrder = LAYOUT_ORDERS.NAME
-		newNameTextLabel.TextColor3 = NAME_TEXT_COLOR
-		newNameTextLabel.Name = "name"
-		newNameTextLabel.Size = UDim2.fromScale(1, 0.035)
-		newNameTextLabel.Visible = true
-		newNameTextLabel.Parent = frame
-
-		local newUiObject: BrainDumpGuiObjects = {
-			billboard = newBillboard,
-			textlabelReference = referenceTextLabel,
-			healthTextLabel = newHealthTextLabel,
-			nameTextLabel = newNameTextLabel,
-			memoriesTextLabels = {},
-			activitesTextLabels = {},
-			behaviorsTextLabels = {}
-		}
-
-		uiObjectsPerEntity[brainDump.uuid] = newUiObject
+	local uiObjects = uiObjectsPerEntity[brainDump.uuid] :: BrainDumpGuiObjects
+	if not uiObjects then
+		local newUiObjects = {}
+		newUiObjects.billboard = BrainDebugRenderer.createNewBrainDumpBillboard(brainDump)
+		newUiObjects.nameTextLabel = nil :: TextLabel?
+		newUiObjects.healthTextLabel = nil :: TextLabel?
+		newUiObjects.memoriesTextLabels = {}
+		newUiObjects.activitiesTextLabels = {}
+		newUiObjects.behaviorsTextLabels = {}
+		uiObjectsPerEntity[brainDump.uuid] = newUiObjects
+		uiObjects = newUiObjects
 	end
 
-	local currentUiObject = uiObjectsPerEntity[brainDump.uuid]
-	if not currentUiObject.billboard.Adornee then
-		currentUiObject.billboard.Adornee = brainDump.character:FindFirstChild("Head") :: BasePart
+	if not uiObjects.nameTextLabel then
+		uiObjects.nameTextLabel = BrainDebugRenderer.createNewTextLabel(
+			"",
+			LAYOUT_ORDERS.NAME,
+			NAME_TEXT_COLOR,
+			LARGE_TEXT_SCALE,
+			brainDump.name,
+			uiObjects.billboard
+		)
+		uiObjects.nameTextLabel.Visible = true
+		uiObjects.nameTextLabel.Text = brainDump.name
 	end
 
-	currentUiObject.nameTextLabel.Text = brainDump.name
-	currentUiObject.healthTextLabel.Visible = isSelected
-	if isSelected then
-		currentUiObject.healthTextLabel.Text = `health: {brainDump.health} / {brainDump.maxHealth}`
+	if not uiObjects.healthTextLabel then
+		uiObjects.healthTextLabel = BrainDebugRenderer.createNewTextLabel(
+			"",
+			LAYOUT_ORDERS.HEALTH,
+			HEALTH_TEXT_COLOR,
+			TEXT_SCALE,
+			brainDump.name,
+			uiObjects.billboard
+		)
 	end
+	uiObjects.healthTextLabel.Visible = isSelected
+	uiObjects.healthTextLabel.Text = `health: {brainDump.health} / {brainDump.maxHealth}`
 
 	-- handle memories (already alphabetically sorted from server)
 	local memoriesMap = {}
 	for memoryIndex, memory in pairs(brainDump.memories) do
-		memoriesMap[memory] = true
+		local memoryType = string.split(memory, ":")[1]
+		memoriesMap[memoryType] = true
 
-		if not currentUiObject.memoriesTextLabels[memory] then
-			local newMemoryTextLabel = currentUiObject.textlabelReference:Clone()
-			newMemoryTextLabel.Name = "memory_" .. memory
-			newMemoryTextLabel.LayoutOrder = LAYOUT_ORDERS.MEMORIES_START + memoryIndex
-			newMemoryTextLabel.TextColor3 = MEMORIES_TEXT_COLOR
-			newMemoryTextLabel.Text = memory
+		if not uiObjects.memoriesTextLabels[memoryType] then
+			local newMemoryTextLabel = BrainDebugRenderer.createNewTextLabel(
+				"",
+				LAYOUT_ORDERS.MEMORIES_START + memoryIndex,
+				MEMORIES_TEXT_COLOR,
+				TEXT_SCALE,
+				memory,
+				uiObjects.billboard
+			)
 			newMemoryTextLabel.Visible = isSelected
-			newMemoryTextLabel.Parent = currentUiObject.billboard.Frame
-			currentUiObject.memoriesTextLabels[memory] = newMemoryTextLabel
+			uiObjects.memoriesTextLabels[memoryType] = newMemoryTextLabel
 		end
+		uiObjects.memoriesTextLabels[memoryType].Text = memory
+		uiObjects.memoriesTextLabels[memoryType].LayoutOrder = LAYOUT_ORDERS.MEMORIES_START + memoryIndex
+		uiObjects.memoriesTextLabels[memoryType].Visible = isSelected
 	end
 
-	for memory in pairs(currentUiObject.memoriesTextLabels) do
-		currentUiObject.memoriesTextLabels[memory].Visible = isSelected
+	for memory in pairs(uiObjects.memoriesTextLabels) do
+		uiObjects.memoriesTextLabels[memory].Visible = isSelected
 
 		if not memoriesMap[memory] then
-			currentUiObject.memoriesTextLabels[memory]:Destroy()
-			currentUiObject.memoriesTextLabels[memory] = nil
+			uiObjects.memoriesTextLabels[memory]:Destroy()
+			uiObjects.memoriesTextLabels[memory] = nil
 		end
 	end
 
-	local activitiesArray = {}
-	for activity in pairs(brainDump.activites) do
-		table.insert(activitiesArray, activity)
-	end
-	table.sort(activitiesArray)
-	
+	-- activities
+	-- idk what order these are gonna be in.
 	local activitiesMap = {}
-	for activityIndex, activity in ipairs(activitiesArray) do
+	for activityIndex, activity in pairs(brainDump.activites) do
 		activitiesMap[activity] = true
-		
-		if not currentUiObject.activitesTextLabels[activity] then
-			local newActivityTextLabel = currentUiObject.textlabelReference:Clone()
-			newActivityTextLabel.Name = "activity_" .. activity
-			newActivityTextLabel.LayoutOrder = LAYOUT_ORDERS.ACTIVITIES_START + activityIndex
-			newActivityTextLabel.TextColor3 = ACTIVITIES_TEXT_COLOR
-			newActivityTextLabel.Text = activity
-			newActivityTextLabel.Visible = isSelected
-			newActivityTextLabel.Parent = currentUiObject.billboard.Frame
-			currentUiObject.activitesTextLabels[activity] = newActivityTextLabel
-		else
-			local activityTextLabel = currentUiObject.activitesTextLabels[activity]
-			activityTextLabel.LayoutOrder = LAYOUT_ORDERS.ACTIVITIES_START + activityIndex
+
+		if not uiObjects.activitiesTextLabels[activity] then
+			local newMemoryTextLabel = BrainDebugRenderer.createNewTextLabel(
+				"",
+				LAYOUT_ORDERS.MEMORIES_START + activityIndex,
+				ACTIVITIES_TEXT_COLOR,
+				TEXT_SCALE,
+				activity,
+				uiObjects.billboard
+			)
+			newMemoryTextLabel.Visible = isSelected
+			uiObjects.activitiesTextLabels[activity] = newMemoryTextLabel
 		end
+		uiObjects.activitiesTextLabels[activity].Text = activity
+		uiObjects.activitiesTextLabels[activity].LayoutOrder = LAYOUT_ORDERS.ACTIVITIES_START + activityIndex
+		uiObjects.activitiesTextLabels[activity].Visible = isSelected
 	end
 
-	for activity in pairs(currentUiObject.activitesTextLabels) do
-		currentUiObject.activitesTextLabels[activity].Visible = isSelected
+	for activity in pairs(uiObjects.activitiesTextLabels) do
+		uiObjects.activitiesTextLabels[activity].Visible = isSelected
 
 		if not activitiesMap[activity] then
-			currentUiObject.activitesTextLabels[activity]:Destroy()
-			currentUiObject.activitesTextLabels[activity] = nil
+			uiObjects.activitiesTextLabels[activity]:Destroy()
+			uiObjects.activitiesTextLabels[activity] = nil
 		end
 	end
 
-	local behaviorsArray = {}
-	for behavior in pairs(brainDump.behaviors) do
-		table.insert(behaviorsArray, behavior)
-	end
-	table.sort(behaviorsArray)
-	
+	-- behaviors
 	local behaviorsMap = {}
-	for behaviorIndex, behavior in ipairs(behaviorsArray) do
+	for behaviorIndex, behavior in pairs(brainDump.behaviors) do
 		behaviorsMap[behavior] = true
-		
-		if not currentUiObject.behaviorsTextLabels[behavior] then
-			local newBehaviorTextLabel = currentUiObject.textlabelReference:Clone()
-			newBehaviorTextLabel.Name = "behavior_" .. behavior
-			newBehaviorTextLabel.LayoutOrder = LAYOUT_ORDERS.BEHAVIORS_START + behaviorIndex
-			newBehaviorTextLabel.TextColor3 = BEHAVIORS_TEXT_COLOR
-			newBehaviorTextLabel.Text = behavior
-			newBehaviorTextLabel.Parent = currentUiObject.billboard.Frame
-			currentUiObject.behaviorsTextLabels[behavior] = newBehaviorTextLabel
-		else
-			local behaviorTextLabel = currentUiObject.behaviorsTextLabels[behavior]
-			behaviorTextLabel.LayoutOrder = LAYOUT_ORDERS.BEHAVIORS_START + behaviorIndex
+
+		if not uiObjects.behaviorsTextLabels[behavior] then
+			local newMemoryTextLabel = BrainDebugRenderer.createNewTextLabel(
+				"",
+				LAYOUT_ORDERS.MEMORIES_START + behaviorIndex,
+				BEHAVIORS_TEXT_COLOR,
+				TEXT_SCALE,
+				behavior,
+				uiObjects.billboard
+			)
+			newMemoryTextLabel.Visible = isSelected
+			uiObjects.behaviorsTextLabels[behavior] = newMemoryTextLabel
 		end
+		uiObjects.behaviorsTextLabels[behavior].Text = behavior
+		uiObjects.behaviorsTextLabels[behavior].LayoutOrder = LAYOUT_ORDERS.BEHAVIORS_START + behaviorIndex
+		uiObjects.behaviorsTextLabels[behavior].Visible = isSelected
 	end
 
-	for behavior in pairs(currentUiObject.behaviorsTextLabels) do
-		currentUiObject.behaviorsTextLabels[behavior].Visible = isSelected
+	for behavior in pairs(uiObjects.behaviorsTextLabels) do
+		uiObjects.behaviorsTextLabels[behavior].Visible = isSelected
 
 		if not behaviorsMap[behavior] then
-			currentUiObject.behaviorsTextLabels[behavior]:Destroy()
-			currentUiObject.behaviorsTextLabels[behavior] = nil
+			uiObjects.behaviorsTextLabels[behavior]:Destroy()
+			uiObjects.behaviorsTextLabels[behavior] = nil
 		end
 	end
 end
@@ -291,26 +280,16 @@ function BrainDebugRenderer.isNpcSelected(brainDump: BrainDebugPayload.BrainDump
 end
 
 function BrainDebugRenderer.isPlayerCloseEnoughToNpc(brainDump: BrainDebugPayload.BrainDump): boolean
-	local character = localPlayer.Character
-	if not character then
-		return false
-	end
-
-	local primaryPart = character.PrimaryPart
-	if not primaryPart then
-		return false
-	end
-
 	local npcPrimaryPart = brainDump.character.PrimaryPart
 	if not npcPrimaryPart then
 		return false
 	end
 
-	local playerPos = primaryPart.Position
+	local playerPos = currentCamera.CFrame.Position
 	local npcPosition = npcPrimaryPart.Position
 	local difference = (npcPosition - playerPos).Magnitude
 
-	return difference <= MIN_DISTANCE_TO_UPDATE_GUI
+	return difference <= MAX_RENDER_DIST_FOR_BRAIN_INFO
 end
 
 --
@@ -325,9 +304,32 @@ function BrainDebugRenderer.createNewScreenGui(): ScreenGui
 	return newScreenGui
 end
 
-function BrainDebugRenderer.createNewBrainDumpBillboard(brainDump: BrainDebugPayload.BrainDump): (BillboardGui, TextLabel)
+function BrainDebugRenderer.createNewTextLabel(
+	name: string, layoutOrder: number, textColor: Color3, textScale: number, text: string, parent: Instance
+): TextLabel
+	local newTextLabel = Instance.new("TextLabel")
+	newTextLabel.BackgroundTransparency = 1
+	newTextLabel.LayoutOrder = layoutOrder
+	newTextLabel.AutomaticSize = Enum.AutomaticSize.X
+	newTextLabel.Name = name
+	newTextLabel.Text = text
+	newTextLabel.Size = UDim2.fromScale(1, textScale)
+	newTextLabel.FontFace = Font.fromName("RobotoMono")
+	newTextLabel.TextColor3 = textColor
+	newTextLabel.TextScaled = true
+	newTextLabel.TextXAlignment = Enum.TextXAlignment.Left
+	newTextLabel.TextYAlignment = Enum.TextYAlignment.Top
+	newTextLabel.Visible = false
+	newTextLabel.Parent = parent
+
+	return newTextLabel
+end
+
+function BrainDebugRenderer.createNewBrainDumpBillboard(brainDump: BrainDebugPayload.BrainDump): BillboardGui
 	local billboardGui = Instance.new("BillboardGui")
 	billboardGui.ExtentsOffset = Vector3.new(0, 7, 0)
+	billboardGui.MaxDistance = MAX_RENDER_DIST_FOR_BRAIN_INFO * 2
+	billboardGui.Adornee = brainDump.character.PrimaryPart :: BasePart
 	billboardGui.LightInfluence = 0
 	billboardGui.ClipsDescendants = false
 	billboardGui.AlwaysOnTop = true
@@ -336,33 +338,16 @@ function BrainDebugRenderer.createNewBrainDumpBillboard(brainDump: BrainDebugPay
 	billboardGui.Size = UDim2.fromScale(40, 40)
 	billboardGui.StudsOffset = Vector3.new(20, 17, 0)
 
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromScale(1, 1)
-	frame.ClipsDescendants = false
-	frame.BackgroundTransparency = 1
-	frame.Parent = billboardGui
-
 	local uiListLayout = Instance.new("UIListLayout")
 	uiListLayout.FillDirection = Enum.FillDirection.Vertical
 	uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 	uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-	uiListLayout.Parent = frame
+	uiListLayout.Parent = billboardGui
 
-	local textLabel = Instance.new("TextLabel")
-	textLabel.BackgroundTransparency = 1
-	textLabel.AutomaticSize = Enum.AutomaticSize.X
-	textLabel.Name = "REFERENCE"
-	textLabel.Size = UDim2.fromScale(1, 0.025)
-	textLabel.FontFace = Font.fromName("RobotoMono")
-	textLabel.TextColor3 = Color3.new(1, 1, 1)
-	textLabel.TextScaled = true
-	textLabel.TextXAlignment = Enum.TextXAlignment.Left
-	textLabel.TextYAlignment = Enum.TextYAlignment.Top
-	textLabel.Visible = false
-	textLabel.Parent = frame
+	billboardGui.Parent = brainDebugScreenGui
 
-	return billboardGui, textLabel
+	return billboardGui
 end
 
 return BrainDebugRenderer

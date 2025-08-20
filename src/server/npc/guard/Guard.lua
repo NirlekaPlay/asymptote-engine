@@ -4,7 +4,6 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local GuardAi = require(script.Parent.GuardAi)
 local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
@@ -114,7 +113,6 @@ function Guard.update(self: Guard, deltaTime: number): ()
 	self.suspicionManager:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.lookControl:update()
-	DebugPackets.sendBrainDumpToListeningClients(self)
 
 	if self.pathNavigation.pathfinder.Status == "Active" then
 		self.isPathfindingValue.Value = true

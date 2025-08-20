@@ -1,9 +1,11 @@
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require("./player/PlayerStatusRegistry")
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local Guard = require(ServerScriptService.server.npc.guard.Guard)
@@ -60,13 +62,6 @@ local function setupGuards()
 		if guard.Parent ~= workspace then
 			continue
 		end
-		local humanoid = guard:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid.Died:Once(function()
-				--guards[guard]:destroy()
-				--guards[guard] = nil
-			end)
-		end
 		local newGuard = Guard.new(guard, currentGuardPosts)
 		guards[guard] = newGuard
 	end
@@ -96,13 +91,27 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		zone:update()
 	end
 
+	-- this frame, is there any listening clients?
+	local hasListeningClients = DebugPackets.hasListeningClients(DebugPackets.Packets.DEBUG_BRAIN)
 	for model, guard in pairs(guards) do
 		if not model.PrimaryPart then
 			guards[model] = nil
 			model.Parent = nil
 			continue
 		end
+
+		if not guard:isAlive() then
+			guards[model] = nil
+			continue
+		end
+
 		guard:update(deltaTime)
+		if hasListeningClients then
+			DebugPackets.queueDataToBatch(DebugPackets.Packets.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
+		end
+	end
+	if hasListeningClients then
+		DebugPackets.flushBrainDumpsToListeningClients()
 	end
 end)
 

@@ -22,6 +22,6 @@ return {
 	JoinTestingServer = RE("JoinTestingServer") :: RE<>,
 	JoinStableServer = RE("JoinStableServer") :: RE<>,
 	--
-	BrainDebugDump = RE("BrainDebugDump") :: RE<BrainDebugPayload.BrainDump>,
+	BrainDebugDump = RE("BrainDebugDump") :: RE<{BrainDebugPayload.BrainDump}>,
 	SubscribeDebugDump = RE("SubscribeDebugDump") :: RE<string, boolean>
 }
