@@ -9,6 +9,7 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
 local isStudio = RunService:IsStudio()
 
 local PLACE_IDS = {
+	SECONDARY_TESTING_SERVER = 139078384856437,
 	TESTING_SERVER = 113936939292070,
 	STABLE_SERVER = 111847508391227
 }
@@ -28,7 +29,7 @@ end)
 
 TypedRemotes.JoinTestingServer.OnServerEvent:Connect(function(player)
 	if isStudio then
-		warnTeleportSuccessInStudioEnvironment(player, PLACE_IDS.TESTING_SERVER)
+		warnTeleportSuccessInStudioEnvironment(player, PLACE_IDS.SECONDARY_TESTING_SERVER)
 		return
 	end
 	TeleportService:TeleportAsync(PLACE_IDS.TESTING_SERVER, {player})
