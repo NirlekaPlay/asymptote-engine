@@ -10,8 +10,14 @@ local QuoteOfTheDay = require(script.Parent.QuoteOfTheDay)
 local UITextShadow = require(script.Parent.UITextShadow)
 
 local LOADING_SCREEN_SCREEN_GUI_NAME = "LoadingScreen"
-local LOADING_SCREEN_BACKGROUND_ID = 93100734007160
+local LOADING_SCREEN_BACKGROUND_IDS = {
+	{ name = "Hub Room", id = 93100734007160 },
+	{ name = "The Founder's Eye", id = 119595682823582 },
+	{ name = "She's Dead", id = 129935296812180 },
+	{ name = "A Tester's Favorite Item", id = 112033098640768 }
+}
 local TWEEN_INFO_FADE = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
+local lastArrivedBackgroundId: number? = nil
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
@@ -90,8 +96,9 @@ function LoadingScreen.createLoadingScreenGui(): ScreenGui
 	local backgroundImageLabel = Instance.new("ImageLabel")
 	backgroundImageLabel.Name = "Background"
 	backgroundImageLabel.Size = UDim2.fromScale(1, 1)
+	backgroundImageLabel.ScaleType = Enum.ScaleType.Crop
 	backgroundImageLabel.ZIndex = 0
-	backgroundImageLabel.ImageContent = Content.fromAssetId(LOADING_SCREEN_BACKGROUND_ID)
+	backgroundImageLabel.ImageContent = Content.fromAssetId(LoadingScreen.selectBackgroundId())
 	backgroundImageLabel.Parent = rootFrame
 
 	local quoteHeaderText = Instance.new("TextLabel")
@@ -143,6 +150,26 @@ function LoadingScreen.createLoadingScreenGui(): ScreenGui
 	newScreenGui.Parent = playerGui
 
 	return newScreenGui
+end
+
+function LoadingScreen.setLastArrivedBackgroundId(id: number): ()
+	lastArrivedBackgroundId = id
+end
+
+function LoadingScreen.selectBackgroundId(): number
+	if #LOADING_SCREEN_BACKGROUND_IDS == 1 then
+		return LOADING_SCREEN_BACKGROUND_IDS[1].id
+	end
+
+	local random = Random.new(tick())
+	local index: number
+	local background: { name: string, id: number }
+	repeat
+		index = random:NextInteger(1, #LOADING_SCREEN_BACKGROUND_IDS)
+		background = LOADING_SCREEN_BACKGROUND_IDS[index]
+	until not lastArrivedBackgroundId or background.id ~= lastArrivedBackgroundId
+
+	return background.id
 end
 
 return LoadingScreen
