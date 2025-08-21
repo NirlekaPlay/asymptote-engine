@@ -1,13 +1,21 @@
 --!strict
 
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
 
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
 local QuoteOfTheDay = require(script.Parent.QuoteOfTheDay)
+local QuoteOfTheDayList = require(script.Parent.QuoteOfTheDayList)
 local UITextShadow = require(script.Parent.UITextShadow)
+
+local DEBUG_MODE_ATTRIBUTE_NAME = "QuoteOfTheDayDebugMode"
+local DEBUG_MODE = StarterGui:GetAttribute(DEBUG_MODE_ATTRIBUTE_NAME)
+local DEBUG_QUOTE_OF_THE_DAY_INDEX_ATTRIBUTE_NAME = "QuoteOfTheDayIndex"
+local DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME = "ShowQuoteOfTheDayUi"
+local DEBUG_BACKGROUND_INDEX_ATTRIBUTE_NAME = "BakckgroundIndex"
 
 local LOADING_SCREEN_SCREEN_GUI_NAME = "LoadingScreen"
 local LOADING_SCREEN_BACKGROUND_IDS = {
@@ -18,7 +26,6 @@ local LOADING_SCREEN_BACKGROUND_IDS = {
 }
 local TWEEN_INFO_FADE = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
 local lastArrivedBackgroundId: number? = nil
-
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
 local currentLoadingScreenGui: ScreenGui
@@ -31,6 +38,11 @@ local currentLoadingScreenGui: ScreenGui
 local LoadingScreen = {}
 
 function LoadingScreen.onTeleporting(delay: number, teleportCallback: () -> ())
+	if DEBUG_MODE then
+		warn("Debug mode for Quote of the Days is enabled. \n Cannot proceed with normal teleport loading screen operations.")
+		return
+	end
+
 	if not currentLoadingScreenGui then
 		currentLoadingScreenGui = LoadingScreen.createLoadingScreenGui()
 	end
@@ -152,6 +164,34 @@ function LoadingScreen.createLoadingScreenGui(): ScreenGui
 	return newScreenGui
 end
 
+function LoadingScreen.updateQuoteOfTheDay(quote: QuoteOfTheDayList.Quote): ()
+	if not currentLoadingScreenGui then
+		warn("Attempt to update the Quote of the Day loading screen UI: UI is not created yet.")
+		return
+	end
+
+	local messageTextLabel = currentLoadingScreenGui.Frame.Message :: TextLabel
+	local messageTextLabelShadow = currentLoadingScreenGui.Frame.Message_Shadow :: TextLabel
+	local authorTextLabel = currentLoadingScreenGui.Frame.Author :: TextLabel
+	local authorTextLabelShadow = currentLoadingScreenGui.Frame.Author_Shadow :: TextLabel
+
+	messageTextLabel.Text = quote.message
+	messageTextLabelShadow.Text = quote.message
+	authorTextLabel.Text = quote.author
+	authorTextLabelShadow.Text = quote.author
+end
+
+function LoadingScreen.updateBackground(background: { name: string, id: number }): ()
+	if not currentLoadingScreenGui then
+		warn("Attempt to update the background of the loading screen UI: UI is not created yet.")
+		return
+	end
+
+	local backgroundImageLabel = currentLoadingScreenGui.Frame.Background
+	backgroundImageLabel.ImageContent = Content.fromAssetId(background.id)
+	print(`Updated background to: '{background.name}'`)
+end
+
 function LoadingScreen.setLastArrivedBackgroundId(id: number): ()
 	lastArrivedBackgroundId = id
 end
@@ -170,6 +210,81 @@ function LoadingScreen.selectBackgroundId(): number
 	until not lastArrivedBackgroundId or background.id ~= lastArrivedBackgroundId
 
 	return background.id
+end
+
+--
+
+function LoadingScreen.debugGetQuoteFromSetIndex(): QuoteOfTheDayList.Quote?
+	local index = StarterGui:GetAttribute(DEBUG_QUOTE_OF_THE_DAY_INDEX_ATTRIBUTE_NAME) :: number
+	local quote = QuoteOfTheDay.getQuoteOfTheDayByIndex(index)
+	if not quote then
+		warn(`'{index}' index for quote is not valid or doesn't exist.`)
+		return nil
+	end
+
+	return quote
+end
+
+function LoadingScreen.debugGetBackgroundFromSetIndex(): { name: string, id: number }?
+	local index = StarterGui:GetAttribute(DEBUG_BACKGROUND_INDEX_ATTRIBUTE_NAME) :: number
+	local background = LOADING_SCREEN_BACKGROUND_IDS[index]
+	if not background then
+		warn(`'{index}' index for background is not valid or doesn't exist.`)
+		return nil
+	end
+
+	return background
+end
+
+if DEBUG_MODE then
+	warn("Debug mode for Loading Screen Quote of the Days and backgrounds has been enabled!")
+	warn("You can edit the 'QuoteOfTheDayIndex' set in StarterGui\n to see how will your Quote of the Days look!")
+	print("Total amount of quotes in the list is:", #QuoteOfTheDayList)
+	print("Total amount of backgrounds is:", #LOADING_SCREEN_BACKGROUND_IDS)
+
+	local showUi = false
+	StarterGui:SetAttribute(DEBUG_MODE_ATTRIBUTE_NAME, nil)
+	StarterGui:SetAttribute(DEBUG_QUOTE_OF_THE_DAY_INDEX_ATTRIBUTE_NAME, 1)
+	StarterGui:SetAttribute(DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME, showUi)
+	StarterGui:SetAttribute(DEBUG_BACKGROUND_INDEX_ATTRIBUTE_NAME, 1)
+
+	StarterGui:GetAttributeChangedSignal(DEBUG_QUOTE_OF_THE_DAY_INDEX_ATTRIBUTE_NAME):Connect(function()
+		if not showUi then
+			print(`Cannot update LoadingScreen quote: {DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME} attribute is disabled.`)
+			return
+		end
+
+		local quote = LoadingScreen.debugGetQuoteFromSetIndex()
+		if quote then
+			LoadingScreen.updateQuoteOfTheDay(quote)
+		end
+	end)
+
+	StarterGui:GetAttributeChangedSignal(DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME):Connect(function()
+		showUi = StarterGui:GetAttribute(DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME)
+		if (showUi and not currentLoadingScreenGui) then
+			currentLoadingScreenGui = LoadingScreen.createLoadingScreenGui()
+			local quote = LoadingScreen.debugGetQuoteFromSetIndex()
+			if quote then
+				LoadingScreen.updateQuoteOfTheDay(quote)
+			end
+		elseif not showUi and currentLoadingScreenGui then
+			currentLoadingScreenGui:Destroy()
+			currentLoadingScreenGui = nil
+		end
+	end)
+
+	StarterGui:GetAttributeChangedSignal(DEBUG_BACKGROUND_INDEX_ATTRIBUTE_NAME):Connect(function()
+		if not showUi then
+			print(`Cannot update LoadingScreen background: {DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME} attribute is disabled.`)
+			return
+		end
+
+		local background = LoadingScreen.debugGetBackgroundFromSetIndex()
+		if background then
+			LoadingScreen.updateBackground(background)
+		end
+	end)
 end
 
 return LoadingScreen

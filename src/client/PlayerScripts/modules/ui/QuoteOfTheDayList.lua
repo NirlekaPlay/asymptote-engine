@@ -114,7 +114,7 @@ local QuoteOfTheDays: { Quote } = {
 		author = "~Paulomerindo"
 	},
 	{
-		message = [[3 warnings you can attack, but only then, \n
+		message = [[3 warnings you can attack, but only then,
 			a grilled cheese sandwhich with ham."]],
 		author = "Mudkip & Herobrine4221 miscommunication shenanigans"
 	},

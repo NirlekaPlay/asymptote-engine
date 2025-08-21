@@ -42,4 +42,12 @@ function QuoteOfTheDay.getQuoteOfTheDay(): QuoteOfTheDaysList.Quote
 	return selectedQuote
 end
 
+--[=[
+	Returns the quote, if it exist, assosciated with the index
+	from the QuoteOfTheDayList.
+]=]
+function QuoteOfTheDay.getQuoteOfTheDayByIndex(index: number): QuoteOfTheDaysList.Quote?
+	return QuoteOfTheDaysList[index]
+end
+
 return QuoteOfTheDay
