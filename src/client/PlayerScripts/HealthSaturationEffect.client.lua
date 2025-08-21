@@ -10,10 +10,6 @@ local currentCharacter: Model?
 local humanoidHealthChangedConnection: RBXScriptConnection?
 local vignetteScreenGui = localPlayer.PlayerGui:FindFirstChild("Vignette") :: ScreenGui?
 
-if localPlayer.Character then
-	currentCharacter = localPlayer.Character
-end
-
 local function createVignetteGui(): ScreenGui
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.IgnoreGuiInset = true
@@ -30,7 +26,6 @@ local function createVignetteGui(): ScreenGui
 	vignetteImage.Parent = screenGui
 
 	screenGui.Parent = localPlayer.PlayerGui
-
 	return screenGui
 end
 
@@ -48,21 +43,43 @@ local function updateHealthEffects(currentHealth: number)
 		.ImageTransparency = math.map(currentHealth, 0, 100, 0, 1)
 end
 
-localPlayer.CharacterAdded:Connect(function(character)
-	currentCharacter = character
-	local humanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
+local function resetHealthEffects()
+	updateHealthEffects(100)
+end
+
+local function connectToCharacterHealth(character: Model)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
 
 	if humanoidHealthChangedConnection then
 		humanoidHealthChangedConnection:Disconnect()
+		humanoidHealthChangedConnection = nil
 	end
-	
+
 	updateHealthEffects(humanoid.Health)
+
 	humanoidHealthChangedConnection = humanoid.HealthChanged:Connect(function(healthValue)
 		updateHealthEffects(healthValue)
 	end)
+end
+
+if localPlayer.Character then
+	currentCharacter = localPlayer.Character
+	connectToCharacterHealth(currentCharacter)
+end
+
+localPlayer.CharacterAdded:Connect(function(character)
+	currentCharacter = character
+	connectToCharacterHealth(character)
 end)
 
 localPlayer.CharacterRemoving:Connect(function()
+	if humanoidHealthChangedConnection then
+		humanoidHealthChangedConnection:Disconnect()
+		humanoidHealthChangedConnection = nil
+	end
+
+	resetHealthEffects()
+	
 	currentCharacter = nil
 end)
