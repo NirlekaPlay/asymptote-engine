@@ -85,7 +85,63 @@ local QuoteOfTheDays: { Quote } = {
 		message = "Your neutron gun is your neutron fun!",
 		author = "~The speaker remains a mystery.."
 	},
-	
+	{
+		message = "Andrew is infact located within the confines of my home walls.",
+		author = "~Tophat_2160"
+	},
+	{
+		message = "The lettuce whispered once. The ceiling fan didn't respond.",
+		author = "~Faze"
+	},
+	{
+		message = "Remember: you are worth less than the productivity you produce.",
+		author = "~FozzingtonTheThird"
+	},
+	{
+		message = "Under no circumcision--",
+		author = "~Nirleka"
+	},
+	{
+		message = "Trainers know best!",
+		author = "~Plasma Security Division Propaganda Sub-division"
+	},
+	{
+		message = "The government is being controlled by furries.",
+		author = "~lol990075"
+	},
+	{
+		message = "The 44th President of the United Steaks of Canada.",
+		author = "~Paulomerindo"
+	},
+	{
+		message = [[3 warnings you can attack, but only then, \n
+			a grilled cheese sandwhich with ham."]],
+		author = "Mudkip & Herobrine4221 miscommunication shenanigans"
+	},
+	{
+		message = "Violence is never the answer. It's the solution.",
+		author = "~Flofliflute, 11th of January 2025"
+	},
+	{
+		message = "I love democracy",
+		author = "~Gonow (look at his soulless little eyes and tell me he's not lying.)"
+	},
+	{
+		message = "I'd rather claw my eyes out, but thank you for your suggestion.",
+		author = "~Gonow"
+	},
+	{
+		message = "Sorry if it feels I am a bit unresponsive. I am currently eating some McDonald's.",
+		author = "~Jar3d, Today, Some day before this day which was today in that day"
+	},
+	{
+		message = "The only good rebel is a dead one.",
+		author = "~Vacant?"
+	},
+	{
+		message = "Shush. I'll give you a bone and you'll shut.",
+		author = "~RailJessie"
+	}
 }
 
 return QuoteOfTheDays
