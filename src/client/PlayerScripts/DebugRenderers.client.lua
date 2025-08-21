@@ -12,24 +12,35 @@ local BrainDebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.mod
 local RTween = require(StarterPlayer.StarterPlayerScripts.client.modules.interpolation.RTween)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
-local currentDebugRendererIndicator = Instance.new("ScreenGui")
-currentDebugRendererIndicator.IgnoreGuiInset = true
-currentDebugRendererIndicator.ResetOnSpawn = false
-currentDebugRendererIndicator.Parent = Players.LocalPlayer.PlayerGui
-local currentDebugRendererText = Instance.new("TextLabel")
-currentDebugRendererText.AnchorPoint = Vector2.new(0.5, 0.5)
-currentDebugRendererText.BackgroundTransparency = 1
-currentDebugRendererText.Position = UDim2.fromScale(0.5, 0.852)
-currentDebugRendererText.Size = UDim2.fromScale(1, 0.044)
-currentDebugRendererText.TextColor3 = Color3.new(1, 1, 1)
-currentDebugRendererText.TextScaled = true
-currentDebugRendererText.TextTransparency = 1
-currentDebugRendererText.Parent = currentDebugRendererIndicator
-local currentDebugRendererTextShadow = UITextShadow.createTextShadow(currentDebugRendererText, nil, 1.5)
-currentDebugRendererTextShadow.TextTransparency = 1
+local currentDebugRendererIndicator: ScreenGui
+local currentDebugRendererText: TextLabel
+local currentDebugRendererTextShadow: TextLabel
 local tween = RTween.create(Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut)
 local showTextFor = 0
 local currentTween: RTween.RTween? = nil
+
+local function createNewDebugRendererIndicator(): ()
+	currentDebugRendererIndicator = Instance.new("ScreenGui")
+	currentDebugRendererIndicator.Name = "DebugRendererIndicator"
+	currentDebugRendererIndicator.IgnoreGuiInset = true
+	currentDebugRendererIndicator.ResetOnSpawn = false
+	currentDebugRendererIndicator.Parent = Players.LocalPlayer.PlayerGui
+
+	currentDebugRendererText = Instance.new("TextLabel")
+	currentDebugRendererText.AnchorPoint = Vector2.new(0.5, 0.5)
+	currentDebugRendererText.BackgroundTransparency = 1
+	currentDebugRendererText.Position = UDim2.fromScale(0.5, 0.852)
+	currentDebugRendererText.Size = UDim2.fromScale(1, 0.044)
+	currentDebugRendererText.TextColor3 = Color3.new(1, 1, 1)
+	currentDebugRendererText.TextScaled = true
+	currentDebugRendererText.TextTransparency = 1
+	currentDebugRendererText.Parent = currentDebugRendererIndicator
+
+	currentDebugRendererTextShadow = UITextShadow.createTextShadow(currentDebugRendererText, nil, 1.5)
+	currentDebugRendererTextShadow.TextTransparency = 1
+end
+
+createNewDebugRendererIndicator()
 
 local function onDebugRendererChanged(debugRendererName: string, enabled: boolean): ()
 	if currentTween and currentTween.is_playing then

@@ -151,6 +151,7 @@ function LoadingScreen.createLoadingScreenGui(): ScreenGui
 	quoteAuthorText.TextScaled = true
 	quoteAuthorText.Size = UDim2.fromScale(0.44, 0.039)
 	quoteAuthorText.Position = UDim2.fromScale(0.079, 0.827)
+	quoteAuthorText.AutomaticSize = Enum.AutomaticSize.X
 	quoteAuthorText.TextXAlignment = Enum.TextXAlignment.Left
 	quoteAuthorText.Text = quoteOfTheDay.author
 	quoteAuthorText.ZIndex = 3
