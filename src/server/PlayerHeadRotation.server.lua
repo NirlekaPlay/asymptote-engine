@@ -1,14 +1,16 @@
 --!strict
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local PlayerHeadRotationClient = TypedRemotes.PlayerHeadRotationClient
 
 TypedRemotes.PlayerHeadRotationServer.OnServerEvent:Connect(function(player, cameraPos)
-	if not player.Character then return end
+	for _, otherPlayer in ipairs(Players:GetPlayers()) do
+		if otherPlayer == player then
+			continue
+		end
 
-	--local torso = player.Character:FindFirstChild("Torso") :: BasePart
-	--local neck = torso:FindFirstChild("Neck") :: Motor6D
-	--neck.C0 = cframe
-
-	TypedRemotes.PlayerHeadRotationClient:FireAllClients(player, cameraPos)
+		PlayerHeadRotationClient:FireClient(otherPlayer, player, cameraPos)
+	end
 end)
