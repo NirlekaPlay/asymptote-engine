@@ -2,14 +2,20 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
 local localPlayer = Players.LocalPlayer
 local currentCamera = workspace.CurrentCamera
 
+local ADJUSTING_MODE_ATTRIBUTE_NAME = "PlayerHeadRotationAdjustingMode"
+local ADJUSTING_MODE = StarterPlayer:GetAttribute(ADJUSTING_MODE_ATTRIBUTE_NAME)
+local ADJUSTING_MODE_VERTICAL_FACTOR_ATTRIBUTE_NAME = "VerticalFactor"
+local ADJUSTING_MODE_HORIZONTAL_FACTOR_ATTRIBUTE_NAME = "HorizontalFactor"
+local ADJUSTING_MODE_ROTATION_SPEED_ATTRIBUTE_NAME = "RotationSpeed"
 local ORIGINAL_NECK_C0 = CFrame.new(0, 1, 0, -1, -0, -0, 0, 0, 1, 0, 1, 0)
 local VERTICAL_FACTOR = 0.6
-local HORIZONTAL_FACTOR = 1.5
+local HORIZONTAL_FACTOR = 1
 local ROTATION_SPEED = 0.3
 local HEAD_ROTATION_REMOTE_SERVER = TypedRemotes.PlayerHeadRotationServer
 local SEND_LOCAL_PLAYER_CAMERA_POS_PER_SECOND = 10
@@ -131,6 +137,35 @@ function PlayerHeadRotation.sendLocalPlayerCameraPosToOtherClients(deltaTime: nu
 			HEAD_ROTATION_REMOTE_SERVER:FireServer(lastSentCameraPos :: Vector3)
 		end
 	end
+end
+
+if ADJUSTING_MODE then
+	warn("Adjusting mode for PlayerHeadRotation is enabled.")
+	warn("Adjust attributes on StarterPlayer.")
+
+	StarterPlayer:SetAttribute(
+		ADJUSTING_MODE_HORIZONTAL_FACTOR_ATTRIBUTE_NAME, HORIZONTAL_FACTOR
+	)
+	
+	StarterPlayer:SetAttribute(
+		ADJUSTING_MODE_VERTICAL_FACTOR_ATTRIBUTE_NAME, VERTICAL_FACTOR
+	)
+
+	StarterPlayer:SetAttribute(
+		ADJUSTING_MODE_ROTATION_SPEED_ATTRIBUTE_NAME, ROTATION_SPEED
+	)
+
+	StarterPlayer:GetAttributeChangedSignal(ADJUSTING_MODE_HORIZONTAL_FACTOR_ATTRIBUTE_NAME):Connect(function()
+		HORIZONTAL_FACTOR = StarterPlayer:GetAttribute(ADJUSTING_MODE_HORIZONTAL_FACTOR_ATTRIBUTE_NAME)
+	end)
+	
+	StarterPlayer:GetAttributeChangedSignal(ADJUSTING_MODE_VERTICAL_FACTOR_ATTRIBUTE_NAME):Connect(function()
+		VERTICAL_FACTOR = StarterPlayer:GetAttribute(ADJUSTING_MODE_VERTICAL_FACTOR_ATTRIBUTE_NAME)
+	end)
+
+	StarterPlayer:GetAttributeChangedSignal(ADJUSTING_MODE_ROTATION_SPEED_ATTRIBUTE_NAME):Connect(function()
+		ROTATION_SPEED = StarterPlayer:GetAttribute(ADJUSTING_MODE_ROTATION_SPEED_ATTRIBUTE_NAME)
+	end)
 end
 
 return PlayerHeadRotation
