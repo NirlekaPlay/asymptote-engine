@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
 local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
 local BrainDebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.debug.BrainDebugRenderer)
+local DebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.debug.DebugRenderer)
 local RTween = require(StarterPlayer.StarterPlayerScripts.client.modules.interpolation.RTween)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
@@ -61,6 +62,8 @@ local function onDebugRendererChanged(debugRendererName: string, enabled: boolea
 	showTextFor = 2
 end
 
+DebugRenderer.addSimpleDebugRenderer(BrainDebugRenderer)
+
 TypedRemotes.BrainDebugDump.OnClientEvent:Connect(function(brainDumps)
 	if SharedConstants.DEBUG_BRAIN then
 		for _, brainDump in ipairs(brainDumps) do
@@ -76,14 +79,17 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 		SharedConstants.DEBUG_BRAIN = not SharedConstants.DEBUG_BRAIN
 		TypedRemotes.SubscribeDebugDump:FireServer("DEBUG_BRAIN", SharedConstants.DEBUG_BRAIN)
 		if not SharedConstants.DEBUG_BRAIN then
+			DebugRenderer.removeSimpleDebugRenderer(BrainDebugRenderer)
 			BrainDebugRenderer.clear()
+		else
+			DebugRenderer.addSimpleDebugRenderer(BrainDebugRenderer)
 		end
 		onDebugRendererChanged("aiBrainDebugRenderer", SharedConstants.DEBUG_BRAIN)
 	end
 end)
 
-RunService.RenderStepped:Connect(function(deltaTime)
-	BrainDebugRenderer:render()
+RunService.PreRender:Connect(function(deltaTime)
+	DebugRenderer.render()
 
 	if showTextFor > 0 then
 		showTextFor -= deltaTime
