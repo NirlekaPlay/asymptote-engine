@@ -141,6 +141,7 @@ function DebugRenderer.updateFloatingTextObject(
 	textData: FloatingTextData
 ): ()
 
+	floatingTextObj.textLabel.Size = UDim2.fromScale(1, textData.textScale)
 	floatingTextObj.textLabel.Text = textData.text
 	floatingTextObj.textLabel.TextColor3 = textData.color
 	

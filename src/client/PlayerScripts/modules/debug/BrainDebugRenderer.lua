@@ -25,6 +25,8 @@ local SHOW_ACTIVITIES_FOR_SELECTED = false
 local SHOW_MEMORIES_FOR_SELECTED = false
 local MAX_RENDER_DIST_FOR_BRAIN_INFO = 120
 local MAX_TARGETING_DIST = 32
+local TEXT_SCALE = 1
+local LARGE_TEXT_SCALE = 1.5
 local CYAN = Color3.new(0, 1, 1)
 local GREEN = Color3.new(0, 1, 0)
 local ORANGE = Color3.new(1, 0.768627, 0)
@@ -108,7 +110,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 	local i = 0
 
 	BrainDebugRenderer.renderTextOverCharacter(
-		brainDump.name, (brainDump.character.PrimaryPart :: BasePart).Position, i, WHITE, 1 
+		brainDump.name, charPos, i, WHITE, LARGE_TEXT_SCALE
 	)
 	i += 1
 
@@ -123,7 +125,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 		end
 
 		BrainDebugRenderer.renderTextOverCharacter(
-			`health: {brainDump.health} / {brainDump.maxHealth}`, charPos, i, healthColor, 1
+			`health: {brainDump.health} / {brainDump.maxHealth}`, charPos, i, healthColor, TEXT_SCALE
 		)
 		i += 1
 	end
@@ -131,7 +133,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 	if isSelected then
 		for _, behavior in ipairs(brainDump.behaviors) do
 			BrainDebugRenderer.renderTextOverCharacter(
-				behavior, charPos, i, CYAN, 1 
+				behavior, charPos, i, CYAN, TEXT_SCALE
 			)
 			i += 1
 		end
@@ -140,7 +142,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 	if isSelected then
 		for _, activity in ipairs(brainDump.activites) do
 			BrainDebugRenderer.renderTextOverCharacter(
-				activity, charPos, i, GREEN, 1 
+				activity, charPos, i, GREEN, TEXT_SCALE
 			)
 			i += 1
 		end
@@ -153,7 +155,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 		for index = #brainDump.memories, 1, -1 do
 			local memory = brainDump.memories[index]
 			BrainDebugRenderer.renderTextOverCharacter(
-				memory, charPos, i, WHITE, 1
+				memory, charPos, i, WHITE, TEXT_SCALE
 			)
 			i += 1
 		end
