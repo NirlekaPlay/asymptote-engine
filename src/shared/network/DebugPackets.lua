@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
 local TypedRemotes = require(script.Parent.TypedRemotes)
 local Agent = require(ServerScriptService.server.Agent)
+local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 
 local PACKETS = {
 	DEBUG_BRAIN = "DEBUG_BRAIN"
@@ -115,11 +116,44 @@ function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.Bra
 	brainDump.maxHealth = agent.character.Humanoid.MaxHealth
 	brainDump.name = agent:getCharacterName()
 	brainDump.uuid = agent:getUuid()
+	brainDump.detectedStatuses = DebugPackets.getDetectedStatusesDescriptions(agent)
+	brainDump.suspicionLevels = {}
+	for player, value in pairs(agent:getSuspicionManager().suspicionLevels) do
+		if next(value) == nil then
+			continue
+		end
+
+		table.insert(brainDump.suspicionLevels, `{player.Name}: {DebugPackets.getShortDescription(value)}`)
+	end
 
 	return brainDump
 end
 
 --
+
+function DebugPackets.getDetectedStatusesDescriptions(agent: Agent.Agent): { string }
+	local statusArray: { {status: PlayerStatus.PlayerStatusType, player: Player, priority: number} } = {}
+
+	for status, player in pairs(agent.suspicionManager.detectedStatuses) do
+		local statusPriority = PlayerStatus.getStatusPriorityValue(status)
+		table.insert(statusArray, {
+			status = status,
+			player = player,
+			priority = statusPriority
+		})
+	end
+
+	table.sort(statusArray, function(a, b)
+		return a.priority > b.priority
+	end)
+
+	local descriptions = {}
+	for _, item in ipairs(statusArray) do
+		table.insert(descriptions, tostring(item.status))
+	end
+	
+	return descriptions
+end
 
 function DebugPackets.getMemoryDescriptions(agent: Agent.Agent): { string }
 	local memories = agent:getBrain().memories

@@ -15,21 +15,27 @@ local lastLookedAtEntityUuid: string? = nil
 
 local SHOW_NAME_FOR_ALL = true
 local SHOW_HEALTH_FOR_ALL = false
+local SHOW_DETECTED_STATUSES_FOR_ALL = false
+local SHOW_SUSPICION_LEVELS_FOR_ALL = false
 local SHOW_BEHAVIORS_FOR_ALL = false
 local SHOW_ACTIVITIES_FOR_ALL = false
 local SHOW_MEMORIES_FOR_ALL = false
 local SHOW_NAME_FOR_SELECTED = true
-local SHOW_HEALTH_FOR_SELECTED = false
-local SHOW_BEHAVIORS_FOR_SELECTED = false
-local SHOW_ACTIVITIES_FOR_SELECTED = false
-local SHOW_MEMORIES_FOR_SELECTED = false
+local SHOW_HEALTH_FOR_SELECTED = true
+local SHOW_DETECTED_STATUSES_FOR_SELECTED = true
+local SHOW_SUSPICION_LEVELS_FOR_SELECTED = true
+local SHOW_BEHAVIORS_FOR_SELECTED = true
+local SHOW_ACTIVITIES_FOR_SELECTED = true
+local SHOW_MEMORIES_FOR_SELECTED = true
 local MAX_RENDER_DIST_FOR_BRAIN_INFO = 120
 local MAX_TARGETING_DIST = 32
 local TEXT_SCALE = 1
 local LARGE_TEXT_SCALE = 1.5
 local CYAN = Color3.new(0, 1, 1)
+local GRAY = Color3.new(0.5, 0.5, 0.5)
 local GREEN = Color3.new(0, 1, 0)
 local ORANGE = Color3.new(1, 0.768627, 0)
+local RED = Color3.new(1, 0, 0)
 local WHITE = Color3.new(1, 1, 1)
 
 --[=[
@@ -49,7 +55,6 @@ end
 function BrainDebugRenderer.clear(): ()
 	table.clear(brainDumpsPerEntity)
 	table.clear(entityByUuid)
-	BrainDebugRenderer.destroyAllUis()
 	lastLookedAtEntityUuid = nil
 end
 
@@ -62,27 +67,9 @@ function BrainDebugRenderer.render()
 end
 
 function BrainDebugRenderer.clearRemovedEntities(): ()
-	for uuid in pairs(brainDumpsPerEntity) do
-		local character = entityByUuid[uuid]
-		if not character:IsDescendantOf(workspace) then
+	for uuid, brainDump in pairs(brainDumpsPerEntity) do
+		if BrainDebugRenderer.isNpcInvalid(brainDump) then
 			BrainDebugRenderer.cleanUpEntity(uuid)
-			continue
-		end
-
-		if not character.PrimaryPart then
-			BrainDebugRenderer.cleanUpEntity(uuid)
-			continue
-		end
-
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if not humanoid then
-			BrainDebugRenderer.cleanUpEntity(uuid)
-			continue
-		end
-
-		if humanoid.Health <= 0 then
-			BrainDebugRenderer.cleanUpEntity(uuid)
-			continue
 		end
 	end
 end
@@ -90,10 +77,6 @@ end
 function BrainDebugRenderer.cleanUpEntity(uuid: string): ()
 	brainDumpsPerEntity[uuid] = nil
 	entityByUuid[uuid] = nil
-end
-
-function BrainDebugRenderer.destroyAllUis(): ()
-	return
 end
 
 function BrainDebugRenderer.doRender(): ()
@@ -128,6 +111,27 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 			`health: {brainDump.health} / {brainDump.maxHealth}`, charPos, i, healthColor, TEXT_SCALE
 		)
 		i += 1
+	end
+
+	if isSelected then
+		-- traverse in reverse,
+		-- so higer priority statuses are on top
+		for index = #brainDump.detectedStatuses, 1, -1 do
+			local detectedStatus = brainDump.detectedStatuses[index]
+			BrainDebugRenderer.renderTextOverCharacter(
+				detectedStatus, charPos, i, RED, TEXT_SCALE
+			)
+			i += 1
+		end
+	end
+
+	if isSelected then
+		for _, suspicionLevel in ipairs(brainDump.suspicionLevels) do
+			BrainDebugRenderer.renderTextOverCharacter(
+				suspicionLevel, charPos, i, ORANGE, TEXT_SCALE
+			)
+			i += 1
+		end
 	end
 
 	if isSelected then
@@ -204,6 +208,28 @@ function BrainDebugRenderer.updateLastLookedAtCharacter(): ()
 end
 
 --
+
+function BrainDebugRenderer.isNpcInvalid(brainDump: BrainDebugPayload.BrainDump): boolean
+	local character = entityByUuid[brainDump.uuid]
+	if not character:IsDescendantOf(workspace) then
+		return true
+	end
+
+	if not character.PrimaryPart then
+		return true
+	end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return true
+	end
+
+	if humanoid.Health <= 0 then
+		return true
+	end
+
+	return false
+end
 
 function BrainDebugRenderer.isNpcSelected(brainDump: BrainDebugPayload.BrainDump): boolean
 	return lastLookedAtEntityUuid == brainDump.uuid

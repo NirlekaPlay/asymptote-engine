@@ -8,7 +8,9 @@ export type BrainDump = {
 	maxHealth: number,
 	memories: { string },
 	behaviors: { string },
-	activites: { string }
+	activites: { string },
+	detectedStatuses: { string },
+	suspicionLevels: { string }
 }
 
 return nil
