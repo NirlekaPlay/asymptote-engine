@@ -11,7 +11,7 @@ local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.u
 
 local ENGINE_VERSION_SCREEN_GUI_NAME = "EngineVersion"
 local ENGINE_VERSION_STRING_VALUE_NAME = "Version"
-local ENGINE_IS_EXPERIMENTAL_BOOL_VALUE = "IsExperimental"
+local ENGINE_IS_EXPERIMENTAL_BOOL_VALUE_NAME = "IsExperimental"
 local ENGINE_DEFAULT_HEAD_TEXT = "AsymptoteEngine: Demo"
 local ENGINE_IS_EXPERIMENTAL_HEAD_TEXT = "AsymptoteEngine Experimental Server"
 local IS_LOBBY_BOOL_VALUE = "IsLobby"
@@ -22,7 +22,7 @@ local localPlayer = Players.LocalPlayer
 local isStudio = RunService:IsStudio()
 local playerGui = localPlayer.PlayerGui
 local serverVersionStringValue = ReplicatedStorage:FindFirstChild(ENGINE_VERSION_STRING_VALUE_NAME) :: StringValue?
-local serverIsExperimentalBoolValue = ReplicatedStorage:FindFirstChild(ENGINE_IS_EXPERIMENTAL_BOOL_VALUE) :: BoolValue?
+local serverIsExperimentalBoolValue = ReplicatedStorage:FindFirstChild(ENGINE_IS_EXPERIMENTAL_BOOL_VALUE_NAME) :: BoolValue?
 local serverIsLobbyBoolValue = ReplicatedStorage:FindFirstChild(IS_LOBBY_BOOL_VALUE) :: BoolValue?
 local showJoinServerButtonTimer = 0
 local joinServerButton: TextButton? = nil
@@ -34,7 +34,7 @@ do
 	end
 
 	if not serverIsExperimentalBoolValue then
-		warn(`'{ENGINE_IS_EXPERIMENTAL_BOOL_VALUE}' BoolValue not found in ReplicatedStorage.`)
+		warn(`'{ENGINE_IS_EXPERIMENTAL_BOOL_VALUE_NAME}' BoolValue not found in ReplicatedStorage.`)
 	end
 
 	if not serverIsLobbyBoolValue then
@@ -48,6 +48,13 @@ end
 local EngineVersionGui = {}
 
 function EngineVersionGui.setEngineAndVersionTexts(headText: TextLabel, versionText: TextLabel): ()
+	if serverIsExperimentalBoolValue and serverIsExperimentalBoolValue.Value then
+		print("Asymptote Engine Experimental Version")
+		print("More stable than Stable version.")
+	else
+		print("Asymptote Engine Stable Version")
+	end
+
 	headText.Text = (serverIsExperimentalBoolValue and serverIsExperimentalBoolValue.Value ~= false)
 		and ENGINE_IS_EXPERIMENTAL_HEAD_TEXT or ENGINE_DEFAULT_HEAD_TEXT
 
@@ -69,6 +76,9 @@ function EngineVersionGui.setEngineAndVersionTexts(headText: TextLabel, versionT
 	else
 		UITextShadow.updateShadowProperties(versionText, versionTextShadow)
 	end
+
+	print("Version", serverVersionStringValue
+		and serverVersionStringValue.Value or ERR_MSG_NO_VERSION_STRING_VALUE)
 end
 
 function EngineVersionGui.createNewJoinServerButton(safeAreaFrame: Frame): TextButton?
