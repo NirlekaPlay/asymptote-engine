@@ -211,6 +211,10 @@ end
 
 function BrainDebugRenderer.isNpcInvalid(brainDump: BrainDebugPayload.BrainDump): boolean
 	local character = entityByUuid[brainDump.uuid]
+	if not character then
+		return true
+	end
+
 	if not character:IsDescendantOf(workspace) then
 		return true
 	end
