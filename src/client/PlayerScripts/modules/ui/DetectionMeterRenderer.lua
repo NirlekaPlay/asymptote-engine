@@ -8,7 +8,8 @@ local RTween = require(StarterPlayer.StarterPlayerScripts.client.modules.interpo
 local WorldPointer = require(script.Parent.WorldPointer)
 local localPlayer = Players.LocalPlayer
 
-local DETECTION_METER_IMAGE_CONTENT = Content.fromAssetId(80024390572126)
+local DETECTION_METER_IMAGE_GLOW_CONTENT = Content.fromAssetId(132854348499510)
+local DETECTION_METER_IMAGE_BACKGROUND_CONTENT = Content.fromAssetId(121436054593975)
 local RED = Color3.new(1, 0, 0)
 
 local detectionMeterScreenGui: ScreenGui
@@ -32,6 +33,7 @@ export type DetectionMeterObject = {
 export type DetectionMeterRenderCall = {
 	fillColor: Color3,
 	fillTransparency: number,
+	fillImageContent: Content,
 	susValue: number,
 	rotateTowardsWorldPos: Vector3
 }
@@ -90,6 +92,7 @@ end
 
 function DetectionMeterRenderer.renderDetectionMeter(
 	fillColor: Color3,
+	fillImageContent: Content,
 	susValue: number,
 	rotateTowardsWorldPos: Vector3,
 	fillTransparency: number
@@ -98,7 +101,8 @@ function DetectionMeterRenderer.renderDetectionMeter(
 		fillColor = fillColor,
 		susValue = susValue,
 		rotateTowardsWorldPos = rotateTowardsWorldPos,
-		fillTransparency = fillTransparency
+		fillTransparency = fillTransparency,
+		fillImageContent = fillImageContent
 	})
 end
 
@@ -109,6 +113,7 @@ function DetectionMeterRenderer.updateDetectionMeter(
 	local clampedSusValue = math.clamp(renderCallData.susValue, 0, 1)
 	detectionMeterObject.worldPointer:setTargetPos(renderCallData.rotateTowardsWorldPos)
 	detectionMeterObject.worldPointer:update()
+	detectionMeterObject.fillMeter.ImageContent = renderCallData.fillImageContent
 	detectionMeterObject.fillMeter.ImageColor3 = renderCallData.fillColor
 	detectionMeterObject.fillMeter.ImageTransparency = renderCallData.fillTransparency
 	detectionMeterObject.fillMeter.Size = UDim2.fromScale(clampedSusValue, 1)
@@ -167,7 +172,7 @@ function DetectionMeterRenderer.createDetectionMeter(): DetectionMeterObject
 	backgroundMeterImageLabel.Name = "Background"
 	backgroundMeterImageLabel.BackgroundTransparency = 1
 	backgroundMeterImageLabel.ImageTransparency = 0.5
-	backgroundMeterImageLabel.ImageContent = DETECTION_METER_IMAGE_CONTENT
+	backgroundMeterImageLabel.ImageContent = DETECTION_METER_IMAGE_BACKGROUND_CONTENT
 	backgroundMeterImageLabel.ImageColor3 = Color3.new(0, 0, 0)
 	backgroundMeterImageLabel.Size = UDim2.fromScale(1, 1)
 	backgroundMeterImageLabel.ScaleType = Enum.ScaleType.Crop
@@ -177,7 +182,7 @@ function DetectionMeterRenderer.createDetectionMeter(): DetectionMeterObject
 	local fillMeterImageLabel = Instance.new("ImageLabel")
 	fillMeterImageLabel.Name = "Fill"
 	fillMeterImageLabel.BackgroundTransparency = 1
-	fillMeterImageLabel.ImageContent = DETECTION_METER_IMAGE_CONTENT
+	fillMeterImageLabel.ImageContent = DETECTION_METER_IMAGE_GLOW_CONTENT
 	fillMeterImageLabel.ImageColor3 = Color3.new(1, 1, 1)
 	fillMeterImageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
 	fillMeterImageLabel.Position = UDim2.fromScale(0.5, 0.5)

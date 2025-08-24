@@ -8,6 +8,8 @@ local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPaylo
 local detectionWooshSoundPerUuid: { [string]: Sound } = {}
 local detectionDataPerUuid: { [string]: ExtendedDetectionData } = {}
 
+local DETECTION_METER_IMAGE_GLOW_CONTENT = Content.fromAssetId(132854348499510)
+local DETECTION_METER_IMAGE_BACKGROUND_CONTENT = Content.fromAssetId(121436054593975)
 local WOOSH_SOUND = ReplicatedStorage.shared.assets.sounds.detection_woosh
 local WOOSH_MIN_PICH = 1
 local WOOSH_MAX_PITH = 1.16
@@ -78,6 +80,9 @@ function DetectionMeter.updateDetectionMeter(extDetectionData: ExtendedDetection
 
 	local fillColor = extDetectionData.isRaising and WHITE or DARK_GRAY
 	local fillTransparency = extDetectionData.isRaising and 0 or 0.5
+	local fillImageContent = extDetectionData.isRaising
+		and DETECTION_METER_IMAGE_GLOW_CONTENT
+		or DETECTION_METER_IMAGE_BACKGROUND_CONTENT
 
 	DetectionMeter.updateWooshSound(extDetectionData)
 
@@ -86,7 +91,7 @@ function DetectionMeter.updateDetectionMeter(extDetectionData: ExtendedDetection
 			DetectionMeter.cleanupNpc(detectionData.uuid)
 		end
 
-		DetectionMeterRenderer.renderDetectionMeter(fillColor, clampedSusValue, charPos, fillTransparency)
+		DetectionMeterRenderer.renderDetectionMeter(fillColor, fillImageContent, clampedSusValue, charPos, fillTransparency)
 	end
 end
 
