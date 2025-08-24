@@ -43,7 +43,7 @@ local WHITE = Color3.new(1, 1, 1)
 
 	Displays a BillboardGui detailing Agents' brain system.
 	This includes, in order of appearance from top to bottom,
-	memories, activites, behaviors, health, and name.
+	memories, activities, behaviors, health, and name.
 ]=]
 local BrainDebugRenderer = {}
 
