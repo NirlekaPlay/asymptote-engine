@@ -43,26 +43,29 @@ end
 
 function WorldPointer.rotateFrameByAnchor(self: WorldPointer): ()
 	local frame = self.guiFrame
-	local size = frame.AbsoluteSize;
-	local topLeftCorner = self.originalAbsolutePos - size * frame.AnchorPoint
 
+	-- rotiation calculations
 	local centerCframe = calculateCenterCframe(camera)
 	local angle = calculateAngle(centerCframe, self.targetPos :: Vector3)
 	local theta = math.rad(angle)
 
-	local offset = size * frame.AnchorPoint;
+	-- rotate by anchor
+	local size = frame.AbsoluteSize;
+	local topLeftCorner = self.originalAbsolutePos - size * frame.AnchorPoint
+	
+	local offset = size * frame.AnchorPoint
 	local center = topLeftCorner + size / 2
-	local nonRotatedAnchor = topLeftCorner + offset;
+	local nonRotatedAnchor = topLeftCorner + offset
+	
+	local cos, sin = math.cos(theta), math.sin(theta)
+	local v = nonRotatedAnchor - center
+	local rv = Vector2.new(v.X * cos - v.Y * sin, v.X * sin + v.Y * cos)
+	
+	local rotatedAnchor = center + rv
+	local difference = nonRotatedAnchor - rotatedAnchor
 
-	local cos, sin = math.cos(theta), math.sin(theta);
-	local v = nonRotatedAnchor - center;
-	local rv = Vector2.new(v.X * cos - v.Y * sin, v.X  * sin + v.Y * cos);
-
-	local rotatedAnchor = center + rv;
-	local difference = nonRotatedAnchor - rotatedAnchor;
-
-	frame.Position = UDim2.new(0, nonRotatedAnchor.X + difference.X + offset.X, 0, nonRotatedAnchor.Y + difference.Y + offset.Y);
-	frame.Rotation = math.deg(theta);
+	frame.Position = UDim2.new(0, nonRotatedAnchor.X + difference.X + offset.X, 0, nonRotatedAnchor.Y + difference.Y + offset.Y)
+	frame.Rotation = math.deg(theta)
 end
 
 return WorldPointer
