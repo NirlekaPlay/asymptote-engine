@@ -53,6 +53,7 @@ function EngineVersionGui.setEngineAndVersionTexts(headText: TextLabel, versionT
 		print("More stable than Stable version.")
 	else
 		print("Asymptote Engine Stable Version")
+		print("Less stable than Experimental version.")
 	end
 
 	headText.Text = (serverIsExperimentalBoolValue and serverIsExperimentalBoolValue.Value ~= false)

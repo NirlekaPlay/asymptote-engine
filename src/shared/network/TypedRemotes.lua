@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
+local DetectionPayload = require(script.Parent.DetectionPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
 local _, RE = TypedRemote.parent()
@@ -12,7 +13,7 @@ type RE<T...> = TypedRemote.Event<T...>
 
 local playerHeadRotationJointRemote = RE("PlayerHeadRotation")
 return {
-	Detection = RE("Detection") :: RE<number, Model, Vector3>,
+	Detection = RE("Detection") :: RE<{DetectionPayload.DetectionData}>,
 	BubbleChat = RE("BubbleChat") :: RE<BasePart, string>,
 	Status = RE("Status") :: RE<{ [any]: true }>,
 	--

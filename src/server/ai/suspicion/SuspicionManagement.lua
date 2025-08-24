@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPayload)
 local BrainOwner = require(ServerScriptService.server.BrainOwner)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -19,6 +20,8 @@ local CONFIG = {
 	CURIOUS_COOLDOWN_TIME = 2,         -- In seconds,
 	ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 }
+
+local detectionDataBatch: { [Player]: {DetectionPayload.DetectionData} } = {}
 
 --[=[
 	@class SuspicionManagement
@@ -66,15 +69,13 @@ end
 function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number): ()
 	local hearablePlayers = self.agent:getBrain():getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
 	local visiblePlayers = self.agent:getBrain():getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
-	hearablePlayers = hearablePlayers
-		:map(function(expValue)
-			return expValue:getValue()
-		end)
+	hearablePlayers = hearablePlayers:map(function(hearable)
+		return hearable
+	end)
 		:orElse({})
-	visiblePlayers = visiblePlayers
-		:map(function(expValue)
-			return expValue:getValue()
-		end)
+	visiblePlayers = visiblePlayers:map(function(visible)
+		return visible
+	end)
 		:orElse({})
 
 	local totalDetectedPlayers: { [Player]: { isVisible: boolean, isHeard: boolean } } = {}
@@ -203,12 +204,6 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 			end
 		end
 	end
-
-	if next(self.suspicionLevels) ~= nil then
-		--print(self.suspicionLevels)
-	end
-
-	--print(self.suspicionLevels)
 end
 
 function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: Player, highestStatus: PlayerStatus.PlayerStatusType, deltaTime: number): ()
@@ -299,19 +294,36 @@ function SuspicionManagement.syncSuspicionToPlayer(
 	susValue: number
 ): ()
 	local character = self.agent.character
-	local fromPos = character.PrimaryPart.Position
 	if susValue >= 1 then
 		local sound = CONFIG.ALERTED_SOUND:Clone()
 		sound.Parent = character.PrimaryPart
 		sound.PlayOnRemove = true
 		sound:Destroy()
 	end
-	TypedDetectionRemote:FireClient(
-		player,
-		susValue,
-		character,
-		fromPos
-	)
+
+	SuspicionManagement.addToBatch(player, {
+		character = character,
+		uuid = self.agent:getUuid() :: string,
+		detectionValue = susValue
+	})
+end
+
+--
+
+function SuspicionManagement.addToBatch(to: Player, data: DetectionPayload.DetectionData)
+	if not detectionDataBatch[to] then
+		detectionDataBatch[to] = {}
+	end
+
+	table.insert(detectionDataBatch[to], data)
+end
+
+function SuspicionManagement.flushBatchToClients(): ()
+	for player, datas in pairs(detectionDataBatch) do
+		TypedDetectionRemote:FireClient(player, datas)
+	end
+
+	table.clear(detectionDataBatch)
 end
 
 return SuspicionManagement
