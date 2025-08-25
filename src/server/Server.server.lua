@@ -8,62 +8,48 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require("./player/PlayerStatusRegistry")
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+local Level = require(ServerScriptService.server.level.Level)
 local Guard = require(ServerScriptService.server.npc.guard.Guard)
-local TrespassingZone = require(ServerScriptService.server.zone.TrespassingZone)
 
 local GUARD_TAG_NAME = "Guard"
 local GUARD_POSTS_TAG_NAME = "Post"
-local MINOR_TRESPASSING_ZONE_TAG_NAME = "MinorTrespassingZone"
-local MAJOR_TRESPASSING_ZONE_TAG_NAME = "MajorTrespassingZone"
 
-local MINOR_TRESPASSING_CONFIG: TrespassingZone.ZoneConfig = {
-	penalties = {
-		disguised = nil,
-		undisguised = "MINOR_TRESPASSING"
-	}
-}
-
-local MAJOR_TRESPASSING_ZONE: TrespassingZone.ZoneConfig = {
-	penalties = {
-		disguised = "MINOR_TRESPASSING",
-		undisguised = "MAJOR_TRESPASSING"
-	}
-}
-
-local zones: { TrespassingZone.TrespassingZone } = {}
 local guards: { [Model]: Guard.Guard } = {}
-local currentGuardPosts: { GuardPost.GuardPost } = {}
+local basicGuardPosts: { GuardPost.GuardPost } = {}
+local advancedGuardPosts: { GuardPost.GuardPost } = {}
 
 local function setupGuardPosts()
 	for _, post in ipairs(CollectionService:GetTagged(GUARD_POSTS_TAG_NAME)) do
 		local newGuardPost = GuardPost.fromPart(post, false)
-		table.insert(currentGuardPosts, newGuardPost)
+		if post.Parent.Name == "basic" then
+			table.insert(basicGuardPosts, newGuardPost)
+		else
+			table.insert(advancedGuardPosts, newGuardPost)
+		end
 	end
 end
 
 setupGuardPosts()
 
-local function setupTrespassingZones()
-	for _, zone in ipairs(CollectionService:GetTagged(MINOR_TRESPASSING_ZONE_TAG_NAME)) do
-		local newZone = TrespassingZone.fromPart(zone, MINOR_TRESPASSING_CONFIG)
-		table.insert(zones, newZone)
+local function setupGuard(guardChar: Model): ()
+	local designatedPosts
+	if guardChar:GetAttribute("CanSeeThroughDisguises") then
+		designatedPosts = advancedGuardPosts
+	else
+		designatedPosts = basicGuardPosts
 	end
-
-	for _, zone in ipairs(CollectionService:GetTagged(MAJOR_TRESPASSING_ZONE_TAG_NAME)) do
-		local newZone = TrespassingZone.fromPart(zone, MAJOR_TRESPASSING_ZONE)
-		table.insert(zones, newZone)
-	end
+	local newGuard = Guard.new(guardChar, designatedPosts)
+	guards[guardChar] = newGuard
 end
-
-setupTrespassingZones()
 
 local function setupGuards()
 	for _, guard in ipairs(CollectionService:GetTagged(GUARD_TAG_NAME)) do
 		if guard.Parent ~= workspace then
 			continue
 		end
-		local newGuard = Guard.new(guard, currentGuardPosts)
-		guards[guard] = newGuard
+
+		setupGuard(guard)
 	end
 end
 
@@ -75,21 +61,17 @@ CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
 		connection = guard:GetPropertyChangedSignal("Parent"):Connect(function()
 			if guard.Parent == workspace then
 				connection:Disconnect()
-				local newGuard = Guard.new(guard, currentGuardPosts)
-				guards[guard] = newGuard
+				setupGuard(guard)
 			end
 		end)
 		return
 	end
 
-	local newGuard = Guard.new(guard, currentGuardPosts)
-	guards[guard] = newGuard
+	setupGuard(guard)
 end)
 
 RunService.PostSimulation:Connect(function(deltaTime)
-	for _, zone in ipairs(zones) do
-		zone:update()
-	end
+	Level.update(deltaTime)
 
 	-- this frame, is there any listening clients?
 	local hasListeningClients = DebugPackets.hasListeningClients(DebugPackets.Packets.DEBUG_BRAIN)
@@ -113,6 +95,9 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	if hasListeningClients then
 		DebugPackets.flushBrainDumpsToListeningClients()
 	end
+
+	-- oh god
+	SuspicionManagement.flushBatchToClients()
 end)
 
 if not PhysicsService:IsCollisionGroupRegistered("NonCollideWithPlayer") then
