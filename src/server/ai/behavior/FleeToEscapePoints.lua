@@ -57,6 +57,7 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 	local post = self:getPostWithMinimumDistanceFromPanicPos(agent)
 	if post then
 		agent.character.Humanoid.WalkSpeed = 19
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
 		agent:getNavigation():moveTo(post.cframe.Position)
 	end
 end
@@ -66,14 +67,15 @@ local function reflect(direction: Vector3, normal: Vector3): Vector3
 end
 
 function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
-	local panicPlayerSource = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get():getValue()
+	local panicPlayerSource = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get()
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, false)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.HAS_FLED, true)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, panicPlayerSource)
 	agent:getNavigation():stop()
 	agent:getFaceControl():setFace("Angry")
 
 	local maxDistance = 25
-	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get():getValue()
+	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
 	local agentPos = agent:getPrimaryPart().Position
 	local direction = (panicPos - agentPos).Unit
 	local rayParams = RaycastParams.new()
@@ -82,7 +84,7 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 	local rayResult = workspace:Raycast(agentPos, direction * maxDistance, rayParams)
 	if not rayResult then
 		agent:getBodyRotationControl():setRotateTowards(panicPos)
-		Debris:AddItem(Draw.raycast(agentPos, direction * maxDistance), 5)
+		Debris:AddItem(Draw.raycast(agentPos, direction * maxDistance), 15)
 	else
 		local reflectedDirection = reflect(direction, rayResult.Normal).Unit
 		local distanceToHit = (agentPos - rayResult.Position).Magnitude
@@ -91,9 +93,9 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 
 		agent:getBodyRotationControl():setRotateTowards(finalPos)
 
-		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.184314, 0, 1)), 5)
-		Debris:AddItem(Draw.line(rayResult.Position, finalPos, Color3.new(0.184314, 0, 1)), 5)
-		Debris:AddItem(Draw.point(finalPos, Color3.new(0.968627, 0, 1)), 1)
+		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.184314, 0, 1)), 15)
+		Debris:AddItem(Draw.line(rayResult.Position, finalPos, Color3.new(0.184314, 0, 1)), 15)
+		Debris:AddItem(Draw.point(finalPos, Color3.new(0.968627, 0, 1)), 15)
 	end
 end
 
@@ -104,12 +106,10 @@ end
 --
 
 function FleeToEscapePoints.getPostWithMinimumDistanceFromPanicPos(self: FleeToEscapePoints, agent: Agent): GuardPost.GuardPost?
-	local posts = agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get():getValue()
-	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get():getValue()
+	local posts = agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()
+	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
 	local agentPos = agent:getPrimaryPart().Position
-	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):flatMap(function(expValue)
-		return expValue:getValue()
-	end)
+	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):get()
 	
 	local bestPost = nil
 	local bestScore = -math.huge
@@ -167,12 +167,10 @@ end
 
 -- a more simpler approach if we just want basic "run away" behavior.
 function FleeToEscapePoints.getPostAwayFromPanic(self: FleeToEscapePoints, agent: Agent): GuardPost.GuardPost?
-	local posts = agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get():getValue()
-	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get():getValue()
+	local posts = agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()
+	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
 	local agentPos = agent:getPrimaryPart().Position
-	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):flatMap(function(expValue)
-		return expValue:getValue()
-	end)
+	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):get()
 	
 	-- Find the post that's furthest from panic position and reasonably accessible
 	local bestPost = nil

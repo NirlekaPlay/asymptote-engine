@@ -75,23 +75,57 @@ local function isEmptyTable(t: { [any]: any }): boolean
 	return next(t) == nil
 end
 
-function Brain.getMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): Optional<ExpireableValue<U>>
+--[=[
+	Fetches the Optional associated with the given memory module type.
+	Throws an error if the memory module type has not been registered.
+	Otherwise, returns an Optional containing the stored value, which
+	may be empty if the memory is unset.
+]=]
+function Brain.getMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): Optional<U>
 	local optional = self.memories[memoryType]
 	if (optional :: any) == nil then
 		error(`Attempt to fetch unregistered '{memoryType.name}' memory`)
 	else
-		return optional
+		return optional:map(function(expireableValue) 
+			return expireableValue:getValue()
+		end)
 	end
 end
 
-function Brain.hasMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): boolean
-	return self.memories[memoryType] ~= nil
-end
+--[=[
+	Returns whether the memory associated with the given MemoryModuleType
+	has a stored value.
 
+	Each registered memory module always has an Optional container but the
+	Optional may be empty if no value has been set. This function returns
+	true only when the Optional is populated; otherwise, it returns false.
+
+	Unregistered memory types will always return false.
+]=]
 function Brain.hasMemoryValue<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): boolean
 	return self:checkMemory(memoryType, MemoryStatus.VALUE_PRESENT)
 end
 
+--[=[
+	Checks the state of the memory associated with the given MemoryModuleType
+	against the provided MemoryStatus.
+
+	The `MemoryStatus` determines what this function tests for:
+
+	- `MemoryStatus.REGISTERED`:  
+	  Returns true if the given memory type has been registered, regardless of
+	  whether it currently has a value.
+	- `MemoryStatus.VALUE_PRESENT`:  
+	  Returns true only if the memory type is registered **and** its Optional
+	  currently contains a value.
+	- `MemoryStatus.VALUE_ABSENT`:  
+	  Returns true only if the memory type is registered **and** its Optional
+	  is empty.
+
+	If the memory type has never been registered, the function always returns false
+	for `VALUE_PRESENT` and `VALUE_ABSENT`, but returns false for `REGISTERED` only
+	if the Optional itself is missing entirely.
+]=]
 function Brain.checkMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, status: MemoryStatus): boolean
 	local optional = self.memories[memoryType]
 
@@ -104,23 +138,39 @@ function Brain.checkMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>
 		or (status == MemoryStatus.VALUE_ABSENT and not optional:isPresent())
 end
 
+--[=[
+	Clears the value associated with the given MemoryModuleType.
+
+	This replaces the existing Optional for the given memory type with an
+	empty Optional, effectively "forgetting" any previously stored value.
+]=]
 function Brain.eraseMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): ()
 	self:setMemoryInternal(memoryType, Optional.empty())
 end
 
+--[=[
+	Sets the memory value for the given MemoryModuleType, accepting a value
+	that can be nil.
+
+	* If `memoryValue` is not nil, it is wrapped in a non-expiring ExpireableValue.
+	* If `memoryValue` is nil, the memory is effectively erased by storing an empty Optional.
+]=]
 function Brain.setNullableMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, memoryValue: U?): ()
 	self:setMemoryInternal(memoryType, Optional.ofNullable(memoryValue):map(ExpireableValue.nonExpiring))
 end
 
+--[=[
+	Sets the memory value for the given MemoryModuleType with a time-to-live (TTL)
+
+	The value is wrapped in an ExpireableValue that automatically expires
+	after the given number of seconds. Once expired, the memory is set to an
+	empty Optional, effectiely erasing it.
+]=]
 function Brain.setMemoryWithExpiry<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, memoryValue: U, ttl: number): ()
 	self:setMemoryInternal(memoryType, Optional.of(ExpireableValue.new(memoryValue, ttl)))
 end
 
-function Brain.setMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, optional: Optional<U>): ()
-	self:setMemoryInternal(memoryType, optional:map(ExpireableValue.nonExpiring))
-end
-
-function Brain.setMemoryInternal<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, optional: Optional<ExpireableValue<U?>>): ()
+function Brain.setMemoryInternal<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, optional: Optional<ExpireableValue<U>>): ()
 	if self.memories[memoryType] then
 		if optional:isPresent() and isEmptyTable(optional:get():getValue()) then
 			self:eraseMemory(memoryType)
@@ -129,6 +179,8 @@ function Brain.setMemoryInternal<T, U>(self: Brain<T>, memoryType: MemoryModuleT
 		end
 	end
 end
+
+--
 
 function Brain.setCoreActivities<T>(self: Brain<T>, activities: { Activity }): ()
 	local coreActivitiesSet = {}

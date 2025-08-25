@@ -69,7 +69,7 @@ function GuardPanic.doStop(self: GuardPanic, agent: Agent): ()
 end
 
 function GuardPanic.doUpdate(self: GuardPanic, agent: Agent, deltaTime: number): ()
-	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get():getValue()
+	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get()
 	if agent:canBeIntimidated() and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.LOOK_TARGET) then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, player)
 	end

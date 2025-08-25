@@ -49,7 +49,7 @@ end
 
 function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 	self.alreadyRun = true
-	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get():getValue()
+	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get()
 	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
 	if not playerStatus then
 		return

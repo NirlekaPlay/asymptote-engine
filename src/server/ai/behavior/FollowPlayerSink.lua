@@ -45,7 +45,7 @@ function FollowPlayerSink.checkExtraStartConditions(self: FollowPlayerSink, agen
 		return false
 	end
 
-	local followTarget = agent:getBrain():getMemory(MemoryModuleTypes.FOLLOW_TARGET):get():getValue()
+	local followTarget = agent:getBrain():getMemory(MemoryModuleTypes.FOLLOW_TARGET):get()
 	if not followTarget.Character then
 		return false
 	end
@@ -70,7 +70,7 @@ function FollowPlayerSink.canStillUse(self: FollowPlayerSink, agent: Agent): boo
 end
 
 function FollowPlayerSink.doStart(self: FollowPlayerSink, agent: Agent): ()
-	local followTarget = agent:getBrain():getMemory(MemoryModuleTypes.FOLLOW_TARGET):get():getValue()
+	local followTarget = agent:getBrain():getMemory(MemoryModuleTypes.FOLLOW_TARGET):get()
 	local followTargetPrimaryPart = followTarget.Character.PrimaryPart :: BasePart
 
 	self.following = true

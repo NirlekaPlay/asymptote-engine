@@ -34,9 +34,7 @@ function HearingPlayersSensor.doUpdate(self: HearingPlayersSensor, agent: Agent,
 	local visiblePlayers: { [Player]: true } = {}
 
 	for _, player in ipairs(Players:GetPlayers()) do
-		if agent:getBrain():getMemory(MemoryModuleTypes.VISIBLE_PLAYERS):map(function(expValue)
-			return expValue:getValue()[player]
-		end):isPresent() then
+		if agent:getBrain():getMemory(MemoryModuleTypes.VISIBLE_PLAYERS):isPresent() then
 			continue
 		end
 		local isHeard = self:isHeard(agent, player)

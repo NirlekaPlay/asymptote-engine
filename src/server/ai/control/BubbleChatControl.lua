@@ -22,6 +22,8 @@ function BubbleChatControl.new(character: Model): BubbleChatControl
 end
 
 function BubbleChatControl.displayBubble(self: BubbleChatControl, text: string): ()
+	print(self.character)
+	print(self.character.PrimaryPart)
 	TypedBubbleChatRemote:FireAllClients(self.character.PrimaryPart, text)
 end
 

@@ -31,7 +31,7 @@ end
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
 	self:stop()
 	self.pathfinder:Run(toPos)
-	self.reachedConnection = self.pathfinder.Reached:Connect(function()
+	self.reachedConnection = self.pathfinder.Reached:Once(function()
 		self.finished = true
 	end)
 end

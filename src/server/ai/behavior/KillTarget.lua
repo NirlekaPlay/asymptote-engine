@@ -47,23 +47,19 @@ end
 function KillTarget.canStillUse(self: KillTarget, agent: Agent): boolean
 	local brain = agent:getBrain()
 	local killTarget = brain:getMemory(MemoryModuleTypes.KILL_TARGET)
-		:map(function(expValue)
-			return expValue:getValue()
-		end)
-
 	-- stolen from LookAndFaceAtTargetSink
 	return killTarget
 		:flatMap(function(targetPlayer)
 			return brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
 				:map(function(visible)
-					return visible:getValue()[targetPlayer]
+					return visible[targetPlayer]
 			end)
 		end)
 		:isPresent() or killTarget
 		:flatMap(function(targetPlayer)
 				return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
-					:map(function(visible)
-						return visible:getValue()[targetPlayer]
+					:map(function(hearable)
+						return hearable[targetPlayer]
 			end)
 		end)
 		:isPresent()
@@ -75,6 +71,8 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 		magazineRoundsCapacity = 30,
 		fireDelay = 0.01
 	})
+	agent:getGunControl():reload()
+	agent.character:SetAttribute("HearingRadius", 30)
 end
 
 function KillTarget.doStop(self: KillTarget, agent: Agent): ()
@@ -84,11 +82,8 @@ end
 
 function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number): ()
 	local brain = agent:getBrain()
-	local killTarget = brain:getMemory(MemoryModuleTypes.KILL_TARGET)
-		:flatMap(function(expValue)
-			return expValue:getValue()
-		end) :: Player
-	
+	local killTarget = brain:getMemory(MemoryModuleTypes.KILL_TARGET):get()
+
 	if not killTarget.Character then
 		return
 	end

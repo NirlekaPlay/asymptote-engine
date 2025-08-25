@@ -80,16 +80,16 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 	local rot = agent:getBodyRotationControl()
 	local brain = agent:getBrain()
 	local targetPost = brain:getMemory(MemoryModuleTypes.TARGET_POST):get()
-	local patrolState = brain:getMemory(MemoryModuleTypes.PATROL_STATE):get():getValue()
+	local patrolState = brain:getMemory(MemoryModuleTypes.PATROL_STATE):get()
 
 	if patrolState == "RESUMING" then
 		-- TODO: Add cooldown to begin patrolling again after interruption if necessary
 
-		if targetPost and targetPost:getValue():isOccupied() then
+		if targetPost and targetPost:isOccupied() then
 			if (not self.isAtTargetPost) or (self.isAtTargetPost and nav:getPath() ~= self.pathToPost) then
-				self:moveToPost(agent, targetPost:getValue())
+				self:moveToPost(agent, targetPost)
 			else
-				rot:setRotateToDirection(targetPost:getValue().cframe.LookVector)
+				rot:setRotateToDirection(targetPost.cframe.LookVector)
 				brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, "STAYING")
 			end
 		else
@@ -107,19 +107,19 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, "STAYING")
 		self.isAtTargetPost = true
 		self.timeToReleasePost = math.random(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
-		rot:setRotateToDirection(targetPost:getValue().cframe.LookVector)
+		rot:setRotateToDirection(targetPost.cframe.LookVector)
 	elseif patrolState == "STAYING" then
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
 			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, "UNEMPLOYED")
-			self.previousPost = targetPost:getValue()
+			self.previousPost = targetPost
 			brain:setNullableMemory(MemoryModuleTypes.TARGET_POST, nil)
 			self.isAtTargetPost = false
 			rot:setRotateToDirection(nil)
 		end
 	end
 
-	if brain:getMemory(MemoryModuleTypes.PATROL_STATE):get():getValue() == "UNEMPLOYED" then
+	if brain:getMemory(MemoryModuleTypes.PATROL_STATE):get() == "UNEMPLOYED" then
 		local post = self:getRandomUnoccupiedPost(agent)
 		if post then
 			self:moveToPost(agent, post)
@@ -146,7 +146,7 @@ end
 function WalkToRandomPost.getRandomUnoccupiedPost(self: WalkToRandomPost, agent: Agent): GuardPost?
 	local unoccupied = {}
 
-	for _, post in ipairs(agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get():getValue()) do
+	for _, post in ipairs(agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()) do
 		if not post:isOccupied() then
 			table.insert(unoccupied, post)
 		end
@@ -166,10 +166,10 @@ function WalkToRandomPost.connectDiedConnection(self: WalkToRandomPost, agent: A
 			self.diedConnection = humanoid.Died:Once(function()
 				local targetPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST)
 				if targetPost:isPresent() then
-					targetPost:get():getValue():vacate()
+					targetPost:get():vacate()
 				end
 
-				if agent:getBrain():getMemory(MemoryModuleTypes.PATROL_STATE) == "UNEMPLOYED" then
+				if agent:getBrain():getMemory(MemoryModuleTypes.PATROL_STATE):get() == "UNEMPLOYED" then
 					if self.previousPost then
 						self.previousPost:vacate()
 					end

@@ -83,21 +83,15 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, deltaTime: number): ()
-	local reportingOn = agent:getBrain():getMemory(MemoryModuleTypes.REPORTING_ON):flatMap(function(expVal)
-		return expVal:getValue()
-	end)
+	local reportingOn = agent:getBrain():getMemory(MemoryModuleTypes.REPORTING_ON):get()
 
 	if reportingOn and reportingOn.reportType == "MINOR_TRESPASSER" then
 		return
 	end
 
-	local trespasser = agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):flatMap(function(expValue)
-		return expValue:getValue()
-	end)
+	local trespasser = agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):get()
 
-	local trespasserWarnsMemory = agent:getBrain():getMemory(MemoryModuleTypes.TRESPASSERS_WARNS):map(function(expValue)
-		return expValue:getValue()
-	end)
+	local trespasserWarnsMemory = agent:getBrain():getMemory(MemoryModuleTypes.TRESPASSERS_WARNS)
 		:orElse({})
 
 	local playerStatuses = PlayerStatusRegistry.getPlayerStatuses(trespasser)

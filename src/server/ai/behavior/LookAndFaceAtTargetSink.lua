@@ -39,29 +39,25 @@ end
 function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agent: Agent.Agent): boolean
 	local brain = agent:getBrain()
 	local lookTarget = brain:getMemory(MemoryModuleTypes.LOOK_TARGET)
-		:map(function(expValue)
-			return expValue:getValue()
-		end)
 
 	-- do you understand what i did here? because i dont.
 	-- yet it works so im not touching it.
+
 	return lookTarget
 		:flatMap(function(targetPlayer)
 			return brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
 				:map(function(visible)
-					return visible:getValue()[targetPlayer]
+					return visible[targetPlayer]
 			end)
 		end)
 		:isPresent() or lookTarget
 		:flatMap(function(targetPlayer)
 				return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
-					:map(function(visible)
-						return visible:getValue()[targetPlayer]
+					:map(function(hearable)
+						return hearable[targetPlayer]
 			end)
 		end)
 		:isPresent()
-
-		-- shit, flatMaps exist? mindblowing.
 end
 
 
@@ -78,7 +74,7 @@ end
 function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: Agent, deltaTime: number): ()
 	local lookTarget = agent:getBrain():getMemory(MemoryModuleTypes.LOOK_TARGET)
 	if lookTarget:isPresent() then
-		local charPos = lookTarget:get():getValue().Character.PrimaryPart.Position
+		local charPos = lookTarget:get().Character.PrimaryPart.Position
 		agent:getBodyRotationControl():setRotateTowards(charPos)
 		agent:getLookControl():setLookAtPos(charPos)
 	end
