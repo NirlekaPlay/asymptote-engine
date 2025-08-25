@@ -98,4 +98,28 @@ sing zone, it will result in the following outcomes:
     iii. Note that during this state, higher priority events mat inte-
          rrupt this state, such as an armed player.
 
+5. Actual Story.
+The Player can choose between 2 characters or more characters
+choosen by the Studio. For the tutorial level, the Character
+is tasked to assasinate the equipment vendor Dean. With the
+mission coordinator being one of the Trainers of Plasma
+Security Division, choosen by the Studio.
 
+ a. Required components for this mission:
+
+      i. Trespassing mechanics.
+     ii. Doors, locked with keys and keycards.
+    iii. Guard AI, patrols and propper reactions
+         to events and Player actions. Which now
+         should only include:
+            1. Both minor and major trespasses;
+            2. Gunshots;
+            3. Getting hurt;
+            4. Dead bodies; and
+            5. Disguises.
+     iv. Alert levels. Which raise from
+            1. Calm
+            2. Normal
+            3. Alert
+            4. Searching
+            5. Lockdown
