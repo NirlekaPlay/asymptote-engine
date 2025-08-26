@@ -65,6 +65,7 @@ function RagdollControl.ragdoll(self: RagdollControl, value: boolean)
 	end
 
 	if value then
+		self.humanoid.PlatformStand = true
 		self.humanoid:ChangeState(Enum.HumanoidStateType.Ragdoll)
 		self.humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
 		self:replaceJoints()
@@ -72,6 +73,7 @@ function RagdollControl.ragdoll(self: RagdollControl, value: boolean)
 	else 
 		self:resetJoints()
 		self.humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		self.humanoid.PlatformStand = false
 	end
 end
 
