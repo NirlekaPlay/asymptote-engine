@@ -14,14 +14,22 @@ local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedRemot
 local CONFIG = {
 	BASE_DETECTION_TIME = 1.25,        -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
 	QUICK_DETECTION_RANGE = 10,        -- In studs
-	QUICK_DETECTION_MULTIPLIER = 3.33, -- 
+	QUICK_DETECTION_MULTIPLIER = 3.33, -- If a suspect is within QUICK_DETECTION_RANGE, the detection speed is multiplied by this
 	DECAY_RATE_PER_SECOND = 0.2222,    -- Equivalent to 1% per 0.045s
 	CURIOUS_THRESHOLD = 60 / 100,      -- 60% progress to trigger curious state
 	CURIOUS_COOLDOWN_TIME = 2,         -- In seconds,
+	INSTANT_DETECTION_RULES = {
+		ARMED = 20,                    -- Pulling out a gun triggers instant detection within this distance
+		DANGEROUS_ITEM = 12.5          -- Carrying C4 triggers instant detection within this distance
+	},
+	QUICK_DETECTION_INSTANT_STATUSES = { -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
+		ARMED = true
+	},
 	ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 }
 
 local detectionDataBatch: { [Player]: {DetectionPayload.DetectionData} } = {}
+local statusTracker: { [Player]: PlayerStatus.PlayerStatusType } = {}
 
 --[=[
 	@class SuspicionManagement
@@ -206,25 +214,51 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 	end
 end
 
-function SuspicionManagement.raiseSuspicion(self: SuspicionManagement, player: Player, highestStatus: PlayerStatus.PlayerStatusType, deltaTime: number): ()
+function SuspicionManagement.raiseSuspicion(
+	self: SuspicionManagement,
+	player: Player,
+	highestStatus: PlayerStatus.PlayerStatusType,
+	deltaTime: number
+): ()
 	local playerSus = self.suspicionLevels[player][highestStatus] or 0
-	if playerSus >= 1 then
-		return
+	if playerSus >= 1 then return end
+
+	local agentPos = self.agent.character.PrimaryPart.Position
+	local playerPos = player.Character.PrimaryPart.Position
+	local distance = (agentPos - playerPos).Magnitude
+
+	-- detect status changes
+	local previousStatus = statusTracker[player]
+	if previousStatus ~= highestStatus then
+		statusTracker[player] = highestStatus
+
+		-- check if new status is dangerous and within instant detection range
+		local instantRange = CONFIG.INSTANT_DETECTION_RULES[highestStatus] :: number
+		if (instantRange and distance <= instantRange)
+			or (CONFIG.QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= CONFIG.QUICK_DETECTION_RANGE)then
+			self.suspicionLevels[player][highestStatus] = 1
+			self.detectedStatuses[highestStatus] = player
+			self:syncSuspicionToPlayer(player, 1)
+			return
+		end
 	end
+
+	-- otherwise, normal suspicion raise
 	local speedModifier = PlayerStatus.getStatusDetectionSpeedModifier(highestStatus)
-	local distance = (self.agent.character.PrimaryPart.Position - player.Character.PrimaryPart.Position).Magnitude
 	if distance <= CONFIG.QUICK_DETECTION_RANGE then
 		speedModifier *= CONFIG.QUICK_DETECTION_MULTIPLIER
 	end
+
 	local detectionSpeed = 1 + (speedModifier / 100)
-
 	local progressRate = (1 / CONFIG.BASE_DETECTION_TIME) * detectionSpeed
-	playerSus = math.clamp(playerSus + progressRate * deltaTime, 0.0, 1.0)
 
+	playerSus = math.clamp(playerSus + progressRate * deltaTime, 0.0, 1.0)
 	self.suspicionLevels[player][highestStatus] = playerSus
+
 	if playerSus >= 1 then
 		self.detectedStatuses[highestStatus] = player
 	end
+
 	self:syncSuspicionToPlayer(player, playerSus)
 end
 
@@ -247,7 +281,7 @@ function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement,
 
 	local bestPlayer = nil
 	local bestPlayerStatus = nil
-	local bestPriority = -math.huge -- Assume higher number = higher priority
+	local bestPriority = -math.huge -- higher number equals higher priority
 	local closestDistance = math.huge
 
 	for player, profile in pairs(players) do
