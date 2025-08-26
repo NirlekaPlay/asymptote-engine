@@ -79,7 +79,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end
 
 	self.isPathfindingValue = isPathfinding
-	self.uuid = HttpService:GenerateGUID()
+	self.uuid = HttpService:GenerateGUID(false)
 	self.brain = GuardAi.makeBrain(self)
 
 	for _, part in ipairs(character:GetDescendants()) do
@@ -140,8 +140,8 @@ function Guard.isAlive(self: Guard): boolean
 	return self.alive
 end
 
-function Guard.getCharacterName(self: Guard): string
-	return self.character:GetAttribute("CharName") or "Unnamed"
+function Guard.getCharacterName(self: Guard): string?
+	return self.character:GetAttribute("CharName")
 end
 
 function Guard.getBrain(self: Guard): Brain.Brain<Agent.Agent>

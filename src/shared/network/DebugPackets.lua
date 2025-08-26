@@ -3,6 +3,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
+local DebugEntityNameGenerator = require(script.Parent.DebugEntityNameGenerator)
 local TypedRemotes = require(script.Parent.TypedRemotes)
 local Agent = require(ServerScriptService.server.Agent)
 local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
@@ -114,7 +115,7 @@ function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.Bra
 	brainDump.character = agent.character
 	brainDump.health = agent.character.Humanoid.Health
 	brainDump.maxHealth = agent.character.Humanoid.MaxHealth
-	brainDump.name = agent:getCharacterName()
+	brainDump.name = DebugEntityNameGenerator.getEntityName(agent)
 	brainDump.uuid = agent:getUuid()
 	brainDump.detectedStatuses = DebugPackets.getDetectedStatusesDescriptions(agent)
 	brainDump.suspicionLevels = {}
