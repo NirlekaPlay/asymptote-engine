@@ -60,6 +60,14 @@ function Level.initializeCells(cellsFolder: Folder): ()
 		local cframe, size = cellModel:GetBoundingBox()
 		local bounds = { CFrame = cframe, Size = size }
 		Cell.addCell(cellName, bounds, cellConfig)
+
+		for _, cellChild in ipairs(cellModel:GetChildren()) do
+			if not cellChild:IsA("BasePart") then
+				continue
+			end
+
+			cellChild.Transparency = 1
+		end
 	end
 end
 
