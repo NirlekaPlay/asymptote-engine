@@ -127,6 +127,7 @@ function DetectionMeter.cleanupNpc(uuid: string): ()
 	detectionDataPerUuid[uuid] = nil
 	if detectionWooshSoundPerUuid[uuid] then
 		detectionWooshSoundPerUuid[uuid]:Destroy()
+		detectionWooshSoundPerUuid[uuid] = nil
 	end
 end
 

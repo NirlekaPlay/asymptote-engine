@@ -1,7 +1,6 @@
 --!strict
 
 local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local GuardAi = require(script.Parent.GuardAi)
@@ -63,8 +62,8 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.ragdollControl = RagdollControl.new(character)
 	self.random = Random.new(tick())
 
-	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
-	humanoid.Died:Once(function()
+	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
 		self.alive = false
 		self:onDied()
 	end)
@@ -97,6 +96,10 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end)
 
 	character.Destroying:Once(function()
+		if humanoidDiedConnection then
+			humanoidDiedConnection:Disconnect()
+			humanoidDiedConnection = nil
+		end
 		descendantAddedConnection:Disconnect()
 	end)
 

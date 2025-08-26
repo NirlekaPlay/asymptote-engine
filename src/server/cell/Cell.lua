@@ -80,7 +80,7 @@ function Cell.recalculatePlayers(): ()
 
 	-- O(*sodding terrible*)
 	for cellName, boundsList in pairs(boundsPerCells) do
-		local playersInCell = {}
+		local playersInCell:{ [Player]: true } = {}
 
 		for _, bounds in ipairs(boundsList) do
 			local partsInBounds = workspace:GetPartBoundsInBox(
@@ -116,6 +116,10 @@ function Cell.updatePlayersTrespassingStatus(): ()
 		end
 
 		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		if not playerStatus then
+			continue
+		end
+
 		local disguised = playerStatus:hasStatus("DISGUISED")
 		local penalty: PlayerStatus.PlayerStatusType?
 
@@ -125,7 +129,7 @@ function Cell.updatePlayersTrespassingStatus(): ()
 			penalty = cellConfig.penalties.undisguised
 		end
 
-		local appliedPenalties = playerZonePenalties[player] or {}
+		local appliedPenalties: { [PlayerStatus.PlayerStatusType]: true } = playerZonePenalties[player] or {}
 
 		-- apply current penalty if applicable
 		if penalty and not playerStatus:hasStatus(penalty) then

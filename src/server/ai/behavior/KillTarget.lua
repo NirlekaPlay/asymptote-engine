@@ -69,7 +69,7 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 	agent:getGunControl():equipGun({
 		roundsInMagazine = 0,
 		magazineRoundsCapacity = 30,
-		fireDelay = 0.01
+		fireDelay = 0.15
 	})
 	agent:getGunControl():reload()
 	agent.character:SetAttribute("HearingRadius", 30)

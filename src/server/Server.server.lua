@@ -83,6 +83,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		end
 
 		if not guard:isAlive() then
+			setmetatable(guards[model], nil)
 			guards[model] = nil
 			continue
 		end
@@ -105,8 +106,11 @@ if not PhysicsService:IsCollisionGroupRegistered("NonCollideWithPlayer") then
 end
 PhysicsService:CollisionGroupSetCollidable("NonCollideWithPlayer", "NonCollideWithPlayer", false)
 
+local playerConnections: { [Player]: RBXScriptConnection } = {} 
+
 Players.PlayerAdded:Connect(function(player)
-	player.CharacterAppearanceLoaded:Connect(function(character)
+	local charConn
+	charConn = player.CharacterAppearanceLoaded:Connect(function(character)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.Died:Once(function()
@@ -121,4 +125,13 @@ Players.PlayerAdded:Connect(function(player)
 			end
 		end
 	end)
+
+	playerConnections[player] = charConn
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if playerConnections[player] then
+		playerConnections[player]:Disconnect()
+		playerConnections[player] = nil
+	end
 end)

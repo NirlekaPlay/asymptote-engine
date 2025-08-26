@@ -22,9 +22,24 @@ function BubbleChatControl.new(character: Model): BubbleChatControl
 end
 
 function BubbleChatControl.displayBubble(self: BubbleChatControl, text: string): ()
-	print(self.character)
-	print(self.character.PrimaryPart)
+	if not self:isAgentValid() then
+		return
+	end
+
 	TypedBubbleChatRemote:FireAllClients(self.character.PrimaryPart, text)
+end
+
+function BubbleChatControl.isAgentValid(self: BubbleChatControl): boolean
+	local character = self.character
+	if not character or not character:IsDescendantOf(workspace) then
+		return false
+	end
+
+	if not character.PrimaryPart then
+		return false
+	end
+
+	return true
 end
 
 return BubbleChatControl
