@@ -6,7 +6,17 @@ local TypedStatusRemote = require(ReplicatedStorage.shared.network.TypedRemotes)
 --[=[
 	@class PlayerStatus
 ]=]
-local PlayerStatus = {}
+local PlayerStatus = {
+	Status = { -- why.
+		DISGUISED = "DISGUISED" :: PlayerStatusType,
+		MINOR_TRESPASSING = "MINOR_TRESPASSING" :: PlayerStatusType,
+		MINOR_SUSPICIOUS = "MINOR_SUSPICIOUS" :: PlayerStatusType,
+		MAJOR_TRESPASSING = "MAJOR_TRESPASSING" :: PlayerStatusType,
+		CRIMINAL_SUSPICIOUS = "CRIMINAL_SUSPICIOUS" :: PlayerStatusType,
+		DANGEROUS_ITEM = "DANGEROUS_ITEM" :: PlayerStatusType,
+		ARMED = "ARMED" :: PlayerStatusType
+	}
+}
 PlayerStatus.__index = PlayerStatus
 
 export type PlayerStatus = typeof(setmetatable({} :: {

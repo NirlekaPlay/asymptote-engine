@@ -22,10 +22,10 @@ local advancedGuardPosts: { GuardPost.GuardPost } = {}
 local function setupGuardPosts()
 	for _, post in ipairs(CollectionService:GetTagged(GUARD_POSTS_TAG_NAME)) do
 		local newGuardPost = GuardPost.fromPart(post, false)
-		if post.Parent.Name == "basic" then
-			table.insert(basicGuardPosts, newGuardPost)
-		else
+		if post.Parent.Name == "advanced" then
 			table.insert(advancedGuardPosts, newGuardPost)
+		else
+			table.insert(basicGuardPosts, newGuardPost)
 		end
 	end
 end
@@ -69,6 +69,8 @@ CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
 
 	setupGuard(guard)
 end)
+
+Level.initializeLevel()
 
 RunService.PostSimulation:Connect(function(deltaTime)
 	Level.update(deltaTime)
