@@ -16,7 +16,8 @@ KillTarget.ClassName = "KillTarget"
 
 export type KillTarget = typeof(setmetatable({} :: {
 	triggerFingerCooldown: number,
-	humanoidDiedConnection: RBXScriptConnection?
+	targetHumanoidDiedConnection: RBXScriptConnection?,
+	selfHumanoidDiedConnection: RBXScriptConnection?
 }, KillTarget))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
@@ -28,7 +29,8 @@ function KillTarget.new(): KillTarget
 		minDuration = math.huge,
 		maxDuration = math.huge,
 		triggerFingerCooldown = 0.5,
-		humanoidDiedConnection = nil
+		targetHumanoidDiedConnection = nil,
+		selfHumanoidDiedConnection = nil
 	}, KillTarget)
 end
 
@@ -73,6 +75,15 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 	})
 	agent:getGunControl():reload()
 	agent.character:SetAttribute("HearingRadius", 30)
+
+	if not self.selfHumanoidDiedConnection then
+		self.selfHumanoidDiedConnection = agent.character:FindFirstChildOfClass("Humanoid").Died:Once(function()
+			if self.targetHumanoidDiedConnection then
+				self.targetHumanoidDiedConnection:Disconnect()
+				self.targetHumanoidDiedConnection = nil
+			end
+		end)
+	end
 end
 
 function KillTarget.doStop(self: KillTarget, agent: Agent): ()
@@ -113,13 +124,17 @@ function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number):
 		end
 	end
 
-	if not self.humanoidDiedConnection then
-		self.humanoidDiedConnection = humanoid.Died:Connect(function()
+	if not self.targetHumanoidDiedConnection then
+		self.targetHumanoidDiedConnection = humanoid.Died:Once(function()
+			if not agent then
+				return
+			end
+
 			agent:getTalkControl():sayRandomSequences({
 				{"You'll be back!", "You *always* come back!", "I can work with that!"},
 				{"You can't just die that easily!"}
 			})
-			self.humanoidDiedConnection = nil
+			self.targetHumanoidDiedConnection = nil
 		end)
 	end
 end
