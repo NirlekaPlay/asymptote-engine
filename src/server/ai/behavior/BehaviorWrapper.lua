@@ -15,6 +15,7 @@ export type BehaviorWrapper = typeof(setmetatable({} :: {
 	status: Status,
 	behavior: Behavior,
 	endTimesStamp: number,
+	reactionTimer: number?,
 	minDuration: number,
 	maxDuration: number
 }, BehaviorWrapper))
@@ -30,6 +31,7 @@ function BehaviorWrapper.new(behavior: Behavior): BehaviorWrapper
 		behavior = behavior,
 		minDuration = behavior.minDuration or 60,
 		maxDuration = behavior.maxDuration or 60,
+		reactionTimer = nil,
 		endTimesStamp = 0,
 		name = behavior.ClassName or "UntitledBehavior"
 	}, BehaviorWrapper)
@@ -39,14 +41,46 @@ function BehaviorWrapper.getStatus(self: BehaviorWrapper): Status
 	return self.status
 end
 
-function BehaviorWrapper.tryStart(self: BehaviorWrapper, agent: Agent, currentTime: number): boolean
-	if self:hasRequiredMemories(agent) and self.behavior:checkExtraStartConditions(agent) then
-		self.status = BehaviorControl.Status.RUNNING
-		local i = agent:getRandom():NextInteger(self.minDuration, self.maxDuration)
-		self.endTimesStamp = currentTime + i
-		self.behavior:doStart(agent)
-		return true
+function BehaviorWrapper.tryStart(self: BehaviorWrapper, agent: Agent, currentTime: number, deltaTime: number): boolean
+	if not self:hasRequiredMemories(agent) then
+		self.reactionTimer = nil
+		return false
+	end
+
+	if self.behavior:checkExtraStartConditions(agent) then
+		local requiredReaction = 0
+		if self.behavior.getReactionTime then
+			requiredReaction = self.behavior:getReactionTime(agent, deltaTime) or 0
+		end
+
+
+		if requiredReaction <= 0 then
+			self.status = BehaviorControl.Status.RUNNING
+			local i = agent:getRandom():NextInteger(self.minDuration, self.maxDuration)
+			self.endTimesStamp = currentTime + i
+			self.behavior:doStart(agent)
+			return true
+		end
+
+		if self.reactionTimer == nil then
+			self.reactionTimer = requiredReaction
+		end
+
+		self.reactionTimer -= deltaTime
+
+		if self.reactionTimer <= 0 then
+			self.reactionTimer = nil
+			self.status = BehaviorControl.Status.RUNNING
+
+			local i = agent:getRandom():NextInteger(self.minDuration, self.maxDuration)
+			self.endTimesStamp = currentTime + i
+			self.behavior:doStart(agent)
+			return true
+		end
+
+		return false
 	else
+		self.reactionTimer = nil
 		return false
 	end
 end

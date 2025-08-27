@@ -6,7 +6,7 @@ export type Status = "RUNNING"
 export type BehaviorControl<T> = {
 	name: string,
 	getStatus: (self: BehaviorControl<T>) -> Status,
-	tryStart: (self: BehaviorControl<T>, agent: T, currentTime: number) -> boolean,
+	tryStart: (self: BehaviorControl<T>, agent: T, currentTime: number, deltaTime: number) -> boolean,
 	updateOrStop: (self: BehaviorControl<T>, agent: T, currentTime: number, deltaTime: number) -> (),
 	stop: (self: BehaviorControl<T>, agent: T) -> ()
 }

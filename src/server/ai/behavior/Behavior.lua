@@ -50,4 +50,10 @@ function Behavior.doUpdate(self: Behavior, agent: Agent, deltaTime: number): ()
 	return
 end
 
+--
+
+function Behavior.getReactionTime(self: Behavior, agent: Agent, deltaTime: number): number?
+	return 0
+end
+
 return Behavior

@@ -345,7 +345,7 @@ end
 function Brain.update<T>(self: Brain<T>, deltaTime: number): ()
 	self:forgetExpiredMemories(deltaTime)
 	self:updateSensors(deltaTime)
-	self:startEachNonRunningBehavior()
+	self:startEachNonRunningBehavior(deltaTime)
 	self:updateEachRunningBehavior(deltaTime)
 end
 
@@ -370,7 +370,7 @@ function Brain.forgetExpiredMemories<T>(self: Brain<T>, deltaTime: number): ()
 	end
 end
 
-function Brain.startEachNonRunningBehavior<T>(self: Brain<T>): ()
+function Brain.startEachNonRunningBehavior<T>(self: Brain<T>, deltaTime: number): ()
 	local currentTime = tick()
 
 	for priority, activities in pairs(self.availableBehaviorsByPriority) do
@@ -384,7 +384,7 @@ function Brain.startEachNonRunningBehavior<T>(self: Brain<T>): ()
 					continue
 				end
 
-				behaviorControl:tryStart(self.agent, currentTime)
+				behaviorControl:tryStart(self.agent, currentTime, deltaTime)
 			end
 		end
 	end
