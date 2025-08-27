@@ -58,7 +58,8 @@ function Level.initializeCells(cellsFolder: Folder): ()
 		local cellName = cellModel.Name
 		local cellConfig = cellConfigs[cellName]
 		local cframe, size = cellModel:GetBoundingBox()
-		local bounds = { CFrame = cframe, Size = size }
+		local areaName = cellModel:GetAttribute("AreaName") :: string?
+		local bounds = { CFrame = cframe, Size = size, AreaName = areaName }
 		Cell.addCell(cellName, bounds, cellConfig)
 
 		for _, cellChild in ipairs(cellModel:GetChildren()) do
