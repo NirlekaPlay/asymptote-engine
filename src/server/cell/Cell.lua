@@ -251,13 +251,19 @@ function Cell.updatePlayersTrespassingStatus(): ()
 
 	-- also handle players who left all trespassable zones
 	for player, appliedPenalties in pairs(playerZonePenalties) do
-		if not playerCell[player] then
-			local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
-			for appliedPenalty in pairs(appliedPenalties) do
-				playerStatus:removeStatus(appliedPenalty)
-			end
-			playerZonePenalties[player] = nil
+		if playerCell[player] then
+			continue
 		end
+
+		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		if not playerStatus then
+			continue
+		end
+
+		for appliedPenalty in pairs(appliedPenalties) do
+			playerStatus:removeStatus(appliedPenalty)
+		end
+		playerZonePenalties[player] = nil
 	end
 end
 
@@ -266,6 +272,10 @@ end
 function Cell.isPlayerValid(player: Player): boolean
 	local character = player.Character
 	if not character then
+		return false
+	end
+
+	if not PlayerStatusRegistry.playerHasStatuses(player) then
 		return false
 	end
 

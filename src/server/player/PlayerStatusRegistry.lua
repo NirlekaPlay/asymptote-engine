@@ -23,6 +23,14 @@ for _, player in ipairs(Players:GetPlayers()) do
 	end
 end
 
+function PlayerStatusRegistry.playerHasStatuses(player: Player): boolean
+	if not player then
+		return false
+	end
+
+	return playersStatusObjects[player.UserId] ~= nil
+end
+
 function PlayerStatusRegistry.getPlayerStatuses(player: Player): PlayerStatus.PlayerStatus
 	return playersStatusObjects[player.UserId]
 end
