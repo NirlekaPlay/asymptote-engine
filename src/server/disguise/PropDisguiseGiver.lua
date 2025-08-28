@@ -17,7 +17,8 @@ PropDisguiseGiver.__index = PropDisguiseGiver
 export type PropDisguiseGiver = typeof(setmetatable({} :: {
 	model: Model,
 	disguiseName: string,
-	disguiseClothings: DisguiseClothings
+	disguiseClothings: DisguiseClothings,
+	disguiseUpperColor: BrickColor?
 }, PropDisguiseGiver))
 
 export type DisguiseClothings = {
@@ -25,11 +26,12 @@ export type DisguiseClothings = {
 	Pants: Content
 }
 
-function PropDisguiseGiver.new(model: Model, disguiseName: string, disguiseClothings: DisguiseClothings): PropDisguiseGiver
+function PropDisguiseGiver.new(model: Model, disguiseName: string, disguiseClothings: DisguiseClothings, disguiseUpperColor: BrickColor?): PropDisguiseGiver
 	return setmetatable({
 		model = model,
 		disguiseName = disguiseName,
-		disguiseClothings = disguiseClothings
+		disguiseClothings = disguiseClothings,
+		disguiseUpperColor = disguiseUpperColor
 	}, PropDisguiseGiver)
 end
 
@@ -100,6 +102,15 @@ function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player
 
 	shirtClothing.Parent = playerCharacter
 	pantsClothing.Parent = playerCharacter
+
+	if self.disguiseUpperColor then
+		local humanoidBodyColors = playerCharacter:FindFirstChildOfClass("BodyColors")
+		if humanoidBodyColors then
+			humanoidBodyColors.TorsoColor = self.disguiseUpperColor
+			humanoidBodyColors.LeftArmColor = self.disguiseUpperColor
+			humanoidBodyColors.RightArmColor = self.disguiseUpperColor
+		end
+	end
 
 	playerStatus:addStatus("DISGUISED")
 
