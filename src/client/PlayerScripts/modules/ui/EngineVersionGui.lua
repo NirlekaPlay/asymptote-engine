@@ -48,12 +48,14 @@ end
 local EngineVersionGui = {}
 
 function EngineVersionGui.setEngineAndVersionTexts(headText: TextLabel, versionText: TextLabel): ()
-	if serverIsExperimentalBoolValue and serverIsExperimentalBoolValue.Value then
-		print("Asymptote Engine Experimental Version")
-		print("More stable than Stable version.")
-	else
-		print("Asymptote Engine Stable Version")
-		print("Less stable than Experimental version.")
+	if not RunService:IsStudio() then
+		if serverIsExperimentalBoolValue and serverIsExperimentalBoolValue.Value then
+			print("Asymptote Engine Experimental Version")
+			print("More stable than Stable version.")
+		else
+			print("Asymptote Engine Stable Version")
+			print("Less stable than Experimental version.")
+		end
 	end
 
 	headText.Text = (serverIsExperimentalBoolValue and serverIsExperimentalBoolValue.Value ~= false)
