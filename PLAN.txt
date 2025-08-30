@@ -123,3 +123,28 @@ Security Division, choosen by the Studio.
             3. Alert
             4. Searching
             5. Lockdown
+
+6. The Killhouse.
+The Player is greeted by the Trainer with unspecified affiliation named
+Alice.  Alice  will  guide  the  Player  through the already  developed
+stealth mechanics of the engine.
+
+ a. Chapter 1. Use More Guns.  Alice  guides  the  Player  through  the
+    handling  of guns and ammunition. The Player  will be instructed to
+    take the FB Beryl, get the ammunition from the nearby ammo box, and
+    shoot the wooden targets.
+ b. Chapter 2. The 'Asymptote' Part.  Alice  will  now guide the Player
+    through  the  basic  detection  mechanics  of the engine. This will
+    introduce the Player to:
+      i. The player  status  bar.  Which  shows  the  Player's  current
+         statuses in order of priority from left to right;
+     ii. Trespassing zones.  Zones (internally  programmed  as 'Cells')
+         can  give  you  the  minor  trespassing  status, and the major
+         trespassing status;
+    iii. Disguises.  A   disguise  can   make   you  not  have  certain
+         trespassing statuses depending on the zone's configured penal-
+         ties; and
+     iv. Detection. A detection bar will show pointing towards the det-
+         ecting Agent and will fill up to show how close is to detecti-
+         ng the Player. If the Player does get detected, simply allows
+         them to try again.
