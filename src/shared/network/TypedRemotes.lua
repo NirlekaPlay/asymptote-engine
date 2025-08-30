@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local AlertLevels = require(ReplicatedStorage.shared.alert_level.AlertLevels)
 local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
 local DetectionPayload = require(script.Parent.DetectionPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
@@ -16,6 +17,7 @@ return {
 	Detection = RE("Detection") :: RE<{DetectionPayload.DetectionData}>,
 	BubbleChat = RE("BubbleChat") :: RE<BasePart, string>,
 	Status = RE("Status") :: RE<{ [any]: true }>,
+	AlertLevel = RE("AlertLevel") :: RE<AlertLevels.AlertLevel>,
 	--
 	PlayerHeadRotationServer = playerHeadRotationJointRemote :: RE<Vector3>,
 	PlayerHeadRotationClient = playerHeadRotationJointRemote :: RE<Player, Vector3>,
