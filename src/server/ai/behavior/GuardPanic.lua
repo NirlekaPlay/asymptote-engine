@@ -33,8 +33,8 @@ local MEMORY_REQUIREMENTS = {
 }
 
 local ALARMING_STATUSES: { [ PlayerStatus.PlayerStatusType ]: true } = {
-	["ARMED"] = true,
-	["DANGEROUS_ITEM"] = true
+	[PlayerStatus.Status.ARMED] = true,
+	[PlayerStatus.Status.DANGEROUS_ITEM] = true
 }
 
 function GuardPanic.getMemoryRequirements(self: GuardPanic): { [MemoryModuleType<any>]: MemoryStatus }
@@ -62,6 +62,7 @@ end
 
 function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_PANICKING, true)
+	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
 end
 
 function GuardPanic.doStop(self: GuardPanic, agent: Agent): ()
@@ -73,6 +74,12 @@ function GuardPanic.doUpdate(self: GuardPanic, agent: Agent, deltaTime: number):
 	if agent:canBeIntimidated() and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.LOOK_TARGET) then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, player)
 	end
+end
+
+--
+
+function GuardPanic.getReactionTime(self: GuardPanic, agent: Agent, deltaTime: number): number
+	return 0.7
 end
 
 return GuardPanic
