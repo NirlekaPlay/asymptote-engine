@@ -1,17 +1,17 @@
 --!strict
 
-local MemoryStatus = {
-	REGISTERED = "REGISTERED",
-	VALUE_PRESENT = "VALUE_PRESENT",
-	VALUE_ABSENT = "VALUE_ABSENT"
-} :: {
-	REGISTERED: "REGISTERED",
-	VALUE_PRESENT: "VALUE_PRESENT",
-	VALUE_ABSENT: "VALUE_ABSENT"
+export type MemoryStatus = {
+	name: string
 }
 
-export type MemoryStatus = "REGISTERED"
-	| "VALUE_PRESENT"
-	| "VALUE_ABSENT"
+local function register(name: string): MemoryStatus
+	return { name = name }
+end
 
-return MemoryStatus
+local MemoryStatuses = {
+	REGISTERED = register("REGISTERED"),
+	VALUE_PRESENT = register("VALUE_PRESENT"),
+	VALUE_ABSENT = register("VALUE_ABSENT")
+}
+
+return MemoryStatuses
