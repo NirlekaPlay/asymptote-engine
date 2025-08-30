@@ -1,8 +1,12 @@
 --!strict
 
 local ORIGINAL_NECK_C0 = CFrame.new(0, 1, 0, -1, -0, -0, 0, 0, 1, 0, 1, 0)
+local DEFAULT_ROTATION_SPEED = 7
 local VERTICAL_FACTOR = 0.6
-local HORIZONTAL_FACTOR = 1.5
+local HORIZONTAL_FACTOR = 1
+local ADJUSTMENT_MODE = false
+local ADJUSTMENT_MODE_VER_FACTOR_ATTRIBUTE_NAME = "LookControlVerFactor"
+local ADJUSTMENT_MODE_HOR_FACTOR_ATTRIBUTE_NAME = "LookControlHorFactor"
 
 --[=[
 	@class LookControl
@@ -23,7 +27,7 @@ function LookControl.new(character: Model): LookControl
 	return setmetatable({
 		character = character,
 		lookAtPos = nil :: Vector3?,
-		rotationSpeed = 0.3
+		rotationSpeed = DEFAULT_ROTATION_SPEED
 	}, LookControl)
 end
 
@@ -31,33 +35,48 @@ function LookControl.setLookAtPos(self: LookControl, lookAtPos: Vector3?): ()
 	self.lookAtPos = lookAtPos
 end
 
-function LookControl.update(self: LookControl): ()
+function LookControl.update(self: LookControl, deltaTime: number): ()
 	local character = self.character
 	local head = character:FindFirstChild("Head") :: BasePart
 	local torso = character:FindFirstChild("Torso") :: BasePart
 	local neck = torso:FindFirstChild("Neck") :: Motor6D
-	local speed = self.rotationSpeed
 
 	local finalWantedCframe = ORIGINAL_NECK_C0
 
 	if self.lookAtPos then
 		local pos = self.lookAtPos
-		local distance = (head.CFrame.Position - pos).Magnitude
-		local difference = head.CFrame.Y - pos.Y
-
-		local diffUnit = ((head.Position - pos).Unit)
+		local diff = head.Position - pos
+		local distance = diff.Magnitude
+		local diffUnit = diff.Unit
 		local torsoLV = torso.CFrame.LookVector
 
-		local angle = CFrame.Angles(
-			math.asin(difference / distance) * VERTICAL_FACTOR,
+		finalWantedCframe *= CFrame.Angles(
+			math.asin((head.CFrame.Y - pos.Y) / distance) * VERTICAL_FACTOR,
 			0,
 			diffUnit:Cross(torsoLV).Y * HORIZONTAL_FACTOR
 		)
-
-		finalWantedCframe *= angle
 	end
 
-	neck.C0 = neck.C0:Lerp(finalWantedCframe, speed / 2)
+	local alpha = 1 - math.exp(-self.rotationSpeed * deltaTime)
+	neck.C0 = neck.C0:Lerp(finalWantedCframe, alpha)
+end
+
+if ADJUSTMENT_MODE then
+	-- If you want to test it :D (*adjust)
+	-- Alice
+	-- Modified by Nirleka
+
+	warn("LookControl adjustment mode enabled. Configure the attributes in the current camera.")
+	local currentCamera = workspace.CurrentCamera
+	currentCamera:SetAttribute(ADJUSTMENT_MODE_VER_FACTOR_ATTRIBUTE_NAME, VERTICAL_FACTOR)
+	currentCamera:SetAttribute(ADJUSTMENT_MODE_HOR_FACTOR_ATTRIBUTE_NAME, HORIZONTAL_FACTOR)
+	currentCamera:GetAttributeChangedSignal(ADJUSTMENT_MODE_VER_FACTOR_ATTRIBUTE_NAME):Connect(function()
+		VERTICAL_FACTOR = currentCamera:GetAttribute(ADJUSTMENT_MODE_VER_FACTOR_ATTRIBUTE_NAME)
+	end)
+
+	currentCamera:GetAttributeChangedSignal(ADJUSTMENT_MODE_HOR_FACTOR_ATTRIBUTE_NAME):Connect(function()
+		HORIZONTAL_FACTOR = currentCamera:GetAttribute(ADJUSTMENT_MODE_HOR_FACTOR_ATTRIBUTE_NAME)
+	end)
 end
 
 --[=[
@@ -68,22 +87,6 @@ end
 	I'm proud of this class.
 
 	- Nir
-]=]
-
---[=[
-	-- If you want to test it :D
-	-- Alice
-
-	local currentCamera = workspace.CurrentCamera
-	currentCamera:SetAttribute("VerFactor", VERTICAL_FACTOR)
-	currentCamera:SetAttribute("HorFactor", HORIZONTAL_FACTOR)
-	currentCamera:GetAttributeChangedSignal("VerFactor"):Connect(function()
-		VERTICAL_FACTOR = currentCamera:GetAttribute("VerFactor")
-	end)
-
-	currentCamera:GetAttributeChangedSignal("HorFactor"):Connect(function()
-		HORIZONTAL_FACTOR = currentCamera:GetAttribute("HorFactor")
-	end)
 ]=]
 
 return LookControl
