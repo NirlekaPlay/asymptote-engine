@@ -40,7 +40,7 @@ end
 
 function ValidateTrespasser.checkExtraStartConditions(self: ValidateTrespasser, agent: Agent): boolean
 	for status, player in pairs(agent:getSuspicionManager().detectedStatuses) do
-		if status == "MINOR_TRESPASSING" then
+		if status == PlayerStatus.Status.MINOR_TRESPASSING then
 			return true
 		end
 	end
@@ -67,7 +67,7 @@ function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
 		end
 	end
 
-	if highestStatus and highestStatus == "MINOR_TRESPASSING" then
+	if highestStatus and highestStatus == PlayerStatus.Status.MINOR_TRESPASSING then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, player)
 	else
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, nil)
