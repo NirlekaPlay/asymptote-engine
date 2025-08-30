@@ -1,6 +1,8 @@
 --!nonstrict
 
 local PathNavigation = require("../navigation/PathNavigation")
+
+local DOT_ALIGNMENT_THRESHOLD = 0.999
 local DEFAULT_ROTATION_SPEED = 5.5
 local MAX_ROTATION_COOLDOWN = 0.25 -- How many seconds it takes after the Agent was moving before we can rotate again
 
@@ -19,6 +21,7 @@ export type BodyRotationControl = typeof(setmetatable({} :: {
 	targetDirection: Vector3?,
 	rotationSpeed: number,
 	rotationCooldown: number,
+	dotThresholdReached: boolean,
 	customRotator: ((self: BodyRotationControl, deltaTime: number) -> ())?
 }, BodyRotationControl))
 
@@ -29,6 +32,7 @@ function BodyRotationControl.new(character: Model, pathNav: PathNavigation.PathN
 		targetDirection = nil :: Vector3?,
 		rotationSpeed = speed or DEFAULT_ROTATION_SPEED,
 		rotationCooldown = MAX_ROTATION_COOLDOWN,
+		dotThresholdReached = false,
 		lastPos = character.HumanoidRootPart.Position
 	}, BodyRotationControl)
 end
@@ -46,6 +50,7 @@ function BodyRotationControl.setRotateTowards(self: BodyRotationControl, toward:
 	else
 		self.targetDirection = nil
 	end
+
 	if speed then
 		self.rotationSpeed = speed
 	end
@@ -78,13 +83,16 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 		return
 	end
 
-	local rootPart = self.character.HumanoidRootPart
+	local rootPart = self.character.HumanoidRootPart :: BasePart
 	local currentLookVector = rootPart.CFrame.LookVector
 	local desiredLookVector = direction.Unit
 
 	local dot = currentLookVector:Dot(desiredLookVector)
-	if dot > 0.999 then
+	if dot > DOT_ALIGNMENT_THRESHOLD then
+		self.dotThresholdReached = true
 		return
+	else
+		self.dotThresholdReached = false
 	end
 
 	-- created just for GunControl, so the stupid FBB doesnt rotate the body
