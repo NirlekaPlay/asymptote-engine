@@ -88,7 +88,7 @@ function RagdollControl.createColliderPart(self: RagdollControl, part: Part): ()
 
 	local rp = Instance.new("Part")
 	rp.Name = RAGDOLL_COLLIDER_PART_NAME
-	rp.Size = part.Size/1.7
+	rp.Size = part.Size / 1.7
 	rp.Massless = true
 	rp.CFrame = part.CFrame
 	rp.Transparency = 1
