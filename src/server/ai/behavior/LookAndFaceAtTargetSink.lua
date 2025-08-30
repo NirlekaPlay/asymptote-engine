@@ -1,7 +1,10 @@
 --!strict
 
+local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -11,12 +14,14 @@ LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
 LookAndFaceAtTargetSink.ClassName = "LookAndFaceAtTargetSink"
 
 export type LookAndFaceAtTargetSink = typeof(setmetatable({} :: {
+	lastKnownTargetPos: Vector3?,
 }, LookAndFaceAtTargetSink))
 
 function LookAndFaceAtTargetSink.new(): LookAndFaceAtTargetSink
 	return setmetatable({
 		minDuration = nil :: number?,
-		maxDuration = nil :: number?
+		maxDuration = nil :: number?,
+		lastKnownTargetPos = nil :: Vector3?,
 	}, LookAndFaceAtTargetSink)
 end
 
@@ -25,7 +30,7 @@ type MemoryStatus = MemoryStatus.MemoryStatus
 type Agent = Agent.Agent
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.VALUE_PRESENT
+	[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.REGISTERED
 }
 
 function LookAndFaceAtTargetSink.getMemoryRequirements(self: LookAndFaceAtTargetSink): { [MemoryModuleType<any>]: MemoryStatus }
@@ -37,46 +42,54 @@ function LookAndFaceAtTargetSink.checkExtraStartConditions(self: LookAndFaceAtTa
 end
 
 function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agent: Agent.Agent): boolean
+	if self.lastKnownTargetPos then
+		if not agent:getBodyRotationControl().dotThresholdReached then
+			return true
+		end
+	end
+
 	local brain = agent:getBrain()
 	local lookTarget = brain:getMemory(MemoryModuleTypes.LOOK_TARGET)
-
-	-- do you understand what i did here? because i dont.
-	-- yet it works so im not touching it.
 
 	return lookTarget
 		:flatMap(function(targetPlayer)
 			return brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
 				:map(function(visible)
 					return visible[targetPlayer]
-			end)
+				end)
 		end)
 		:isPresent() or lookTarget
 		:flatMap(function(targetPlayer)
-				return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
-					:map(function(hearable)
-						return hearable[targetPlayer]
-			end)
+			return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
+				:map(function(hearable)
+					return hearable[targetPlayer]
+				end)
 		end)
 		:isPresent()
 end
 
-
 function LookAndFaceAtTargetSink.doStart(self: LookAndFaceAtTargetSink, agent: Agent): ()
-	return
+	self.lastKnownTargetPos = nil
 end
 
 function LookAndFaceAtTargetSink.doStop(self: LookAndFaceAtTargetSink, agent: Agent): ()
-	--agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
-	agent:getBodyRotationControl():setRotateTowards(nil)
+	self.lastKnownTargetPos = nil
+	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
+	--agent:getBodyRotationControl():setRotateTowards(nil)
 	agent:getLookControl():setLookAtPos(nil)
 end
 
 function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: Agent, deltaTime: number): ()
 	local lookTarget = agent:getBrain():getMemory(MemoryModuleTypes.LOOK_TARGET)
+
 	if lookTarget:isPresent() then
-		local charPos = lookTarget:get().Character.PrimaryPart.Position
-		agent:getBodyRotationControl():setRotateTowards(charPos)
-		agent:getLookControl():setLookAtPos(charPos)
+		self.lastKnownTargetPos = lookTarget:get().Character.PrimaryPart.Position
+	end
+
+	if self.lastKnownTargetPos then
+		Debris:AddItem(Draw.point(self.lastKnownTargetPos, Color3.new(0, 1, 1)), 0.1)
+		agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
+		agent:getLookControl():setLookAtPos(self.lastKnownTargetPos)
 	end
 end
 
