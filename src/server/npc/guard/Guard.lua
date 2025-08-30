@@ -13,11 +13,17 @@ local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
+local ReportControl = require(ServerScriptService.server.ai.control.ReportControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
+local DEFAULT_CAN_DETECT_THROUGH_DISGUISES = false
+local DEFAULT_CAN_BE_INTIMIDATED = false
+local DEFAULT_SIGHT_RADIUS = 50
+local DEFAULT_HEARING_RADIUS = 10
+local DEFAULT_PERIPH_VISION_ANGLE = 180
 
 local Guard = {}
 Guard.__index = Guard
@@ -33,6 +39,7 @@ export type Guard = typeof(setmetatable({} :: {
 	faceControl: FaceControl.FaceControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
 	talkControl: TalkControl.TalkControl,
+	reportControl: ReportControl.ReportControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
 	designatedPosts: { GuardPost.GuardPost },
@@ -40,7 +47,7 @@ export type Guard = typeof(setmetatable({} :: {
 }, Guard))
 
 function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): Guard
-	local self = {}
+	local self = setmetatable({}, Guard)
 
 	self.character = character
 	self.alive = true
@@ -60,6 +67,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	self.bubbleChatControl = BubbleChatControl.new(character)
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
 	self.ragdollControl = RagdollControl.new(character)
+	self.reportControl = ReportControl.new(self)
 	self.random = Random.new(tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -68,17 +76,6 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 		self:onDied()
 	end)
 
-	-- to fix the motherfucking shitty ass walk animation
-	local isPathfinding = character:FindFirstChild("isPathfinding")
-	
-	if not isPathfinding then
-		isPathfinding = Instance.new("BoolValue")
-		isPathfinding.Value = false
-		isPathfinding.Name = "isPathfinding"
-		isPathfinding.Parent = character
-	end
-
-	self.isPathfindingValue = isPathfinding
 	self.uuid = HttpService:GenerateGUID(false)
 	self.brain = GuardAi.makeBrain(self)
 
@@ -89,7 +86,9 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 	end
 
 	local descendantAddedConnection = character.DescendantAdded:Connect(function(inst)
-		-- to prevent ragdolls looking shitty
+		-- make the Agent not collide with players
+		-- exclude "RagdollColliderPart" as those are ragdoll parts.
+		-- making them not have collision will result in weird looking ragdolls.
 		if inst:IsA("BasePart") and inst.Name ~= "RagdollColliderPart" then
 			inst.CollisionGroup = "NonCollideWithPlayer"
 		end
@@ -103,7 +102,7 @@ function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): 
 		descendantAddedConnection:Disconnect()
 	end)
 
-	return setmetatable(self, Guard)
+	return self
 end
 
 function Guard.update(self: Guard, deltaTime: number): ()
@@ -111,25 +110,20 @@ function Guard.update(self: Guard, deltaTime: number): ()
 		return
 	end
 
+	self.suspicionManager:update(deltaTime)
 	self.brain:update(deltaTime)
 	GuardAi.updateActivity(self)
-	self.suspicionManager:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
-	self.lookControl:update()
-
-	if self.pathNavigation.pathfinder.Status == "Active" then
-		self.isPathfindingValue.Value = true
-	else
-		self.isPathfindingValue.Value = false
-	end
+	self.lookControl:update(deltaTime)
+	self.reportControl:update(deltaTime)
 end
 
 function Guard.canDetectThroughDisguises(self: Guard): boolean
-	return self.character:GetAttribute("CanSeeThroughDisguises")
+	return (self.character:GetAttribute("CanSeeThroughDisguises") :: boolean?) or DEFAULT_CAN_DETECT_THROUGH_DISGUISES
 end
 
 function Guard.canBeIntimidated(self: Guard): boolean
-	return self.character:GetAttribute("CanBeIntimidated")
+	return (self.character:GetAttribute("CanBeIntimidated") :: boolean?) or DEFAULT_CAN_BE_INTIMIDATED
 end
 
 function Guard.onDied(self: Guard)
@@ -141,7 +135,7 @@ function Guard.isAlive(self: Guard): boolean
 end
 
 function Guard.getCharacterName(self: Guard): string?
-	return self.character:GetAttribute("CharName")
+	return self.character:GetAttribute("CharName") :: string?
 end
 
 function Guard.getBrain(self: Guard): Brain.Brain<Agent.Agent>
@@ -154,6 +148,10 @@ end
 
 function Guard.getFaceControl(self: Guard): FaceControl.FaceControl
 	return self.faceControl
+end
+
+function Guard.getReportControl(self: Guard): ReportControl.ReportControl
+	return self.reportControl
 end
 
 function Guard.getNavigation(self: Guard): PathNavigation.PathNavigation
@@ -191,15 +189,15 @@ end
 --
 
 function Guard.getSightRadius(self: Guard): number
-	return self.character:GetAttribute("SightRadius") :: number? or 50
+	return (self.character:GetAttribute("SightRadius") :: number?) or DEFAULT_SIGHT_RADIUS
 end
 
 function Guard.getHearingRadius(self: Guard): number
-	return self.character:GetAttribute("HearingRadius") :: number? or 10
+	return (self.character:GetAttribute("HearingRadius") :: number?) or DEFAULT_HEARING_RADIUS
 end
 
 function Guard.getPeripheralVisionAngle(self: Guard): number
-	return self.character:GetAttribute("PeriphAngle") :: number? or 180
+	return (self.character:GetAttribute("PeriphAngle") :: number?) or DEFAULT_PERIPH_VISION_ANGLE
 end
 
 --

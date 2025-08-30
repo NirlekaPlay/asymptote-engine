@@ -6,7 +6,6 @@ local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
 local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
-local EquipWeaponOnFled = require(ServerScriptService.server.ai.behavior.EquipWeaponOnFled)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
 local FollowPlayerSink = require(ServerScriptService.server.ai.behavior.FollowPlayerSink)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
@@ -32,6 +31,7 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.KILL_TARGET,
 	MemoryModuleTypes.FOLLOW_TARGET,
 	MemoryModuleTypes.PANIC_PLAYER_SOURCE,
+	MemoryModuleTypes.FLEE_TO_POSITION,
 	MemoryModuleTypes.IS_CURIOUS,
 	MemoryModuleTypes.IS_PANICKING,
 	MemoryModuleTypes.IS_FLEEING,
@@ -68,9 +68,9 @@ end
 
 function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 	brain:addActivity(Activity.CORE, 2, {
-		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(SetIsCuriousMemory.new()),
 		BehaviorWrapper.new(LookAtSuspiciousPlayer.new()),
+		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
 		BehaviorWrapper.new(ValidateTrespasser.new()),
 		BehaviorWrapper.new(FollowPlayerSink.new())
@@ -91,7 +91,6 @@ function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.PANIC, 1, {
 		BehaviorWrapper.new(SetPanicFace.new()),
 		BehaviorWrapper.new(FleeToEscapePoints.new()),
-		--BehaviorWrapper.new(EquipWeaponOnFled.new()),
 		BehaviorWrapper.new(KillTarget.new()),
 		BehaviorWrapper.new(PleaForMercy.new())
 	}, {

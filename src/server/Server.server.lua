@@ -1,3 +1,5 @@
+--!strict
+
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
@@ -6,7 +8,7 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
-local PlayerStatusRegistry = require("./player/PlayerStatusRegistry")
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local Level = require(ServerScriptService.server.level.Level)
@@ -21,6 +23,10 @@ local advancedGuardPosts: { GuardPost.GuardPost } = {}
 
 local function setupGuardPosts()
 	for _, post in ipairs(CollectionService:GetTagged(GUARD_POSTS_TAG_NAME)) do
+		if not post:IsA("BasePart") then
+			continue
+		end
+
 		local newGuardPost = GuardPost.fromPart(post, false)
 		if post.Parent.Name == "advanced" then
 			table.insert(advancedGuardPosts, newGuardPost)
@@ -45,7 +51,7 @@ end
 
 local function setupGuards()
 	for _, guard in ipairs(CollectionService:GetTagged(GUARD_TAG_NAME)) do
-		if guard.Parent ~= workspace then
+		if not guard:IsA("Model") or guard.Parent ~= workspace then
 			continue
 		end
 
@@ -56,6 +62,10 @@ end
 setupGuards()
 
 CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
+	if not guard:IsA("Model") then
+		return
+	end
+
 	if guard.Parent ~= workspace then
 		local connection: RBXScriptConnection
 		connection = guard:GetPropertyChangedSignal("Parent"):Connect(function()

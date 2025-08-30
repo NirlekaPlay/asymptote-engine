@@ -4,13 +4,17 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DebugEntityNameGenerator = require(ReplicatedStorage.shared.network.DebugEntityNameGenerator)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
+local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 
-local MIN_DISTANCE_FROM_PANIC_POS = 35
+local MIN_DISTANCE_TO_ESCAPE_POS = 5
+local MIN_DISTANCE_FROM_PANIC_POS = 45
+local DIST_CHECK_UPDATE_INTERVAL = 0.5
 
 --[=[
 	@class FleeToEscapePoints
@@ -20,16 +24,18 @@ FleeToEscapePoints.__index = FleeToEscapePoints
 FleeToEscapePoints.ClassName = "FleeToEscapePoints"
 
 export type FleeToEscapePoints = typeof(setmetatable({} :: {
+	timeAccum: number
 }, FleeToEscapePoints))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent
+type Agent = Agent.Agent & ArmedAgent.ArmedAgent
 
 function FleeToEscapePoints.new(): FleeToEscapePoints
 	return setmetatable({
-		minDuration = 3,
-		maxDuration = 3
+		minDuration = 4,
+		maxDuration = 6,
+		timeAccum = 0
 	}, FleeToEscapePoints)
 end
 
@@ -46,11 +52,12 @@ function FleeToEscapePoints.getMemoryRequirements(self: FleeToEscapePoints): { [
 end
 
 function FleeToEscapePoints.checkExtraStartConditions(self: FleeToEscapePoints, agent: Agent): boolean
-	if agent:canBeIntimidated() then return false else return true end
+	return not agent:canBeIntimidated()
 end
 
 function FleeToEscapePoints.canStillUse(self: FleeToEscapePoints, agent: Agent): boolean
-	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_INTIMIDATED)
+	return not (agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_INTIMIDATED)
+		or agent:getBrain():hasMemoryValue(MemoryModuleTypes.KILL_TARGET))
 end
 
 function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
@@ -59,6 +66,10 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 		agent.character.Humanoid.WalkSpeed = 19
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
 		agent:getNavigation():moveTo(post.cframe.Position)
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
+		Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
+	else
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE))
 	end
 end
 
@@ -83,6 +94,7 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 	rayParams.FilterDescendantsInstances = { agent.character }
 	local rayResult = workspace:Raycast(agentPos, direction * maxDistance, rayParams)
 	if not rayResult then
+		agent:getGunControl():lookAt(panicPos)
 		agent:getBodyRotationControl():setRotateTowards(panicPos)
 		Debris:AddItem(Draw.raycast(agentPos, direction * maxDistance), 15)
 	else
@@ -90,7 +102,7 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 		local distanceToHit = (agentPos - rayResult.Position).Magnitude
 		local distanceDifference = maxDistance - distanceToHit
 		local finalPos = rayResult.Position + reflectedDirection * distanceDifference
-
+		agent:getGunControl():lookAt(finalPos)
 		agent:getBodyRotationControl():setRotateTowards(finalPos)
 
 		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.184314, 0, 1)), 15)
@@ -100,7 +112,22 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 end
 
 function FleeToEscapePoints.doUpdate(self: FleeToEscapePoints, agent: Agent, deltaTime: number): ()
-	return
+	self.timeAccum += deltaTime
+	if self.timeAccum >= DIST_CHECK_UPDATE_INTERVAL then
+		self.timeAccum = 0
+
+		local fleeToPos = agent:getBrain():getMemory(MemoryModuleTypes.FLEE_TO_POSITION)
+		if fleeToPos:isEmpty() then
+			print("flee to pos is empty")
+			return
+		end
+
+		local distance = (agent:getPrimaryPart().Position - fleeToPos:get()).Magnitude
+		if distance <= MIN_DISTANCE_TO_ESCAPE_POS then
+			print(`{DebugEntityNameGenerator.getEntityName(agent)} is in minimum distance to escape point position \n with distance of {distance}`)
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE))
+		end
+	end
 end
 
 --
@@ -135,7 +162,8 @@ function FleeToEscapePoints.getPostWithMinimumDistanceFromPanicPos(self: FleeToE
 		-- Scoring system (higher = better)
 		local score = distanceFromPanic * 1.0 +  -- Further from panic is better
 					 directionalBonus * 20.0 +   -- Same direction as fleeing is much better
-					 -distanceFromAgent * 0.5    -- Closer to agent is slightly better
+					 -distanceFromAgent * 0.5 +   -- Closer to agent is slightly better
+					 Random.new(tick()):NextNumber(-5, 5) -- Add randomization
 		
 		-- Only consider posts that meet minimum distance requirement
 		if distanceFromPanic >= MIN_DISTANCE_FROM_PANIC_POS and score > bestScore then

@@ -36,6 +36,7 @@ local MemoryModuleTypes = {
 	IS_INTIMIDATED = register("is_intimidated") :: MemoryModuleType<boolean>,
 	HAS_FLED = register("has_fled") :: MemoryModuleType<true>,
 	PANIC_POSITION = register("panic_position") :: MemoryModuleType<Vector3>,
+	FLEE_TO_POSITION = register("flee_to_position") :: MemoryModuleType<Vector3>,
 	CONFRONTING_TRESPASSER = register("confronting_trespasser") :: MemoryModuleType<Player>,
 	SPOTTED_TRESPASSER = register("spotted_trespasser") :: MemoryModuleType<Player>,
 	TRESPASSERS_WARNS = register("trespassers_warns") :: MemoryModuleType<{ [Player]: number }>,

@@ -1,16 +1,18 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
+local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local TalkingAgent = require(ServerScriptService.server.TalkingAgent)
-local Attributes = require(ServerScriptService.server.ai.attributes.Attributes)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local Cell = require(ServerScriptService.server.cell.Cell)
+local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
-
-local MAX_WARNS = 3
 
 --[=[
 	@class ConfrontTrespasser
@@ -25,7 +27,7 @@ export type ConfrontTrespasser = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent & TalkingAgent.TalkingAgent & ArmedAgent.ArmedAgent
+type Agent = Agent.Agent & TalkingAgent.TalkingAgent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent
 
 function ConfrontTrespasser.new(): ConfrontTrespasser
 	return setmetatable({
@@ -58,7 +60,7 @@ end
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	local susMan = agent:getSuspicionManager()
 	local talkCntrl = agent:getTalkControl()
-	local trespasser = susMan.detectedStatuses["MINOR_TRESPASSING"]
+	local trespasser = susMan.detectedStatuses[PlayerStatus.Status.MINOR_TRESPASSING] :: Player
 
 	if not trespasser then
 		return
@@ -66,10 +68,17 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 
 	agent:getFaceControl():setFace("Angry")
 	local speechDurPercentageGain = 10 -- percent
-	local reportDialogue = "Trespasser in the north office."
+	local trespasserAreaName = Cell.getPlayerOccupiedAreaName(trespasser)
+	local reportDialogue: string
+	if trespasserAreaName then
+		reportDialogue = `Trespasser in the {trespasserAreaName}.`
+	else
+		reportDialogue = `I've got a trespasser over here.`
+	end
 	local reportDialogueSpeechDur = talkCntrl.getStringSpeechDuration(reportDialogue) * (1 + (speechDurPercentageGain / 100))
 	talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
-	agent:getBrain():setMemoryWithExpiry(MemoryModuleTypes.REPORTING_ON, { reportType = "MINOR_TRESPASSER" }, reportDialogueSpeechDur)
+	agent:getReportControl():reportOn(ReportType.TRESPASSER_SPOTTED, reportDialogue)
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, trespasser)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, trespasser)
 end
 
@@ -77,25 +86,34 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 	if not agent:getBrain():hasMemoryValue(MemoryModuleTypes.KILL_TARGET) then
 		agent:getFaceControl():setFace("Neutral")
 	end
+	agent:getReportControl():interruptReport()
+	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.REPORTING_ON)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 end
 
 function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, deltaTime: number): ()
-	local reportingOn = agent:getBrain():getMemory(MemoryModuleTypes.REPORTING_ON):get()
-
-	if reportingOn and reportingOn.reportType == "MINOR_TRESPASSER" then
+	if agent:getReportControl():isReporting() then
 		return
 	end
 
 	local trespasser = agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):get()
+	if not trespasser then
+		warn("Trespasser is nil!")
+		return
+	end
 
 	local trespasserWarnsMemory = agent:getBrain():getMemory(MemoryModuleTypes.TRESPASSERS_WARNS)
 		:orElse({})
 
 	local playerStatuses = PlayerStatusRegistry.getPlayerStatuses(trespasser)
 	local highestStatus = playerStatuses:getHighestPriorityStatus()
+	if highestStatus == "MAJOR_TRESPASSING" then
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
+		return
+	end
+
 	if (agent:getSuspicionManager().detectedStatuses[highestStatus] and highestStatus ~= "MINOR_TRESPASSING") then
 		warn("aborting confrontation to higher priority status")
 		agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
@@ -132,6 +150,12 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 	end
 
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.TRESPASSERS_WARNS, trespasserWarnsMemory)
+end
+
+--
+
+function ConfrontTrespasser.getReactionTIme(self: ConfrontTrespasser, agent: Agent, deltaTime: number): number
+	return 0.7
 end
 
 return ConfrontTrespasser
