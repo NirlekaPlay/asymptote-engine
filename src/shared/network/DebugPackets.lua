@@ -54,6 +54,18 @@ local function isArray(t)
 	return true
 end
 
+local function tableOnlyHasOneEntry(t: { [any]: any }): boolean
+	local count = 0
+	for _, _ in pairs(t) do
+		count += 1
+		if count > 1 then
+			return false
+		end
+	end
+
+	return count > 0
+end
+
 function DebugPackets.hasListeningClients(debugName: string): boolean
 	if not activeClientListeners[debugName] then
 		activeClientListeners[debugName] = {}
@@ -212,6 +224,12 @@ function DebugPackets.getTableShortDescription(t: { any } | { [any]: any }): str
 
 		return "[ " .. table.concat(result, ", ") .. " ]"
 	else
+		-- we represent enums like this.
+		-- an example is MemoryStatus. But since we're using memories, see PatrolState.
+		if tableOnlyHasOneEntry(t) and t["name"] and type(t.name) == "string" then
+			return t.name:upper()
+		end
+
 		local parts = {}
 
 		for k, v in pairs(t) do
