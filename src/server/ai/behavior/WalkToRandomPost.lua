@@ -3,6 +3,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
+local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
@@ -35,12 +36,12 @@ function WalkToRandomPost.new(): WalkToRandomPost
 		minDuration = nil :: number?,
 		maxDuration = nil :: number?,
 		--
-		diedConnection = nil,
-		previousPost = nil,
+		diedConnection = nil :: RBXScriptConnection?,
+		previousPost = nil :: GuardPost.GuardPost?,
 		isAtTargetPost = false,
-		pathToPos = nil,
+		pathToPos = nil :: Path?,
 		timeToReleasePost = 0
-	}, WalkToRandomPost)
+	}, WalkToRandomPost) :: any -- stfu typechecker your fucking errors means jackshit
 end
 
 local MEMORY_REQUIREMENTS = {
@@ -62,12 +63,17 @@ function WalkToRandomPost.checkExtraStartConditions(self: WalkToRandomPost, agen
 end
 
 function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boolean
-	return agent:getBrain():checkMemory(MemoryModuleTypes.IS_CURIOUS, MemoryStatus.VALUE_ABSENT)
+	local brain = agent:getBrain()
+	return not (
+		brain:checkMemory(MemoryModuleTypes.IS_PANICKING, MemoryStatus.VALUE_PRESENT)
+		or brain:checkMemory(MemoryModuleTypes.IS_CURIOUS, MemoryStatus.VALUE_PRESENT)
+		or brain:checkMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, MemoryStatus.VALUE_PRESENT)
+	)
 end
 
 function WalkToRandomPost.doStart(self: WalkToRandomPost, agent: Agent): ()
 	self:connectDiedConnection(agent)
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.PATROL_STATE, "RESUMING")
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.RESUMING)
 end
 
 function WalkToRandomPost.doStop(self: WalkToRandomPost, agent: Agent): ()
@@ -82,7 +88,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 	local targetPost = brain:getMemory(MemoryModuleTypes.TARGET_POST):get()
 	local patrolState = brain:getMemory(MemoryModuleTypes.PATROL_STATE):get()
 
-	if patrolState == "RESUMING" then
+	if patrolState == PatrolState.RESUMING then
 		-- TODO: Add cooldown to begin patrolling again after interruption if necessary
 
 		if targetPost and targetPost:isOccupied() then
@@ -90,7 +96,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 				self:moveToPost(agent, targetPost)
 			else
 				rot:setRotateToDirection(targetPost.cframe.LookVector)
-				brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, "STAYING")
+				brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
 			end
 		else
 			local post = self:getRandomUnoccupiedPost(agent)
@@ -102,16 +108,16 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		return -- prevent further logic this frame
 	end
 	
-	if patrolState == "WALKING" and nav.finished and not self.isAtTargetPost then
+	if patrolState == PatrolState.WALKING and nav.finished and not self.isAtTargetPost then
 		nav.finished = false
-		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, "STAYING")
+		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
 		self.isAtTargetPost = true
 		self.timeToReleasePost = math.random(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
 		rot:setRotateToDirection(targetPost.cframe.LookVector)
-	elseif patrolState == "STAYING" then
+	elseif patrolState == PatrolState.STAYING then
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
-			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, "UNEMPLOYED")
+			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.UNEMPLOYED)
 			self.previousPost = targetPost
 			brain:setNullableMemory(MemoryModuleTypes.TARGET_POST, nil)
 			self.isAtTargetPost = false
@@ -119,7 +125,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		end
 	end
 
-	if brain:getMemory(MemoryModuleTypes.PATROL_STATE):get() == "UNEMPLOYED" then
+	if brain:getMemory(MemoryModuleTypes.PATROL_STATE):get() == PatrolState.UNEMPLOYED then
 		local post = self:getRandomUnoccupiedPost(agent)
 		if post then
 			self:moveToPost(agent, post)
@@ -138,7 +144,7 @@ function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post:
 		self.previousPost:vacate()
 	end
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.TARGET_POST, post)
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.PATROL_STATE, "WALKING")
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.WALKING)
 	agent:getNavigation():moveTo(post.cframe.Position)
 	self.pathToPost = agent:getNavigation():getPath()
 end
@@ -169,7 +175,7 @@ function WalkToRandomPost.connectDiedConnection(self: WalkToRandomPost, agent: A
 					targetPost:get():vacate()
 				end
 
-				if agent:getBrain():getMemory(MemoryModuleTypes.PATROL_STATE):get() == "UNEMPLOYED" then
+				if agent:getBrain():getMemory(MemoryModuleTypes.PATROL_STATE):get() == PatrolState.WALKING then
 					if self.previousPost then
 						self.previousPost:vacate()
 					end

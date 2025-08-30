@@ -1,6 +1,7 @@
 --!strict
-local ServerScriptService = game:GetService("ServerScriptService")
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 
 --[=[
@@ -27,7 +28,7 @@ local MemoryModuleTypes = {
 	PANIC_PLAYER_SOURCE = register("panic_player_source") :: MemoryModuleType<Player>,
 	TARGET_POST = register("target_post") :: MemoryModuleType<GuardPost.GuardPost>,
 	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{GuardPost.GuardPost}>,
-	PATROL_STATE = register("patrol_state") :: MemoryModuleType<"RESUMING" | "UNEMPLOYED" | "WALKING" | "STAYING">,
+	PATROL_STATE = register("patrol_state") :: MemoryModuleType<PatrolState.PatrolState>,
 	POST_VACATE_COOLDOWN = register("post_vacate_cooldown") :: MemoryModuleType<number>,
 	IS_CURIOUS = register("is_curious") :: MemoryModuleType<boolean>,
 	IS_PANICKING = register("is_panicking") :: MemoryModuleType<boolean>,
