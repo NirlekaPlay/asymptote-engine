@@ -1,10 +1,7 @@
 --!strict
 
-local Debris = game:GetService("Debris")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -87,7 +84,6 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 	end
 
 	if self.lastKnownTargetPos then
-		Debris:AddItem(Draw.point(self.lastKnownTargetPos, Color3.new(0, 1, 1)), 0.1)
 		agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
 		agent:getLookControl():setLookAtPos(self.lastKnownTargetPos)
 	end
