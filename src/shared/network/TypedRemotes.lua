@@ -16,7 +16,7 @@ local playerHeadRotationJointRemote = RE("PlayerHeadRotation")
 return {
 	Detection = RE("Detection") :: RE<{DetectionPayload.DetectionData}>,
 	BubbleChat = RE("BubbleChat") :: RE<BasePart, string>,
-	Status = RE("Status") :: RE<{ [any]: true }>,
+	Status = RE("Status") :: RE<{ [string]: true }>,
 	AlertLevel = RE("AlertLevel") :: RE<AlertLevels.AlertLevel>,
 	--
 	PlayerHeadRotationServer = playerHeadRotationJointRemote :: RE<Vector3>,

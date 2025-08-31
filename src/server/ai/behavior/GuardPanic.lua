@@ -1,11 +1,13 @@
 --!nonstrict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 
 --[=[
 	@class GuardPanic
@@ -32,9 +34,9 @@ local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.REGISTERED
 }
 
-local ALARMING_STATUSES: { [ PlayerStatus.PlayerStatusType ]: true } = {
-	[PlayerStatus.Status.ARMED] = true,
-	[PlayerStatus.Status.DANGEROUS_ITEM] = true
+local ALARMING_STATUSES: { [ PlayerStatus.PlayerStatus ]: true } = {
+	[PlayerStatusTypes.ARMED] = true,
+	[PlayerStatusTypes.DANGEROUS_ITEM] = true
 }
 
 function GuardPanic.getMemoryRequirements(self: GuardPanic): { [MemoryModuleType<any>]: MemoryStatus }

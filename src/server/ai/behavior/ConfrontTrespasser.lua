@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
@@ -11,7 +12,6 @@ local TalkingAgent = require(ServerScriptService.server.TalkingAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local Cell = require(ServerScriptService.server.cell.Cell)
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
@@ -60,7 +60,7 @@ end
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	local susMan = agent:getSuspicionManager()
 	local talkCntrl = agent:getTalkControl()
-	local trespasser = susMan.detectedStatuses[PlayerStatus.Status.MINOR_TRESPASSING] :: Player
+	local trespasser = susMan.detectedStatuses[PlayerStatusTypes.MINOR_TRESPASSING] :: Player
 
 	if not trespasser then
 		return
@@ -107,22 +107,22 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 	local trespasserWarnsMemory = agent:getBrain():getMemory(MemoryModuleTypes.TRESPASSERS_WARNS)
 		:orElse({})
 
-	local playerStatuses = PlayerStatusRegistry.getPlayerStatuses(trespasser)
+	local playerStatuses = PlayerStatusRegistry.getPlayerStatusHolder(trespasser)
 	local highestStatus = playerStatuses:getHighestPriorityStatus()
-	if highestStatus == "MAJOR_TRESPASSING" then
+	if highestStatus == PlayerStatusTypes.MAJOR_TRESPASSING then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
 		return
 	end
 
-	if (agent:getSuspicionManager().detectedStatuses[highestStatus] and highestStatus ~= "MINOR_TRESPASSING") then
+	if (agent:getSuspicionManager().detectedStatuses[highestStatus] and highestStatus ~= PlayerStatusTypes.MINOR_TRESPASSING) then
 		warn("aborting confrontation to higher priority status")
 		agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
-	elseif playerStatuses.currentStatusesMap["MINOR_TRESPASSING"] == nil then
+	elseif playerStatuses.currentStatusesMap[PlayerStatusTypes.MINOR_TRESPASSING] == nil then
 		warn("player is no longer trespassing")
 		agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
-		agent:getSuspicionManager().detectedStatuses["MINOR_TRESPASSING"] = nil
-		if agent:getSuspicionManager().suspicionLevels[trespasser]["MINOR_TRESPASSING"] >= 1 then
-			agent:getSuspicionManager().suspicionLevels[trespasser]["MINOR_TRESPASSING"] = nil
+		agent:getSuspicionManager().detectedStatuses[PlayerStatusTypes.MINOR_TRESPASSING] = nil
+		if agent:getSuspicionManager().suspicionLevels[trespasser][PlayerStatusTypes.MINOR_TRESPASSING] >= 1 then
+			agent:getSuspicionManager().suspicionLevels[trespasser][PlayerStatusTypes.MINOR_TRESPASSING] = nil
 		end
 	end
 

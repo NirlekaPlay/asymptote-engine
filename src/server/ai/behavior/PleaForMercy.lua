@@ -1,7 +1,9 @@
 --!nonstrict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -50,14 +52,14 @@ end
 function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 	self.alreadyRun = true
 	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get()
-	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+	local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
 	if not playerStatus then
 		return
 	end
 
 	local highestStatus = playerStatus:getHighestPriorityStatus()
 	if highestStatus then
-		if highestStatus == "ARMED" then
+		if highestStatus == PlayerStatusTypes.ARMED then
 			if agent:canBeIntimidated() then
 				agent:getTalkControl():sayRandomSequences(
 					{
@@ -75,7 +77,7 @@ function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 					}
 				)
 			end
-		elseif highestStatus == "DANGEROUS_ITEM" then
+		elseif highestStatus == PlayerStatusTypes.DANGEROUS_ITEM then
 			if agent:canBeIntimidated() then
 				agent:getTalkControl():sayRandomSequences(
 					{

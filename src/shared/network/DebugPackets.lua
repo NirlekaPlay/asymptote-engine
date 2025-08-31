@@ -1,12 +1,13 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
 local DebugEntityNameGenerator = require(script.Parent.DebugEntityNameGenerator)
 local TypedRemotes = require(script.Parent.TypedRemotes)
 local Agent = require(ServerScriptService.server.Agent)
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 
 local PACKETS = {
 	DEBUG_BRAIN = "DEBUG_BRAIN"
@@ -145,10 +146,10 @@ end
 --
 
 function DebugPackets.getDetectedStatusesDescriptions(agent: Agent.Agent): { string }
-	local statusArray: { {status: PlayerStatus.PlayerStatusType, player: Player, priority: number} } = {}
+	local statusArray: { {status: PlayerStatus.PlayerStatus, player: Player, priority: number} } = {}
 
 	for status, player in pairs(agent.suspicionManager.detectedStatuses) do
-		local statusPriority = PlayerStatus.getStatusPriorityValue(status)
+		local statusPriority = status:getPriorityLevel()
 		table.insert(statusArray, {
 			status = status,
 			player = player,

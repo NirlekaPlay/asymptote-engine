@@ -1,9 +1,11 @@
 --!strict
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local CellConfig = require(script.Parent.CellConfig)
 
@@ -15,7 +17,7 @@ local playersRootPart: { [BasePart]: Player } = {}
 local playerCell: { [Player]: Cell } = {} -- Cache: player -> current cell
 local cellPlayers: { [Cell]: { [Player]: true } } = {} -- Cache: cell -> players,
 local playerBounds: { [Player]: Bounds } = {}
-local playerZonePenalties: { [Player]: { [PlayerStatus.PlayerStatusType]: true } } = {}
+local playerZonePenalties: { [Player]: { [PlayerStatus.PlayerStatus]: true } } = {}
 local currentOverlapParams = OverlapParams.new()
 currentOverlapParams.FilterType = Enum.RaycastFilterType.Include
 
@@ -82,8 +84,8 @@ currentOverlapParams.FilterType = Enum.RaycastFilterType.Include
 	BobZone = {
 		canBeTrespassed = true,
 		penalties = {
-			disguised = PlayerStatus.Status.MINOR_TRESPASSING,
-			undisguised = PlayerStatus.Status.MAJOR_TRESPASSING
+			disguised = PlayerStatusTypes.MINOR_TRESPASSING,
+			undisguised = PlayerStatusTypes.MAJOR_TRESPASSING
 		}
 	}
 	```
@@ -213,13 +215,13 @@ function Cell.updatePlayersTrespassingStatus(): ()
 			continue
 		end
 
-		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
 		if not playerStatus then
 			continue
 		end
 
-		local disguised = playerStatus:hasStatus("DISGUISED")
-		local penalty: PlayerStatus.PlayerStatusType?
+		local disguised = playerStatus:hasStatus(PlayerStatusTypes.DISGUISED)
+		local penalty: PlayerStatus.PlayerStatus?
 
 		if disguised then
 			penalty = cellConfig.penalties.disguised
@@ -227,7 +229,7 @@ function Cell.updatePlayersTrespassingStatus(): ()
 			penalty = cellConfig.penalties.undisguised
 		end
 
-		local appliedPenalties: { [PlayerStatus.PlayerStatusType]: true } = playerZonePenalties[player] or {}
+		local appliedPenalties: { [PlayerStatus.PlayerStatus]: true } = playerZonePenalties[player] or {}
 
 		-- apply current penalty if applicable
 		if penalty and not playerStatus:hasStatus(penalty) then
@@ -255,7 +257,7 @@ function Cell.updatePlayersTrespassingStatus(): ()
 			continue
 		end
 
-		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
+		local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
 		if not playerStatus then
 			continue
 		end

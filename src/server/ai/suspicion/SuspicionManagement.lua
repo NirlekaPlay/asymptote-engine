@@ -4,13 +4,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPayload)
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local BrainOwner = require(ServerScriptService.server.BrainOwner)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
-local PlayerStatus = require("../../player/PlayerStatus")
 local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
 local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedRemotes).Detection
-
 local CONFIG = {
 	BASE_DETECTION_TIME = 1.25,        -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
 	QUICK_DETECTION_RANGE = 10,        -- In studs
@@ -29,7 +29,7 @@ local CONFIG = {
 }
 
 local detectionDataBatch: { [Player]: {DetectionPayload.DetectionData} } = {}
-local statusTracker: { [Player]: PlayerStatus.PlayerStatusType } = {}
+local statusTracker: { [Player]: PlayerStatus.PlayerStatus } = {}
 
 --[=[
 	@class SuspicionManagement
@@ -49,8 +49,8 @@ SuspicionManagement.__index = SuspicionManagement
 export type SuspicionManagement = typeof(setmetatable({} :: {
 	agent: DetectionAgent.DetectionAgent & BrainOwner.BrainOwner,
 	focusingOn: Player?,
-	suspicionLevels: { [Player]: { [PlayerStatus.PlayerStatusType]: number } },
-	detectedStatuses: { [PlayerStatus.PlayerStatusType]: Player },
+	suspicionLevels: { [Player]: { [PlayerStatus.PlayerStatus]: number } },
+	detectedStatuses: { [PlayerStatus.PlayerStatus]: Player },
 	curiousState: boolean,
 	curiousCooldown: number
 }, SuspicionManagement))
@@ -113,11 +113,11 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		end
 
 		local suspicionTable = self.suspicionLevels[focusingTarget]
-		local highestPriority = PlayerStatus.getStatusPriorityValue(highestStatus)
+		local highestPriority = highestStatus:getPriorityLevel()
 
 		-- Step 1: Check for any maxed higher priority status, override highestStatus if found
 		for status, level in pairs(suspicionTable) do
-			local currentPriority = PlayerStatus.getStatusPriorityValue(status)
+			local currentPriority = status:getPriorityLevel()
 			if currentPriority > highestPriority and level >= 1.0 then
 				highestStatus = status
 				highestPriority = currentPriority
@@ -127,7 +127,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 
 		-- Step 2: Build list of currently detected statuses for this player
 		local detectedStatuses = {}
-		for status, _ in pairs(totalDetectedPlayers[focusingTarget] or {}) do
+		for status, _ in pairs((totalDetectedPlayers[focusingTarget] or {}) :: any) do
 			detectedStatuses[status] = true
 		end
 		detectedStatuses[highestStatus] = true
@@ -136,12 +136,12 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		for status, level in pairs(suspicionTable) do
 			if not detectedStatuses[status] then
 				-- Find detected status with closest priority to 'status'
-				local statusPriority = PlayerStatus.getStatusPriorityValue(status)
-				local candidateStatus = nil
+				local statusPriority = status:getPriorityLevel()
+				local candidateStatus: PlayerStatus.PlayerStatus? = nil
 				local bestDistance = math.huge  -- Initialize with huge distance
 
 				for detectedStatus, _ in pairs(detectedStatuses) do
-					local detectedPriority = PlayerStatus.getStatusPriorityValue(detectedStatus)
+					local detectedPriority = detectedStatus:getPriorityLevel()
 					local currentDistance = math.abs(detectedPriority - statusPriority)
 					if currentDistance < bestDistance then
 						candidateStatus = detectedStatus
@@ -168,7 +168,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		-- Step 3: Transfer suspicion FROM lower priority statuses TO highestStatus before removal
 		for status, level in pairs(suspicionTable) do
 			if status ~= highestStatus then
-				local currentPriority = PlayerStatus.getStatusPriorityValue(status)
+				local currentPriority = status:getPriorityLevel()
 				if currentPriority < highestPriority and level < 1.0 then
 					-- Transfer suspicion to highestStatus before removing
 					suspicionTable[highestStatus] = math.max(suspicionTable[highestStatus] or 0, level)
@@ -217,7 +217,7 @@ end
 function SuspicionManagement.raiseSuspicion(
 	self: SuspicionManagement,
 	player: Player,
-	highestStatus: PlayerStatus.PlayerStatusType,
+	highestStatus: PlayerStatus.PlayerStatus,
 	deltaTime: number
 ): ()
 	local playerSus = self.suspicionLevels[player][highestStatus] or 0
@@ -244,7 +244,7 @@ function SuspicionManagement.raiseSuspicion(
 	end
 
 	-- otherwise, normal suspicion raise
-	local speedModifier = PlayerStatus.getStatusDetectionSpeedModifier(highestStatus)
+	local speedModifier = highestStatus:getDetectionSpeedModifier()
 	if distance <= CONFIG.QUICK_DETECTION_RANGE then
 		speedModifier *= CONFIG.QUICK_DETECTION_MULTIPLIER
 	end
@@ -262,7 +262,7 @@ function SuspicionManagement.raiseSuspicion(
 	self:syncSuspicionToPlayer(player, playerSus)
 end
 
-function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, player: Player, highestStatus: PlayerStatus.PlayerStatusType, deltaTime: number): ()
+function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, player: Player, highestStatus: PlayerStatus.PlayerStatus, deltaTime: number): ()
 	local level = self.suspicionLevels[player][highestStatus] or 0
 	if level >= 1 then return end
 
@@ -275,7 +275,7 @@ function SuspicionManagement.lowerSuspicion(self: SuspicionManagement, player: P
 	self:syncSuspicionToPlayer(player, finalSus)
 end
 
-function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement, players: { [Player]: { isVisible: boolean, isHeard: boolean } }): (Player?, PlayerStatus.PlayerStatusType?)
+function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement, players: { [Player]: { isVisible: boolean, isHeard: boolean } }): (Player?, PlayerStatus.PlayerStatus?)
 	local character = self.agent.character
 	local characterPos = character.PrimaryPart.Position
 
@@ -285,7 +285,7 @@ function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement,
 	local closestDistance = math.huge
 
 	for player, profile in pairs(players) do
-		local statuses = PlayerStatusRegistry.getPlayerStatuses(player)
+		local statuses = PlayerStatusRegistry.getPlayerStatusHolder(player)
 		if not statuses then continue end
 		local priorityStatus = statuses:getHighestDetectableStatus(profile.isVisible or false, profile.isHeard or false)
 		--warn(`Player: '{player}' with highest detectable status of '{priorityStatus}'`)
@@ -296,11 +296,11 @@ function SuspicionManagement.getHighestPriorityPlayer(self: SuspicionManagement,
 
 		-- TODO: this is dumb. should be a seperate logic.
 		-- but theres no other way i can implement this without causing an aneurysm.
-		if priorityStatus == "DISGUISED" and not self.agent:canDetectThroughDisguises() then
+		if priorityStatus == PlayerStatusTypes.DISGUISED and not self.agent:canDetectThroughDisguises() then
 			continue
 		end
 
-		local priorityValue = PlayerStatus.getStatusPriorityValue(priorityStatus)
+		local priorityValue = priorityStatus:getPriorityLevel()
 
 		local targetCharacter = player.Character
 		if targetCharacter and targetCharacter.PrimaryPart then
@@ -330,7 +330,7 @@ function SuspicionManagement.syncSuspicionToPlayer(
 	local character = self.agent.character
 	if susValue >= 1 then
 		local sound = CONFIG.ALERTED_SOUND:Clone()
-		sound.Parent = character.PrimaryPart
+		sound.Parent = character.PrimaryPart :: BasePart
 		sound.PlayOnRemove = true
 		sound:Destroy()
 	end

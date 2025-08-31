@@ -126,7 +126,7 @@ Players.PlayerAdded:Connect(function(player)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.Died:Once(function()
-				local plrStatuses = PlayerStatusRegistry.getPlayerStatuses(player)
+				local plrStatuses = PlayerStatusRegistry.getPlayerStatusHolder(player)
 				plrStatuses:clearAllStatuses()
 			end)
 		end

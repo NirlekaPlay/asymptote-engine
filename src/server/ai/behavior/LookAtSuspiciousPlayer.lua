@@ -97,7 +97,7 @@ function LookAtSuspiciousPlayer.doUpdate(self: LookAtSuspiciousPlayer, agent: Ag
 
 	-- CASE 3: If we have a suspect or are curious, evaluate suspicion level.
 	if suspect then
-		local playerStatuses = PlayerStatusRegistry.getPlayerStatuses(suspect)
+		local playerStatuses = PlayerStatusRegistry.getPlayerStatusHolder(suspect)
 		if playerStatuses then
 			local highestStatus = playerStatuses:getHighestPriorityStatus()
 			local highestStatusValue = susMan.suspicionLevels[suspect][highestStatus]

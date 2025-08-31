@@ -39,7 +39,7 @@ function ShockedGoal.canUse(self: ShockedGoal): boolean
 	if not susMan.detectionLocks[hasSuspect] then
 		return false
 	end
-	local highestStatus = PlayerStatusRegistry.getPlayerStatuses(hasSuspect):getHighestPriorityStatus()
+	local highestStatus = PlayerStatusRegistry.getPlayerStatusHolder(hasSuspect):getHighestPriorityStatus()
 	local isArmed = highestStatus == "ARMED"
 
 	if isArmed then

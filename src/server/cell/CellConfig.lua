@@ -1,13 +1,13 @@
 --!strict
 
-local ServerScriptService = game:GetService("ServerScriptService")
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 
 export type Config = {
 	canBeTrespassed: boolean,
 	penalties: {
-		disguised: PlayerStatus.PlayerStatusType?,
-		undisguised: PlayerStatus.PlayerStatusType?
+		disguised: PlayerStatus.PlayerStatus?,
+		undisguised: PlayerStatus.PlayerStatus?
 	}
 }
 

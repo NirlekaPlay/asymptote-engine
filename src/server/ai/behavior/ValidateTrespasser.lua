@@ -1,11 +1,13 @@
 --!nonstrict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local PlayerStatus = require(ServerScriptService.server.player.PlayerStatus)
 
 --[=[
 	@class ValidateTrespasser
@@ -40,7 +42,7 @@ end
 
 function ValidateTrespasser.checkExtraStartConditions(self: ValidateTrespasser, agent: Agent): boolean
 	for status, player in pairs(agent:getSuspicionManager().detectedStatuses) do
-		if status == PlayerStatus.Status.MINOR_TRESPASSING then
+		if status == PlayerStatusTypes.MINOR_TRESPASSING then
 			return true
 		end
 	end
@@ -53,12 +55,12 @@ function ValidateTrespasser.canStillUse(self: ValidateTrespasser, agent: Agent):
 end
 
 function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
-	local highestStatus: PlayerStatus.PlayerStatusType?
+	local highestStatus: PlayerStatus.PlayerStatus?
 	local player: Player?
 	local highestPriority = -math.huge
 
 	for status, plr in pairs(agent:getSuspicionManager().detectedStatuses) do
-		local statusPriority = PlayerStatus.getStatusPriorityValue(status)
+		local statusPriority = status:getPriorityLevel()
 
 		if statusPriority > highestPriority then
 			highestPriority = statusPriority
@@ -67,7 +69,7 @@ function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
 		end
 	end
 
-	if highestStatus and highestStatus == PlayerStatus.Status.MINOR_TRESPASSING then
+	if highestStatus and highestStatus == PlayerStatusTypes.MINOR_TRESPASSING then
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, player)
 	else
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, nil)

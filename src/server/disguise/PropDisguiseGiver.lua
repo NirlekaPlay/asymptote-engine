@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local DISGUISE_ON_SOUND = ReplicatedStorage.shared.assets.sounds.disguise_equip
@@ -66,18 +67,18 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 		self:applyDisguiseToPlayer(player)
 	end)
 	proximityPrompt.PromptButtonHoldBegan:Connect(function(player)
-		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
-		playerStatus:addStatus("CRIMINAL_SUSPICIOUS")
+		local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		playerStatus:addStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
 	end)
 	proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
-		local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
-		playerStatus:removeStatus("CRIMINAL_SUSPICIOUS")
+		local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		playerStatus:removeStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
 	end)
 end
 
 function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player: Player): ()
-	local playerStatus = PlayerStatusRegistry.getPlayerStatuses(player)
-	local isDisguised = playerStatus:hasStatus("DISGUISED") -- for some fucking reason, placing it directly to an if statement makes a "unknown" type error bullshit
+	local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+	local isDisguised = playerStatus:hasStatus(PlayerStatusTypes.DISGUISED) -- for some fucking reason, placing it directly to an if statement makes a "unknown" type error bullshit
 	if isDisguised then
 		return
 	end
@@ -112,7 +113,7 @@ function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player
 		end
 	end
 
-	playerStatus:addStatus("DISGUISED")
+	playerStatus:addStatus(PlayerStatusTypes.DISGUISED)
 
 	local disguiseOnSound = DISGUISE_ON_SOUND:Clone()
 	disguiseOnSound.Parent = playerCharacter:FindFirstChild("HumanoidRootPart") or playerCharacter

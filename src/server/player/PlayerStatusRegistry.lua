@@ -1,16 +1,16 @@
 --!strict
 
 local Players = game:GetService("Players")
-local PlayerStatus = require("./PlayerStatus")
+local PlayerStatusHolder = require(script.Parent.PlayerStatusHolder)
 
 --[=[
 	@class PlayerStatusRegistry
 ]=]
 local PlayerStatusRegistry = {}
-local playersStatusObjects: { [number]: PlayerStatus.PlayerStatus} = {}
+local playersStatusObjects: { [number]: PlayerStatusHolder.PlayerStatusHolder } = {}
 
 Players.PlayerAdded:Connect(function(player)
-	playersStatusObjects[player.UserId] = PlayerStatus.new(player)
+	playersStatusObjects[player.UserId] = PlayerStatusHolder.new(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
@@ -19,7 +19,7 @@ end)
 
 for _, player in ipairs(Players:GetPlayers()) do
 	if not playersStatusObjects[player.UserId] then
-		playersStatusObjects[player.UserId] = PlayerStatus.new(player)
+		playersStatusObjects[player.UserId] = PlayerStatusHolder.new(player)
 	end
 end
 
@@ -31,7 +31,7 @@ function PlayerStatusRegistry.playerHasStatuses(player: Player): boolean
 	return playersStatusObjects[player.UserId] ~= nil
 end
 
-function PlayerStatusRegistry.getPlayerStatuses(player: Player): PlayerStatus.PlayerStatus
+function PlayerStatusRegistry.getPlayerStatusHolder(player: Player): PlayerStatusHolder.PlayerStatusHolder
 	return playersStatusObjects[player.UserId]
 end
 
