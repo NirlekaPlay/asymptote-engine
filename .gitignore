@@ -13,3 +13,6 @@ sourcemap.json
 
 # Temporary files
 temp*
+
+# IntelliJ stuff
+.idea

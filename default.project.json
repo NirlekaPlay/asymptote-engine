@@ -4,7 +4,8 @@
     "$className": "DataModel",
     "ReplicatedStorage": {
       "shared": {
-        "$path": "src/shared"
+        "$path": "src/shared",
+        "$ignoreUnknownInstances": true
       }
     },
     "ServerScriptService": {
@@ -20,7 +21,12 @@
       }
     },
     "StarterGui": {
-      "$path": "src/client/StarterGui"
+      "$path": "src/client/StarterGui",
+      "$ignoreUnknownInstances": true
+    },
+    "ReplicatedFirst": {
+      "$path": "src/client/ReplicatedFirst",
+      "$ignoreUnknownInstances": true
     }
   }
 }

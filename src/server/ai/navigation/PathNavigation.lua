@@ -9,6 +9,7 @@ PathNavigation.__index = PathNavigation
 export type PathNavigation = typeof(setmetatable({} :: {
 	pathfinder: SimplePath.SimplePath,
 	reachedConnection: RBXScriptConnection?,
+	pathConnections: { [string]: RBXScriptConnection },
 	finished: boolean
 }, PathNavigation))
 
@@ -18,38 +19,45 @@ function PathNavigation.new(character: Model, agentParams: AgentParameters?): Pa
 	return setmetatable({
 		pathfinder = SimplePath.new(character, agentParams),
 		reachedConnection = nil :: RBXScriptConnection?,
+		pathConnections = {},
 		finished = false
 	}, PathNavigation)
 end
 
-function PathNavigation.disconnectReachedConnection(self: PathNavigation): ()
-	if self.reachedConnection then
-		self.reachedConnection:Disconnect()
-		self.reachedConnection = nil
-	end
+function PathNavigation.getPath(self: PathNavigation): Path
+	return (self.pathfinder :: SimplePath.SimplePathInternal)._path
 end
 
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
-	warn("Moving to", toPos)
-	self.pathfinder.Visualize = true
-	self:disconnectReachedConnection()
-	self.finished = false
+	self:stop()
 	self.pathfinder:Run(toPos)
-	self.reachedConnection = self.pathfinder.Reached:Connect(function()
+	self.reachedConnection = self.pathfinder.Reached:Once(function()
 		self.finished = true
 	end)
 end
 
+function PathNavigation.isMoving(self: PathNavigation): boolean
+	return self.pathfinder.Status == "Active"
+end
+
 function PathNavigation.stop(self: PathNavigation)
-	--warn("Stopping navigation...")
-	self:disconnectReachedConnection()
+	self:disconnectAndClearConnections()
+	self.finished = false
 	if self.pathfinder.Status == "Active" then
 		self.pathfinder:Stop()
 	end
 end
 
-function PathNavigation.getPath(self: PathNavigation): Path
-	return (self.pathfinder :: SimplePath.SimplePathInternal)._path
+function PathNavigation.disconnectAndClearConnections(self: PathNavigation): ()
+	if self.reachedConnection then
+		self.reachedConnection:Disconnect()
+		self.reachedConnection = nil
+	end
+
+	for name, connection in pairs(self.pathConnections) do
+		connection:Disconnect()
+		self.pathConnections[name] = nil
+	end
 end
 
 return PathNavigation

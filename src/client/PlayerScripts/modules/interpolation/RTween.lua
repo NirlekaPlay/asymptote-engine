@@ -87,15 +87,12 @@ local function play_step(self: RTween, step_index: number)
 	for _, tween in ipairs(step) do
 		tween:Play()
 
-		local connection
+		local connection: RBXScriptConnection
 		connection = tween.Completed:Once(function()
 			completed_tweens += 1
 			if completed_tweens == step_size then
 				-- all tweens in this step are done
-				if connection then
-					connection:Disconnect()
-				end
-
+				connection:Disconnect()
 				play_step(self, step_index + 1) -- move to next step
 			end
 		end)
