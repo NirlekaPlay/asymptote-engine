@@ -11,6 +11,29 @@ local PI = math.pi
 local activeBullets: { ServerBulletObject } = {}
 local sharedRayIgnoreList: { BasePart } = {}
 
+workspace.DescendantAdded:Connect(function(inst)
+	if inst:IsA("Accessory") or inst:IsA("Hat") or inst.Name == "HumanoidRootPart" then
+		table.insert(sharedRayIgnoreList, inst)
+	elseif inst:IsA("BasePart") and not inst.CanCollide and not inst.Parent:FindFirstChildOfClass("Humanoid") then
+		table.insert(sharedRayIgnoreList, inst)
+	end
+end)
+
+workspace.DescendantRemoving:Connect(function(WHAT)
+	local findthing = table.find(sharedRayIgnoreList, WHAT)
+	if findthing then
+		table.remove(sharedRayIgnoreList, findthing)
+	end
+end)
+
+for i,v in pairs(workspace:GetDescendants()) do
+	if v:IsA("Accessory") or v:IsA("Hat") or v.Name == "HumanoidRootPart" then
+		table.insert(sharedRayIgnoreList, v)
+	elseif v:IsA("BasePart") and not v.CanCollide and not v.Parent:FindFirstChildOfClass("Humanoid") then
+		table.insert(sharedRayIgnoreList, v)
+	end
+end
+
 --[=[
 	@class BulletSimulation
 ]=]
@@ -42,9 +65,10 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	local filter = { fromPlayer.Character } :: { Instance }
+	local filter = sharedRayIgnoreList
+	table.insert(filter, fromPlayer.Character)
 	rayParams.CollisionGroup = "Bullet"
-	rayParams.FilterDescendantsInstances = filter
+	rayParams.FilterDescendantsInstances = filter :: any -- stfu
 
 	table.insert(activeBullets, {
 		cframe = bulletCFrame,
