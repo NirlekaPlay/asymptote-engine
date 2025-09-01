@@ -7,6 +7,7 @@ export type BulletTracer = {
 	size: number,
 	penetration: number,
 	humanoidRootPartVelocity: number,
+	muzzleCframe: CFrame,
 	seed: number
 }
 

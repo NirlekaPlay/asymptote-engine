@@ -5,15 +5,19 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
-local SharedRayIgnoreList = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.SharedRayIgnoreList)
+local Particles = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.Particles)
 local BulletTracerPayload = require(ReplicatedStorage.shared.network.BulletTracerPayload)
 local BulletHitHandler = require(script.Parent.BulletHitHandler)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
 local LOCAL_PLAYER = Players.LocalPlayer
 local BULLET_INST_NAME = "GunSysBullet"
+local MUZZLE_FLASH_INST_NAME = "GunSysMuzzleFlash"
+local MUZZLE_FLASH_LIFE_TIME = 0.025
 local DEBUG_MODE = SharedConstants.DEBUG_BULLET_TRACERS
 local PI = math.pi
+local WHITE = Color3.new(1, 1, 1)
+local PISS_YELLOW = Color3.new(1, 0.866667, 0) -- (≖_≖ )
 
 local activeBullets: { BulletObject } = {}
 
@@ -46,13 +50,14 @@ function BulletTracerHandler.onReceiveTracerData(bulletTracerData: BulletTracerP
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	local filter = SharedRayIgnoreList
+	local filter = {}
 	if LOCAL_PLAYER and LOCAL_PLAYER.Character then
 		table.insert(filter, LOCAL_PLAYER.Character)
 	end
-	table.insert(SharedRayIgnoreList, bulletPart)
 	rayParams.CollisionGroup = "Bullet"
 	rayParams.FilterDescendantsInstances = filter
+
+	BulletTracerHandler.muzzleFlash(bulletTracerData.muzzleCframe, Vector3.new(2, 0.6, 0.6), math.random(1, 15) / 10)
 
 	table.insert(activeBullets, {
 		instance = bulletPart,
@@ -213,6 +218,7 @@ function BulletTracerHandler.createNewBulletPart(
 	bullet.Name = BULLET_INST_NAME
 	bullet.Anchored = true
 	bullet.CanCollide = false
+	bullet.CanQuery = false
 	bullet.Transparency = 0.3
 	bullet.Material = Enum.Material.Neon
 	bullet.Size = Vector3.new(bulletSpeed / 5, 0.25, 0.25)
@@ -232,6 +238,41 @@ function BulletTracerHandler.createNewBulletPart(
 
 	bullet.Parent = workspace
 	return bullet
+end
+
+function BulletTracerHandler.muzzleFlash(muzzleCframe: CFrame, size: Vector3, transparency: number)
+	local muzzleFlashPart = Instance.new("Part")
+
+	local specialMesh = Instance.new("SpecialMesh")
+	specialMesh.MeshType = Enum.MeshType.Sphere
+	specialMesh.Parent = muzzleFlashPart
+
+	local muzzleFlashLight = Instance.new("PointLight")
+	muzzleFlashLight.Brightness = 1 - transparency
+	muzzleFlashPart.Size = size
+	muzzleFlashPart.Name = MUZZLE_FLASH_INST_NAME
+	muzzleFlashPart.Transparency = transparency
+	muzzleFlashPart.Color = PISS_YELLOW
+	muzzleFlashPart.CanCollide = false
+	muzzleFlashPart.CanQuery = false
+	muzzleFlashPart.Anchored = true
+	muzzleFlashPart.Material = Enum.Material.Neon
+	muzzleFlashPart.CFrame = muzzleCframe * CFrame.new((-size.X / 2) - 0.3, 0, 0)
+	muzzleFlashPart.Parent = workspace
+
+	local particlePart = Instance.new("Part")
+	particlePart.Anchored = true
+	particlePart.Transparency = 1
+	particlePart.CanCollide = false
+	particlePart.CanQuery = false
+	particlePart.AudioCanCollide = false
+	particlePart.Position = muzzleCframe.Position
+	particlePart.CFrame = CFrame.lookAt(muzzleCframe.Position, muzzleFlashPart.Position) -- this is stupid
+	particlePart.Size = Vector3.one
+	particlePart.Parent = workspace
+
+	Particles.emitParticle(particlePart, WHITE, 0.15, 0.35, 0.1, 0.2, 10, Enum.NormalId.Left, MUZZLE_FLASH_LIFE_TIME)
+	Debris:AddItem(muzzleFlashPart, MUZZLE_FLASH_LIFE_TIME)
 end
 
 return BulletTracerHandler
