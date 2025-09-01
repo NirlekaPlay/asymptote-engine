@@ -141,6 +141,22 @@ local QuoteOfTheDays: { Quote } = {
 	{
 		message = "Shush. I'll give you a bone and you'll shut.",
 		author = "~RailJessie"
+	},
+	{
+		message = "Why do something productive in life when you can exploit on roblox!",
+		author = "~Polasity"
+	},
+	{
+		message = "The trainers are the voices in my head and if they start harassing me I WILL take the medication.",
+		author = "~FozzingtonTheThird"
+	},
+	{
+		message = "My crashout will be biblical.",
+		author = "~FozzingtonTheThird"
+	},
+	{
+		message = "Biggest reason to apply for T3 is so Foz will have a greater chance of recognizing you.",
+		author = "~FozzingtonTheThird"
 	}
 }
 
