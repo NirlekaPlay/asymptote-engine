@@ -84,6 +84,10 @@ function Level.hideCell(cellModel: Model): ()
 		end
 
 		cellChild.Transparency = 1
+		cellChild.CanCollide = false
+		cellChild.CanQuery = false
+		cellChild.CanTouch = false
+		cellChild.AudioCanCollide = false
 	end
 end
 
