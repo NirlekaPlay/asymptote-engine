@@ -51,7 +51,7 @@ export type ServerBulletObject = {
 	damageCallback: (humanoid: Humanoid, limb: BasePart) -> Humanoid
 }
 
-function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayload.BulletTracer, fromPlayer: Player, damageCallback: (humanoid: Humanoid, limb: BasePart) -> ()): ()
+function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayload.BulletTracer, fromChar: Model, damageCallback: (humanoid: Humanoid, limb: BasePart) -> ()): ()
 	-- Seeded RNG for deterministic micro-jitter in pierce/deflect only
 	local rng = Random.new(bulletData.seed)
 
@@ -65,8 +65,8 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	local filter = sharedRayIgnoreList
-	table.insert(filter, fromPlayer.Character)
+	local filter = table.clone(sharedRayIgnoreList)
+	table.insert(filter, fromChar)
 	rayParams.CollisionGroup = "Bullet"
 	rayParams.FilterDescendantsInstances = filter :: any -- stfu
 
