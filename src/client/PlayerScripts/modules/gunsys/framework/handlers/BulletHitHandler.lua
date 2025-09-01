@@ -3,7 +3,6 @@
 local Debris = game:GetService("Debris")
 local StarterPlayer = game:GetService("StarterPlayer")
 local Particles = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.Particles)
-local SharedRayIgnoreList = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.SharedRayIgnoreList)
 local GunSysAttributes = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.attributes.GunSysAttributes)
 
 local BULLET_HOLE_TIME = 1
@@ -23,8 +22,9 @@ local COLORS = {
 local BulletHitHandler = {}
 
 function BulletHitHandler.createBulletHole(rayHitPos: Vector3, rayHitNormal: Vector3): BasePart
-	local newBulletHole = Instance.new("SpawnLocation")
-	newBulletHole.Enabled = false
+	local newBulletHole = Instance.new("Part")
+	newBulletHole.CanQuery = false
+	newBulletHole.AudioCanCollide = false
 	newBulletHole.CanCollide = false
 	newBulletHole.Color = COLORS.BLACK
 	newBulletHole.Shape = Enum.PartType.Cylinder
@@ -54,7 +54,6 @@ function BulletHitHandler.handleBulletHit(rayHitPos: Vector3, rayHitNormal: Vect
 	-- But the original comment states:
 	-- 'spawnlocation because its one of the only baseparts that dont go under tusks basepart limit'
 	local bulletHole = BulletHitHandler.createBulletHole(rayHitPos, rayHitNormal)
-	table.insert(SharedRayIgnoreList, bulletHole)
 	Debris:AddItem(bulletHole, BULLET_HOLE_TIME)
 
 	if not rayHitPart.Anchored or rayHitPart.Anchored and DO_BULLET_HOLE_WELD_TO_ANCHORED_PARTS then

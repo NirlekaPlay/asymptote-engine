@@ -37,15 +37,16 @@ local function playShellSound(parent: Instance): ()
 end
 
 function ShellDropHandler.dropShell(boltCframe: CFrame): ()
-	local shell = Instance.new("SpawnLocation")
+	local shell = Instance.new("Part")
 	shell.Name = SHELL_INST_NAME
 	shell.Shape = Enum.PartType.Cylinder
 	shell.Size = SHELL_SIZE
 	shell.BrickColor = SHELL_COLOR
 	shell.Material = SHELL_MATERIAL
 	shell.Anchored = true
+	shell.CanQuery = false
+	shell.AudioCanCollide = false
 	shell.CanCollide = false
-	shell.Enabled = false
 	shell.CFrame = boltCframe * CFrame.new(0.1, 0, 0)
 	shell.Parent = workspace
 
