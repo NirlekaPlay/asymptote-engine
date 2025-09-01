@@ -2,6 +2,8 @@
 
 local Debris = game:GetService("Debris")
 local StarterPlayer = game:GetService("StarterPlayer")
+local Particles = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.Particles)
+local SharedRayIgnoreList = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.SharedRayIgnoreList)
 local GunSysAttributes = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.attributes.GunSysAttributes)
 
 local BULLET_HOLE_TIME = 1
@@ -20,47 +22,7 @@ local COLORS = {
 ]=]
 local BulletHitHandler = {}
 
-function BulletHitHandler.emitBulletParticle(
-	part: BasePart,
-	color: Color3,
-	minSize: number,
-	maxSize: number,
-	minLift: number,
-	maxLift: number,
-	speed: number, 
-	emissionNormalEnum: Enum.NormalId,
-	lifetime: number?
-): ()
-	-- In the original script, it calls the main logic
-	-- with pcall. I don't know the purpose of it,
-	-- and the original comment doesn't help much.
-	-- But we haven't encountered any issues so far.
-	local particleEmitter = Instance.new("ParticleEmitter", part)
-	particleEmitter.Color = ColorSequence.new(color)
-	particleEmitter.Texture = "rbxassetid://375847957"
-	particleEmitter.Name = "gemit"
-	particleEmitter.Drag = 10
-	particleEmitter.EmissionDirection = emissionNormalEnum
-	particleEmitter.Speed = NumberRange.new(speed)
-	particleEmitter.Rate = 500
-	particleEmitter.Lifetime = NumberRange.new(minLift,maxLift)
-	particleEmitter.SpreadAngle = Vector2.new(-20,20)
-	particleEmitter.Transparency = NumberSequence.new(0.75, 1)
-	particleEmitter.Size = NumberSequence.new(minSize, maxSize)
-
-	-- this is from the original script, which is kinda bad.
-	-- though we keep this for now until we script a propper
-	-- scheduler.
-	task.spawn(function()
-		-- this is to prevent the particle emitter texture
-		-- from abruptly disappearing upon getting destroyed.
-		task.wait(lifetime)
-		particleEmitter.Enabled = false
-		Debris:AddItem(particleEmitter, 0.5)
-	end)
-end
-
-function BulletHitHandler.createBulletHole(rayHitPos: Vector3, rayHitNormal: Vector3): SpawnLocation
+function BulletHitHandler.createBulletHole(rayHitPos: Vector3, rayHitNormal: Vector3): BasePart
 	local newBulletHole = Instance.new("SpawnLocation")
 	newBulletHole.Enabled = false
 	newBulletHole.CanCollide = false
@@ -92,6 +54,7 @@ function BulletHitHandler.handleBulletHit(rayHitPos: Vector3, rayHitNormal: Vect
 	-- But the original comment states:
 	-- 'spawnlocation because its one of the only baseparts that dont go under tusks basepart limit'
 	local bulletHole = BulletHitHandler.createBulletHole(rayHitPos, rayHitNormal)
+	table.insert(SharedRayIgnoreList, bulletHole)
 	Debris:AddItem(bulletHole, BULLET_HOLE_TIME)
 
 	if not rayHitPart.Anchored or rayHitPart.Anchored and DO_BULLET_HOLE_WELD_TO_ANCHORED_PARTS then
@@ -108,11 +71,11 @@ function BulletHitHandler.handleBulletHit(rayHitPos: Vector3, rayHitNormal: Vect
 			else
 				bulletHole.Transparency = 1
 			end
-			BulletHitHandler.emitBulletParticle(
+			Particles.emitParticle(
 				bulletHole, COLORS.MAROON, 0.15, 0.35, 0.1, 0.2, 10, Enum.NormalId.Right, 0.1
 			)
 		else
-			BulletHitHandler.emitBulletParticle(
+			Particles.emitParticle(
 				bulletHole, rayHitPart.Color, 0.15, 0.35, 0.1, 0.2, 10, Enum.NormalId.Right, 0.1
 			)
 		end

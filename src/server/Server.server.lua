@@ -11,6 +11,7 @@ local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.level.Level)
 local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
@@ -112,6 +113,8 @@ RunService.PostSimulation:Connect(function(deltaTime)
 
 	-- oh god
 	SuspicionManagement.flushBatchToClients()
+
+	BulletSimulation.update(deltaTime)
 end)
 
 if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER) then

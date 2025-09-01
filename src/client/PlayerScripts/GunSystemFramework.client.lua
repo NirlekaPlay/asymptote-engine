@@ -2,9 +2,11 @@
 
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
+local BulletTracerHandler = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.handlers.BulletTracerHandler)
 local ShellDropHandler = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.handlers.ShellDropHandler)
 local GunSystClientPacketListener = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.network.GunSysClientPacketListener)
 
 RunService.PreRender:Connect(function(deltaTime)
+	BulletTracerHandler.update(deltaTime)
 	ShellDropHandler.update(deltaTime)
 end)
