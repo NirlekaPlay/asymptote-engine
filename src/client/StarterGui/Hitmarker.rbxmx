@@ -57,7 +57,7 @@
 					<G>1</G>
 					<B>1</B>
 				</Color3>
-				<float name="GroupTransparency">0</float>
+				<float name="GroupTransparency">1</float>
 				<bool name="Interactable">true</bool>
 				<int name="LayoutOrder">0</int>
 				<string name="Name">Hitmarker</string>
