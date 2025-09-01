@@ -13,6 +13,7 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local Level = require(ServerScriptService.server.level.Level)
 local Guard = require(ServerScriptService.server.npc.guard.Guard)
+local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local GUARD_TAG_NAME = "Guard"
 local GUARD_POSTS_TAG_NAME = "Post"
@@ -113,10 +114,10 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	SuspicionManagement.flushBatchToClients()
 end)
 
-if not PhysicsService:IsCollisionGroupRegistered("NonCollideWithPlayer") then
-	PhysicsService:RegisterCollisionGroup("NonCollideWithPlayer")
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
 end
-PhysicsService:CollisionGroupSetCollidable("NonCollideWithPlayer", "NonCollideWithPlayer", false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 
 local playerConnections: { [Player]: RBXScriptConnection } = {} 
 
@@ -133,7 +134,7 @@ Players.PlayerAdded:Connect(function(player)
 
 		for _, part in ipairs(character:GetChildren()) do
 			if part:IsA("BasePart") then
-				part.CollisionGroup = "Player"
+				part.CollisionGroup = CollisionGroupTypes.PLAYER
 			end
 		end
 	end)
