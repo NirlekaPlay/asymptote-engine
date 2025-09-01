@@ -19,11 +19,11 @@ local CONFIG = {
 	CURIOUS_THRESHOLD = 60 / 100,      -- 60% progress to trigger curious state
 	CURIOUS_COOLDOWN_TIME = 2,         -- In seconds,
 	INSTANT_DETECTION_RULES = {
-		ARMED = 20,                    -- Pulling out a gun triggers instant detection within this distance
-		DANGEROUS_ITEM = 12.5          -- Carrying C4 triggers instant detection within this distance
+		[PlayerStatusTypes.ARMED] = 20,                    -- Pulling out a gun triggers instant detection within this distance
+		[PlayerStatusTypes.DANGEROUS_ITEM] = 12.5          -- Carrying C4 triggers instant detection within this distance
 	},
 	QUICK_DETECTION_INSTANT_STATUSES = { -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
-		ARMED = true
+		[PlayerStatusTypes.ARMED] = true
 	},
 	ALERTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 }
@@ -126,10 +126,7 @@ function SuspicionManagement.update(self: SuspicionManagement, deltaTime: number
 		end
 
 		-- Step 2: Build list of currently detected statuses for this player
-		local detectedStatuses = {}
-		for status, _ in pairs((totalDetectedPlayers[focusingTarget] or {}) :: any) do
-			detectedStatuses[status] = true
-		end
+		local detectedStatuses: { [PlayerStatus.PlayerStatus]: true } = {}
 		detectedStatuses[highestStatus] = true
 
 		-- Step 3: For each suspicious status no longer detected, transfer suspicion to detected status of closest priority
@@ -235,7 +232,7 @@ function SuspicionManagement.raiseSuspicion(
 		-- check if new status is dangerous and within instant detection range
 		local instantRange = CONFIG.INSTANT_DETECTION_RULES[highestStatus] :: number
 		if (instantRange and distance <= instantRange)
-			or (CONFIG.QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= CONFIG.QUICK_DETECTION_RANGE)then
+			or (CONFIG.QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= CONFIG.QUICK_DETECTION_RANGE) then
 			self.suspicionLevels[player][highestStatus] = 1
 			self.detectedStatuses[highestStatus] = player
 			self:syncSuspicionToPlayer(player, 1)
