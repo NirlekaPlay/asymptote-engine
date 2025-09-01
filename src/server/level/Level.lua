@@ -38,6 +38,19 @@ function Level.initializeLevel(): ()
 	else
 		Level.initializeCells(cellsFolder)
 	end
+
+	local playerCollidersFolder = levelFolder:FindFirstChild("PlayerColliders")
+	if playerCollidersFolder then
+		for _, part in ipairs(playerCollidersFolder:GetChildren()) do
+			if not part:IsA("BasePart") then
+				continue
+			end
+
+			part.Anchored = true
+			part.CollisionGroup = "PlayerCollider"
+			part.Transparency = 1
+		end
+	end
 end
 
 function Level.initializeCells(cellsFolder: Folder): ()

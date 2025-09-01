@@ -133,7 +133,7 @@ Players.PlayerAdded:Connect(function(player)
 
 		for _, part in ipairs(character:GetChildren()) do
 			if part:IsA("BasePart") then
-				part.CollisionGroup = "NonCollideWithPlayer"
+				part.CollisionGroup = "Player"
 			end
 		end
 	end)
