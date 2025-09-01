@@ -29,7 +29,8 @@ local activeShells: { [BasePart]: {
 local function playShellSound(parent: Instance): ()
 	local sound = Instance.new("Sound")
 	sound.SoundId = SHELL_SOUND_ID
-	sound.Volume = 0.5
+	sound.Volume = 0.7
+	sound.PlaybackSpeed = 1 + math.random(-10,10) / 65
 	sound.PlayOnRemove = true
 	sound.Parent = parent
 	sound:Destroy()
