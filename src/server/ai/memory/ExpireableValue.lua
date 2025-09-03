@@ -1,5 +1,23 @@
---!nonstrict
+--!strict
 
+--[=[
+	@class ExpireableValue
+
+	A wrapper that holds a value with an optional expiration timer.
+
+	The timer counts down when `update()` is called with a delta time.
+	Values can be set to never expire using `nonExpiring()`.
+
+	```lua
+	local item = ExpireableValue.new("data", 5.0) -- expires in 5 seconds
+
+	item:update(1.0) -- 4 seconds left
+
+	if not item:isExpired() then
+		print(item:getValue()) -- "data"
+	end
+	```
+]=]
 local ExpireableValue = {}
 ExpireableValue.__index = ExpireableValue
 
@@ -35,9 +53,9 @@ function ExpireableValue.isExpired<T>(self: ExpireableValue<T>): boolean
 	return self.timeToLive <= 0
 end
 
-function ExpireableValue.update<T>(self: ExpireableValue<T>, delta: number): ()
+function ExpireableValue.update<T>(self: ExpireableValue<T>, deltaTime: number): ()
 	if self:canExpire() then
-		self.timeToLive -= delta
+		self.timeToLive -= deltaTime
 	end
 end
 
