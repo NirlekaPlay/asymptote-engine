@@ -14,7 +14,6 @@ local LOCAL_PLAYER = Players.LocalPlayer
 local BULLET_INST_NAME = "GunSysBullet"
 local MUZZLE_FLASH_INST_NAME = "GunSysMuzzleFlash"
 local MUZZLE_FLASH_LIFE_TIME = 0.025
-local DEBUG_MODE = SharedConstants.DEBUG_BULLET_TRACERS
 local PI = math.pi
 local WHITE = Color3.new(1, 1, 1)
 local PISS_YELLOW = Color3.new(1, 0.866667, 0) -- (≖_≖ )
@@ -85,7 +84,7 @@ function BulletTracerHandler.update(deltaTime: number): ()
 		local rayDir = right * (-(bulletObj.currentSpeed) * deltaTime * 31)
 		local hit = workspace:Raycast(rayOrigin, rayDir, bulletObj.raycastParams)
 
-		if DEBUG_MODE then
+		if SharedConstants.DEBUG_BULLET_TRACERS then
 			if hit then
 				Debris:AddItem(Draw.line(rayOrigin, hit.Position, Color3.new(0, 1, 0)), 0.1)
 				Debris:AddItem(Draw.point(hit.Position, Color3.new(0, 1, 1)), 0.1)
