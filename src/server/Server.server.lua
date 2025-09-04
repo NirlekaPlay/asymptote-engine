@@ -14,6 +14,7 @@ local CollectionManager = require(ServerScriptService.server.collection.Collecti
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.level.Level)
+local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
 local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
@@ -36,11 +37,16 @@ end
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
 	local newGuardPost = GuardPost.fromPart(post, false)
+	
 	if (post.Parent :: Instance).Name == "advanced" then
 		table.insert(advancedGuardPosts, newGuardPost)
 	else
 		table.insert(basicGuardPosts, newGuardPost)
 	end
+end)
+
+CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, function(dummyChar: Model)
+	guards[dummyChar] = DetectionDummy.new(dummyChar)
 end)
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, setupGuard)
