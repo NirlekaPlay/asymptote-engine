@@ -54,7 +54,7 @@ export type SuspicionManagement = typeof(setmetatable({} :: {
 	curiousState: boolean,
 	curiousCooldown: number
 }, SuspicionManagement))
-
+-- do your thing
 function SuspicionManagement.new(agent: DetectionAgent.DetectionAgent & BrainOwner.BrainOwner): SuspicionManagement
 	return setmetatable({
 		agent = agent,

@@ -34,9 +34,9 @@ function PlacedC4sSensor.doUpdate(self: PlacedC4sSensor, agent: Agent, deltaTime
 	local visibleC4: { [string]: true } = {}
 	
 	for entityUID, entity in pairs(EntityManager.Entities) do
-		local isInVision = self:isInVision(agent, entity)
+		local isInVision = self:isInVision(agent, entity :: EntityManager.DynamicEntity)
 		if not isInVision then continue end
-		
+
 		visibleC4[entityUID] = true
 	end
 
@@ -44,11 +44,11 @@ function PlacedC4sSensor.doUpdate(self: PlacedC4sSensor, agent: Agent, deltaTime
 	brain:setNullableMemory(MemoryModuleTypes.VISISBLE_C4, visibleC4)
 end
 
-function PlacedC4sSensor.isInVision(self: PlacedC4sSensor, agent: Agent, entity: EntityManager.Entity): boolean
+function PlacedC4sSensor.isInVision(self: PlacedC4sSensor, agent: Agent, entity: EntityManager.DynamicEntity): boolean
 	local agentPrimaryPart = agent:getPrimaryPart()
 
-	local agentPos = agentPrimaryPart.Position
-	local entityPos = entity.position
+	local agentPos = agentPrimaryPart.Position -- chaotic programing
+	local entityPos = (entity.instance :: Part).Position :: Vector3 -- this is hurrendous to look at
 	local diff = entityPos - agentPos
 	local dist = diff.Magnitude
 
@@ -64,7 +64,7 @@ function PlacedC4sSensor.isInVision(self: PlacedC4sSensor, agent: Agent, entity:
 	end
 
 	local rayParams = self.rayParams
-	if not rayParams then -- THIS?
+	if not rayParams then
 		local newRayParams = RaycastParams.new()
 		newRayParams.FilterType = Enum.RaycastFilterType.Exclude
 		newRayParams.FilterDescendantsInstances = { agent.character }
@@ -78,16 +78,10 @@ function PlacedC4sSensor.isInVision(self: PlacedC4sSensor, agent: Agent, entity:
 		return false
 	end
 	
-	if entity.instance then
-		if rayResult.Instance:IsDescendantOf(entity.instance) or rayResult.Instance == entity.instance then
-			return true
-		end
-	else
-		if (rayResult.Position - entityPos).Magnitude < 0.05 then
-			return true
-		end
+	if rayResult.Instance:IsDescendantOf(entity.instance) or rayResult.Instance == entity.instance then
+		return true
 	end
-	
+
 	return false
 end
 

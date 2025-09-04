@@ -47,6 +47,8 @@ weapons, dead bodies, hostages, and damaged property.
     seconds. However, they will not enter a curious state
     if they are already investigating or reporting
     something.
+ f. Ignore the shit above me.
+ g. 
 
 2. Patrolling. A Guard can have a patrolling duty. A map or level has posts, each posts are grouped so that
 specific Guards can only patrol around their designated posts.
