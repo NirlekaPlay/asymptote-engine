@@ -1,6 +1,5 @@
 --!strict
 
-local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,75 +10,60 @@ local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
+local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
+local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.level.Level)
 local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
-local GUARD_TAG_NAME = "Guard"
-local GUARD_POSTS_TAG_NAME = "Post"
-
 local guards: { [Model]: Guard.Guard } = {}
 local basicGuardPosts: { GuardPost.GuardPost } = {}
 local advancedGuardPosts: { GuardPost.GuardPost } = {}
-
-local function setupGuardPosts()
-	for _, post in ipairs(CollectionService:GetTagged(GUARD_POSTS_TAG_NAME)) do
-		if not post:IsA("BasePart") then
-			continue
-		end
-
-		local newGuardPost = GuardPost.fromPart(post, false)
-		if post.Parent.Name == "advanced" then
-			table.insert(advancedGuardPosts, newGuardPost)
-		else
-			table.insert(basicGuardPosts, newGuardPost)
-		end
-	end
-end
-
-setupGuardPosts()
+local playerConnections: { [Player]: RBXScriptConnection } = {} 
 
 local function setupGuard(guardChar: Model): ()
-	local designatedPosts
+	local designatedPosts: { GuardPost.GuardPost }
+
 	if guardChar:GetAttribute("CanSeeThroughDisguises") then
 		designatedPosts = advancedGuardPosts
 	else
 		designatedPosts = basicGuardPosts
 	end
-	local newGuard = Guard.new(guardChar, designatedPosts)
-	guards[guardChar] = newGuard
+
+	guards[guardChar] = Guard.new(guardChar, designatedPosts)
 end
 
-local function setupGuards()
-	for _, guard in ipairs(CollectionService:GetTagged(GUARD_TAG_NAME)) do
-		if not guard:IsA("Model") or guard.Parent ~= workspace then
-			continue
-		end
-
-		setupGuard(guard)
+CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
+	local newGuardPost = GuardPost.fromPart(post, false)
+	if (post.Parent :: Instance).Name == "advanced" then
+		table.insert(advancedGuardPosts, newGuardPost)
+	else
+		table.insert(basicGuardPosts, newGuardPost)
 	end
-end
+end)
 
-setupGuards()
+CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, setupGuard)
 
-CollectionService:GetInstanceAddedSignal(GUARD_TAG_NAME):Connect(function(guard)
-	if not guard:IsA("Model") then
-		return
-	end
-
-	if guard.Parent ~= workspace then
+CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, function(guardChar: Model)
+	-- It seems like checking this condition results in the guardChar variable incorrectly refining
+	-- to a bullshit type. A table with the property 'Parent'. It should've stayed to be a Model type.
+	-- How utterly fucking inconvenient and heavily retarded.
+	if guardChar.Parent ~= workspace then
+		-- And you can't even cast a type as 'the types are unrelated'
+		-- so what the fuck do you expect me to do?
 		local connection: RBXScriptConnection
-		connection = guard:GetPropertyChangedSignal("Parent"):Connect(function()
-			if guard.Parent == workspace then
+		connection = guardChar:GetPropertyChangedSignal("Parent"):Connect(function()
+			if guardChar.Parent == workspace then
 				connection:Disconnect()
-				setupGuard(guard)
+				setupGuard(guardChar)
 			end
 		end)
+
 		return
 	end
 
-	setupGuard(guard)
+	setupGuard(guardChar)
 end)
 
 Level.initializeLevel()
@@ -107,6 +91,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			DebugPackets.queueDataToBatch(DebugPackets.Packets.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
 		end
 	end
+
 	if hasListeningClients then
 		DebugPackets.flushBrainDumpsToListeningClients()
 	end
@@ -120,9 +105,8 @@ end)
 if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER) then
 	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
 end
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 
-local playerConnections: { [Player]: RBXScriptConnection } = {} 
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 
 Players.PlayerAdded:Connect(function(player)
 	local charConn
