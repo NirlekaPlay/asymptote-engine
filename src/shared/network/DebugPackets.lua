@@ -130,14 +130,18 @@ function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.Bra
 	brainDump.maxHealth = agent.character.Humanoid.MaxHealth
 	brainDump.name = DebugEntityNameGenerator.getEntityName(agent)
 	brainDump.uuid = agent:getUuid()
-	brainDump.detectedStatuses = DebugPackets.getDetectedStatusesDescriptions(agent)
+	brainDump.detectedStatuses = {}
 	brainDump.suspicionLevels = {}
-	for player, value in pairs(agent:getSuspicionManager().suspicionLevels) do
-		if next(value) == nil then
-			continue
-		end
+	if agent["suspicionManager"] then
+		brainDump.detectedStatuses = DebugPackets.getDetectedStatusesDescriptions(agent)
 
-		table.insert(brainDump.suspicionLevels, `{player.Name}: {DebugPackets.getShortDescription(value)}`)
+		for player, value in pairs(agent:getSuspicionManager().suspicionLevels) do
+			if next(value) == nil then
+				continue
+			end
+
+			table.insert(brainDump.suspicionLevels, `{player.Name}: {DebugPackets.getShortDescription(value)}`)
+		end
 	end
 
 	return brainDump
