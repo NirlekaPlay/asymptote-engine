@@ -11,8 +11,8 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 --[=[
 	@class WalkToRandomPost
 
-	Makes a Guard walk to random unoccupied posts if not curius
-	or threatened.
+	Makes a Guard walk to random unoccupied posts if not curious,
+	confronting a trespasser, or threatened.
 ]=]
 local WalkToRandomPost = {}
 WalkToRandomPost.__index = WalkToRandomPost
@@ -68,6 +68,7 @@ function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boo
 		brain:checkMemory(MemoryModuleTypes.IS_PANICKING, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.IS_CURIOUS, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, MemoryStatus.VALUE_PRESENT)
+		or brain:checkMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, MemoryStatus.VALUE_PRESENT)
 	)
 end
 
@@ -85,12 +86,19 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 	local nav = agent:getNavigation()
 	local rot = agent:getBodyRotationControl()
 	local brain = agent:getBrain()
-	local targetPost = brain:getMemory(MemoryModuleTypes.TARGET_POST):get()
-	local patrolState = brain:getMemory(MemoryModuleTypes.PATROL_STATE):get()
+
+	local targetPostMemory = brain:getMemory(MemoryModuleTypes.TARGET_POST)
+	local patrolStateMemory = brain:getMemory(MemoryModuleTypes.PATROL_STATE)
+
+	local targetPost = targetPostMemory:orElse(nil)
+	local patrolState = patrolStateMemory:orElse(nil)
+
+	if not patrolState then
+		patrolState = PatrolState.UNEMPLOYED
+		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, patrolState)
+	end
 
 	if patrolState == PatrolState.RESUMING then
-		-- TODO: Add cooldown to begin patrolling again after interruption if necessary
-
 		if targetPost and targetPost:isOccupied() then
 			if (not self.isAtTargetPost) or (self.isAtTargetPost and nav:getPath() ~= self.pathToPost) then
 				self:moveToPost(agent, targetPost)
@@ -104,7 +112,6 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 				self:moveToPost(agent, post)
 			end
 		end
-
 		return -- prevent further logic this frame
 	end
 	
@@ -113,7 +120,9 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
 		self.isAtTargetPost = true
 		self.timeToReleasePost = math.random(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
-		rot:setRotateToDirection(targetPost.cframe.LookVector)
+		if targetPost then
+			rot:setRotateToDirection(targetPost.cframe.LookVector)
+		end
 	elseif patrolState == PatrolState.STAYING then
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
@@ -125,7 +134,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		end
 	end
 
-	if brain:getMemory(MemoryModuleTypes.PATROL_STATE):get() == PatrolState.UNEMPLOYED then
+	if patrolState == PatrolState.UNEMPLOYED then
 		local post = self:getRandomUnoccupiedPost(agent)
 		if post then
 			self:moveToPost(agent, post)
