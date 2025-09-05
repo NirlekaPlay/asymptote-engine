@@ -171,15 +171,15 @@ end
 
 --
 
-function DummyAgent.getSightRadius(self: Guard): number
+function DummyAgent.getSightRadius(self: DummyAgent): number
 	return (self.character:GetAttribute("SightRadius") :: number?) or DEFAULT_SIGHT_RADIUS
 end
 
-function DummyAgent.getHearingRadius(self: Guard): number
+function DummyAgent.getHearingRadius(self: DummyAgent): number
 	return (self.character:GetAttribute("HearingRadius") :: number?) or DEFAULT_HEARING_RADIUS
 end
 
-function DummyAgent.getPeripheralVisionAngle(self: Guard): number
+function DummyAgent.getPeripheralVisionAngle(self: DummyAgent): number
 	return (self.character:GetAttribute("PeriphAngle") :: number?) or DEFAULT_PERIPH_VISION_ANGLE
 end
 

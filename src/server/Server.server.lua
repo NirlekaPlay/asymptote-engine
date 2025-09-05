@@ -12,6 +12,7 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
@@ -126,6 +127,9 @@ end
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 
 Players.PlayerAdded:Connect(function(player)
+	-- entity reg here:
+	EntityManager.newDynamic("Player", player, tostring(player.UserId))
+	--
 	local charConn
 	charConn = player.CharacterAppearanceLoaded:Connect(function(character)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -147,6 +151,9 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+	-- entity reg here:
+	EntityManager.Entities[tostring(player.UserId)] = nil
+	--
 	if playerConnections[player] then
 		playerConnections[player]:Disconnect()
 		playerConnections[player] = nil

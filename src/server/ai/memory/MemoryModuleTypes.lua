@@ -20,6 +20,7 @@ local function register<T>(name: string): MemoryModuleType<T>
 end
 
 local MemoryModuleTypes = {
+	VISIBLE_ENTITIES = register("visible_entities") :: MemoryModuleType< { [string]: true }>,
 	VISIBLE_PLAYERS = register("visible_players") :: MemoryModuleType< { [Player]: true } >,
 	HEARABLE_PLAYERS = register("hearable_players") :: MemoryModuleType< { [Player]: true } >,
 	LOOK_TARGET = register("look_target") :: MemoryModuleType<Player>,

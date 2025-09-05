@@ -98,7 +98,7 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 		return
 	end
 
-	local trespasser = agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):get()
+	local trespasser = agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):orElse(nil)
 	if not trespasser then
 		warn("Trespasser is nil!")
 		return
