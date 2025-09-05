@@ -21,9 +21,18 @@ local CollisionGroupTypes = require(ServerScriptService.server.physics.collision
 local guards: { [Model]: Guard.Guard } = {}
 local basicGuardPosts: { GuardPost.GuardPost } = {}
 local advancedGuardPosts: { GuardPost.GuardPost } = {}
-local playerConnections: { [Player]: RBXScriptConnection } = {} 
+local playerConnections: { [Player]: RBXScriptConnection } = {}
+
+local SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME = true
 
 local function setupGuard(guardChar: Model): ()
+	if SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME then
+		-- This is utterly fucking retarded.
+		-- (this is actually borrowed from an the onMapTaggedGuard function,
+		-- but i will leave this here to show how absurd Luau typechecking
+		-- can be.)
+		print(((guardChar :: any) :: Model):GetFullName())
+	end
 	local designatedPosts: { GuardPost.GuardPost }
 
 	if guardChar:GetAttribute("CanSeeThroughDisguises") then
@@ -35,23 +44,7 @@ local function setupGuard(guardChar: Model): ()
 	guards[guardChar] = Guard.new(guardChar, designatedPosts)
 end
 
-CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
-	local newGuardPost = GuardPost.fromPart(post, false)
-	
-	if (post.Parent :: Instance).Name == "advanced" then
-		table.insert(advancedGuardPosts, newGuardPost)
-	else
-		table.insert(basicGuardPosts, newGuardPost)
-	end
-end)
-
-CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, function(dummyChar: Model)
-	guards[dummyChar] = DetectionDummy.new(dummyChar)
-end)
-
-CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, setupGuard)
-
-CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, function(guardChar: Model)
+local function onMapTaggedGuard(guardChar: Model): ()
 	-- It seems like checking this condition results in the guardChar variable incorrectly refining
 	-- to a bullshit type. A table with the property 'Parent'. It should've stayed to be a Model type.
 	-- How utterly fucking inconvenient and heavily retarded.
@@ -70,7 +63,25 @@ CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, functi
 	end
 
 	setupGuard(guardChar)
+end
+
+CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
+	local newGuardPost = GuardPost.fromPart(post, false)
+	
+	if (post.Parent :: Instance).Name == "advanced" then
+		table.insert(advancedGuardPosts, newGuardPost)
+	else
+		table.insert(basicGuardPosts, newGuardPost)
+	end
 end)
+
+CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, function(dummyChar: Model)
+	guards[dummyChar] = DetectionDummy.new(dummyChar)
+end)
+
+CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
+
+CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
 
 Level.initializeLevel()
 
