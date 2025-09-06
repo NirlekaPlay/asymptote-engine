@@ -19,7 +19,7 @@ local ValidateTrespasser = require(ServerScriptService.server.ai.behavior.Valida
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local SensorTypes = require(ServerScriptService.server.ai.sensing.SensorTypes)
+local SensorFactories = require(ServerScriptService.server.ai.sensing.SensorFactories)
 
 local GuardAi = {}
 
@@ -47,12 +47,12 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.HAS_FLED,
 }
  
-local SENSOR_TYPES = {
-	SensorTypes.VISIBLE_ENTITIES_SENSOR
+local SENSOR_FACTORIES = {
+	SensorFactories.VISIBLE_ENTITIES_SENSOR
 }
 
 function GuardAi.makeBrain(agent: Agent)
-	local brain = Brain.new(agent, MEMORY_TYPES, SENSOR_TYPES)
+	local brain = Brain.new(agent, MEMORY_TYPES, SENSOR_FACTORIES)
 	--[[GuardAi.initCoreActivity(brain)
 	GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)

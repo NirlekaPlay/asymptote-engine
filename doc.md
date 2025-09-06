@@ -1,27 +1,27 @@
-`SensorType` is just a registry class. Used by the Brain during initialization.<br/>
+`SensorFactory` is just a registry class. Used by the Brain during initialization.<br/>
 It just has the method `create()` which returns a `SensorWrapper` instance, wrapping the
 constructor function of the `Sensor` instance itself.
 
 ```lua
-function SensorType.new(sensorConstructor: () -> Sensor.Sensor<any>): SensorType<any>
+function SensorFactory.new(sensorConstructor: () -> Sensor.Sensor<any>): SensorFactory<any>
 	return setmetatable({
 		create = function()
 			return SensorWrapper.new(sensorConstructor())
 		end
-	}, SensorType)
+	}, SensorFactory)
 end
 ```
 
-in `SensorTypes.lua`:
+in `SensorFactories.lua`:
 
 ```lua
 return {
-	VISIBLE_PLAYERS_SENSOR = SensorType.new(VisiblePlayersSensor.new),
+	VISIBLE_PLAYERS_SENSOR = SensorFactory.new(VisiblePlayersSensor.new),
 	-- ...
 }
 ```
 
-`SensorType` gets the constructor of a Sensor class, in this example is the VisiblePlayerSensor,
+`SensorFactory` gets the constructor of a Sensor class, in this example is the VisiblePlayerSensor,
 
 
 For example, in GuardAi.lua:
@@ -33,25 +33,25 @@ function GuardAi.makeBrain(guard: Agent)
 end
 ```
 
-`SENSOR_TYPES` is an array of `SensorType`. In `Brain.new()`:
+`SENSOR_TYPES` is an array of `SensorFactory`. In `Brain.new()`:
 
 ```lua
-function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { SensorType<T> } ): Brain<T>
+function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { SensorFactory<T> } ): Brain<T>
 	local self = {} :: self<T>
 
 	-- ...
 	self.sensors = {}
 	-- ...
 
-	for _, sensorType in ipairs(sensors) do
-		self.sensors[sensorType] = sensorType.create()
+	for _, SensorFactory in ipairs(sensors) do
+		self.sensors[SensorFactory] = SensorFactory.create()
 	end
 
 	return setmetatable(self, Brain)
 end
 ```
 
-`sensorType.create()` Returns an instance of `SensorWrapper` which the brain actually interacts with in the
+`SensorFactory.create()` Returns an instance of `SensorWrapper` which the brain actually interacts with in the
 update function:
 
 ```lua
