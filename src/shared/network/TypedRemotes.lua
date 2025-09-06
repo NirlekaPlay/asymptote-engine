@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local AlertLevels = require(ReplicatedStorage.shared.alert_level.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
 local DetectionPayload = require(script.Parent.DetectionPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
