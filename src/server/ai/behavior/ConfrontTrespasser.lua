@@ -8,7 +8,6 @@ local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
-local TalkingAgent = require(ServerScriptService.server.TalkingAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local Cell = require(ServerScriptService.server.cell.Cell)
@@ -27,7 +26,7 @@ export type ConfrontTrespasser = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent & TalkingAgent.TalkingAgent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent
+type Agent = Agent.Agent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent
 
 function ConfrontTrespasser.new(): ConfrontTrespasser
 	return setmetatable({
