@@ -8,7 +8,7 @@ local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableV
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local Optional = require(ServerScriptService.server.ai.memory.Optional)
-local Sensor = require(ServerScriptService.server.ai.sensing.Sensor)
+local SensorControl = require(ServerScriptService.server.ai.sensing.SensorControl)
 local SensorFactory = require(ServerScriptService.server.ai.sensing.SensorFactory)
 
 local Brain = {}
@@ -18,7 +18,7 @@ type self<T> = {
 	agent: T,
 	defaultActivity: Activity,
 	memories: { [MemoryModuleType<any>]: Optional<ExpireableValue<any>> },
-	sensors: { [SensorFactory<any>]: Sensor<any> },
+	sensors: { [SensorFactory<any>]: SensorControl<any> },
 	activeActivities: { [Activity]: true },
 	activityRequirements: { [Activity]: { [MemoryModuleType<any>]: MemoryStatus } },
 	activityMemoriesToEraseWhenStopped: { [Activity]: { [MemoryModuleType<any>]: true } },
@@ -32,7 +32,7 @@ type Optional<T> = Optional.Optional<T>
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type ExpireableValue<T> = ExpireableValue.ExpireableValue<T>
 type SensorFactory<T> = SensorFactory.SensorFactory<T>
-type Sensor<T> = Sensor.Sensor<T>
+type SensorControl<T> = SensorControl.SensorControl<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
 type BehaviorControl<T> = BehaviorControl.BehaviorControl<T>
 type Activity = Activity.Activity
@@ -145,7 +145,7 @@ end
 	empty Optional, effectively "forgetting" any previously stored value.
 ]=]
 function Brain.eraseMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): ()
-	self:setMemoryInternal(memoryType, Optional.empty())
+	self:setMemoryInternal(memoryType, Optional.empty() :: any) -- shut up.
 end
 
 --[=[
