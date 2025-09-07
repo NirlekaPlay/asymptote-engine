@@ -1,26 +1,24 @@
 --!strict
 
 local HTTPService = game:GetService("HttpService")
-local StatusTypes = require(script.Parent.suspicionStatuses.Types)
 
 export type StaticEntity = {
 	uuid: string,
 	name: string,
 	isStatic: true,
-	position: Vector3,
-
-	statuses: {StatusTypes.Status}
+	position: Vector3
 }
 
 export type DynamicEntity = {
 	uuid: string,
 	name: string,
 	isStatic: false,
-	instance: Instance,
-
-	statuses: {StatusTypes.Status}
+	instance: Instance
 }
 
+--[=[
+	@class EntityManager
+]=]
 local EntityManager = {
 	Entities = {} :: { [string]: StaticEntity | DynamicEntity }
 }
@@ -51,14 +49,6 @@ function EntityManager.newDynamic(name: string, instance: Instance, uuid: string
 	
 	EntityManager.Entities[entityUID] = entity
 	return entityUID
-end
-
-function EntityManager.addStatus(entityUID: string, status: StatusTypes.Status)
-	table.insert(EntityManager.Entities[entityUID].statuses, status)
-end
-
-function EntityManager.removeStatus(entityUID: string, status: StatusTypes.Status)
-	table.remove(EntityManager.Entities[entityUID].statuses, table.find(EntityManager.Entities[entityUID].statuses, status))
 end
 
 function EntityManager.getEntityByUuid(entityUuid: string): StaticEntity | DynamicEntity
