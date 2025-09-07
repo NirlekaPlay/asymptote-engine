@@ -48,7 +48,8 @@ local MEMORY_TYPES = {
 }
  
 local SENSOR_FACTORIES = {
-	SensorFactories.VISIBLE_ENTITIES_SENSOR
+	SensorFactories.VISIBLE_ENTITIES_SENSOR,
+	SensorFactories.HEARING_PLAYERS_SENSOR
 }
 
 function GuardAi.makeBrain(agent: Agent)

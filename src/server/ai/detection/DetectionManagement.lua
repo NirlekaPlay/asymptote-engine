@@ -5,13 +5,12 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPayload)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
-local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local BASE_DETECTION_TIME = 1.25
-local DECAY_RATE_PER_SEC = 0.01 / 0.045 -- ≈ 0.222 (Sec. 1. sub-sec. (d) of PLAN.txt)
+local DECAY_RATE_PER_SEC = 0.01 / 0.045 -- ≈ 0.222 (Sec. 1(d) of Plan doc.)
 local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 
 -- I don't know how to implement this.
@@ -28,7 +27,6 @@ local STATUS_PRIORITIES = {
 	Armed = 9,
 }
 
--- Status to detection speed multiplier
 local SPEED_MULTIPLIERS = {
 	DeadBodies = 2.0,
 	-- Everything else defaults to 1.0
@@ -49,7 +47,7 @@ export type DetectionManagement = typeof(setmetatable({} :: {
 	detectedSound: Sound
 }, DetectionManagement))
 
-type DetectionProfile = {
+export type DetectionProfile = {
 	isHeard: boolean?,
 	isVisible: boolean?
 }
@@ -76,13 +74,12 @@ end
 -- big brother can suck myy toes
 -- hes my fatha
 function DetectionManagement.addOrUpdateDetectedEntities(
-	self: DetectionManagement, entities: { string }
+	self: DetectionManagement, entities: { [string]: DetectionProfile }
 ): ()
 	local newDetected: { [string]: true } = {}
-	for _, entityUuid in ipairs(entities) do
+	for entityUuid, detectionProfile in pairs(entities) do
 		newDetected[entityUuid] = true
-		self.detectedEntities[entityUuid] = self.detectedEntities[entityUuid] or { isVisible = true } :: DetectionProfile
-		self.detectedEntities[entityUuid].isVisible = true
+		self.detectedEntities[entityUuid] = detectionProfile
 	end
 
 	for uuid in pairs(self.detectedEntities) do
@@ -98,20 +95,26 @@ function DetectionManagement.getEntityPriorityInfo(
 	
 	local entityObject = EntityManager.getEntityByUuid(entityUuid)
 	if not entityObject then return nil end
-	
+
 	local status: string
 	local entityPos: Vector3
 	if entityObject.isStatic then
 		entityPos = entityObject.position
 	elseif entityObject.name == "Player" then
-		entityPos = (entityObject.instance :: Player).Character.PrimaryPart.Position
+		entityPos = (entityObject.instance :: any).Character.PrimaryPart.Position -- stfu
 	else
 		entityPos = (entityObject.instance :: BasePart).Position
 	end
 	local distance = (self.agent:getPrimaryPart().Position :: Vector3 - entityPos).Magnitude
-	
+
+	-- This is is not even extendable.
+	-- And there will be a shitton of detectable entities in the finished demo.
+	-- I am not doing that shit.
 	if entityObject.name == "Player" then
 		entityObject = entityObject :: EntityManager.DynamicEntity
+		-- Players are unique as they have statuses that determines their detection criterias.
+		-- Defined in Section 1(h), this shit already handles the highest priority status
+		-- that is detectable if the Player is visible and audible.
 		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(entityObject.instance :: Player)
 		local highestDetectableStatus = playerStatusHolder:getHighestDetectableStatus(
 			detectionProfile.isVisible or false, detectionProfile.isHeard or false
@@ -119,7 +122,6 @@ function DetectionManagement.getEntityPriorityInfo(
 		
 		if not highestDetectableStatus then return nil end
 		status = highestDetectableStatus.name
-		
 	elseif entityObject.name == "DeadBody" then
 		status = "DeadBodies"
 	elseif entityObject.name == "C4" then
@@ -127,16 +129,21 @@ function DetectionManagement.getEntityPriorityInfo(
 	else
 		return nil
 	end
-	
+
+	-- This handles both priority and detection speed multiplier.
+	-- Defined in Section 1(a) and (c) of the Plan document.
+	-- Since Player statuses are their own thing, we get the priority
+	-- and the detection speed multiplier from these methods.
 	local priority: number
-	if PlayerStatusTypes[status] then
-		priority = (PlayerStatusTypes[status] :: PlayerStatus.PlayerStatus):getPriorityLevel()
+	local playerStatus = PlayerStatusTypes.getStatusFromName(status)
+	if playerStatus then
+		priority = playerStatus:getPriorityLevel()
 	else
 		priority = STATUS_PRIORITIES[status] or 0
 	end
 	local speedMultiplier: number
-	if PlayerStatusTypes[status] then
-		speedMultiplier = (PlayerStatusTypes[status] :: PlayerStatus.PlayerStatus):getDetectionSpeedModifier()
+	if playerStatus then
+		speedMultiplier = playerStatus:getDetectionSpeedModifier()
 	else
 		speedMultiplier = SPEED_MULTIPLIERS[status] or 1.0
 	end
@@ -165,12 +172,11 @@ function DetectionManagement.findHighestPriorityEntity(
 			elseif entityInfo.priority > highestPriority.priority then
 				highestPriority = entityInfo
 			elseif entityInfo.priority == highestPriority.priority and entityInfo.distance < highestPriority.distance then
-				-- Same priority, choose closest
 				highestPriority = entityInfo
 			end
 		end
 	end
-	
+
 	return highestPriority
 end
 
@@ -205,8 +211,7 @@ function DetectionManagement.raiseDetection(
 
 	local detectionSpeed = speedMultiplier
 	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
-	
-	
+
 	entityDetVal = math.clamp(entityDetVal + progressRate * deltaTime, 0.0, 1.0)
 	self.detectionLevels[entityUuid] = entityDetVal
 	self:syncDetectionToClientIfPlayer(entityUuid)

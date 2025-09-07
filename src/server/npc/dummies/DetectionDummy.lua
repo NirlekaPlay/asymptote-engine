@@ -99,13 +99,34 @@ function DummyAgent.new(character: Model): DummyAgent
 end
 
 function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
-	local visibleEntities: { string } = {}
+	-- Breaks SRP. But who cares at this point.
+	local visibleEntities = self.brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})
+	local hearingPlayers = self.brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS):orElse({})
 
-	for entityUuid in pairs(self.brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})) do
-		table.insert(visibleEntities, entityUuid)
+	local detectionProfiles: { [string]: DetectionManagement.DetectionProfile } = {}
+
+	for entityId, _ in pairs(visibleEntities) do
+		detectionProfiles[entityId] = {
+			isVisible = true,
+			isHeard = false
+		}
 	end
 
-	self.detectionManager:addOrUpdateDetectedEntities(visibleEntities)
+	for player, _ in pairs(hearingPlayers) do
+		-- EntityManager manages Player entities with their Roblox ID instead of a UUID.
+		-- Sounds stupid I know, blame Nico later, not me.
+		local playerId = tostring(player.UserId)
+		if detectionProfiles[playerId] then
+			detectionProfiles[playerId].isHeard = true
+		else
+			detectionProfiles[playerId] = {
+				isVisible = false,
+				isHeard = true
+			}
+		end
+	end
+
+	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
 	self.detectionManager:update(deltaTime)
 	self.brain:update(deltaTime)
 end
