@@ -6,7 +6,7 @@ local Cell = require(ServerScriptService.server.cell.Cell)
 local CellConfig = require(ServerScriptService.server.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
-local HIDE_CELLS = true
+local HIDE_CELLS = false
 local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0

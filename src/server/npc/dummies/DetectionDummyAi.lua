@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
