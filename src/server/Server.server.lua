@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
@@ -115,6 +116,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	end
 
 	-- oh god
+	DetectionManagement.flushBatchToClients()
 	SuspicionManagement.flushBatchToClients()
 
 	BulletSimulation.update(deltaTime)

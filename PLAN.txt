@@ -24,8 +24,35 @@ Operators.
  b. Detection Speed. This dictates the time expressed in seconds on how
     a detectable entity becomes fully detected. For this demo, the base
     detection  speed should be 1.25 seconds. When detecting  detectable
-    entities,
- b. Detection of Player Statuses. Despite Players can  perform numerous
+    entities,  that detected entity can multiply that detection  speed.
+     i. Dead bodies have a detection speed multiplier of 2.
+    ii. Players with the Armed status have a detetcion speed multiplier
+        of 1.5.
+   iii. Players with the Criminal Suspicious and the Major  Trespassing
+        status have a detection speed multiplier of 1.25.
+    iv. Players  with  the  Disguised  status  have  a detection  speed
+        multiplier of 0.625.
+ c. Detection Independence. Detection   value   are  unique  to   every
+    detectable  entities  and to every Agent. For example, if an  Agent
+    detects a Player with the Minor Trespassing status and reaches  90%
+    from  getting detected, but notices another higher priority  entity
+    or  event  such  as a Player with the Armed status, the Agent  will
+    focus on said higher priority entity from 0%, while the  previously
+    detected entity starts to decay.
+      i. Disclaimer. This  does  not  mean  that Players with  changing
+         statuses  are  detected  as  a completly seperate entity.  For
+         example: If a Player is seen with a Minor Trespassing  status,
+         detection  value  reaches  70%, and goes out of sight, and  no
+         then the detection value decays. After some time, it drops  to
+         65%, but  the Player gets spotted again with the same  status.
+         Then  detection  will  continue from 65%. And when the  Player
+         pulls  out a weapon, applying the Armed status to the  Player,
+         then   it  will  start  using  that  status  detection   speed
+         multiplier and raise the detection from 65%.
+ d. Detection Decay. Detection progress decays 1% every 0.045  seconds.
+ e. Detection Value Representation. Detection     value     shall    be
+    represented from 0.0 to 1.0.
+ f. Detection of Player Statuses. Despite Players can  perform numerous
     suspicious activities at the same time  and  thus  having different
     suspicious statuses, the detection priority still applies.
       i. For example, Players that is Trespassing  and  also  having  a
@@ -35,7 +62,7 @@ Operators.
          with the highest priority status. So in  this  scenario,  that
          would be the Armed status. And if one or more Player have  the
          same priority, the Agent will choose the closest one.
- c. Player Status Visibility and Audibility. Guard are able  to  'hear'
+ g. Player Status Visibility and Audibility. Guard are able  to  'hear'
     Players if they are trespassing, either Minor Trespassing or  Major
     Trespassing. And are the only Player Statuses that Guards are  able
     to hear. So if a Player has the Minor Trespassing status  and  also
@@ -43,7 +70,7 @@ Operators.
     within said Guard hearing range, the Guard  will  only  detect  the
     hearable status, in this scenario is the Minor  Trespassing  status
     and not the Armed status.
- d. Instant Detection.
+ h. Quick Detection.
 
 2. Actual Story.
 The Player can choose between 2 characters or more  characters   chosen

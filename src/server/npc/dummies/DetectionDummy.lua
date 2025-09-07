@@ -12,7 +12,9 @@ local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
+local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
@@ -52,7 +54,7 @@ function DummyAgent.new(character: Model): DummyAgent
 		AgentHeight = 2,
 		AgentCanJump = false
 	})
-	self.detectionManager = DetectionManagement
+	self.detectionManager = DetectionManagement.new(self)
 	self.lookControl = LookControl.new(character)
 	self.faceControl = FaceControl.new(character)
 	self.faceControl:setFace("Neutral")
@@ -96,9 +98,15 @@ function DummyAgent.new(character: Model): DummyAgent
 	return self
 end
 
--- oh yeah i copy pasted this from Guard lol
--- we need to remove some stuff in DummyAi
 function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
+	local visibleEntities: { string } = {}
+
+	for entityUuid in pairs(self.brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})) do
+		table.insert(visibleEntities, entityUuid)
+	end
+
+	self.detectionManager:addOrUpdateDetectedEntities(visibleEntities)
+	self.detectionManager:update(deltaTime)
 	self.brain:update(deltaTime)
 end
 

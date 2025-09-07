@@ -1,4 +1,5 @@
 --!strict
+
 local HTTPService = game:GetService("HttpService")
 local StatusTypes = require(script.Parent.suspicionStatuses.Types)
 
@@ -58,6 +59,10 @@ end
 
 function EntityManager.removeStatus(entityUID: string, status: StatusTypes.Status)
 	table.remove(EntityManager.Entities[entityUID].statuses, table.find(EntityManager.Entities[entityUID].statuses, status))
+end
+
+function EntityManager.getEntityByUuid(entityUuid: string): StaticEntity | DynamicEntity
+	return EntityManager.Entities[entityUuid]
 end
 
 return EntityManager
