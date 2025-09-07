@@ -14,7 +14,7 @@ local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
-local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
@@ -33,7 +33,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	characterName: string,
 	character: Model,
 	alive: boolean,
-	brain: Brain.Brain<DummyAgent>,
+	brain: Brain.Brain<any>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
 	talkControl: TalkControl.TalkControl,
@@ -43,7 +43,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
 }, DummyAgent))
--- oh yeah register the frickin sensor in the sensor type
+
 function DummyAgent.new(character: Model): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
@@ -70,11 +70,11 @@ function DummyAgent.new(character: Model): DummyAgent
 	end)
 
 	self.uuid = HttpService:GenerateGUID(false)
-	self.brain = DetectionDummyAi.makeBrain(self)
+	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
-			part.CollisionGroup = "NonCollideWithPlayer"
+			part.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
 		end
 	end
 
@@ -82,8 +82,8 @@ function DummyAgent.new(character: Model): DummyAgent
 		-- make the Agent not collide with players
 		-- exclude "RagdollColliderPart" as those are ragdoll parts.
 		-- making them not have collision will result in weird looking ragdolls.
-		if inst:IsA("BasePart") and inst.Name ~= "RagdollColliderPart" then
-			inst.CollisionGroup = "NonCollideWithPlayer"
+		if inst:IsA("BasePart") and inst.Name ~= RagdollControl.RAGDOLL_COLLIDER_PART_NAME then
+			inst.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
 		end
 	end)
 

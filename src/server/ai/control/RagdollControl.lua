@@ -28,6 +28,7 @@ local RAGDOLL_CONSTRAINT_NAME = "RagdollConstraint"
 ]=]
 local RagdollControl = {}
 RagdollControl.__index = RagdollControl
+RagdollControl.RAGDOLL_COLLIDER_PART_NAME = RAGDOLL_COLLIDER_PART_NAME
 
 export type RagdollControl = typeof(setmetatable({} :: {
 	character: Model,
