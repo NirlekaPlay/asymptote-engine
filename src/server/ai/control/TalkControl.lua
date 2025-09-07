@@ -120,7 +120,7 @@ function TalkControl.connectOnDiedConnection(self: TalkControl): ()
 		if not self.talkThread then
 			return
 		end
-		task.cancel(self.talkThread)
+		task.cancel(self.talkThread :: thread)
 		self.talkThread = nil
 		local randomIndex = math.random(1, RANDOM_DEATH_DIALOGUES_SIZE)
 		local indexedDialogue = RANDOM_DEATH_DIALOGUES[randomIndex]
