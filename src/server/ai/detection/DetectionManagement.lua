@@ -14,6 +14,8 @@ local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerSta
 local BASE_DETECTION_TIME = 1.25
 local QUICK_DETECTION_RANGE = 10
 local QUIK_DETECTION_MULTIPLIER = 3.33
+local CURIOUS_COOLDOWN_TIME = 2
+local CURIOUS_THRESHOLD = 60 / 100
 local DECAY_RATE_PER_SEC = 0.01 / 0.045 -- ≈ 0.222 (Sec. 1(d) of Plan doc.)
 local INSTANT_DETECTION_RULES = {
 	[PlayerStatusTypes.ARMED] = 20,             -- Pulling out a gun triggers instant detection within this distance
@@ -54,6 +56,9 @@ DetectionManagement.__index = DetectionManagement
 
 export type DetectionManagement = typeof(setmetatable({} :: {
 	agent: Agent,
+	focusingTarget: EntityPriority?,
+	curiousState: boolean,
+	curiousCooldown: number,
 	detectedEntities: { [string]: DetectionProfile },
 	detectionLevels: { [string]: number },
 	detectedSound: Sound
@@ -77,16 +82,23 @@ type EntityPriority = {
 function DetectionManagement.new(agent: Agent): DetectionManagement
 	return setmetatable({
 		agent = agent,
+		focusingTarget = nil :: (typeof(({} :: DetectionManagement).focusingTarget)),
+		curiousState = false,
+		curiousCooldown = 0,
 		detectedEntities = {},
 		detectionLevels = {},
 		detectedSound = DetectionManagement.createDetectedSound(agent)
 	}, DetectionManagement)
 end
 
--- big brother be watchin you
--- "deprecated"
--- big brother can suck myy toes
--- hes my fatha
+function DetectionManagement.isCurious(self: DetectionManagement): boolean
+	return self.curiousState
+end
+
+function DetectionManagement.getFocusingTarget(self: DetectionManagement)
+	return self.focusingTarget
+end
+
 function DetectionManagement.addOrUpdateDetectedEntities(
 	self: DetectionManagement, entities: { [string]: DetectionProfile }
 ): ()
@@ -200,8 +212,15 @@ function DetectionManagement.findHighestPriorityEntity(
 end
 
 function DetectionManagement.update(self: DetectionManagement, deltaTime: number): ()
+	self:updateDetectionPerEntities(deltaTime)
+	self:updateCuriousState(deltaTime)
+end
+
+function DetectionManagement.updateDetectionPerEntities(self: DetectionManagement, deltaTime: number): ()
 	local focusTarget = self:findHighestPriorityEntity()
 	local currentlyDetectedKeys: { [string]: true } = {}
+
+	self.focusingTarget = focusTarget
 
 	for entityUuid, detectionProfile in pairs(self.detectedEntities) do
 		local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
@@ -294,6 +313,28 @@ function DetectionManagement.update(self: DetectionManagement, deltaTime: number
 	end
 end
 
+function DetectionManagement.updateCuriousState(self: DetectionManagement, deltaTime: number): ()
+	local focusTarget = self.focusingTarget
+
+	if focusTarget then
+		local focusKey = focusTarget.entityUuid .. ":" .. focusTarget.status
+		local focusDetectionLevel = self.detectionLevels[focusKey] or 0
+		
+		if focusDetectionLevel >= CURIOUS_THRESHOLD then
+			self.curiousState = true
+			self.curiousCooldown = CURIOUS_COOLDOWN_TIME
+		end
+	else
+		if self.curiousState and self.curiousCooldown > 0 then
+			self.curiousCooldown -= deltaTime
+		end
+	end
+
+	if self.curiousCooldown <= 0 then
+		self.curiousState = false
+	end
+end
+
 function DetectionManagement.raiseDetection(
 	self: DetectionManagement, entityUuid: string, deltaTime: number, entityPriorityInfo: EntityPriority
 ): ()
@@ -310,9 +351,7 @@ function DetectionManagement.raiseDetection(
 		local key = string.match(entityUuid, "^.-:(.+)$") :: string
 		local highestStatus = PlayerStatusTypes.getStatusFromName(key)
 		
-		if not highestStatus then
-			-- Does nothing, continue with normal detection raising
-		else
+		if highestStatus then
 			local previousStatus = playerStatusTracker[player]
 			if previousStatus ~= highestStatus then
 				playerStatusTracker[player] = highestStatus
@@ -330,11 +369,12 @@ function DetectionManagement.raiseDetection(
 	end
 
 	local speedMultiplier = entityPriorityInfo.speedMultiplier
+	local detectionSpeed = speedMultiplier
+	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
+
 	if distance <= QUICK_DETECTION_RANGE then
 		speedMultiplier *= QUIK_DETECTION_MULTIPLIER
 	end
-	local detectionSpeed = speedMultiplier
-	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
 
 	entityDetVal = math.clamp(entityDetVal + progressRate * deltaTime, 0.0, 1.0)
 	self.detectionLevels[entityUuid] = entityDetVal
@@ -348,11 +388,9 @@ function DetectionManagement.lowerDetection(
 	self: DetectionManagement, entityUuid: string, deltaTime: number
 ): ()
 	local level = self.detectionLevels[entityUuid]
-	if not level then
+	if not level or level >= 1 then
 		return
 	end
-
-	if level >= 1 then return end
 	
 	local finalDet = math.max(0, level - DECAY_RATE_PER_SEC * deltaTime)
 	if finalDet > 0 then
@@ -360,8 +398,11 @@ function DetectionManagement.lowerDetection(
 	else
 		self.detectionLevels[entityUuid] = nil
 	end
+
 	self:syncDetectionToClientIfPlayer(entityUuid)
 end
+
+--
 
 function DetectionManagement.syncDetectionToClientIfPlayer(
 	self: DetectionManagement, entityUuid: string
