@@ -10,7 +10,7 @@ local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local Cell = require(ServerScriptService.server.cell.Cell)
+local Cell = require(ServerScriptService.server.level.cell.Cell)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
