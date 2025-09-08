@@ -20,6 +20,7 @@ local function register<T>(name: string): MemoryModuleType<T>
 end
 
 local MemoryModuleTypes = {
+	VISIBLE_ENTITIES = register("visible_entities") :: MemoryModuleType< { [string]: true }>,
 	VISIBLE_PLAYERS = register("visible_players") :: MemoryModuleType< { [Player]: true } >,
 	HEARABLE_PLAYERS = register("hearable_players") :: MemoryModuleType< { [Player]: true } >,
 	LOOK_TARGET = register("look_target") :: MemoryModuleType<Player>,
@@ -40,7 +41,8 @@ local MemoryModuleTypes = {
 	CONFRONTING_TRESPASSER = register("confronting_trespasser") :: MemoryModuleType<Player>,
 	SPOTTED_TRESPASSER = register("spotted_trespasser") :: MemoryModuleType<Player>,
 	TRESPASSERS_WARNS = register("trespassers_warns") :: MemoryModuleType<{ [Player]: number }>,
-	REPORTING_ON = register("reporting_on") :: MemoryModuleType<string>
+	REPORTING_ON = register("reporting_on") :: MemoryModuleType<string>,
+	VISISBLE_C4 = register("visible_c4") :: MemoryModuleType< { [string]: true } >,
 }
 
 return MemoryModuleTypes

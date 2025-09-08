@@ -2,11 +2,11 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Cell = require(ServerScriptService.server.cell.Cell)
-local CellConfig = require(ServerScriptService.server.cell.CellConfig)
+local Cell = require(ServerScriptService.server.level.cell.Cell)
+local CellConfig = require(ServerScriptService.server.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
-local HIDE_CELLS = true
+local HIDE_CELLS = false
 local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
@@ -30,7 +30,7 @@ function Level.initializeLevel(): ()
 	if not missionSetupModule or not missionSetupModule:IsA("ModuleScript") then
 		warn("Unable to initialize Mission: MissionSetup module not found in Level folder or is not a ModuleScript.")
 	else
-		cellsConfig = require(missionSetupModule).Cells
+		cellsConfig = (require :: any)(missionSetupModule).Cells
 	end
 
 	local cellsFolder = levelFolder:FindFirstChild("Cells")

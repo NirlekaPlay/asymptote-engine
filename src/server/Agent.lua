@@ -8,8 +8,6 @@ local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleCh
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
-local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableValue)
-local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
@@ -34,9 +32,7 @@ export type Agent = typeof(setmetatable({} :: {
 	faceControl: FaceControl.FaceControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
-	suspicionManager: SuspicionManagement.SuspicionManagement,
-	memories: { [MemoryModuleTypes.MemoryModuleType<any>]: ExpireableValue.ExpireableValue<any> },
-	sensors: { any }
+	suspicionManager: SuspicionManagement.SuspicionManagement
 }, Agent))
 
 function Agent.isAlive(self: Agent): boolean

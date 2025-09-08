@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
@@ -44,25 +44,25 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.SPOTTED_TRESPASSER,
 	MemoryModuleTypes.REPORTING_ON,
 	MemoryModuleTypes.PANIC_POSITION,
-	MemoryModuleTypes.HAS_FLED
+	MemoryModuleTypes.HAS_FLED,
 }
-
+ 
 local SENSOR_FACTORIES = {
-	SensorFactories.VISIBLE_PLAYERS_SENSOR,
+	SensorFactories.VISIBLE_ENTITIES_SENSOR,
 	SensorFactories.HEARING_PLAYERS_SENSOR
 }
 
-function GuardAi.makeBrain(guard: Agent)
-	local brain = Brain.new(guard, MEMORY_TYPES, SENSOR_FACTORIES)
-	GuardAi.initCoreActivity(brain)
+function GuardAi.makeBrain(agent: Agent)
+	local brain = Brain.new(agent, MEMORY_TYPES, SENSOR_FACTORIES)
+	--[[GuardAi.initCoreActivity(brain)
 	GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)
 	GuardAi.initConfrontActivity(brain)
 	GuardAi.initFightActivity(brain)
-	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, guard.designatedPosts)
+	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)
 	brain:setCoreActivities({Activity.CORE})
 	brain:setDefaultActivity(Activity.IDLE)
-	brain:useDefaultActivity()
+	brain:useDefaultActivity()]]
 	return brain
 end
 

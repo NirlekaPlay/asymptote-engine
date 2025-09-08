@@ -1,112 +1,95 @@
 Project Asymptote Engine Design Document
 
-1. Suspicion Status. (a) Suspicion statuses are statuses of a
-Player that affects their detection and Agents' reaction
-upon detecting them.
+1. Detection.
+This section will define one of the core  mechanics  of  the  Asymptote
+Engine and that is how NPCs  and Cameras detect  suspicious  activities
+For the engine's  demo,  we  will  base  the  detection  mechanic  from
+Operators.
 
- (b) Here are a list of suspicion statuses, listed from lower
-     priority to higher priority.
+ a. Detectable Entities. These are  objects  and  events  that  can  be
+    detected by NPCs and Cameras. For the demo, this only includes,  in
+    order of lower priority to higher priority:
+      i. Suspicious sounds. This  includes  suppressed  gunshots  heard
+         from afar;
+     ii. Players with the Disguised status;
+    iii. Players with the Minor Trespassing status;
+     iv. Players with the Minor Suspicious status;
+      v. Players with the Major Trespassing status;
+     vi. Players with the Criminal Suspicious status;
+    vii. Dead bodies;
+     ix. Dangerous items. These include   Players  with  the  Dangerous
+         Item status and placed C4 explosives; and
+      x. Players with the Armed status, being shot at  or  damaged,  or
+         alarming sounds which includes gunshots and explosions.
+ b. Detection Priority. The   detection  priority  of  each  detectable
+    entities  is  listed in subsection (a) of this section. Each  Agent
+    can  only  detect  one entity and of the highest priority. When  an
+    Agent  detected  an entity, any other detectable entity with  lower
+    priority  from  the already detected entity will not get  detected.
+    For  example, a Guard detected a Player with the Minor  Trespassing
+    status.  The  Detection  value  of that Player is 1. Entities  with
+    lower  priority  compared  to the current detected entity, such  as
+    suspicious  sounds, are ignored. And higher priority entities  will
+    only get detected.
+ c. Detection Speed. This dictates the time expressed in seconds on how
+    a detectable entity becomes fully detected. For this demo, the base
+    detection  speed should be 1.25 seconds. When detecting  detectable
+    entities,  that detected entity can multiply that detection  speed.
+     i. Dead bodies have a detection speed multiplier of 2.
+    ii. Players with the Armed status have a detetcion speed multiplier
+        of 1.5.
+   iii. Players with the Criminal Suspicious and the Major  Trespassing
+        status have a detection speed multiplier of 1.25.
+    iv. Players  with  the  Disguised  status  have  a detection  speed
+        multiplier of 0.625.
+ d. Detection Independence. Detection   value   are  unique  to   every
+    detectable  entities  and to every Agent. For example, if an  Agent
+    detects a Player with the Minor Trespassing status and reaches  90%
+    from  getting detected, but notices another higher priority  entity
+    or  event  such  as a Player with the Armed status, the Agent  will
+    focus on said higher priority entity from 0%, while the  previously
+    detected entity starts to decay.
+      i. Disclaimer. This  does  not  mean  that Players with  changing
+         statuses  are  detected  as  a completly seperate entity.  For
+         example: If a Player is seen with a Minor Trespassing  status,
+         detection  value  reaches  70%, and goes out of sight, and  no
+         then the detection value decays. After some time, it drops  to
+         65%, but  the Player gets spotted again with the same  status.
+         Then  detection  will  continue from 65%. And when the  Player
+         pulls  out a weapon, applying the Armed status to the  Player,
+         then   it  will  start  using  that  status  detection   speed
+         multiplier and raise the detection from 65%.
+ e. Detection Decay. Detection progress decays 1% every 0.045  seconds.
+ f. Detection Value Representation. Detection     value     shall    be
+    represented from 0.0 to 1.0.
+ g. Detection of Player Statuses. Despite Players can  perform numerous
+    suspicious activities at the same time  and  thus  having different
+    suspicious statuses, the detection priority still applies.
+      i. For example, Players that is Trespassing  and  also  having  a
+         weapon  visible,  they  will have both the  Minor  Trespassing
+         status and the Armed  status.  If  within  an  NPC  or  Camera
+         detection range, the detection Agent will  detect  the  Player
+         with the highest priority status. So in  this  scenario,  that
+         would be the Armed status. And if one or more Player have  the
+         same priority, the Agent will choose the closest one.
+ h. Player Status Visibility and Audibility. Guard are able  to  'hear'
+    Players if they are trespassing, either Minor Trespassing or  Major
+    Trespassing. And are the only Player Statuses that Guards are  able
+    to hear. So if a Player has the Minor Trespassing status  and  also
+    the Armed status, if the Player is not in view of a  Guard  but  is
+    within said Guard hearing range, the Guard  will  only  detect  the
+    hearable status, in this scenario is the Minor  Trespassing  status
+    and not the Armed status.
+ i. Quick Detection.
 
-        i. Disguised;
-       ii. Minor Trespassing;
-      iii. Minor Suspicous;
-       iv. Major Trespassing;
-        v. Criminal Suspicious; and
-       vi. Armed.
-
- (c) These statuses can be stacked as a Player can perform more
-than one. e.g. `{ statuses: { "DISGUISED", "ARMED"} }`.
-
-2. Detection. One of the core mechanics of Asymptote Engine
-is detection. Agents and Cameras can detect a Player or any
-other detectable entities which includes but not limited to
-weapons, dead bodies, hostages, and damaged property.
-
- a. Detection Time. Is the amount of time a suspicion value
-    reaches 1.0. Which can be expressed by:
-   `FinalDetectionTime = BaseTime ÷ SpeedModifier %`
- b. Detection Priority. As defined in Sec. 1, the speed of
-    detection and how an Agent reacts upon detection is de-
-    termined by the Player's highest priority status.
- c. Detection Visibility. Most statuses requires visibility
-    such as ARMED, SUSPICIOUS, etc. And some can be heard,
-    such as MINOR_TRESPASSING and MAJOR_TRESPASSING. An Agent
-    determines the highest priority status by their visibility.
-    For example, a Player is walking behind an Agent, with the
-    statuses of MINOR_TRESPASSING and ARMED. Since the Agent
-    cannot see the Player, the Agent detects the Player based
-    on the MINOR_TRESPASSING status.
- d. Detection Registry. Each Agent stores the suspicion map
-    that stores the suspicion value of each suspect.
-    e.g. `{ Jimmy: 0.23, DeadBody: 0.97 }`
- e. Curious State. When a suspect's suspicion value reaches
-    a specific threshold, e.g. 60%, then the detecting
-    Agent might stop for whatever they are doing. turn and
-    focuses on whatever they are detecting. And remain in
-    curious state until they stop detecting anything for 2
-    seconds. However, they will not enter a curious state
-    if they are already investigating or reporting
-    something.
-
-2. Patrolling. A Guard can have a patrolling duty. A map or level has posts, each posts are grouped so that
-specific Guards can only patrol around their designated posts.
-
-Each posts contains information, which includes the position, of course, the facing direction, tells the Guard
-once in a post to face what direction, and if its occupied or not.
-e.g. `{ cframe: CFrame, occupied: boolean }` (CFrames can have both position and orientation so thats handy)
-
-A Guard typical routine for patrolling are:
-
- a. If the Guard is not on any posts, it tries to randomly find one designated under them. It checks if those
-    posts are occupied or not. If it is occupied, keep searching. If it finds a post thats unoccupied, then
-    it sets said post as occupied and begins to walk to it.
- b. Once a Guard is on a post, it waits for a random time, and after thats done, it tries to find an unoccupied
-    post designated under them. If it does not find one, stays there until it does. Once it does find one,
-    release the current post and sets the selected post as occupied, and walks to it. And the cycle repeats.
- c. A Guard may release a post under certain circumstances, which includes, but not limited to:
-
-     i. A Guard becomes alerted.
-
-3. Trespassing. Trespassing can be split to 2 classifications:
-
- a. Minor Trespassing.
- b. Major Trespassing.
-
-Trespassing status is affected by a Player's disguise. e.g. An undisguised Player is in an
-employees-only area. This gives the Player a Minor Trespassing status. If the Player is in a more
-restricted area such as security rooms, then it gives the Player a Major Trespassing status.
-
-If a Player wears a disguise, then Minor Trespassing zones will not give them its status. And 
-Major Trespassing zones will now give them Minor Trespassing status.
-
-4. Questioning and Chasing. If a Player is caught in a Minor Trespas-
-sing zone, it will result in the following outcomes:
-
- a. The Player is close to the Guard. If true, the Guard will immedi-
-    ately question the Player.
- b. The player is far away or fleeing. If true, the Guard will chase
-    the Player. And if close enough, goes to 4(a).
- c. The Player is out of sight. If true, the Guard will sprint towards
-    the last known position the Player was caught. And if the Player
-    is on sight again, goes to 4(b). If not, the Guard will go to a
-    random Post starting from the ones in its direction.
-
-      i. If a specific amount of time has passed without success, the
-         Guard gives up and raises the alert level.
-     ii. If the Player is SEEN exiting the trespassing zone then the
-         Guard will return to its original state.
-    iii. Note that during this state, higher priority events mat inte-
-         rrupt this state, such as an armed player.
-
-5. Actual Story.
-The Player can choose between 2 characters or more characters
-choosen by the Studio. For the tutorial level, the Character
-is tasked to assasinate the equipment vendor Dean. With the
-mission coordinator being one of the Trainers of Plasma
-Security Division, choosen by the Studio.
+2. Actual Story.
+The Player can choose between 2 characters or more  characters   chosen
+by the Studio. For the tutorial  level,  the  Character  is  tasked  to
+assassinate the equipment vendor  Dean.  With  the  mission coordinator
+being one of the Trainers of Plasma Security Division,  chosen  by  the
+Studio.
 
  a. Required components for this mission:
-
       i. Trespassing mechanics.
      ii. Doors, locked with keys and keycards.
     iii. Guard AI, patrols and propper reactions
@@ -124,7 +107,7 @@ Security Division, choosen by the Studio.
             4. Searching
             5. Lockdown
 
-6. The Killhouse.
+3. The Killhouse.
 The Player is greeted by the Trainer with unspecified affiliation named
 Alice.  Alice  will  guide  the  Player  through the already  developed
 stealth mechanics of the engine.
@@ -142,9 +125,9 @@ stealth mechanics of the engine.
          can  give  you  the  minor  trespassing  status, and the major
          trespassing status;
     iii. Disguises.  A   disguise  can   make   you  not  have  certain
-         trespassing statuses depending on the zone's configured penal-
-         ties; and
-     iv. Detection. A detection bar will show pointing towards the det-
-         ecting Agent and will fill up to show how close is to detecti-
-         ng the Player. If the Player does get detected, simply allows
-         them to try again.
+         trespassing  statuses  depending  on  the  zone's   configured
+         penalties; and
+     iv. Detection. A detection bar  will  show  pointing  towards  the
+         detecting  Agent  and  will  fill  up  to show how close is to
+         detecting  the Player. If the Player does get detected, simply
+         allows them to try again.

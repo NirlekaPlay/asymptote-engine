@@ -8,8 +8,8 @@ local ExpireableValue = require(ServerScriptService.server.ai.memory.ExpireableV
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local Optional = require(ServerScriptService.server.ai.memory.Optional)
-local Sensor = require(ServerScriptService.server.ai.sensing.Sensor)
-local SensorType = require(ServerScriptService.server.ai.sensing.SensorType)
+local SensorControl = require(ServerScriptService.server.ai.sensing.SensorControl)
+local SensorFactory = require(ServerScriptService.server.ai.sensing.SensorFactory)
 
 local Brain = {}
 Brain.__index = Brain
@@ -18,7 +18,7 @@ type self<T> = {
 	agent: T,
 	defaultActivity: Activity,
 	memories: { [MemoryModuleType<any>]: Optional<ExpireableValue<any>> },
-	sensors: { [SensorType<any>]: Sensor<any> },
+	sensors: { [SensorFactory<any>]: SensorControl<any> },
 	activeActivities: { [Activity]: true },
 	activityRequirements: { [Activity]: { [MemoryModuleType<any>]: MemoryStatus } },
 	activityMemoriesToEraseWhenStopped: { [Activity]: { [MemoryModuleType<any>]: true } },
@@ -31,13 +31,13 @@ export type Brain<T> = typeof(setmetatable({} :: self<T>, Brain))
 type Optional<T> = Optional.Optional<T>
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type ExpireableValue<T> = ExpireableValue.ExpireableValue<T>
-type SensorType<T> = SensorType.SensorType<T>
-type Sensor<T> = Sensor.Sensor<T>
+type SensorFactory<T> = SensorFactory.SensorFactory<T>
+type SensorControl<T> = SensorControl.SensorControl<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
 type BehaviorControl<T> = BehaviorControl.BehaviorControl<T>
 type Activity = Activity.Activity
 
-function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { SensorType<T> } ): Brain<T>
+function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { SensorFactory<T> } ): Brain<T>
 	local self = {} :: self<T>
 
 	self.agent = agent
@@ -54,8 +54,8 @@ function Brain.new<T>(agent: T, memories: { MemoryModuleType<any> }, sensors: { 
 		self.memories[memoryModuleType] = Optional.empty()
 	end
 
-	for _, sensorType in ipairs(sensors) do
-		self.sensors[sensorType] = sensorType.create()
+	for _, SensorFactory in ipairs(sensors) do
+		self.sensors[SensorFactory] = SensorFactory.create()
 	end
 
 	for _, sensor in pairs(self.sensors) do
@@ -145,7 +145,7 @@ end
 	empty Optional, effectively "forgetting" any previously stored value.
 ]=]
 function Brain.eraseMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>): ()
-	self:setMemoryInternal(memoryType, Optional.empty())
+	self:setMemoryInternal(memoryType, Optional.empty() :: any) -- shut up.
 end
 
 --[=[
