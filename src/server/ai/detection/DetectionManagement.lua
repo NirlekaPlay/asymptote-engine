@@ -16,10 +16,10 @@ local QUICK_DETECTION_RANGE = 10
 local QUIK_DETECTION_MULTIPLIER = 3.33
 local DECAY_RATE_PER_SEC = 0.01 / 0.045 -- ≈ 0.222 (Sec. 1(d) of Plan doc.)
 local INSTANT_DETECTION_RULES = {
-	[PlayerStatusTypes.ARMED] = 20,                    -- Pulling out a gun triggers instant detection within this distance
-	[PlayerStatusTypes.DANGEROUS_ITEM] = 12.5          -- Carrying C4 triggers instant detection within this distance
+	[PlayerStatusTypes.ARMED] = 20,             -- Pulling out a gun triggers instant detection within this distance
+	[PlayerStatusTypes.DANGEROUS_ITEM] = 12.5   -- Carrying C4 triggers instant detection within this distance
 }
-local QUICK_DETECTION_INSTANT_STATUSES = {             -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
+local QUICK_DETECTION_INSTANT_STATUSES = {      -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
 	[PlayerStatusTypes.ARMED] = true
 }
 local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
@@ -297,31 +297,35 @@ end
 function DetectionManagement.raiseDetection(
 	self: DetectionManagement, entityUuid: string, deltaTime: number, entityPriorityInfo: EntityPriority
 ): ()
-	
 	local entityDetVal = self.detectionLevels[entityUuid] or 0
 	if entityDetVal >= 1 then
 		return
 	end
 
-	local player = (EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid) :: EntityManager.DynamicEntity).instance :: Player
-	local key = string.match(entityUuid, "^.-:(.+)$") :: string
-	local highestStatus = PlayerStatusTypes.getStatusFromName(key)
+	local entity = EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid)
 	local distance = entityPriorityInfo.distance
-	if not highestStatus then
-		return
-	end
 
-	local previousStatus = playerStatusTracker[player]
-	if previousStatus ~= highestStatus then
-		playerStatusTracker[player] = highestStatus
+	if entity and entity.name == "Player" then
+		local player = (entity :: EntityManager.DynamicEntity).instance :: Player
+		local key = string.match(entityUuid, "^.-:(.+)$") :: string
+		local highestStatus = PlayerStatusTypes.getStatusFromName(key)
+		
+		if not highestStatus then
+			-- Does nothing, continue with normal detection raising
+		else
+			local previousStatus = playerStatusTracker[player]
+			if previousStatus ~= highestStatus then
+				playerStatusTracker[player] = highestStatus
 
-		local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
-		if (instantRange and distance <= instantRange)
-			or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
-			self.detectionLevels[entityUuid] = 1
-			self:syncDetectionToClientIfPlayer(entityUuid)
-			self.detectedSound:Play()
-			return
+				local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
+				if (instantRange and distance <= instantRange)
+					or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
+					self.detectionLevels[entityUuid] = 1
+					self:syncDetectionToClientIfPlayer(entityUuid)
+					self.detectedSound:Play()
+					return
+				end
+			end
 		end
 	end
 
