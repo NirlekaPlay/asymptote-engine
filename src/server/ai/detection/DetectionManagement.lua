@@ -191,40 +191,95 @@ end
 
 function DetectionManagement.update(self: DetectionManagement, deltaTime: number): ()
 	local focusTarget = self:findHighestPriorityEntity()
-	local currentlyDetectedKeys = {}
+	local currentlyDetectedKeys: { [string]: true } = {}
 
 	for entityUuid, detectionProfile in pairs(self.detectedEntities) do
 		local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
 
-		for _, info in ipairs(infos) do
-			-- I don't know if this is clever or downright stupid.
-			-- Due to Players can have multiple statuses (Sec. 1(a) and (b) of Plan doc.)
-			-- We can just have the Player's ID as a key. That would contradict Sec. 1(d)(i)
-			-- of Plan doc.
-			-- Players can switch statuses mid detection and after detection.
+		local entity = EntityManager.getEntityByUuid(entityUuid)
+		if entity and entity.name == "Player" then
+			local highestPriorityInfo = nil
+			for _, info in ipairs(infos) do
+				if not highestPriorityInfo or info.priority > highestPriorityInfo.priority then
+					highestPriorityInfo = info
+				end
+			end
+			
+			if highestPriorityInfo then
+				local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
+				local maxDetectionForPlayer = 0
+				local oldKeyToTransferFrom = nil
+				
+				for key, level in pairs(self.detectionLevels) do
+					if string.match(key, "^" .. entityUuid .. ":") then
+						if level > maxDetectionForPlayer then
+							maxDetectionForPlayer = level
+							if key ~= currentKey then
+								oldKeyToTransferFrom = key
+							end
+						end
+					end
+				end
+				
+				if oldKeyToTransferFrom and maxDetectionForPlayer > 0 then
+					self.detectionLevels[currentKey] = maxDetectionForPlayer
+					for key, _ in pairs(self.detectionLevels) do
+						if string.match(key, "^" .. entityUuid .. ":") and key ~= currentKey then
+							self.detectionLevels[key] = nil
+						end
+					end
+				end
+				
+				currentlyDetectedKeys[currentKey] = true
 
-			-- TODO: This shit does not handle Players highest priority status
-			-- changing mid detection. Sec. 1(d)(i) of Plan doc states that
-			-- if a Player is, for example, have the Minor Trespassing status,
-			-- but pulls out a gun, applying the Armed status as the highest priority
-			-- mid detection, the Agent should *continue* from the last detection value.
-			local key = entityUuid .. ":" .. info.status
-			currentlyDetectedKeys[key] = true
+				if focusTarget
+					and focusTarget.entityUuid == highestPriorityInfo.entityUuid
+					and focusTarget.status == highestPriorityInfo.status
+				then
+					self:raiseDetection(currentKey, deltaTime, highestPriorityInfo.speedMultiplier)
+				else
+					self:lowerDetection(currentKey, deltaTime)
+				end
+			end
+		else
+			for _, info in ipairs(infos) do
+				local key = entityUuid .. ":" .. info.status
+				currentlyDetectedKeys[key] = true
 
-			if focusTarget
-				and focusTarget.entityUuid == info.entityUuid
-				and focusTarget.status == info.status
-			then
-				self:raiseDetection(key, deltaTime, info.speedMultiplier)
-			else
-				self:lowerDetection(key, deltaTime)
+				if focusTarget
+					and focusTarget.entityUuid == info.entityUuid
+					and focusTarget.status == info.status
+				then
+					self:raiseDetection(key, deltaTime, info.speedMultiplier)
+				else
+					self:lowerDetection(key, deltaTime)
+				end
 			end
 		end
 	end
 
 	for key, _ in pairs(self.detectionLevels) do
 		if not currentlyDetectedKeys[key] then
-			self:lowerDetection(key, deltaTime)
+			local entityUuid = string.match(key, "^(.-):") :: string
+			local entity = EntityManager.getEntityByUuid(entityUuid)
+			
+			if entity and entity.name == "Player" then
+				local hasCurrentDetection = false
+				for currentKey, _ in pairs(currentlyDetectedKeys) do
+					if string.match(currentKey, "^" .. entityUuid .. ":") then
+						hasCurrentDetection = true
+						break
+					end
+				end
+				
+				if not hasCurrentDetection then
+					self:lowerDetection(key, deltaTime)
+				else
+					self.detectionLevels[key] = nil
+				end
+			else
+				self:lowerDetection(key, deltaTime)
+			end
 		end
 	end
 end
