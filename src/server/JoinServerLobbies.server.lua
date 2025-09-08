@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 local isStudio = RunService:IsStudio()
 

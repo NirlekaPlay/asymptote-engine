@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local LoadingScreen = require(script.Parent.LoadingScreen)
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
 local ENGINE_VERSION_SCREEN_GUI_NAME = "EngineVersion"

@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 local ALERT_LEVELS = {
 	[0] = AlertLevels.CALM,

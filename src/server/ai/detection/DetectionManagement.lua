@@ -3,9 +3,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
-local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPayload)
+local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)

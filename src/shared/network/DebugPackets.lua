@@ -3,10 +3,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
-local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
-local DebugEntityNameGenerator = require(script.Parent.DebugEntityNameGenerator)
-local TypedRemotes = require(script.Parent.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local Agent = require(ServerScriptService.server.Agent)
 
 local PACKETS = {

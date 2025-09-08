@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local localPlayer = Players.LocalPlayer
 local currentCamera = workspace.CurrentCamera
 

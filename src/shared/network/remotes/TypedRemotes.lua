@@ -3,8 +3,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
-local BrainDebugPayload = require(script.Parent.BrainDebugPayload)
-local DetectionPayload = require(script.Parent.DetectionPayload)
+local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
+local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
 local _, RE = TypedRemote.parent()

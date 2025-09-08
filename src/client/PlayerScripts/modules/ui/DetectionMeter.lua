@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DetectionMeterRenderer = require(script.Parent.DetectionMeterRenderer)
-local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPayload)
+local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 
 local detectionWooshSoundPerUuid: { [string]: Sound } = {}
 local detectionDataPerUuid: { [string]: ExtendedDetectionData } = {}

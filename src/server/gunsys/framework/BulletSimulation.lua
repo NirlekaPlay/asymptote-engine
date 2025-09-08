@@ -2,7 +2,7 @@
 
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local BulletTracerPayload = require(ReplicatedStorage.shared.network.BulletTracerPayload)
+local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.BulletTracerPayload)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
 local DEBUG_MODE = false

@@ -2,7 +2,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerHeadRotationClient = TypedRemotes.PlayerHeadRotationClient
 
 TypedRemotes.PlayerHeadRotationServer.OnServerEvent:Connect(function(player, cameraPos)

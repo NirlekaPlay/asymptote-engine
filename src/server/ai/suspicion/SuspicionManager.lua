@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local DetectionPayload = require(ReplicatedStorage.shared.network.DetectionPayload)
+local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local BrainOwner = require(ServerScriptService.server.BrainOwner)
@@ -10,7 +10,7 @@ local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require("../../player/PlayerStatusRegistry")
-local TypedDetectionRemote = require(ReplicatedStorage.shared.network.TypedRemotes).Detection
+local TypedDetectionRemote = require(ReplicatedStorage.shared.network.remotes.TypedRemotes).Detection
 local CONFIG = {
 	BASE_DETECTION_TIME = 1.25,        -- The base amount of time (in seconds) the detection goes from 0.0 to 1.0
 	QUICK_DETECTION_RANGE = 10,        -- In studs

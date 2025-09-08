@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DebugRenderer = require(script.Parent.DebugRenderer)
-local BrainDebugPayload = require(ReplicatedStorage.shared.network.BrainDebugPayload)
+local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
 
 local currentCamera = workspace.CurrentCamera
 local localPlayer = Players.LocalPlayer

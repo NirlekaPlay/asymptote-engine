@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local TypedRemotes = require(ReplicatedStorage.shared.network.TypedRemotes)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerHeadRotation = require(StarterPlayer.StarterPlayerScripts.client.modules.character.PlayerHeadRotation)
 
 local HEAD_ROTATION_REMOTE_CLIENT = TypedRemotes.PlayerHeadRotationClient

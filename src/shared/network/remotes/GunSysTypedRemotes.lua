@@ -1,7 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local BulletTracerPayload = require(script.Parent.BulletTracerPayload)
+local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.BulletTracerPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
 local _, RE = TypedRemote.parent()

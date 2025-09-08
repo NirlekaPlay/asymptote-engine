@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
 local Particles = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.Particles)
-local BulletTracerPayload = require(ReplicatedStorage.shared.network.BulletTracerPayload)
+local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.BulletTracerPayload)
 local BulletHitHandler = require(script.Parent.BulletHitHandler)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
