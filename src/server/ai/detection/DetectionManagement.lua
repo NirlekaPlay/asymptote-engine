@@ -12,7 +12,16 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local BASE_DETECTION_TIME = 1.25
+local QUICK_DETECTION_RANGE = 10
+local QUIK_DETECTION_MULTIPLIER = 3.33
 local DECAY_RATE_PER_SEC = 0.01 / 0.045 -- ≈ 0.222 (Sec. 1(d) of Plan doc.)
+local INSTANT_DETECTION_RULES = {
+	[PlayerStatusTypes.ARMED] = 20,                    -- Pulling out a gun triggers instant detection within this distance
+	[PlayerStatusTypes.DANGEROUS_ITEM] = 12.5          -- Carrying C4 triggers instant detection within this distance
+}
+local QUICK_DETECTION_INSTANT_STATUSES = {             -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
+	[PlayerStatusTypes.ARMED] = true
+}
 local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
 
 -- I don't know how to implement this.
@@ -35,6 +44,7 @@ local SPEED_MULTIPLIERS = {
 }
 
 local detectionDataBatch: { [Player]: {DetectionPayload.DetectionData} } = {}
+local playerStatusTracker: { [Player]: PlayerStatus.PlayerStatus } = {}
 
 --[=[
 	@class DetectionManagement
@@ -236,7 +246,7 @@ function DetectionManagement.update(self: DetectionManagement, deltaTime: number
 					and focusTarget.entityUuid == highestPriorityInfo.entityUuid
 					and focusTarget.status == highestPriorityInfo.status
 				then
-					self:raiseDetection(currentKey, deltaTime, highestPriorityInfo.speedMultiplier)
+					self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
 				else
 					self:lowerDetection(currentKey, deltaTime)
 				end
@@ -250,7 +260,7 @@ function DetectionManagement.update(self: DetectionManagement, deltaTime: number
 					and focusTarget.entityUuid == info.entityUuid
 					and focusTarget.status == info.status
 				then
-					self:raiseDetection(key, deltaTime, info.speedMultiplier)
+					self:raiseDetection(key, deltaTime, info)
 				else
 					self:lowerDetection(key, deltaTime)
 				end
@@ -285,7 +295,7 @@ function DetectionManagement.update(self: DetectionManagement, deltaTime: number
 end
 
 function DetectionManagement.raiseDetection(
-	self: DetectionManagement, entityUuid: string, deltaTime: number, speedMultiplier: number
+	self: DetectionManagement, entityUuid: string, deltaTime: number, entityPriorityInfo: EntityPriority
 ): ()
 	
 	local entityDetVal = self.detectionLevels[entityUuid] or 0
@@ -293,6 +303,32 @@ function DetectionManagement.raiseDetection(
 		return
 	end
 
+	local player = (EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid) :: EntityManager.DynamicEntity).instance :: Player
+	local key = string.match(entityUuid, "^.-:(.+)$") :: string
+	local highestStatus = PlayerStatusTypes.getStatusFromName(key)
+	local distance = entityPriorityInfo.distance
+	if not highestStatus then
+		return
+	end
+
+	local previousStatus = playerStatusTracker[player]
+	if previousStatus ~= highestStatus then
+		playerStatusTracker[player] = highestStatus
+
+		local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
+		if (instantRange and distance <= instantRange)
+			or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
+			self.detectionLevels[entityUuid] = 1
+			self:syncDetectionToClientIfPlayer(entityUuid)
+			self.detectedSound:Play()
+			return
+		end
+	end
+
+	local speedMultiplier = entityPriorityInfo.speedMultiplier
+	if distance <= QUICK_DETECTION_RANGE then
+		speedMultiplier *= QUIK_DETECTION_MULTIPLIER
+	end
 	local detectionSpeed = speedMultiplier
 	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
 
