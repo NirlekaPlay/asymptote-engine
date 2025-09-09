@@ -11,7 +11,7 @@ local FollowPlayerSink = require(ServerScriptService.server.ai.behavior.FollowPl
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
 local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
-local LookAtSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousPlayer)
+local LookAtSuspiciousEntities = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousEntities)
 local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
@@ -54,26 +54,26 @@ local SENSOR_FACTORIES = {
 
 function GuardAi.makeBrain(agent: Agent)
 	local brain = Brain.new(agent, MEMORY_TYPES, SENSOR_FACTORIES)
-	--[[GuardAi.initCoreActivity(brain)
-	GuardAi.initWorkActivity(brain)
+	GuardAi.initCoreActivity(brain)
+	--[[GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)
 	GuardAi.initConfrontActivity(brain)
 	GuardAi.initFightActivity(brain)
-	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)
+	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)]]
 	brain:setCoreActivities({Activity.CORE})
 	brain:setDefaultActivity(Activity.IDLE)
-	brain:useDefaultActivity()]]
+	brain:useDefaultActivity()
 	return brain
 end
 
 function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 	brain:addActivity(Activity.CORE, 2, {
-		BehaviorWrapper.new(SetIsCuriousMemory.new()),
-		BehaviorWrapper.new(LookAtSuspiciousPlayer.new()),
+		--BehaviorWrapper.new(SetIsCuriousMemory.new()),
+		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
-		BehaviorWrapper.new(GuardPanic.new()),
-		BehaviorWrapper.new(ValidateTrespasser.new()),
-		BehaviorWrapper.new(FollowPlayerSink.new())
+		--BehaviorWrapper.new(GuardPanic.new()),
+		--BehaviorWrapper.new(ValidateTrespasser.new()),
+		--BehaviorWrapper.new(FollowPlayerSink.new())
 	})
 end
 

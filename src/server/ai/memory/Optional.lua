@@ -136,4 +136,12 @@ function Optional.orElse<T, U>(self: Optional<T>, other: U): T | U
 	return if (self.value :: any) ~= nil then self.value else other
 end
 
+--[=[
+	If a value is present, returns the value, otherwise returns the result
+	returned by the `callback` function.
+]=]
+function Optional.orElseGet<T, U>(self: Optional<T>, callback: () -> U): T | U
+	return if (self.value :: any) ~= nil then self.value else callback()
+end
+
 return Optional

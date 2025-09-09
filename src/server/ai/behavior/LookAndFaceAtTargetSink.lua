@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
@@ -27,6 +28,8 @@ type MemoryStatus = MemoryStatus.MemoryStatus
 type Agent = Agent.Agent
 
 local MEMORY_REQUIREMENTS = {
+	[MemoryModuleTypes.VISIBLE_ENTITIES] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.HEARABLE_PLAYERS] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.REGISTERED
 }
 
@@ -47,22 +50,25 @@ function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agen
 
 	local brain = agent:getBrain()
 	local lookTarget = brain:getMemory(MemoryModuleTypes.LOOK_TARGET)
+	local visibleEntities = brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})
+	local hearingPlayers = brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS):orElse({})
 
-	return lookTarget
-		:flatMap(function(targetPlayer)
-			return brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
-				:map(function(visible)
-					return visible[targetPlayer]
-				end)
+	local result = lookTarget
+		:map(function(targetUuid)
+			if visibleEntities[targetUuid] ~= nil then
+				return true
+			end
+
+			local entityObj = EntityManager.getEntityByUuid(targetUuid)
+			if entityObj and not entityObj.isStatic and entityObj.name == "Player" then
+				return hearingPlayers[entityObj.instance :: Player] ~= nil
+			end
+
+			return false
 		end)
-		:isPresent() or lookTarget
-		:flatMap(function(targetPlayer)
-			return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
-				:map(function(hearable)
-					return hearable[targetPlayer]
-				end)
-		end)
-		:isPresent()
+		:orElse(false) :: boolean
+
+	return result
 end
 
 function LookAndFaceAtTargetSink.doStart(self: LookAndFaceAtTargetSink, agent: Agent): ()
@@ -80,7 +86,36 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 	local lookTarget = agent:getBrain():getMemory(MemoryModuleTypes.LOOK_TARGET)
 
 	if lookTarget:isPresent() then
-		self.lastKnownTargetPos = lookTarget:get().Character.PrimaryPart.Position
+		local entityUuid = lookTarget:get()
+		local entityObj = EntityManager.getEntityByUuid(entityUuid)
+		if not entityObj or entityObj.isStatic then
+			return
+		end
+
+		local entityLookPos: Vector3
+
+		-- Jesus tapdancing Christ
+		-- Borderline insane entity type checking taken from VisibleEntitiesSensor.
+		-- Nico what have you done.
+		if entityObj.instance:IsA("BasePart") then
+			entityLookPos = entityObj.instance.Position
+		elseif entityObj.instance:IsA("Model") then
+			entityLookPos = (entityObj.instance.PrimaryPart :: Part).Position
+		end
+
+		if entityObj.name == "Player" then
+			if not entityObj.instance then return end
+			if not entityObj.instance:IsA("Player") then return end
+			if not entityObj.instance.Character then return end
+			if not entityObj.instance.Character:IsA("Model") then return end
+			if not entityObj.instance.Character.PrimaryPart then return end
+
+			entityLookPos = entityObj.instance.Character.PrimaryPart.Position
+		end
+
+		if entityLookPos then
+			self.lastKnownTargetPos = entityLookPos
+		end
 	end
 
 	if self.lastKnownTargetPos then

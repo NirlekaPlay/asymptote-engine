@@ -128,7 +128,10 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 
 	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
 	self.detectionManager:update(deltaTime)
+	DetectionDummyAi.updateActivity(self)
 	self.brain:update(deltaTime)
+	self.lookControl:update(deltaTime)
+	self.bodyRotationControl:update(deltaTime)
 end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean

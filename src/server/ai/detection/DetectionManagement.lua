@@ -99,6 +99,62 @@ function DetectionManagement.getFocusingTarget(self: DetectionManagement)
 	return self.focusingTarget
 end
 
+--[=[
+	Gets the current detection level for a specific entity
+	@param entityUuid string -- The entity's UUID
+	@return number -- Detection level from 0.0 to 1.0, or 0 if not detected
+]=]
+function DetectionManagement.getDetectionLevel(self: DetectionManagement, entityUuid: string): number
+	-- For players, find their current active status key
+	local entity = EntityManager.getEntityByUuid(entityUuid)
+	if entity and entity.name == "Player" then
+		for key, level in pairs(self.detectionLevels) do
+			if string.match(key, "^" .. entityUuid .. ":") then
+				return level
+			end
+		end
+		return 0
+	else
+		-- For non-players, check all possible status combinations
+		local maxLevel = 0
+		for key, level in pairs(self.detectionLevels) do
+			if string.match(key, "^" .. entityUuid .. ":") and level > maxLevel then
+				maxLevel = level
+			end
+		end
+		return maxLevel
+	end
+end
+
+--[=[
+	Checks if the agent is currently detecting anything
+	@return boolean
+]=]
+function DetectionManagement.isDetecting(self: DetectionManagement): boolean
+	return next(self.detectionLevels) ~= nil
+end
+
+--[=[
+	Gets all players currently being detected with a specific status
+	@param statusName string -- The status name (e.g., "MinorTrespassing", "Armed")
+	@return {Player} -- Array of players with that status
+]=]
+function DetectionManagement.getPlayersWithStatus(self: DetectionManagement, statusName: string): {Player}
+	local players = {}
+	
+	for key, _ in pairs(self.detectionLevels) do
+		local entityUuid, status = string.match(key, "^(.-):(.+)$")
+		if status == statusName then
+			local entity = EntityManager.getEntityByUuid(entityUuid)
+			if entity and entity.name == "Player" then
+				table.insert(players, (entity :: EntityManager.DynamicEntity).instance :: Player)
+			end
+		end
+	end
+	
+	return players
+end
+
 function DetectionManagement.addOrUpdateDetectedEntities(
 	self: DetectionManagement, entities: { [string]: DetectionProfile }
 ): ()

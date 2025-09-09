@@ -9,7 +9,6 @@ local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
-local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
 --[=[
 	@class Agent
@@ -31,8 +30,7 @@ export type Agent = typeof(setmetatable({} :: {
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	pathNavigation: PathNavigation.PathNavigation,
-	random: Random,
-	suspicionManager: SuspicionManagement.SuspicionManagement
+	random: Random
 }, Agent))
 
 function Agent.isAlive(self: Agent): boolean
@@ -69,10 +67,6 @@ end
 
 function Agent.getUuid(self: Agent): string
 	return self.uuid
-end
-
-function Agent.getSuspicionManager(self: Agent): SuspicionManagement.SuspicionManagement
-	return self.suspicionManager
 end
 
 function Agent.getBodyRotationControl(self: Agent): BodyRotationControl.BodyRotationControl
