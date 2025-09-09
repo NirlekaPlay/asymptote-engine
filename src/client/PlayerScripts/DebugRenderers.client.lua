@@ -8,8 +8,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
-local BrainDebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.debug.BrainDebugRenderer)
-local DebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.debug.DebugRenderer)
+local BrainDebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.debug.BrainDebugRenderer)
+local DebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.debug.DebugRenderer)
 local RTween = require(StarterPlayer.StarterPlayerScripts.client.modules.interpolation.RTween)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 

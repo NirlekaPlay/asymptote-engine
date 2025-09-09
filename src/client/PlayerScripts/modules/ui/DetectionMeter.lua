@@ -1,8 +1,9 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 
-local DetectionMeterRenderer = require(script.Parent.DetectionMeterRenderer)
+local DetectionMeterRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.DetectionMeterRenderer)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 
 local detectionWooshSoundPerUuid: { [string]: Sound } = {}

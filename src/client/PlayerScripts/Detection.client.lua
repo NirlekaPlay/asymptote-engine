@@ -5,7 +5,7 @@ local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local DetectionMeter = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.DetectionMeter)
-local DetectionMeterRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.DetectionMeterRenderer)
+local DetectionMeterRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.DetectionMeterRenderer)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 TypedRemotes.Detection.OnClientEvent:Connect(function(detectionDatas)

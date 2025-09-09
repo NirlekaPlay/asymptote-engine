@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local RTween = require(StarterPlayer.StarterPlayerScripts.client.modules.interpolation.RTween)
-local WorldPointer = require(script.Parent.WorldPointer)
+local WorldPointer = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.WorldPointer)
 local localPlayer = Players.LocalPlayer
 
 local DETECTION_METER_IMAGE_GLOW_CONTENT = Content.fromAssetId(132854348499510)
