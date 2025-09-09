@@ -10,7 +10,7 @@ local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
-local DEBUG_RAYCAST = true
+local DEBUG_RAYCAST = false
 local DEBUG_RAYCAST_LIFETIME = 1 / 20
 local RED = Color3.new(1, 0, 0)
 local GREEN = Color3.new(0, 1, 0)

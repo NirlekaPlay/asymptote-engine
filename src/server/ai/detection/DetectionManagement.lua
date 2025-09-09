@@ -145,7 +145,7 @@ function DetectionManagement.getPlayersWithStatus(self: DetectionManagement, sta
 	for key, _ in pairs(self.detectionLevels) do
 		local entityUuid, status = string.match(key, "^(.-):(.+)$")
 		if status == statusName then
-			local entity = EntityManager.getEntityByUuid(entityUuid)
+			local entity = EntityManager.getEntityByUuid(entityUuid :: string)
 			if entity and entity.name == "Player" then
 				table.insert(players, (entity :: EntityManager.DynamicEntity).instance :: Player)
 			end
@@ -427,8 +427,9 @@ function DetectionManagement.raiseDetection(
 	local speedMultiplier = entityPriorityInfo.speedMultiplier
 	local detectionSpeed = speedMultiplier
 	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
+	local isEntityVisible = self.detectedEntities[entityPriorityInfo.entityUuid].isVisible
 
-	if distance <= QUICK_DETECTION_RANGE then
+	if isEntityVisible and distance <= QUICK_DETECTION_RANGE then
 		speedMultiplier *= QUIK_DETECTION_MULTIPLIER
 	end
 
