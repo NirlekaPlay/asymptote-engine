@@ -1,41 +1,49 @@
 --!strict
 
-local camera = workspace.CurrentCamera
-
+local currentCamera = workspace.CurrentCamera
+local CONST_ROT_ALPHA = 0.5
 
 --[=[
 	@class WorldPointer
 
-	Makes Frames rotate on its anchor towards a position
-	in world space.
+	Makes a Frame rotate towards a position in world space.
 ]=]
 local WorldPointer = {}
 WorldPointer.__index = WorldPointer
 
 export type WorldPointer = typeof(setmetatable({} :: {
-	guiFrame: Frame,
-	originalAbsolutePos: Vector2,
+	frame: Frame,
 	targetPos: Vector3?
 }, WorldPointer))
 
-local function calculateCenterCframe(camera: Camera)
-	local position = camera.CFrame.Position
-	local look_direction = camera.CFrame.LookVector * Vector3.new(1, 0, 1)
-	return CFrame.new(position, position + look_direction)
+local function calculateRotationTowardsWorldPos(worldPos: Vector3): number
+	local cameraCframe = currentCamera.CFrame
+	local worldDirection = worldPos - cameraCframe.Position
+	local relativeDirection = cameraCframe:VectorToObjectSpace(worldDirection)
+	local relativeDirection2D = Vector2.new(relativeDirection.X, relativeDirection.Y).Unit
+
+	local angle = math.atan2(relativeDirection2D.X, relativeDirection2D.Y)
+
+	return math.deg(angle)
 end
 
-local function calculateAngle(center: CFrame, point: Vector3)
-	local relative_point = center:PointToObjectSpace(point)
-	local angle_radians = math.atan2(relative_point.Z, relative_point.X)
-	return math.deg(angle_radians) + 90
+local function lerpAngle(current: number, target: number, alpha: number): number
+	-- this solves a classic problem with interpolating angles
+	-- this prevents angles getting lerped in the other direction
+	-- instead of lerping to the closest rotation.
+	local delta = (target - current + 180) % 360 - 180
+	return current + delta * alpha
 end
 
 function WorldPointer.new(frame: Frame, targetPos: Vector3?): WorldPointer
 	return setmetatable({
-		guiFrame = frame,
-		originalAbsolutePos = frame.AbsolutePosition,
+		frame = frame,
 		targetPos = targetPos :: Vector3?
 	}, WorldPointer)
+end
+
+function WorldPointer.setTargetPos(self: WorldPointer, pos: Vector3?): ()
+	self.targetPos = pos
 end
 
 function WorldPointer.update(self: WorldPointer): ()
@@ -45,45 +53,10 @@ function WorldPointer.update(self: WorldPointer): ()
 
 	-- Fucking piece of shit of a typechecker
 	-- why is it of `any` type you bastard
-	local frame = self.guiFrame :: Frame
-	local frameRot = self:getFrameRotTowardsTargetWorldPos()
+	local frame = self.frame :: Frame
+	local frameRot = calculateRotationTowardsWorldPos(self.targetPos)
 
-	--frame.Position = frame.Position:Lerp(framePos, 0.5)
-	frame.Rotation = math.lerp(frame.Rotation, frameRot, 0.5)
-end
-
-function WorldPointer.setTargetPos(self: WorldPointer, pos: Vector3?): ()
-	self.targetPos = pos
-end
-
-function WorldPointer.getFrameRotTowardsTargetWorldPos(self: WorldPointer): number
-	-- rotiation calculations
-	local centerCframe = calculateCenterCframe(camera)
-	local angle = calculateAngle(centerCframe, self.targetPos :: Vector3)
-	local theta = math.deg(math.rad(angle))
-
-	--[[
-	-- rotate by anchor
-	-- for the old anchor based rotation, remove math.deg from theta
-	local frame = self.guiFrame
-	local size = frame.AbsoluteSize;
-	local topLeftCorner = self.originalAbsolutePos - size * frame.AnchorPoint
-	
-	local offset = size * frame.AnchorPoint
-	local center = topLeftCorner + size / 2
-	local nonRotatedAnchor = topLeftCorner + offset
-	
-	local cos, sin = math.cos(theta), math.sin(theta)
-	local v = nonRotatedAnchor - center
-	local rv = Vector2.new(v.X * cos - v.Y * sin, v.X * sin + v.Y * cos)
-	
-	local rotatedAnchor = center + rv
-	local difference = nonRotatedAnchor - rotatedAnchor
-
-	local framePos = UDim2.new(0, nonRotatedAnchor.X + difference.X + offset.X, 0, nonRotatedAnchor.Y + difference.Y + offset.Y)
-	local frameRot =  math.deg(theta)]]
-
-	return theta
+	frame.Rotation = lerpAngle(frame.Rotation, frameRot, CONST_ROT_ALPHA)
 end
 
 return WorldPointer
