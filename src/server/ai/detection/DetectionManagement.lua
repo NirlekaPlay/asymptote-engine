@@ -292,41 +292,59 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 			
 			if highestPriorityInfo then
 				local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
-				local maxDetectionForPlayer = 0
-				local oldKeyToTransferFrom = nil
 				
-				for key, level in pairs(self.detectionLevels) do
-					if string.match(key, "^" .. entityUuid .. ":") then
-						if level > maxDetectionForPlayer then
-							maxDetectionForPlayer = level
-							if key ~= currentKey then
-								oldKeyToTransferFrom = key
+				-- NEW: Check if we should allow this status to be detected based on stacking rules
+				local shouldDetect = self:shouldAllowStatusDetection(entityUuid, highestPriorityInfo.priority)
+				
+				if shouldDetect then
+					local maxDetectionForPlayer = 0
+					local oldKeyToTransferFrom = nil
+					
+					-- Find the highest detection level and potential transfer source
+					for key, level in pairs(self.detectionLevels) do
+						if string.match(key, "^" .. entityUuid .. ":") then
+							if level > maxDetectionForPlayer then
+								maxDetectionForPlayer = level
+								if key ~= currentKey then
+									oldKeyToTransferFrom = key
+								end
 							end
 						end
 					end
-				end
-				
-				if oldKeyToTransferFrom and maxDetectionForPlayer > 0 then
-					self.detectionLevels[currentKey] = maxDetectionForPlayer
-					for key, _ in pairs(self.detectionLevels) do
-						if string.match(key, "^" .. entityUuid .. ":") and key ~= currentKey then
-							self.detectionLevels[key] = nil
+					
+					-- Transfer detection if we found a different key with higher detection
+					if oldKeyToTransferFrom and maxDetectionForPlayer > 0 then
+						self.detectionLevels[currentKey] = maxDetectionForPlayer
+						-- Clear all other keys for this player except the current one
+						for key, _ in pairs(self.detectionLevels) do
+							if string.match(key, "^" .. entityUuid .. ":") and key ~= currentKey then
+								self.detectionLevels[key] = nil
+							end
 						end
 					end
-				end
-				
-				currentlyDetectedKeys[currentKey] = true
+					
+					currentlyDetectedKeys[currentKey] = true
 
-				if focusTarget
-					and focusTarget.entityUuid == highestPriorityInfo.entityUuid
-					and focusTarget.status == highestPriorityInfo.status
-				then
-					self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
+					if focusTarget
+						and focusTarget.entityUuid == highestPriorityInfo.entityUuid
+						and focusTarget.status == highestPriorityInfo.status
+					then
+						self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
+					else
+						self:lowerDetection(currentKey, deltaTime)
+					end
 				else
-					self:lowerDetection(currentKey, deltaTime)
+					-- Status is blocked by stacking rules, but we need to maintain existing detection levels
+					-- Find any existing detection for this status and mark it as current
+					local existingKey = entityUuid .. ":" .. highestPriorityInfo.status
+					if self.detectionLevels[existingKey] then
+						currentlyDetectedKeys[existingKey] = true
+						-- Don't raise or lower, just maintain current level
+					end
 				end
 			end
 		else
+			-- Non-player entities (DeadBody, C4, etc.) - no stacking rules apply
 			for _, info in ipairs(infos) do
 				local key = entityUuid .. ":" .. info.status
 				currentlyDetectedKeys[key] = true
@@ -343,6 +361,7 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 		end
 	end
 
+	-- Clean up detection levels that are no longer being tracked
 	for key, _ in pairs(self.detectionLevels) do
 		if not currentlyDetectedKeys[key] then
 			local entityUuid = string.match(key, "^(.-):") :: string
@@ -367,6 +386,35 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 			end
 		end
 	end
+end
+
+function DetectionManagement.shouldAllowStatusDetection(self: DetectionManagement, entityUuid: string, newStatusPriority: number): boolean
+	local hasFullyDetectedStatus = false
+	local highestFullyDetectedPriority = -1
+	
+	-- Check all existing detection levels for this player
+	for key, level in pairs(self.detectionLevels) do
+		if string.match(key, "^" .. entityUuid .. ":") and level >= 1 then
+			hasFullyDetectedStatus = true
+			
+			-- Extract status name and get its priority
+			local statusName = string.match(key, "^.-:(.+)$")
+			if statusName then
+				local statusPriority = STATUS_PRIORITIES[statusName] or 0
+				if statusPriority > highestFullyDetectedPriority then
+					highestFullyDetectedPriority = statusPriority
+				end
+			end
+		end
+	end
+	
+	-- If no fully detected status exists, allow detection
+	if not hasFullyDetectedStatus then
+		return true
+	end
+	
+	-- If new status has higher priority than the highest fully detected status, allow it
+	return newStatusPriority > highestFullyDetectedPriority
 end
 
 function DetectionManagement.updateCuriousState(self: DetectionManagement, deltaTime: number): ()
@@ -394,8 +442,11 @@ end
 function DetectionManagement.raiseDetection(
 	self: DetectionManagement, entityUuid: string, deltaTime: number, entityPriorityInfo: EntityPriority
 ): ()
+	print("called", "entityKey:", entityUuid)
 	local entityDetVal = self.detectionLevels[entityUuid] or 0
 	if entityDetVal >= 1 then
+		warn("returning")
+		print(self.detectionLevels)
 		return
 	end
 
