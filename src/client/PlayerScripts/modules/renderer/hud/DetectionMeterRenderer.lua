@@ -117,7 +117,9 @@ function DetectionMeterRenderer.updateDetectionMeter(
 	detectionMeterObject.fillMeter.ImageColor3 = renderCallData.fillColor
 	detectionMeterObject.fillMeter.ImageTransparency = renderCallData.fillTransparency
 	detectionMeterObject.fillMeter.Size = UDim2.fromScale(clampedSusValue, 1)
-	detectionMeterObject.rootFrame.Visible = true
+	task.defer(function()
+		detectionMeterObject.rootFrame.Visible = true
+	end)
 
 	if renderCallData.susValue == 1 then
 		DetectionMeterRenderer.animateMeterAlert(detectionMeterObject, renderCallData)
@@ -151,9 +153,9 @@ end
 function DetectionMeterRenderer.createDetectionMeter(): DetectionMeterObject
 	local rootFrame = Instance.new("Frame")
 	rootFrame.BackgroundTransparency = 1
-	rootFrame.AnchorPoint = Vector2.new(0.5, 1) -- center bottom
+	rootFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- center bottom
 	rootFrame.Position = UDim2.fromScale(0.5, 0.5)
-	rootFrame.Size = UDim2.fromScale(0.07, 0.179)
+	rootFrame.Size = UDim2.fromScale(0.07, 0.5)
 	rootFrame.Name = "DetectionMeter"
 	rootFrame.Visible = false
 
@@ -197,9 +199,6 @@ function DetectionMeterRenderer.createDetectionMeter(): DetectionMeterObject
 
 	rootFrame.Parent = detectionMeterScreenGui
 
-	-- NOTES: WorldPointer uses the AbsolutePosition to rotate
-	-- Since it uses AbsolutePosition, it may do unexpected things
-	-- when the frame is not parented to a ScreenGui
 	local detectionMeterData: DetectionMeterObject = {
 		rootFrame = rootFrame,
 		backgroundMeter = backgroundMeterImageLabel,

@@ -2,12 +2,19 @@
 
 local camera = workspace.CurrentCamera
 
+
+--[=[
+	@class WorldPointer
+
+	Makes Frames rotate on its anchor towards a position
+	in world space.
+]=]
 local WorldPointer = {}
 WorldPointer.__index = WorldPointer
 
 export type WorldPointer = typeof(setmetatable({} :: {
-	read guiFrame: Frame,
-	read originalAbsolutePos: Vector2,
+	guiFrame: Frame,
+	originalAbsolutePos: Vector2,
 	targetPos: Vector3?
 }, WorldPointer))
 
@@ -32,24 +39,33 @@ function WorldPointer.new(frame: Frame, targetPos: Vector3?): WorldPointer
 end
 
 function WorldPointer.update(self: WorldPointer): ()
-	if self.targetPos then
-		self:rotateFrameByAnchor()
+	if not self.targetPos then
+		return
 	end
+
+	-- Fucking piece of shit of a typechecker
+	-- why is it of `any` type you bastard
+	local frame = self.guiFrame :: Frame
+	local frameRot = self:getFrameRotTowardsTargetWorldPos()
+
+	--frame.Position = frame.Position:Lerp(framePos, 0.5)
+	frame.Rotation = math.lerp(frame.Rotation, frameRot, 0.5)
 end
 
 function WorldPointer.setTargetPos(self: WorldPointer, pos: Vector3?): ()
 	self.targetPos = pos
 end
 
-function WorldPointer.rotateFrameByAnchor(self: WorldPointer): ()
-	local frame = self.guiFrame
-
+function WorldPointer.getFrameRotTowardsTargetWorldPos(self: WorldPointer): number
 	-- rotiation calculations
 	local centerCframe = calculateCenterCframe(camera)
 	local angle = calculateAngle(centerCframe, self.targetPos :: Vector3)
-	local theta = math.rad(angle)
+	local theta = math.deg(math.rad(angle))
 
+	--[[
 	-- rotate by anchor
+	-- for the old anchor based rotation, remove math.deg from theta
+	local frame = self.guiFrame
 	local size = frame.AbsoluteSize;
 	local topLeftCorner = self.originalAbsolutePos - size * frame.AnchorPoint
 	
@@ -64,8 +80,10 @@ function WorldPointer.rotateFrameByAnchor(self: WorldPointer): ()
 	local rotatedAnchor = center + rv
 	local difference = nonRotatedAnchor - rotatedAnchor
 
-	frame.Position = UDim2.new(0, nonRotatedAnchor.X + difference.X + offset.X, 0, nonRotatedAnchor.Y + difference.Y + offset.Y)
-	frame.Rotation = math.deg(theta)
+	local framePos = UDim2.new(0, nonRotatedAnchor.X + difference.X + offset.X, 0, nonRotatedAnchor.Y + difference.Y + offset.Y)
+	local frameRot =  math.deg(theta)]]
+
+	return theta
 end
 
 return WorldPointer
