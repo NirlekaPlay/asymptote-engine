@@ -69,8 +69,6 @@ export type DetectionProfile = {
 	isVisible: boolean?
 }
 
-type Agent = Agent.Agent
-
 type EntityPriority = {
 	entityUuid: string,
 	priority: number,
@@ -78,6 +76,8 @@ type EntityPriority = {
 	status: string,
 	speedMultiplier: number
 }
+
+type Agent = Agent.Agent
 
 function DetectionManagement.new(agent: Agent): DetectionManagement
 	return setmetatable({
@@ -442,43 +442,19 @@ end
 function DetectionManagement.raiseDetection(
 	self: DetectionManagement, entityUuid: string, deltaTime: number, entityPriorityInfo: EntityPriority
 ): ()
-	print("called", "entityKey:", entityUuid)
+
 	local entityDetVal = self.detectionLevels[entityUuid] or 0
 	if entityDetVal >= 1 then
-		warn("returning")
-		print(self.detectionLevels)
 		return
 	end
 
-	local entity = EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid)
-	local distance = entityPriorityInfo.distance
-
-	if entity and entity.name == "Player" then
-		local player = (entity :: EntityManager.DynamicEntity).instance :: Player
-		local key = string.match(entityUuid, "^.-:(.+)$") :: string
-		local highestStatus = PlayerStatusTypes.getStatusFromName(key)
-		
-		if highestStatus then
-			local previousStatus = playerStatusTracker[player]
-			if previousStatus ~= highestStatus then
-				playerStatusTracker[player] = highestStatus
-
-				local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
-				if (instantRange and distance <= instantRange)
-					or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
-					self.detectionLevels[entityUuid] = 1
-					self:syncDetectionToClientIfPlayer(entityUuid)
-					self.detectedSound:Play()
-					return
-				end
-			end
-		end
-	end
+	self:handleInstantDetection(entityUuid, entityPriorityInfo)
 
 	local speedMultiplier = entityPriorityInfo.speedMultiplier
 	local detectionSpeed = speedMultiplier
 	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
 	local isEntityVisible = self.detectedEntities[entityPriorityInfo.entityUuid].isVisible
+	local distance = entityPriorityInfo.distance
 
 	if isEntityVisible and distance <= QUICK_DETECTION_RANGE then
 		speedMultiplier *= QUIK_DETECTION_MULTIPLIER
@@ -489,6 +465,40 @@ function DetectionManagement.raiseDetection(
 	self:syncDetectionToClientIfPlayer(entityUuid)
 	if entityDetVal >= 1 then
 		self.detectedSound:Play()
+	end
+end
+
+function DetectionManagement.handleInstantDetection(
+	self: DetectionManagement, entityKey: string, entityPriorityInfo: EntityPriority
+): ()
+	local entity = EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid)
+	local distance = entityPriorityInfo.distance
+
+	if not entity or entity.name ~= "Player" then
+		return
+	end
+
+	local status = string.match(entityKey, "^.-:(.+)$") :: string
+	local highestStatus = PlayerStatusTypes.getStatusFromName(status)
+
+	if not highestStatus then
+		return
+	end
+
+	local player = (entity :: EntityManager.DynamicEntity).instance :: Player
+
+	local previousStatus = playerStatusTracker[player]
+	if previousStatus ~= highestStatus then
+		playerStatusTracker[player] = highestStatus
+
+		local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
+		if (instantRange and distance <= instantRange)
+			or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
+			self.detectionLevels[entityKey] = 1
+			self:syncDetectionToClientIfPlayer(entityKey)
+			self.detectedSound:Play()
+			return
+		end
 	end
 end
 
