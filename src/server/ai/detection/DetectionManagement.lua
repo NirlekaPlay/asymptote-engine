@@ -275,13 +275,12 @@ end
 function DetectionManagement.updateDetectionPerEntities(self: DetectionManagement, deltaTime: number): ()
 	local focusTarget = self:findHighestPriorityEntity()
 	local currentlyDetectedKeys: { [string]: true } = {}
-
 	self.focusingTarget = focusTarget
-
+	
 	for entityUuid, detectionProfile in pairs(self.detectedEntities) do
 		local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
-
 		local entity = EntityManager.getEntityByUuid(entityUuid)
+		
 		if entity and entity.name == "Player" then
 			local highestPriorityInfo = nil
 			for _, info in ipairs(infos) do
@@ -293,54 +292,100 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 			if highestPriorityInfo then
 				local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
 				
-				-- NEW: Check if we should allow this status to be detected based on stacking rules
-				local shouldDetect = self:shouldAllowStatusDetection(entityUuid, highestPriorityInfo.priority)
-				
-				if shouldDetect then
-					local maxDetectionForPlayer = 0
-					local oldKeyToTransferFrom = nil
-					
-					-- Find the highest detection level and potential transfer source
-					for key, level in pairs(self.detectionLevels) do
-						if string.match(key, "^" .. entityUuid .. ":") then
-							if level > maxDetectionForPlayer then
-								maxDetectionForPlayer = level
-								if key ~= currentKey then
-									oldKeyToTransferFrom = key
-								end
-							end
+				-- Step 1: Check for any maxed higher priority status, override highestPriorityInfo if found
+				local highestPriority = highestPriorityInfo.priority
+				for key, level in pairs(self.detectionLevels) do
+					if string.match(key, "^" .. entityUuid .. ":") then
+						local keyStatus = string.match(key, "^.-:(.+)") :: string
+						-- Assuming you have a way to get priority from status string
+						local keyPriority = (PlayerStatusTypes.getStatusFromName(keyStatus) :: PlayerStatus.PlayerStatus):getPriorityLevel()
+						if keyPriority > highestPriority and level >= 1.0 then
+							highestPriorityInfo = {
+								entityUuid = entityUuid,
+								status = keyStatus,
+								priority = keyPriority
+							}
+							highestPriority = keyPriority
+							currentKey = key
+							break
 						end
 					end
-					
-					-- Transfer detection if we found a different key with higher detection
-					if oldKeyToTransferFrom and maxDetectionForPlayer > 0 then
-						self.detectionLevels[currentKey] = maxDetectionForPlayer
-						-- Clear all other keys for this player except the current one
-						for key, _ in pairs(self.detectionLevels) do
-							if string.match(key, "^" .. entityUuid .. ":") and key ~= currentKey then
+				end
+				
+				-- Step 2: Build list of currently detected statuses for this player
+				local detectedStatuses: { [string]: true } = {}
+				detectedStatuses[highestPriorityInfo.status] = true
+				
+				-- Add all other currently detected statuses from infos
+				for _, info in ipairs(infos) do
+					detectedStatuses[info.status] = true
+				end
+				
+				-- Step 3: For each status no longer detected, transfer detection to detected status of closest priority
+				for key, level in pairs(self.detectionLevels) do
+					if string.match(key, "^" .. entityUuid .. ":") then
+						local keyStatus = string.match(key, "^.-:(.+)") :: string
+						if not detectedStatuses[keyStatus] then
+							-- Find detected status with closest priority to keyStatus
+							local statusPriority = (PlayerStatusTypes.getStatusFromName(keyStatus) :: PlayerStatus.PlayerStatus):getPriorityLevel()
+							local candidateStatus: string? = nil
+							local bestDistance = math.huge
+							
+							for detectedStatus, _ in pairs(detectedStatuses) do
+								local detectedPriority = (PlayerStatusTypes.getStatusFromName(detectedStatus) :: PlayerStatus.PlayerStatus):getPriorityLevel()
+								local currentDistance = math.abs(detectedPriority - statusPriority)
+								if currentDistance < bestDistance then
+									candidateStatus = detectedStatus
+									bestDistance = currentDistance
+								end
+							end
+							
+							-- Transfer detection to candidateStatus if exists and detection is not maxed
+							if candidateStatus and candidateStatus ~= keyStatus then
+								local candidateKey = entityUuid .. ":" .. candidateStatus
+								if level < 1.0 then
+									self.detectionLevels[candidateKey] = math.min(1.0, (self.detectionLevels[candidateKey] or 0) + level)
+								else
+									self.detectionLevels[candidateKey] = self.detectionLevels[candidateKey] or 0
+								end
+							end
+							
+							-- Remove old status if detection is not maxed
+							if level < 1.0 and (candidateStatus and self.detectionLevels[entityUuid .. ":" .. candidateStatus] < 1) then
 								self.detectionLevels[key] = nil
 							end
 						end
 					end
-					
-					currentlyDetectedKeys[currentKey] = true
-
-					if focusTarget
-						and focusTarget.entityUuid == highestPriorityInfo.entityUuid
-						and focusTarget.status == highestPriorityInfo.status
-					then
-						self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
-					else
-						self:lowerDetection(currentKey, deltaTime)
+				end
+				
+				-- Step 4: Transfer detection FROM lower priority statuses TO highestPriorityInfo before removal
+				for key, level in pairs(self.detectionLevels) do
+					if string.match(key, "^" .. entityUuid .. ":") and key ~= currentKey then
+						local keyStatus = string.match(key, "^.-:(.+)") :: string
+						local keyPriority = (PlayerStatusTypes.getStatusFromName(keyStatus) :: PlayerStatus.PlayerStatus):getPriorityLevel()
+						if keyPriority < highestPriority and level < 1.0 then
+							-- Transfer detection to highestPriorityInfo before removing
+							self.detectionLevels[currentKey] = math.max(self.detectionLevels[currentKey] or 0, level)
+							self.detectionLevels[key] = nil
+						end
 					end
+				end
+				
+				-- Step 5: Ensure highestPriorityInfo detection level initialized
+				if self.detectionLevels[currentKey] == nil then
+					self.detectionLevels[currentKey] = 0
+				end
+				
+				currentlyDetectedKeys[currentKey] = true
+				
+				-- Step 6: Raise detection on highestPriorityInfo
+				if focusTarget
+					and focusTarget.entityUuid == highestPriorityInfo.entityUuid
+					and focusTarget.status == highestPriorityInfo.status
+				then
+					self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
 				else
-					-- Status is blocked by stacking rules, but we need to maintain existing detection levels
-					-- Find any existing detection for this status and mark it as current
-					local existingKey = entityUuid .. ":" .. highestPriorityInfo.status
-					if self.detectionLevels[existingKey] then
-						currentlyDetectedKeys[existingKey] = true
-						-- Don't raise or lower, just maintain current level
-					end
+					self:lowerDetection(currentKey, deltaTime)
 				end
 			end
 		else
@@ -348,7 +393,6 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 			for _, info in ipairs(infos) do
 				local key = entityUuid .. ":" .. info.status
 				currentlyDetectedKeys[key] = true
-
 				if focusTarget
 					and focusTarget.entityUuid == info.entityUuid
 					and focusTarget.status == info.status
@@ -366,7 +410,6 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 		if not currentlyDetectedKeys[key] then
 			local entityUuid = string.match(key, "^(.-):") :: string
 			local entity = EntityManager.getEntityByUuid(entityUuid)
-			
 			if entity and entity.name == "Player" then
 				local hasCurrentDetection = false
 				for currentKey, _ in pairs(currentlyDetectedKeys) do
@@ -375,46 +418,18 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 						break
 					end
 				end
-				
 				if not hasCurrentDetection then
 					self:lowerDetection(key, deltaTime)
 				else
-					self.detectionLevels[key] = nil
+					self:lowerDetection(key, deltaTime)
 				end
 			else
 				self:lowerDetection(key, deltaTime)
 			end
 		end
 	end
-end
 
-function DetectionManagement.shouldAllowStatusDetection(self: DetectionManagement, entityUuid: string, newStatusPriority: number): boolean
-	local hasFullyDetectedStatus = false
-	local highestFullyDetectedPriority = -1
-	
-	-- Check all existing detection levels for this player
-	for key, level in pairs(self.detectionLevels) do
-		if string.match(key, "^" .. entityUuid .. ":") and level >= 1 then
-			hasFullyDetectedStatus = true
-			
-			-- Extract status name and get its priority
-			local statusName = string.match(key, "^.-:(.+)$")
-			if statusName then
-				local statusPriority = STATUS_PRIORITIES[statusName] or 0
-				if statusPriority > highestFullyDetectedPriority then
-					highestFullyDetectedPriority = statusPriority
-				end
-			end
-		end
-	end
-	
-	-- If no fully detected status exists, allow detection
-	if not hasFullyDetectedStatus then
-		return true
-	end
-	
-	-- If new status has higher priority than the highest fully detected status, allow it
-	return newStatusPriority > highestFullyDetectedPriority
+	print(self.detectionLevels)
 end
 
 function DetectionManagement.updateCuriousState(self: DetectionManagement, deltaTime: number): ()
@@ -448,7 +463,10 @@ function DetectionManagement.raiseDetection(
 		return
 	end
 
-	self:handleInstantDetection(entityUuid, entityPriorityInfo)
+	local gotInstantlyDetected = self:handleInstantDetection(entityUuid, entityPriorityInfo)
+	if gotInstantlyDetected then
+		return
+	end
 
 	local speedMultiplier = entityPriorityInfo.speedMultiplier
 	local detectionSpeed = speedMultiplier
@@ -470,19 +488,19 @@ end
 
 function DetectionManagement.handleInstantDetection(
 	self: DetectionManagement, entityKey: string, entityPriorityInfo: EntityPriority
-): ()
+): boolean
 	local entity = EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid)
 	local distance = entityPriorityInfo.distance
 
 	if not entity or entity.name ~= "Player" then
-		return
+		return false
 	end
 
 	local status = string.match(entityKey, "^.-:(.+)$") :: string
 	local highestStatus = PlayerStatusTypes.getStatusFromName(status)
 
 	if not highestStatus then
-		return
+		return false
 	end
 
 	local player = (entity :: EntityManager.DynamicEntity).instance :: Player
@@ -497,9 +515,11 @@ function DetectionManagement.handleInstantDetection(
 			self.detectionLevels[entityKey] = 1
 			self:syncDetectionToClientIfPlayer(entityKey)
 			self.detectedSound:Play()
-			return
+			return true
 		end
 	end
+
+	return false
 end
 
 function DetectionManagement.lowerDetection(
