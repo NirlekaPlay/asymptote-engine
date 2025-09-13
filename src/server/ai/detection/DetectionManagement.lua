@@ -428,8 +428,6 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 			end
 		end
 	end
-
-	print(self.detectionLevels)
 end
 
 function DetectionManagement.updateCuriousState(self: DetectionManagement, deltaTime: number): ()
