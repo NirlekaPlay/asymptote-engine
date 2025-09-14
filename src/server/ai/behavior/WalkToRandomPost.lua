@@ -141,7 +141,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		end
 	end
 
-	brain:setNullableMemory(MemoryModuleTypes.POST_VACATE_COOLDOWN, (string.format("%.2f", self.timeToReleasePost)))
+	brain:setNullableMemory(MemoryModuleTypes.POST_VACATE_COOLDOWN, self.timeToReleasePost)
 end
 
 --

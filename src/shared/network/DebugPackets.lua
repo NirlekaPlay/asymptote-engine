@@ -55,6 +55,16 @@ local function isArray(t)
 	return true
 end
 
+local function formatNumber(n: number): string
+	if n == 0 then
+		return "0" -- prevents stuff like '-0'
+	elseif n % 1 == 0 then
+		return tostring(n)
+	else
+		return string.format("%.2f", n)
+	end
+end
+
 local function tableOnlyHasOneEntry(t: { [any]: any }): boolean
 	local count = 0
 	for _, _ in pairs(t) do
@@ -184,7 +194,7 @@ function DebugPackets.getMemoryDescriptions(agent: Agent.Agent): { string }
 			local expireableValue = optional:get()
 			local object = expireableValue:getValue()
 			if expireableValue:canExpire() then
-				s = DebugPackets.getShortDescription(object) .. " (ttl: " .. expireableValue:getTimeToLive() .. ")"
+				s = DebugPackets.getShortDescription(object) .. " (ttl: " .. formatNumber(expireableValue:getTimeToLive()) .. ")"
 			else
 				s = DebugPackets.getShortDescription(object)
 			end
@@ -202,8 +212,10 @@ end
 function DebugPackets.getShortDescription<T>(value: T?): string
 	if value == nil then
 		return "-"
+	elseif type(value) == "number" then
+		return formatNumber(value)
 	elseif typeof(value) == "Vector3" then
-		return `Vector3\{x={value.X}, y={value.Y}, z={value.Z}\}`
+		return `Vector3\{x={formatNumber(value.X)}, y={formatNumber(value.Y)}, z={formatNumber(value.Z)}\}`
 	elseif typeof(value) == "Instance" then
 		return tostring(value)
 	elseif type(value) == "table" then
