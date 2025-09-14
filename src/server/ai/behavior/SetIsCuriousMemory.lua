@@ -3,6 +3,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
+local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 
@@ -20,7 +21,7 @@ export type SetIsCuriousMemory = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent
+type Agent = Agent.Agent & DetectionAgent.DetectionAgent
 
 function SetIsCuriousMemory.new(): SetIsCuriousMemory
 	return setmetatable({
@@ -38,7 +39,7 @@ function SetIsCuriousMemory.getMemoryRequirements(self: SetIsCuriousMemory): { [
 end
 
 function SetIsCuriousMemory.checkExtraStartConditions(self: SetIsCuriousMemory, agent: Agent): boolean
-	return agent:getSuspicionManager():isCurious()
+	return agent:getDetectionManager():isCurious()
 end
 
 function SetIsCuriousMemory.canStillUse(self: SetIsCuriousMemory, agent: Agent): boolean

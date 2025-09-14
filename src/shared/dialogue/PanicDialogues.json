@@ -1,0 +1,33 @@
+{
+  "guardPanicGeneric": {
+    "status_armed": [
+      ["Wait wait wait!", "Don't shoot!!!"],
+      ["Holy shrimp!", "You have a gun?!", "Do you even have a license for that?!"],
+      ["Awh holly Envvy!", "Okay okay!", "Please! I have a family!"]
+    ],
+    "status_dangerous_item": [
+      ["Whoa whoa whoa!", "Is that...", "is that a bomb?!", "Why would you even bring that here?!"],
+      ["Okay okay!", "Please put it down!", "I—I bruise easily!"],
+      ["Oh no no no!", "I didn't sign up for this!", "I just wanted a normal day at work!"],
+      ["Are you gonna use that..!", "Just to see me ragdoll?!", "This is absurd!"]
+    ],
+    "entity_c4": [
+      ["Control! I found a bomb!"],
+      ["Control! I just found a bomb!"],
+      ["Control! I think I just found a bomb!"],
+      ["I've got an explosive device over here!"],
+      ["Shrimp!", "Control! I found an IDE!"]
+    ],
+    "entity_dead_body_unknown": [
+      ["Control, I just found someone's corpse!"],
+      ["Control! I've got a dead body over here!"],
+      ["Found someone's unresponsive!"]
+    ],
+    "entity_dead_body_known": [
+      ["Control! Someone took down %s!"],
+      ["Control! %s is down!", "I repeat!", "%s is down!"],
+      ["Control! %s is unresponsive!"],
+      ["Control!! %s is dead over here!"]
+    ]
+  }
+}

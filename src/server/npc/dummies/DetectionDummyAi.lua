@@ -30,7 +30,7 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.LOOK_TARGET,
 	MemoryModuleTypes.KILL_TARGET,
 	MemoryModuleTypes.FOLLOW_TARGET,
-	MemoryModuleTypes.PANIC_PLAYER_SOURCE,
+	MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID,
 	MemoryModuleTypes.FLEE_TO_POSITION,
 	MemoryModuleTypes.IS_CURIOUS,
 	MemoryModuleTypes.IS_PANICKING,
@@ -55,11 +55,11 @@ local SENSOR_FACTORIES = {
 function GuardAi.makeBrain(agent: Agent)
 	local brain = Brain.new(agent, MEMORY_TYPES, SENSOR_FACTORIES)
 	GuardAi.initCoreActivity(brain)
-	--[[GuardAi.initWorkActivity(brain)
+	--GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)
-	GuardAi.initConfrontActivity(brain)
-	GuardAi.initFightActivity(brain)
-	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)]]
+	--GuardAi.initConfrontActivity(brain)
+	--GuardAi.initFightActivity(brain)
+	--brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)
 	brain:setCoreActivities({Activity.CORE})
 	brain:setDefaultActivity(Activity.IDLE)
 	brain:useDefaultActivity()
@@ -68,10 +68,10 @@ end
 
 function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 	brain:addActivity(Activity.CORE, 2, {
-		--BehaviorWrapper.new(SetIsCuriousMemory.new()),
+		BehaviorWrapper.new(SetIsCuriousMemory.new()),
 		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
-		--BehaviorWrapper.new(GuardPanic.new()),
+		BehaviorWrapper.new(GuardPanic.new()),
 		--BehaviorWrapper.new(ValidateTrespasser.new()),
 		--BehaviorWrapper.new(FollowPlayerSink.new())
 	})
@@ -90,8 +90,8 @@ end
 function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.PANIC, 1, {
 		BehaviorWrapper.new(SetPanicFace.new()),
-		BehaviorWrapper.new(FleeToEscapePoints.new()),
-		BehaviorWrapper.new(KillTarget.new()),
+		--BehaviorWrapper.new(FleeToEscapePoints.new()),
+		--BehaviorWrapper.new(KillTarget.new()),
 		BehaviorWrapper.new(PleaForMercy.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT

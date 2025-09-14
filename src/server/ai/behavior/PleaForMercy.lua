@@ -3,10 +3,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PanicDialogues = require(ReplicatedStorage.shared.dialogue.PanicDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
@@ -33,8 +35,13 @@ function PleaForMercy.new(): PleaForMercy
 end
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT
-	--[MemoryModuleTypes.IS_INTIMIDATED] = MemoryStatus.VALUE_PRESENT
+	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT,
+	[MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID] = MemoryStatus.VALUE_PRESENT
+}
+
+local DIALOGUE_PER_PLAYER_STATUS = {
+	[PlayerStatusTypes.ARMED] = "status_armed",
+	[PlayerStatusTypes.DANGEROUS_ITEM] = "status_dangerous_item"
 }
 
 function PleaForMercy.getMemoryRequirements(self: PleaForMercy): { [MemoryModuleType<any>]: MemoryStatus }
@@ -51,51 +58,35 @@ end
 
 function PleaForMercy.doStart(self: PleaForMercy, agent: Agent): ()
 	self.alreadyRun = true
-	local player = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get()
-	local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
-	if not playerStatus then
+	local panicSourceEntityUuid = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID):get()
+	local panicSourceEntityObj = EntityManager.getEntityByUuid(panicSourceEntityUuid)
+	if not panicSourceEntityObj then
 		return
 	end
 
-	local highestStatus = playerStatus:getHighestPriorityStatus()
-	if highestStatus then
-		if highestStatus == PlayerStatusTypes.ARMED then
-			if agent:canBeIntimidated() then
-				agent:getTalkControl():sayRandomSequences(
-					{
-						{"Wait wait wait!", "Don't shoot!!!"},
-						{"Holy shrimp!", "You have a gun?!", "Do you even have a license for that?!"},
-						{"Awh holly Envvy!", "Okay okay!", "Please! I have a family!"}
-					}
-				)
-			else
-				agent:getTalkControl():sayRandomSequences(
-					{
-						{"Oh crap! He's got a gun!", "Open fire!!"},
-						{"Control! We got a shooter here!"},
-						{"There's someone with a gun!", "Envvy save us!!!"}
-					}
-				)
+	-- TODO: Make this expandable.
+	if not panicSourceEntityObj.isStatic and panicSourceEntityObj.name == "Player" then
+		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(panicSourceEntityObj.instance :: Player)
+		if not playerStatusHolder then
+			return
+		end
+		local highestPriorityStatus = playerStatusHolder:getHighestPriorityStatus()
+		if not highestPriorityStatus then
+			return
+		end
+
+		local dialogueKey = DIALOGUE_PER_PLAYER_STATUS[highestPriorityStatus]
+		if dialogueKey then
+			local agentName = agent:getCharacterName()
+			if not agentName then
+				agent:getTalkControl():sayRandomSequences(PanicDialogues.guardPanicGeneric[dialogueKey])
 			end
-		elseif highestStatus == PlayerStatusTypes.DANGEROUS_ITEM then
-			if agent:canBeIntimidated() then
-				agent:getTalkControl():sayRandomSequences(
-					{
-						{"Whoa whoa whoa!", "Is that...", "is that a bomb?!", "Why would you even bring that here?!"},
-						{"Okay okay!", "Please put it down!", "I—I bruise easily!"},
-						{"Oh no no no!", "I didn't sign up for this!", "I just wanted a normal day at work!"},
-						{"Are you gonna use that..!", "Just to see me ragdoll?!", "This is absurd!"}
-					}
-				)
-			else
-				agent:getTalkControl():sayRandomSequences(
-					{
-						{"Control!! Someone here has a bomb!!"},
-						{"Control!!! Someone here is carrying a bomb!!"},
-						{"Agh!", "He's got a bomb!"},
-						{"Agh shrimp!", "Thats an armed bomb!"}
-					}
-				)
+		end
+	else
+		if panicSourceEntityObj.name == "C4" then
+			local agentName = agent:getCharacterName()
+			if not agentName then
+				agent:getTalkControl():sayRandomSequences(PanicDialogues.guardPanicGeneric["entity_c4"])
 			end
 		end
 	end
