@@ -13,6 +13,7 @@ local RagdollControl = require(ServerScriptService.server.ai.control.RagdollCont
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
+local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
@@ -42,6 +43,8 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
+	--
+	designatedPosts: { GuardPost.GuardPost }
 }, DummyAgent))
 
 function DummyAgent.new(character: Model): DummyAgent
@@ -72,6 +75,7 @@ function DummyAgent.new(character: Model): DummyAgent
 
 	self.uuid = HttpService:GenerateGUID(false)
 	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
+	self.designatedPosts = {} :: { GuardPost.GuardPost }
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
@@ -96,6 +100,12 @@ function DummyAgent.new(character: Model): DummyAgent
 		descendantAddedConnection:Disconnect()
 	end)
 
+	return self
+end
+
+function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { GuardPost.GuardPost }): DummyAgent
+	self.designatedPosts = posts
+	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, posts)
 	return self
 end
 

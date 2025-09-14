@@ -68,6 +68,10 @@ local function onMapTaggedGuard(guardChar: Model): ()
 end
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
+	if not post:IsDescendantOf(workspace) then
+		return
+	end
+
 	local newGuardPost = GuardPost.fromPart(post, false)
 	
 	if (post.Parent :: Instance).Name == "advanced" then
@@ -78,7 +82,11 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(pos
 end)
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, function(dummyChar: Model)
-	guards[dummyChar] = DetectionDummy.new(dummyChar)
+	-- this aint a dummy no more now is it?
+	local newDummy = DetectionDummy.new(dummyChar)
+		:setDesignatedPosts(basicGuardPosts)
+
+	guards[dummyChar] = newDummy
 end)
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
