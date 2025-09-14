@@ -1,15 +1,15 @@
 {
   "guardPanicGeneric": {
     "status_armed": [
-      ["Wait wait wait!", "Don't shoot!!!"],
-      ["Holy shrimp!", "You have a gun?!", "Do you even have a license for that?!"],
-      ["Awh holly Envvy!", "Okay okay!", "Please! I have a family!"]
+      ["We have an armed guy here!"],
+      ["Control! Someone here has a gun!"],
+      ["I see someone with a gun!"]
     ],
     "status_dangerous_item": [
-      ["Whoa whoa whoa!", "Is that...", "is that a bomb?!", "Why would you even bring that here?!"],
-      ["Okay okay!", "Please put it down!", "I—I bruise easily!"],
-      ["Oh no no no!", "I didn't sign up for this!", "I just wanted a normal day at work!"],
-      ["Are you gonna use that..!", "Just to see me ragdoll?!", "This is absurd!"]
+      ["Control! Someone here has a bomb!"],
+      ["Oh God!", "Control! Someone's got a bomb!"],
+      ["Control! Someone here is carrying an explosive!"],
+      ["Control! I found someone with a bomb!"]
     ],
     "entity_c4": [
       ["Control! I found a bomb!"],

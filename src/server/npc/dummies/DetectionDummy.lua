@@ -52,7 +52,8 @@ function DummyAgent.new(character: Model): DummyAgent
 	self.pathNavigation = PathNavigation.new(character, {
 		AgentRadius = 2,
 		AgentHeight = 2,
-		AgentCanJump = false
+		AgentCanJump = true,
+		WaypointSpacing = 1
 	})
 	self.detectionManager = DetectionManagement.new(self)
 	self.lookControl = LookControl.new(character)

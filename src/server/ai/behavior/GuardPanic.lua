@@ -70,7 +70,7 @@ function GuardPanic.checkExtraStartConditions(self: GuardPanic, agent: Agent): b
 				return true
 			end
 		else
-			if ALARMING_ENTITY_NAMES[entityObj.name] and detectionValue >= 1 then
+			if entityObj and ALARMING_ENTITY_NAMES[entityObj.name] and detectionValue >= 1 then
 				local entityPos: Vector3
 				if entityObj.isStatic then
 					entityPos = entityObj.position

@@ -37,14 +37,6 @@ function Agent.isAlive(self: Agent): boolean
 	return self.alive
 end
 
-function Agent.canBeIntimidated(self: Agent): boolean
-	return true
-end
-
-function Agent.canDetectThroughDisguises(self: Agent): boolean
-	return false
-end
-
 function Agent.getCharacterName(self: Agent): string
 	return self.characterName
 end
