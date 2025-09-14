@@ -82,6 +82,9 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(pos
 end)
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, function(dummyChar: Model)
+	if not dummyChar:IsDescendantOf(workspace) then
+		return
+	end
 	-- this aint a dummy no more now is it?
 	local newDummy = DetectionDummy.new(dummyChar)
 		:setDesignatedPosts(basicGuardPosts)
