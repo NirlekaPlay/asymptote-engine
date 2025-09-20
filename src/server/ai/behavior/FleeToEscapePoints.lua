@@ -1,6 +1,7 @@
---!nonstrict
+--!strict
 
 local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -11,6 +12,7 @@ local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 local MIN_DISTANCE_TO_ESCAPE_POS = 5
 local MIN_DISTANCE_FROM_PANIC_POS = 45
@@ -52,7 +54,7 @@ function FleeToEscapePoints.getMemoryRequirements(self: FleeToEscapePoints): { [
 end
 
 function FleeToEscapePoints.checkExtraStartConditions(self: FleeToEscapePoints, agent: Agent): boolean
-	return not agent:canBeIntimidated()
+	return true
 end
 
 function FleeToEscapePoints.canStillUse(self: FleeToEscapePoints, agent: Agent): boolean
@@ -69,7 +71,18 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
 		Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
 	else
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE))
+		local panicSourceTargetToKill = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
+		if not panicSourceTargetToKill:isPresent() then
+			return
+		end
+		local entityObj = EntityManager.getEntityByUuid(panicSourceTargetToKill:get())
+		if not entityObj then
+			error("Panic source entity is nil")
+		end
+		if not entityObj.isStatic and entityObj.name == "Player" then
+			local player = Players:GetPlayerByUserId(tonumber(entityObj.uuid) :: number)
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, player)
+		end
 	end
 end
 
@@ -78,10 +91,21 @@ local function reflect(direction: Vector3, normal: Vector3): Vector3
 end
 
 function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
-	local panicPlayerSource = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE):get()
+	-- Breaks DRY!!!!
+	local panicSourceTargetToKill = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
+	if not panicSourceTargetToKill:isPresent() then
+		return
+	end
+	local entityObj = EntityManager.getEntityByUuid(panicSourceTargetToKill:get())
+	if not entityObj then
+		error("Panic source entity is nil")
+	end
+	if not entityObj.isStatic and entityObj.name == "Player" then
+		local player = Players:GetPlayerByUserId(entityObj.uuid)
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, player)
+	end
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, false)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.HAS_FLED, true)
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, panicPlayerSource)
 	agent:getNavigation():stop()
 	agent:getFaceControl():setFace("Angry")
 
@@ -125,7 +149,18 @@ function FleeToEscapePoints.doUpdate(self: FleeToEscapePoints, agent: Agent, del
 		local distance = (agent:getPrimaryPart().Position - fleeToPos:get()).Magnitude
 		if distance <= MIN_DISTANCE_TO_ESCAPE_POS then
 			print(`{DebugEntityNameGenerator.getEntityName(agent)} is in minimum distance to escape point position \n with distance of {distance}`)
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_PLAYER_SOURCE))
+			local panicSourceTargetToKill = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
+			if not panicSourceTargetToKill:isPresent() then
+				return
+			end
+			local entityObj = EntityManager.getEntityByUuid(panicSourceTargetToKill:get())
+			if not entityObj then
+				error("Panic source entity is nil")
+			end
+			if not entityObj.isStatic and entityObj.name == "Player" then
+				local player = Players:GetPlayerByUserId(entityObj.uuid)
+				agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, player)
+			end
 		end
 	end
 end

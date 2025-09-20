@@ -6,6 +6,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 --[=[
 	@class KillTarget
@@ -49,22 +50,25 @@ end
 function KillTarget.canStillUse(self: KillTarget, agent: Agent): boolean
 	local brain = agent:getBrain()
 	local killTarget = brain:getMemory(MemoryModuleTypes.KILL_TARGET)
-	-- stolen from LookAndFaceAtTargetSink
-	return killTarget
-		:flatMap(function(targetPlayer)
-			return brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS)
-				:map(function(visible)
-					return visible[targetPlayer]
-			end)
+	local visibleEntities = brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})
+	local hearingPlayers = brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS):orElse({})
+
+	local result = killTarget:map(function(player) return tostring(player.UserId) end)
+		:map(function(targetUuid)
+			if visibleEntities[targetUuid] ~= nil then
+				return true
+			end
+
+			local entityObj = EntityManager.getEntityByUuid(targetUuid)
+			if entityObj and not entityObj.isStatic and entityObj.name == "Player" then
+				return hearingPlayers[entityObj.instance :: Player] ~= nil
+			end
+
+			return false
 		end)
-		:isPresent() or killTarget
-		:flatMap(function(targetPlayer)
-				return brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS)
-					:map(function(hearable)
-						return hearable[targetPlayer]
-			end)
-		end)
-		:isPresent()
+		:orElse(false) :: boolean
+
+	return result
 end
 
 function KillTarget.doStart(self: KillTarget, agent: Agent): ()

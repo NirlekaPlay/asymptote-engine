@@ -58,7 +58,7 @@ function GuardAi.makeBrain(agent: Agent)
 	GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)
 	--GuardAi.initConfrontActivity(brain)
-	--GuardAi.initFightActivity(brain)
+	GuardAi.initFightActivity(brain)
 	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)
 	brain:setCoreActivities({Activity.CORE})
 	brain:setDefaultActivity(Activity.IDLE)
@@ -90,7 +90,7 @@ end
 function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.PANIC, 1, {
 		BehaviorWrapper.new(SetPanicFace.new()),
-		--BehaviorWrapper.new(FleeToEscapePoints.new()),
+		BehaviorWrapper.new(FleeToEscapePoints.new()),
 		--BehaviorWrapper.new(KillTarget.new()),
 		BehaviorWrapper.new(PleaForMercy.new())
 	}, {

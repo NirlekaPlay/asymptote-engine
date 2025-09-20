@@ -8,6 +8,7 @@ local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
+local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
@@ -37,6 +38,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	brain: Brain.Brain<any>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
 	bubbleChatControl: BubbleChatControl.BubbleChatControl,
+	gunControl: GunControl.GunControl,
 	talkControl: TalkControl.TalkControl,
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
@@ -64,6 +66,7 @@ function DummyAgent.new(character: Model): DummyAgent
 	self.faceControl:setFace("Neutral")
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.bubbleChatControl = BubbleChatControl.new(character)
+	self.gunControl = GunControl.new(self)
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
 	self.ragdollControl = RagdollControl.new(character)
 	self.random = Random.new(tick())
@@ -167,6 +170,10 @@ end
 
 function DummyAgent.getFaceControl(self: DummyAgent): FaceControl.FaceControl
 	return self.faceControl
+end
+
+function DummyAgent.getGunControl(self: DummyAgent): GunControl.GunControl
+	return self.gunControl
 end
 
 function DummyAgent.getNavigation(self: DummyAgent): PathNavigation.PathNavigation
