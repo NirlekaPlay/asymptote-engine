@@ -222,6 +222,8 @@ function FBBerylControl.onHumanoidDied(self: FBBerylControl): ()
 	hitboxPartWeldConstraint.Part1 = self.gunParts.mainPart
 	hitboxPartWeldConstraint.Parent = hitboxPart
 
+	self.gunModel:SetAttribute("RoundsLeftInMag", self.roundsInMagazine)
+
 	hitboxPart.Parent = self.gunModel
 
 	hitboxPart:ApplyImpulse(self.characterLimbs.humanoidRootPart.CFrame.LookVector * 1.1)
