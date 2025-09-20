@@ -9,8 +9,8 @@ local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 
 local MIN_SPREAD_ANGLE = 10
 local MAX_SPREAD_ANGLE = 25
-local MIN_FIRE_DELAY = 0.015
-local MAX_FIRE_DELAY = 0.5
+local MIN_FIRE_DELAY = 0.0857 -- the real life fire rate of the FB Beryl. (700 RPM)
+local MAX_FIRE_DELAY = 0.1
 
 --[=[
 	@class GunControl
