@@ -231,7 +231,19 @@ end
 
 --
 
-function FBBerylControl.fire(self: FBBerylControl, at: Vector3): ()
+function FBBerylControl.lookAt(self: FBBerylControl, atPos: Vector3): ()
+	if not self.characterWelds.head then
+		error("Head character weld is missing")
+	end
+
+	local scalar = (atPos - self.characterLimbs.head.CFrame.Position).Unit.Y
+	local tiltValue = math.clamp(scalar, -1, 0)
+	local headOffset = self.characterWelds.headOffset
+	local wantedCframe = CFrame.new(0, 1, 0)  * headOffset.C0 * CFrame.Angles(scalar, 0, tiltValue / 1.5) * CFrame.new(0, 0.5, 0)
+	self.characterWelds.head.C0 = self.characterWelds.head.C0:Lerp(wantedCframe, 0.5)
+end
+
+function FBBerylControl.fire(self: FBBerylControl, direction: Vector3): ()
 	local backupRemoteTick = self.equipTick
 	local firePeriodInSecs = 60 / self.fireRate -- interval between each shot
 
@@ -249,7 +261,7 @@ function FBBerylControl.fire(self: FBBerylControl, at: Vector3): ()
 	self.roundsChambered -= 1
 	local bulletData = {} :: BulletTracerPayload.BulletTracer
 	bulletData.origin = self.gunParts.lufa.Position
-	bulletData.direction = (at - self.gunParts.lufa.Position).Unit
+	bulletData.direction = direction
 	bulletData.humanoidRootPartVelocity = self.characterLimbs.humanoidRootPart.AssemblyLinearVelocity.Magnitude
 	bulletData.penetration = self.maxBulletPenetration
 	bulletData.seed = os.clock()
@@ -402,7 +414,7 @@ function FBBerylControl.equip(self: FBBerylControl): ()
 	self.characterWelds.torso = weldParts(
 		self.characterLimbs.humanoidRootPart, self.characterLimbs.torso, HUMANOID_ROOT_PART_WELD_NAME, CFRAME_ZERO)
 	self.characterWelds.head = weldParts(
-		self.characterLimbs.humanoidRootPart, self.characterLimbs.head, HEAD_WELD_NAME, HEAD_WELD_CFRAME)
+		self.characterLimbs.torso, self.characterLimbs.head, HEAD_WELD_NAME, HEAD_WELD_CFRAME)
 
 	-- Oh yeah. It's called a *round.* Not a bullet.
 	if self.roundsChambered <= 0 and self.roundsInMagazine > 0 then

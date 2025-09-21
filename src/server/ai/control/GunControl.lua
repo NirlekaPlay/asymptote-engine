@@ -1,8 +1,11 @@
 --!nonstrict
 
+local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local BodyRotationControl = require(script.Parent.BodyRotationControl)
 local Agent = require(ServerScriptService.server.Agent)
 local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
@@ -12,6 +15,7 @@ local MIN_SPREAD_ANGLE = 10
 local MAX_SPREAD_ANGLE = 25
 local MIN_FIRE_DELAY = 0.0857 -- the real life fire rate of the FB Beryl. (700 RPM)
 local MAX_FIRE_DELAY = 0.1
+local DEBUG_MODE = true
 
 --[=[
 	@class GunControl
@@ -96,14 +100,6 @@ function GunControl.equipGun(self: GunControl, gunConfig: GunConfg?): ()
 	if not self:isEquipped() then
 		self.equipped = true
 
-		-- sets the settings of the FBB
-		--[[if gunConfig then
-			for settingType: string, settingValue: any in pairs(gunConfig) do
-				local fbbSettingType = GUN_CONFIG_TO_FBB_SETTINGS[settingType]
-				self.fbb.settingsFolder[fbbSettingType].Value = settingValue
-			end
-		end]]
-
 		-- sets the custom rotator, as having the FBB equipped makes the
 		-- body rotate off
 		--local agentRot = self.agent:getBodyRotationControl()
@@ -118,10 +114,9 @@ function GunControl.unequipGun(self: GunControl): ()
 	if self:isEquipped() then
 		self.equipped = false
 
-		local agentRot = self.agent:getBodyRotationControl()
-		agentRot.customRotator = nil
+		--local agentRot = self.agent:getBodyRotationControl()
+		--agentRot.customRotator = nil
 
-		--self.fbb.remoteUnequip:Fire()
 		task.spawn(function()
 			task.wait(1)
 			self.fbb.tool.Parent = nil
@@ -132,7 +127,7 @@ end
 
 function GunControl.lookAt(self: GunControl, atPos: Vector3): ()
 	if (self.lastLookPos - atPos).Magnitude > 0.1 then
-		--self.fbb.remoteLookAt:Fire((atPos - self.agent.character.Head.CFrame.Position).Unit.Y)
+		self.fbbControl:lookAt(atPos)
 		self.lastLookPos = atPos
 	end
 end
@@ -161,11 +156,7 @@ function GunControl.shoot(self: GunControl, atPos: Vector3): ()
 	-- create a random inaccuracy within a cone of 'spreadAngle' radius
 	local spreadDirection = applySpread(direction, spreadAngleRad) * 500
 
-	local rayResult = workspace:Raycast(originPos, spreadDirection)
-
-	if rayResult then
-		(self.fbbControl :: FBBerylControl.FBBerylControl):fire(rayResult.Position)
-	end
+	(self.fbbControl :: FBBerylControl.FBBerylControl):fire(spreadDirection)
 
 	self.lastShotTime = os.clock()
 end
