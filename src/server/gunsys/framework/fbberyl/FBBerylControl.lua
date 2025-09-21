@@ -207,7 +207,7 @@ function FBBerylControl.onHumanoidDied(self: FBBerylControl): ()
 		prevParent.Parent = nil
 	end
 	local cframe, size = self.gunModel:GetBoundingBox() -- works better if it has a primary part
-	local hitboxPartPhysicalProperties = PhysicalProperties.new(1, 0, 1, 1, 100)
+	local hitboxPartPhysicalProperties = PhysicalProperties.new(1, 0, 0.5, 1, 85)
 
 	local hitboxPart = Instance.new("Part") -- the gun model itself doesnt have any colliders
 	hitboxPart.CFrame = cframe
