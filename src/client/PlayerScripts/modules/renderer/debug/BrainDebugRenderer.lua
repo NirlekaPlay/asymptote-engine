@@ -32,9 +32,9 @@ local MAX_TARGETING_DIST = 32
 local TEXT_SCALE = 1
 local LARGE_TEXT_SCALE = 1.5
 local CYAN = Color3.new(0, 1, 1)
-local GRAY = Color3.new(0.5, 0.5, 0.5)
+local GRAY = Color3.new(0.8, 0.8, 0.8)
 local GREEN = Color3.new(0, 1, 0)
-local ORANGE = Color3.new(1, 0.768627, 0)
+local ORANGE = Color3.new(1, 0.647059, 0)
 local RED = Color3.new(1, 0, 0)
 local WHITE = Color3.new(1, 1, 1)
 
@@ -108,7 +108,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 		end
 
 		BrainDebugRenderer.renderTextOverCharacter(
-			`health: {brainDump.health} / {brainDump.maxHealth}`, charPos, i, healthColor, TEXT_SCALE
+			`health: {string.format("%.1f", brainDump.health)} / {string.format("%.1f", brainDump.maxHealth)}`, charPos, i, healthColor, TEXT_SCALE
 		)
 		i += 1
 	end
@@ -159,7 +159,7 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 		for index = #brainDump.memories, 1, -1 do
 			local memory = brainDump.memories[index]
 			BrainDebugRenderer.renderTextOverCharacter(
-				memory, charPos, i, WHITE, TEXT_SCALE
+				memory, charPos, i, GRAY, TEXT_SCALE
 			)
 			i += 1
 		end
