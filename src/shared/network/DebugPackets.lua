@@ -5,7 +5,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local DebugEntityNameGenerator = require(ReplicatedStorage.shared.network.DebugEntityNameGenerator)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
-local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local Agent = require(ServerScriptService.server.Agent)
 
@@ -16,22 +15,13 @@ local PACKETS = {
 local activeClientListeners: { [string]: { [Player]: true } } = {}
 local debugBatches: { [string]: { any } } = {}
 
-TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(function(player, debugName, subscribe)
-	if not activeClientListeners[debugName] then
-		activeClientListeners[debugName] = {}
-	end
-
-	local value = if subscribe then true else nil
-	activeClientListeners[debugName][player] = value
-end)
-
 --[=[
 	@class DebugPackets
 ]=]
 local DebugPackets = {}
 DebugPackets.Packets = PACKETS
 
-local function isArray(t)
+local function isArray<K, V>(t: { [K]: V }): boolean
 	if type(t) ~= "table" then
 		return false
 	end
@@ -77,13 +67,15 @@ local function tableOnlyHasOneEntry(t: { [any]: any }): boolean
 	return count > 0
 end
 
+--
+
 function DebugPackets.hasListeningClients(debugName: string): boolean
 	if not activeClientListeners[debugName] then
 		activeClientListeners[debugName] = {}
 		return false
 	end
 
-	if next(activeClientListeners[PACKETS.DEBUG_BRAIN]) == nil then
+	if next(activeClientListeners[debugName]) == nil then
 		return false
 	end
 
@@ -124,64 +116,30 @@ end
 
 function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.BrainDump
 	local brain = agent:getBrain()
-	local brainDump: BrainDebugPayload.BrainDump = {}
+	local humanoid = agent.character:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local brainDump = {} :: BrainDebugPayload.BrainDump 
 
 	brainDump.memories = DebugPackets.getMemoryDescriptions(agent)
 	brainDump.activites = {}
+	brainDump.behaviors = {}
+	brainDump.character = agent.character
+	brainDump.health = humanoid.Health
+	brainDump.maxHealth = humanoid.MaxHealth
+	brainDump.name = DebugEntityNameGenerator.getEntityName(agent)
+	brainDump.uuid = agent:getUuid()
+
 	for activity, _ in pairs(brain.activeActivities) do
 		table.insert(brainDump.activites, activity.name)
 	end
-	brainDump.behaviors = {}
+
 	for _, behaviorControl in ipairs(brain:getRunningBehaviors()) do
 		table.insert(brainDump.behaviors, behaviorControl.name)
-	end
-	brainDump.character = agent.character
-	brainDump.health = agent.character.Humanoid.Health
-	brainDump.maxHealth = agent.character.Humanoid.MaxHealth
-	brainDump.name = DebugEntityNameGenerator.getEntityName(agent)
-	brainDump.uuid = agent:getUuid()
-	brainDump.detectedStatuses = {}
-	brainDump.suspicionLevels = {}
-	if agent["suspicionManager"] then
-		brainDump.detectedStatuses = DebugPackets.getDetectedStatusesDescriptions(agent)
-
-		for player, value in pairs(agent:getSuspicionManager().suspicionLevels) do
-			if next(value) == nil then
-				continue
-			end
-
-			table.insert(brainDump.suspicionLevels, `{player.Name}: {DebugPackets.getShortDescription(value)}`)
-		end
 	end
 
 	return brainDump
 end
 
 --
-
-function DebugPackets.getDetectedStatusesDescriptions(agent: Agent.Agent): { string }
-	local statusArray: { {status: PlayerStatus.PlayerStatus, player: Player, priority: number} } = {}
-
-	for status, player in pairs(agent.suspicionManager.detectedStatuses) do
-		local statusPriority = status:getPriorityLevel()
-		table.insert(statusArray, {
-			status = status,
-			player = player,
-			priority = statusPriority
-		})
-	end
-
-	table.sort(statusArray, function(a, b)
-		return a.priority > b.priority
-	end)
-
-	local descriptions = {}
-	for _, item in ipairs(statusArray) do
-		table.insert(descriptions, tostring(item.status))
-	end
-	
-	return descriptions
-end
 
 function DebugPackets.getMemoryDescriptions(agent: Agent.Agent): { string }
 	local memories = agent:getBrain().memories
@@ -194,7 +152,7 @@ function DebugPackets.getMemoryDescriptions(agent: Agent.Agent): { string }
 			local expireableValue = optional:get()
 			local object = expireableValue:getValue()
 			if expireableValue:canExpire() then
-				s = DebugPackets.getShortDescription(object) .. " (ttl: " .. formatNumber(expireableValue:getTimeToLive()) .. ")"
+				s = DebugPackets.getShortDescription(object) .. " (ttl: " .. expireableValue:getTimeToLive() .. ")"
 			else
 				s = DebugPackets.getShortDescription(object)
 			end
@@ -209,9 +167,11 @@ function DebugPackets.getMemoryDescriptions(agent: Agent.Agent): { string }
 	return array
 end
 
-function DebugPackets.getShortDescription<T>(value: T?): string
+function DebugPackets.getShortDescription(value: any): string
 	if value == nil then
 		return "-"
+	elseif type(value) == "string" then
+		return string.format("%q", value)
 	elseif type(value) == "number" then
 		return formatNumber(value)
 	elseif typeof(value) == "Vector3" then
@@ -223,14 +183,14 @@ function DebugPackets.getShortDescription<T>(value: T?): string
 		if mt and mt.__tostring then
 			return tostring(value)
 		else
-			return DebugPackets.getTableShortDescription(value)
+			return DebugPackets.getTableShortDescription(value :: { [any]: any })
 		end
 	else
 		return tostring(value)
 	end
 end
 
-function DebugPackets.getTableShortDescription(t: { any } | { [any]: any }): string
+function DebugPackets.getTableShortDescription<K, V>(t: { [K]: V }): string
 	if isArray(t) then
 		local length = #t
 		local result = table.create(length, true) :: { string }
@@ -243,32 +203,35 @@ function DebugPackets.getTableShortDescription(t: { any } | { [any]: any }): str
 	else
 		-- we represent enums like this.
 		-- an example is MemoryStatus. But since we're using memories, see PatrolState.
-		if tableOnlyHasOneEntry(t) and t["name"] and type(t.name) == "string" then
+		if tableOnlyHasOneEntry(t) and (t :: { name: string?})["name"] and type(t.name) == "string" then
 			return t.name:upper()
 		end
 
-		local parts = {}
+		local parts: { string } = {}
 
 		for k, v in pairs(t) do
-			local keyStr
-			if type(k) == "string" then
-				keyStr = string.format("%q", k) -- quoted string
-			else
-				keyStr = DebugPackets.getShortDescription(k)
-			end
-
-			local valueStr
-			if type(v) == "string" then
-				valueStr = string.format("%q", v)
-			else
-				valueStr = DebugPackets.getShortDescription(v)
-			end
-
-			table.insert(parts, string.format("[ %s ]: %s", keyStr, valueStr))
+			table.insert(parts,
+				string.format(
+					"[ %s ]: %s",
+					DebugPackets.getShortDescription(k),
+					DebugPackets.getShortDescription(v)
+				)
+			)
 		end
 
 		return "{ " .. table.concat(parts, ", ") .. " }"
 	end
 end
+
+--
+
+TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(function(player, debugName, subscribe)
+	if not activeClientListeners[debugName] then
+		activeClientListeners[debugName] = {}
+	end
+
+	local value = if subscribe then true else nil
+	activeClientListeners[debugName][player] = value
+end)
 
 return DebugPackets

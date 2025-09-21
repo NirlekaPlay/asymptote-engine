@@ -114,27 +114,6 @@ function BrainDebugRenderer.renderBrainInfo(brainDump: BrainDebugPayload.BrainDu
 	end
 
 	if isSelected then
-		-- traverse in reverse,
-		-- so higer priority statuses are on top
-		for index = #brainDump.detectedStatuses, 1, -1 do
-			local detectedStatus = brainDump.detectedStatuses[index]
-			BrainDebugRenderer.renderTextOverCharacter(
-				detectedStatus, charPos, i, RED, TEXT_SCALE
-			)
-			i += 1
-		end
-	end
-
-	if isSelected then
-		for _, suspicionLevel in ipairs(brainDump.suspicionLevels) do
-			BrainDebugRenderer.renderTextOverCharacter(
-				suspicionLevel, charPos, i, ORANGE, TEXT_SCALE
-			)
-			i += 1
-		end
-	end
-
-	if isSelected then
 		for _, behavior in ipairs(brainDump.behaviors) do
 			BrainDebugRenderer.renderTextOverCharacter(
 				behavior, charPos, i, CYAN, TEXT_SCALE
