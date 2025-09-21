@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
 local Particles = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.Particles)
+local WhizzyBullets = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.handlers.WhizzyBullets)
 local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.BulletTracerPayload)
 local BulletHitHandler = require(script.Parent.BulletHitHandler)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
@@ -31,6 +32,7 @@ export type BulletObject = {
 	currentYSpeed: number,
 	penetration: number,
 	elapsed: number,
+	whiz: WhizzyBullets,
 	rng: Random,
 	raycastParams: RaycastParams,
 }
@@ -65,6 +67,7 @@ function BulletTracerHandler.onReceiveTracerData(bulletTracerData: BulletTracerP
 		penetration = bulletTracerData.penetration,
 		elapsed = 0,
 		rng = rng,
+		whiz = WhizzyBullets.new(workspace:WaitForChild("Dirt Rico Pack 20 (SFX)"), 2),
 		raycastParams = rayParams,
 	})
 end
@@ -83,6 +86,11 @@ function BulletTracerHandler.update(deltaTime: number): ()
 		local rayOrigin = tip
 		local rayDir = right * (-(bulletObj.currentSpeed) * deltaTime * 31)
 		local hit = workspace:Raycast(rayOrigin, rayDir, bulletObj.raycastParams)
+
+		-- Bullet whizz data:
+		local cf, dist = WhizzyBullets.GetCFrameFromP0P1(rayOrigin, rayOrigin + rayDir)
+		bulletObj.whiz:Check(cf, dist)
+
 
 		if SharedConstants.DEBUG_BULLET_TRACERS then
 			if hit then
