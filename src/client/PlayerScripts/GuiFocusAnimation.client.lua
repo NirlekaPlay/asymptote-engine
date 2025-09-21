@@ -1,8 +1,14 @@
 --!strict
 
 local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local RTween = require(script.Parent.modules.interpolation.RTween)
+
+if RunService:IsStudio() then
+	print("GuiFocusAnimation disabled because environment is Studio.")
+	return
+end
 
 local currentCamera = workspace.CurrentCamera
 local mainRtween = RTween.create(Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
