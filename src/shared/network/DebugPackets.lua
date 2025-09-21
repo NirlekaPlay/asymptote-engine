@@ -12,6 +12,8 @@ local PACKETS = {
 	DEBUG_BRAIN = "DEBUG_BRAIN"
 }
 
+local FORMAT_NUMBER_EPSILON = 1e-6
+
 local activeClientListeners: { [string]: { [Player]: true } } = {}
 local debugBatches: { [string]: { any } } = {}
 
@@ -48,6 +50,8 @@ end
 local function formatNumber(n: number): string
 	if n == 0 then
 		return "0" -- prevents stuff like '-0'
+	elseif math.abs(n) < FORMAT_NUMBER_EPSILON then
+		return "0.00"
 	elseif n % 1 == 0 then
 		return tostring(n)
 	else
