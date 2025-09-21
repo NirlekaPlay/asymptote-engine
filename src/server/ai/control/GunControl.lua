@@ -173,12 +173,20 @@ function GunControl.reload(self: GunControl): ()
 	end)
 end
 
+function GunControl.drop(self: GunControl): ()
+	self.fbbControl:drop()
+end
+
 function GunControl.isEmpty(self: GunControl): boolean
 	return self.fbbControl.roundsInMagazine <= 0 and self.fbbControl.roundsChambered <= 0
 end
 
 function GunControl.isEquipped(self: GunControl): boolean
 	return self.equipped
+end
+
+function GunControl.hasRanOutOfAmmo(self: GunControl): boolean
+	return self:isEmpty() and (self.fbbControl :: FBBerylControl.FBBerylControl).magazinesLeft <= 0
 end
 
 function GunControl.getFbb(toChar: Model): Fbb

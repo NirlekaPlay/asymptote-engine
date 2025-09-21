@@ -115,6 +115,19 @@ function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number):
 		return
 	end
 
+	if agent:getGunControl():hasRanOutOfAmmo() then
+		agent:getFaceControl():setFace("Shocked")
+		agent:getTalkControl():sayRandomSequences({
+			{"Shrimp! Im out of ammo!", "I surrender!"},
+			{"Awh come on! Im out!", " I ran out of ammo!", "Please! Have mercy!"},
+			{"Im out!", "Aghh!", "I cant do anything!"},
+			{"On Envvy's green earth!", "Im out of ammo!", "Please!", "I surrender!"}
+		})
+		agent:getGunControl():drop()
+		agent:getBrain():eraseMemory(MemoryModuleTypes.KILL_TARGET)
+		return
+	end
+
 	if self.triggerFingerCooldown <= 0 then
 		agent:getGunControl():shoot(killTarget.Character.HumanoidRootPart.Position)
 	else

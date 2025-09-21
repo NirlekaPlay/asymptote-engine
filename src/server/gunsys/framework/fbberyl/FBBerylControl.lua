@@ -111,7 +111,7 @@ function FBBerylControl.new(
 		currentState = STATES.UNEQUIPPED,
 		roundsChambered = 0,
 		roundsInMagazine = 0,
-		magazinesLeft = 10,
+		magazinesLeft = 4,
 		equipTick = 0,
 		maxMagazineCapacity = 30,
 		fireRate = 700, -- rpm
@@ -201,40 +201,15 @@ function FBBerylControl.onToolUnequipped(self: FBBerylControl): ()
 end
 
 function FBBerylControl.onHumanoidDied(self: FBBerylControl): ()
-	self:unequip()
-	if (self.gunModel.Parent :: Instance):IsA("Tool") then
-		local prevParent = self.gunModel.Parent
-		self.gunModel.Parent = workspace
-		prevParent.Parent = nil
-	end
-	local cframe, size = self.gunModel:GetBoundingBox() -- works better if it has a primary part
-	local hitboxPartPhysicalProperties = PhysicalProperties.new(1, 0, 0.5, 1, 85)
-
-	local hitboxPart = Instance.new("Part") -- the gun model itself doesnt have any colliders
-	hitboxPart.CFrame = cframe
-	hitboxPart.Size = size
-	hitboxPart.Transparency = 1
-	hitboxPart.CanQuery = false
-	hitboxPart.Name = "GunHitbox"
-	hitboxPart.CustomPhysicalProperties = hitboxPartPhysicalProperties
-
-	local hitboxPartWeldConstraint = Instance.new("WeldConstraint")
-	hitboxPartWeldConstraint.Part0 = hitboxPart
-	hitboxPartWeldConstraint.Part1 = self.gunParts.mainPart
-	hitboxPartWeldConstraint.Parent = hitboxPart
-
-	self.gunModel:SetAttribute("RoundsLeftInMag", self.roundsInMagazine)
-
-	hitboxPart.Parent = self.gunModel
-
-	hitboxPart:ApplyImpulse(self.characterLimbs.humanoidRootPart.CFrame.LookVector * 1.1)
+	self:drop()
 end
 
 --
 
 function FBBerylControl.lookAt(self: FBBerylControl, atPos: Vector3): ()
 	if not self.characterWelds.head then
-		error("Head character weld is missing")
+		warn("Head character weld is missing")
+		return
 	end
 
 	local scalar = (atPos - self.characterLimbs.head.CFrame.Position).Unit.Y
@@ -381,6 +356,36 @@ function FBBerylControl.reload(self: FBBerylControl): ()
 	self.currentState = STATES.IDLE
 
 	return
+end
+
+function FBBerylControl.drop(self: FBBerylControl): ()
+	self:unequip()
+	if (self.gunModel.Parent :: Instance):IsA("Tool") then
+		local prevParent = self.gunModel.Parent
+		self.gunModel.Parent = workspace
+		prevParent.Parent = nil
+	end
+	local cframe, size = self.gunModel:GetBoundingBox() -- works better if it has a primary part
+	local hitboxPartPhysicalProperties = PhysicalProperties.new(1, 0, 0.5, 1, 85)
+
+	local hitboxPart = Instance.new("Part") -- the gun model itself doesnt have any colliders
+	hitboxPart.CFrame = cframe
+	hitboxPart.Size = size
+	hitboxPart.Transparency = 1
+	hitboxPart.CanQuery = false
+	hitboxPart.Name = "GunHitbox"
+	hitboxPart.CustomPhysicalProperties = hitboxPartPhysicalProperties
+
+	local hitboxPartWeldConstraint = Instance.new("WeldConstraint")
+	hitboxPartWeldConstraint.Part0 = hitboxPart
+	hitboxPartWeldConstraint.Part1 = self.gunParts.mainPart
+	hitboxPartWeldConstraint.Parent = hitboxPart
+
+	self.gunModel:SetAttribute("RoundsLeftInMag", self.roundsInMagazine)
+
+	hitboxPart.Parent = self.gunModel
+
+	hitboxPart:ApplyImpulse(self.characterLimbs.humanoidRootPart.CFrame.LookVector * 1.1)
 end
 
 function FBBerylControl.equip(self: FBBerylControl): ()
