@@ -106,7 +106,9 @@ function GunControl.equipGun(self: GunControl, gunConfig: GunConfg?): ()
 		--agentRot.customRotator = GunControl.rotateBody
 
 		self.fbb.tool.Parent = self.agent.character;
-		(self.fbbControl :: FBBerylControl.FBBerylControl):equip()
+		task.spawn(function()
+			(self.fbbControl :: FBBerylControl.FBBerylControl):equip()
+		end)
 	end
 end
 
@@ -120,7 +122,9 @@ function GunControl.unequipGun(self: GunControl): ()
 		task.spawn(function()
 			task.wait(1)
 			self.fbb.tool.Parent = nil
-			(self.fbbControl :: FBBerylControl.FBBerylControl):unequip()
+			task.spawn(function()
+				(self.fbbControl :: FBBerylControl.FBBerylControl):unequip()
+			end)
 		end)
 	end
 end
@@ -156,13 +160,17 @@ function GunControl.shoot(self: GunControl, atPos: Vector3): ()
 	-- create a random inaccuracy within a cone of 'spreadAngle' radius
 	local spreadDirection = applySpread(direction, spreadAngleRad) * 500
 
-	(self.fbbControl :: FBBerylControl.FBBerylControl):fire(spreadDirection)
+	task.spawn(function()
+		(self.fbbControl :: FBBerylControl.FBBerylControl):fire(spreadDirection)
+	end)
 
 	self.lastShotTime = os.clock()
 end
 
 function GunControl.reload(self: GunControl): ()
-	(self.fbbControl :: FBBerylControl.FBBerylControl):reload()
+	task.spawn(function()
+		(self.fbbControl :: FBBerylControl.FBBerylControl):reload()
+	end)
 end
 
 function GunControl.isEmpty(self: GunControl): boolean
