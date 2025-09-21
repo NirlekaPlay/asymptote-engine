@@ -1,5 +1,6 @@
 --!strict
 
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
@@ -329,21 +330,21 @@ function FBBerylControl.reload(self: FBBerylControl): ()
 			self:animateCharPose(Poses.reload[3], "reload", 3, 0.1, backupremottick)
 			self:animateIndividualPose(Poses.reloadmag[2].mag, handmagw, "reloadmag", 2, "mag", 0.1, backupremottick)
 			-- TODO: Remind me to make this client sided.
-			--[[local flingmagmo, flingmagpart = clonemag(gunmodel, "throwserver")
+			local flingmagmo, flingmagpart = self:cloneMagazineInstance(self.gunModel)
 			flingmagpart:SetNetworkOwner(nil)
 			local magv = Instance.new("BodyVelocity", flingmagpart)
 			magv.MaxForce = Vector3.new(1/0,1/0,1/0)
-			magv.Velocity = hrp.CFrame.lookVector*math.random(15,20)
+			magv.Velocity = self.characterLimbs.humanoidRootPart.CFrame.lookVector*math.random(15,20)
 			local magav = Instance.new("BodyAngularVelocity", flingmagpart)
 			magav.MaxTorque = Vector3.new(1/0,1/0,1/0)
-			magav.AngularVelocity = hrp.CFrame.rightVector*math.random(15,20)
-			debris:AddItem(magv, 0.1)
-			debris:AddItem(flingmagmo, 0.5)
-			for i,v in pairs(magmodel:GetChildren()) do
+			magav.AngularVelocity = self.characterLimbs.humanoidRootPart.CFrame.rightVector*math.random(15,20)
+			Debris:AddItem(magv, 0.1)
+			Debris:AddItem(flingmagmo, 0.5)
+			for i,v in pairs(self.gunParts.magazineModel:GetChildren()) do
 				if v:IsA("BasePart") then
 					v.Transparency = 1
 				end
-			end]]
+			end
 		end
 		task.wait(0.1)
 		self:animateCharPose(Poses.reload[4], "reload", 4, 0.15, backupremottick)
