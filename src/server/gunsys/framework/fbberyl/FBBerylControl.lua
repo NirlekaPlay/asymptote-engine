@@ -74,9 +74,9 @@ export type FBBerylControl = typeof(setmetatable({} :: {
 	},
 	gunWelds: {
 		bolt: Weld,
-		magazine: Weld,
-		trigger: Weld,
-		rightGrip: Weld
+		--magazine: Weld,
+		--trigger: Weld,
+		rightGrip: Weld?
 	},
 	characterLimbs: {
 		leftArm: BasePart,
@@ -88,13 +88,13 @@ export type FBBerylControl = typeof(setmetatable({} :: {
 		humanoidRootPart: BasePart
 	},
 	characterWelds: {
-		leftArm: Weld,
-		rightArm: Weld,
-		leftLeg: Weld,
-		rightLeg: Weld,
-		head: Weld,
+		leftArm: Weld?,
+		rightArm: Weld?,
+		leftLeg: Weld?,
+		rightLeg: Weld?,
+		head: Weld?,
 		headOffset: Weld,
-		torso: Weld
+		torso: Weld?
 	},
 	connections: {
 		humanoidDiedConnection: RBXScriptConnection?
@@ -121,32 +121,32 @@ function FBBerylControl.new(
 		gunParts = {
 			handle = gunModel:FindFirstChild("Handle") :: BasePart,
 			lufa = gunModel:FindFirstChild("lufa") :: BasePart,
-			boltModel = gunModel:FindFirstChild("bolt") :: BasePart,
-			boltPart = gunModel:FindFirstChild("bolt"):FindFirstChild("boltpart") :: BasePart,
-			magazineModel = gunModel:FindFirstChild("mag"),
-			mainPart = gunModel:FindFirstChild("mainpart")
+			boltModel = gunModel:FindFirstChild("bolt") :: Model,
+			boltPart = (gunModel:FindFirstChild("bolt") :: Model):FindFirstChild("boltpart") :: BasePart,
+			magazineModel = gunModel:FindFirstChild("mag") :: Model,
+			mainPart = gunModel:FindFirstChild("mainpart") :: BasePart
 		},
 		gunWelds = {
-			bolt = gunModel:FindFirstChild("mainpart"):WaitForChild("boltweld") :: Weld,
-			magazine = nil,
-			trigger = nil,
-			rightGrip = nil
+			bolt = (gunModel:FindFirstChild("mainpart") :: BasePart):WaitForChild("boltweld") :: Weld,
+			--magazine = nil,
+			--trigger = nil,
+			rightGrip = nil :: Weld?
 		},
 		characterLimbs = {
-			leftArm = character:FindFirstChild("Left Arm"),
-			rightArm = character:FindFirstChild("Right Arm"),
-			leftLeg = character:FindFirstChild("Left Leg"),
-			rightLeg = character:FindFirstChild("Right Leg"),
-			torso = character:FindFirstChild("Torso"),
-			head = character:FindFirstChild("Head"),
-			humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+			leftArm = character:FindFirstChild("Left Arm") :: BasePart,
+			rightArm = character:FindFirstChild("Right Arm") :: BasePart,
+			leftLeg = character:FindFirstChild("Left Leg") :: BasePart,
+			rightLeg = character:FindFirstChild("Right Leg") :: BasePart,
+			torso = character:FindFirstChild("Torso") :: BasePart,
+			head = character:FindFirstChild("Head") :: BasePart,
+			humanoidRootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart
 		},
 		characterWelds = {
-			leftArm = nil,
-			rightArm = nil,
-			leftLeg = nil,
-			rightLeg = nil,
-			head = nil,
+			leftArm = nil :: Weld?,
+			rightArm = nil :: Weld?,
+			leftLeg = nil :: Weld?,
+			rightLeg = nil :: Weld?,
+			head = nil :: Weld?,
 			headOffset = (function()
 				local newWeld = Instance.new("Weld")
 				newWeld.Name = "headoffsetholder"
@@ -154,7 +154,7 @@ function FBBerylControl.new(
 				newWeld.Parent = gunModel:FindFirstChild("Handle") :: BasePart
 				return newWeld
 			end)(),
-			torso = nil
+			torso = nil :: Weld?
 		},
 		connections = {
 			humanoidDiedConnection = nil :: RBXScriptConnection?
@@ -207,7 +207,7 @@ function FBBerylControl.onHumanoidDied(self: FBBerylControl): ()
 		prevParent.Parent = nil
 	end
 	local cframe, size = self.gunModel:GetBoundingBox() -- works better if it has a primary part
-	local hitboxPartPhysicalProperties = PhysicalProperties.new(1, 0, 0.4)
+	local hitboxPartPhysicalProperties = PhysicalProperties.new(1, 0, 1, 1, 100)
 
 	local hitboxPart = Instance.new("Part") -- the gun model itself doesnt have any colliders
 	hitboxPart.CFrame = cframe
@@ -425,14 +425,25 @@ function FBBerylControl.unequip(self: FBBerylControl): ()
 
 	-- Gets destroyed if theres no further refrence
 	-- to these instances.
+
+	-- This is redundant as fuck. I know. But atleast I don't use
+	-- pcalls on every one of them.
 	self.currentState = STATES.UNEQUIPPED
-	self.characterWelds.leftArm.Parent = nil
-	self.characterWelds.rightArm.Parent = nil
-	--self.characterWelds.leftLeg.Parent = nil
-	--self.characterWelds.rightLeg.Parent = nil
-	self.gunWelds.rightGrip.Parent = nil
-	self.characterWelds.torso.Parent = nil
-	self.characterWelds.head.Parent = nil
+	if self.characterWelds.leftArm then
+		self.characterWelds.leftArm.Parent = nil
+	end
+	if self.characterWelds.rightArm then
+		self.characterWelds.rightArm.Parent = nil
+	end
+	if self.gunWelds.rightGrip then
+		self.gunWelds.rightGrip.Parent = nil
+	end
+	if self.characterWelds.torso then
+		self.characterWelds.torso.Parent = nil
+	end
+	if self.characterWelds.head then
+		self.characterWelds.head.Parent = nil
+	end
 end
 
 function FBBerylControl.pullBolt(self: FBBerylControl, backupTick: number): ()
