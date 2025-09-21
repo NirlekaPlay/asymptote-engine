@@ -137,6 +137,8 @@ function WhizzyBullets:Check(Origin:CFrame, VectorDistance:number, PlayerFocalPo
 			AttConnection:Disconnect()
 			Attachment:Destroy()
 		end)
+
+		WhizSFX.PlaybackSpeed = (self.random :: Random):NextNumber(0.8, 1.5)
 		
 		WhizSFX:Play()
 		
@@ -153,6 +155,7 @@ function WhizzyBullets.new(WhizSFX, SFXDist)
 	
 	self.WhizSFX = WhizSFX
 	self.SFXDist = SFXDist
+	self.random = Random.new(os.clock())
 	
 	return self
 end

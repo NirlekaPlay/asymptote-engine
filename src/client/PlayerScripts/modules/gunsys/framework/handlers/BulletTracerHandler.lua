@@ -18,6 +18,7 @@ local MUZZLE_FLASH_LIFE_TIME = 0.025
 local PI = math.pi
 local WHITE = Color3.new(1, 1, 1)
 local PISS_YELLOW = Color3.new(1, 0.866667, 0) -- (≖_≖ )
+local BULLET_WHIZ_SOUND = ReplicatedStorage.shared.assets.sounds.gunsys.bullet_whiz
 
 local activeBullets: { BulletObject } = {}
 
@@ -67,7 +68,7 @@ function BulletTracerHandler.onReceiveTracerData(bulletTracerData: BulletTracerP
 		penetration = bulletTracerData.penetration,
 		elapsed = 0,
 		rng = rng,
-		whiz = WhizzyBullets.new(workspace:WaitForChild("Dirt Rico Pack 20 (SFX)"), 2),
+		whiz = WhizzyBullets.new(BULLET_WHIZ_SOUND, 3.5),
 		raycastParams = rayParams,
 	})
 end
@@ -90,7 +91,6 @@ function BulletTracerHandler.update(deltaTime: number): ()
 		-- Bullet whizz data:
 		local cf, dist = WhizzyBullets.GetCFrameFromP0P1(rayOrigin, rayOrigin + rayDir)
 		bulletObj.whiz:Check(cf, dist)
-
 
 		if SharedConstants.DEBUG_BULLET_TRACERS then
 			if hit then
