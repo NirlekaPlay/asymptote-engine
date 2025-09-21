@@ -67,6 +67,32 @@ local function onMapTaggedGuard(guardChar: Model): ()
 	setupGuard(guardChar)
 end
 
+local function setupDummy(dummyChar: Model): ()
+	-- this aint a dummy no more now is it?
+	local newDummy = DetectionDummy.new(dummyChar)
+		:setDesignatedPosts(basicGuardPosts)
+
+	guards[dummyChar] = newDummy
+end
+
+local function onMapTaggedDummies(dummyChar: Model): ()
+	if dummyChar.Parent ~= workspace then
+		-- And you can't even cast a type as 'the types are unrelated'
+		-- so what the fuck do you expect me to do?
+		local connection: RBXScriptConnection
+		connection = dummyChar:GetPropertyChangedSignal("Parent"):Connect(function()
+			if dummyChar.Parent == workspace then
+				connection:Disconnect()
+				setupDummy(dummyChar)
+			end
+		end)
+
+		return
+	end
+	
+	setupDummy(dummyChar)
+end
+
 CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
 	if not post:IsDescendantOf(workspace) then
 		return
@@ -81,16 +107,9 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(pos
 	end
 end)
 
-CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, function(dummyChar: Model)
-	if not dummyChar:IsDescendantOf(workspace) then
-		return
-	end
-	-- this aint a dummy no more now is it?
-	local newDummy = DetectionDummy.new(dummyChar)
-		:setDesignatedPosts(basicGuardPosts)
+CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
-	guards[dummyChar] = newDummy
-end)
+CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
 
