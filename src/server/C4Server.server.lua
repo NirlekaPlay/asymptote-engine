@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Debris = game:GetService("Debris")
 
+local GunSysTypedRemotes = require(ReplicatedStorage.shared.network.remotes.GunSysTypedRemotes)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local PlantEvent = ReplicatedStorage.remotes.c4.PlantEvent
 local DetonateEvent = ReplicatedStorage.remotes.c4.DetonateEvent
@@ -81,6 +82,14 @@ local function hurtAndRagdollHumanoid(part: BasePart, explosion: Explosion, dist
 	humanoid:TakeDamage(calculateDamage(part, explosion))
 	local isRagdoll = humanoid.Parent:FindFirstChild("IsRagdoll")
 
+	local ownerId = explosion:GetAttribute("OwnerId") :: number?
+	if ownerId then
+		local player = Players:GetPlayerByUserId(ownerId)
+		if player then
+			GunSysTypedRemotes.HitRegister:FireClient(player, humanoid.Health <= 0)
+		end
+	end
+
 	task.spawn(function()
 		local mappedWait = math.map(distance, 0, explosion.BlastRadius, 0, 3)
 
@@ -130,7 +139,7 @@ local function affectPartsAndHumanoidsInExplosion(explosion: Explosion): ()
 	end
 end
 
-local function createExplosion(position: Vector3): ()
+local function createExplosion(position: Vector3, player: Player?): ()
 	local newExplosion = Instance.new("Explosion")
 	-- TODO: Add these settings to a module script
 	newExplosion.Position = position
@@ -138,6 +147,9 @@ local function createExplosion(position: Vector3): ()
 	newExplosion.DestroyJointRadiusPercent = 0
 	newExplosion.BlastPressure = 90000
 	newExplosion.BlastRadius = 40
+	if player then
+		newExplosion:SetAttribute("OwnerId", player.UserId)
+	end
 	newExplosion.Parent = workspace
 	affectPartsAndHumanoidsInExplosion(newExplosion)
 end
@@ -161,7 +173,7 @@ local function detonateC4(player: Player, c4: BasePart): ()
 	
 	EntityManger.Entities[c4:GetAttribute("uuid")] = nil
 	
-	createExplosion(c4.Position)
+	createExplosion(c4.Position, player)
 	Debris:AddItem(c4, 3)
 end
 
