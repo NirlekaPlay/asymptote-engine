@@ -278,7 +278,12 @@ dispatcher:register(
 					local targets = resolvePlayerSelector(selectorData, source)
 					
 					for _, target in targets do
-						local targetChar = target.Character
+						local targetChar
+						if target:IsA("Player") then
+							targetChar = target.Character
+						else
+							targetChar = target
+						end
 						if targetChar then
 							local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
 							if humanoid then
