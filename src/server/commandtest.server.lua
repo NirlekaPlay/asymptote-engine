@@ -2,6 +2,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
@@ -335,6 +336,41 @@ dispatcher:register(
 							end
 							
 							return #targets
+						end)
+				)
+		)
+)
+
+local TOOLS_PER_INST = {
+	["fbb"] = ServerStorage.Tools["FB Beryl"],
+	["bob_spawner"] = ServerStorage.Tools["Bob Spawner"],
+	["c4"] = ReplicatedStorage.ExplFolder["Remote Explosive"]
+} :: { [string]: Instance }
+
+dispatcher:register(
+	literal("give")
+		:andThen(
+			argument("targets", player())
+				:andThen(
+					argument("itemName", string())
+						:executes(function(c)
+							local itemName = c:getArgument("itemName")
+							local itemInst = TOOLS_PER_INST[itemName]
+							if not itemInst then
+								error(itemName, "Not a valid item name")
+							end
+							local selectorData = c:getArgument("targets")
+							local source = c:getSource()
+							local targets = resolvePlayerSelector(selectorData, source)
+
+							for _, target in targets do
+								if not target:IsA("Player") then
+									continue
+								end
+
+								local itemClone = itemInst:Clone()
+								itemClone.Parent = target.Backpack
+							end
 						end)
 				)
 		)
