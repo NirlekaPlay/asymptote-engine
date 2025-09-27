@@ -1,5 +1,6 @@
 --!nonstrict
 
+local Debris = game:GetService("Debris")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -393,6 +394,103 @@ dispatcher:register(
 										newHighlight.Name = HIGHLIGHT_INST_NAME
 										newHighlight.Adornee = targetChar
 										newHighlight.Parent = targetChar
+									end
+								end
+							end
+							
+							return #targets
+						end)
+				)
+		)
+)
+
+local FORCE_FIELD_INST_NAME = "CmdForceField"
+
+dispatcher:register(
+	literal("forcefield")
+		:andThen(
+			literal("push")
+				:andThen(
+					argument("target", player())
+						:executes(function(c)
+							local selectorData = c:getArgument("target")
+							local source = c:getSource()
+							local targets = resolvePlayerSelector(selectorData, source)
+							
+							for _, target in targets do
+								local targetChar
+								if target:IsA("Player") then
+									targetChar = target.Character
+								else
+									targetChar = target
+								end
+								
+								if targetChar then
+									local newForcefield = Instance.new("ForceField")
+									newForcefield.Visible = true
+									newForcefield.Name = FORCE_FIELD_INST_NAME
+									newForcefield.Parent = targetChar
+								end
+							end
+							
+							return #targets
+						end)
+					:andThen(
+						argument("ttl", integer())
+							:executes(function(c)
+								local ttl = c:getArgument("ttl")
+								local selectorData = c:getArgument("target")
+								local source = c:getSource()
+								local targets = resolvePlayerSelector(selectorData, source)
+								
+								for _, target in targets do
+									local targetChar
+									if target:IsA("Player") then
+										targetChar = target.Character
+									else
+										targetChar = target
+									end
+									
+									if targetChar then
+										local targetForceField = targetChar:FindFirstChild(FORCE_FIELD_INST_NAME)
+										if not targetForceField or not targetForceField:IsA("ForceField") then
+											local newForcefield = Instance.new("ForceField")
+											newForcefield.Visible = true
+											newForcefield.Name = FORCE_FIELD_INST_NAME
+											newForcefield.Parent = targetChar
+											targetForceField = newForcefield
+										end
+										
+										Debris:AddItem(targetForceField, ttl)
+									end
+								end
+								
+								return #targets
+							end)
+					)
+				)
+		)
+		:andThen(
+			literal("pop")
+				:andThen(
+					argument("target", player())
+						:executes(function(c)
+							local selectorData = c:getArgument("target")
+							local source = c:getSource()
+							local targets = resolvePlayerSelector(selectorData, source)
+							
+							for _, target in targets do
+								local targetChar
+								if target:IsA("Player") then
+									targetChar = target.Character
+								else
+									targetChar = target
+								end
+								
+								if targetChar then
+									local forceField = targetChar:FindFirstChildOfClass("ForceField")
+									if forceField then
+										forceField:Destroy()
 									end
 								end
 							end
