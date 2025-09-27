@@ -521,6 +521,40 @@ dispatcher:register(
 		)
 )
 
+local NAMES_PER_ENTITIES = {
+	bob = ServerStorage.REFERENCE_BOB,
+	jeia = ServerStorage.REFERENCE_JEIA,
+	envvy = ServerStorage.REFERENCE_ENVVY,
+	andrew = ServerStorage.REFERENCE_ANDREW
+}
+
+dispatcher:register(
+	literal("summon")
+		:andThen(
+			argument("name", string())
+				:executes(function(c)
+					local entityName = c:getArgument("name")
+					local entityInst = NAMES_PER_ENTITIES[entityName] :: Model
+					if not entityInst then
+						error(`{entityName} is not a valid entity name`)
+					end
+					local playerSource = c:getSource() :: Player
+					local playerChar = playerSource.Character
+					local toCframe: CFrame
+
+					if not playerChar then
+						error("Player has no character")
+					end
+
+					toCframe = playerChar.PrimaryPart.CFrame
+
+					local entityInstClone = entityInst:Clone()
+					entityInstClone:PivotTo(toCframe)
+					entityInstClone.Parent = workspace
+				end)
+		)
+)
+
 Players.PlayerAdded:Connect(function(player)
 	player.Chatted:Connect(function(str)
 		local flag = str:sub(1, 1) == "/"
