@@ -46,7 +46,7 @@ end
 local function player(): ArgumentType
 	return {
 		parse = function(input: string): (any, number)
-			local selector = input:match("^@[apers]") -- @a, @p, @e, @r, @s
+			local selector = input:match("^@[apersme]") -- @a, @p, @e, @r, @s, @m, @e
 			
 			if selector then
 				return {
@@ -103,6 +103,26 @@ local function resolvePlayerSelector(selectorData, source: Player): {Player}
 				return {players[math.random(#players)]}
 			end
 			return {}
+		elseif selector == "@m" then
+			local t = {}
+
+			for _, inst in pairs(workspace:GetChildren()) do
+				if inst:FindFirstChildOfClass("Humanoid") then
+					table.insert(t, inst)
+				end
+			end
+
+			return t
+		elseif selector == "@e" then
+			local t = Players:GetPlayers()
+
+			for _, inst in pairs(workspace:GetChildren()) do
+				if inst:FindFirstChildOfClass("Humanoid") then
+					table.insert(t, inst)
+				end
+			end
+
+			return t
 		end
 	else
 		-- Regular player object
@@ -110,6 +130,43 @@ local function resolvePlayerSelector(selectorData, source: Player): {Player}
 	end
 	
 	return {}
+end
+
+local function boolean(): ArgumentType
+	return {
+		parse = function(input: string): (any, number)
+			local word = input:match("^%S+"):lower()
+			
+			if word == "true" then
+				return true, 4
+			elseif word == "false" then
+				return false, 5
+			else
+				error("Expected 'true' or 'false', got: " .. word)
+			end
+		end
+	}
+end
+
+--
+
+local function getEntityPosition(entity): CFrame?
+	if typeof(entity) == "Instance" and entity:IsA("Player") then
+		local char = entity.Character
+		return char and char.PrimaryPart and char.PrimaryPart.CFrame
+	elseif typeof(entity) == "Instance" and entity:FindFirstChildOfClass("Humanoid") then
+		return entity.PrimaryPart and entity.PrimaryPart.CFrame
+	end
+	return nil
+end
+
+local function teleportEntity(entity, targetCFrame: CFrame)
+	if typeof(entity) == "Instance" and entity:IsA("Player") then
+		local char = entity.Character
+		if char then char:PivotTo(targetCFrame) end
+	elseif typeof(entity) == "Instance" and entity:FindFirstChildOfClass("Humanoid") then
+		entity:PivotTo(targetCFrame)
+	end
 end
 
 --
@@ -134,7 +191,8 @@ local dispatcher: CommandDispatcher = CommandDispatcher.new()
 	│       ├── <player2> (tp player1 to player2)
 	│       └── [execute] (tp self to player1)
 	└── kill
-		
+		├── <target>
+		└── [execute] (kill target)
 ]=]
 dispatcher:register(
 	literal("teleport")
@@ -174,43 +232,39 @@ dispatcher:register(
 			argument("player1", player())
 				:andThen(argument("player2", player())
 					:executes(function(c)
-						local playerTarget = c:getArgument("player2") :: Player
-						local playerSource = c:getArgument("player1")
-
-						local playerCharacter = (playerSource :: Player).Character
-						if not playerCharacter then
-							error("Player has no Character.")
+						local targetData = c:getArgument("player2")
+						local sourceData = c:getArgument("player1")
+						local cmdSource = c:getSource()
+						
+						local targets = resolvePlayerSelector(targetData, cmdSource)
+						local sources = resolvePlayerSelector(sourceData, cmdSource)
+						
+						if #targets == 0 then error("No target found") end
+						if #sources == 0 then error("No source found") end
+						
+						local targetPos = getEntityPosition(targets[1])
+						if not targetPos then error("Target has no valid position") end
+						
+						for _, source in sources do
+							teleportEntity(source, targetPos)
 						end
-
-						local targetCharacter = playerTarget.Character
-						if not targetCharacter then
-							error("Target player has no Character.")
-						end
-
-						playerCharacter:PivotTo(targetCharacter.PrimaryPart.CFrame)
-
-						return 1
+						
+						return #sources
 					end)
 				)
 				:executes(function(c)
-					local playerTarget = c:getArgument("player1") :: Player
-					local playerSource = c:getSource()
-
-					local playerCharacter = (playerSource :: Player).Character
-					if not playerCharacter then
-						error("Player has no Character.")
-					end
-
-					local targetCharacter = playerTarget.Character
-					if not targetCharacter then
-						error("Target player has no Character.")
-					end
-
-					playerCharacter:PivotTo(targetCharacter.PrimaryPart.CFrame)
-
+					local targetData = c:getArgument("player1")
+					local cmdSource = c:getSource()
+					
+					local targets = resolvePlayerSelector(targetData, cmdSource)
+					if #targets == 0 then error("No target found") end
+					
+					local targetPos = getEntityPosition(targets[1])
+					if not targetPos then error("Target has no valid position") end
+					
+					teleportEntity(cmdSource, targetPos)
 					return 1
-				end
-			)
+				end)
 		)
 )
 
@@ -236,6 +290,48 @@ dispatcher:register(
 					
 					return #targets -- Return number of players affected
 				end)
+		)
+)
+
+local HIGHLIGHT_INST_NAME = "CmdHighlight"
+
+dispatcher:register(
+	literal("highlight")
+		:andThen(
+			argument("targetPlayer", player())
+				:andThen(
+					argument("bool", boolean())
+						:executes(function(c)
+							local flag = c:getArgument("bool") :: boolean
+							local selectorData = c:getArgument("targetPlayer")
+							local source = c:getSource()
+							local targets = resolvePlayerSelector(selectorData, source)
+							
+							for _, target in targets do
+								local targetChar
+								if target:IsA("Player") then
+									targetChar = target.Character
+								else
+									targetChar = target
+								end
+								
+								if targetChar then
+									local highlight = targetChar:FindFirstChild(HIGHLIGHT_INST_NAME) :: Highlight?
+								
+									if highlight then
+										highlight.Enabled = flag
+									elseif flag then
+										local newHighlight = Instance.new("Highlight")
+										newHighlight.Name = HIGHLIGHT_INST_NAME
+										newHighlight.Adornee = targetChar
+										newHighlight.Parent = targetChar
+									end
+								end
+							end
+							
+							return #targets
+						end)
+				)
 		)
 )
 
