@@ -1,5 +1,6 @@
 --!nonstrict
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -145,6 +146,91 @@ local function boolean(): ArgumentType
 			else
 				error("Expected 'true' or 'false', got: " .. word)
 			end
+		end
+	}
+end
+
+local function preprocessJSON(jsonStr: string): string
+	-- Match 'inf' that's not already in quotes
+	-- This pattern looks for 'inf' that's preceded by : or [ or , and not already quoted
+	jsonStr = jsonStr:gsub('([:%[,]%s*)inf(%s*[,%]}])', '%1"inf"%2')
+	
+	-- Handle inf at the start of values (after colons)
+	jsonStr = jsonStr:gsub('(:%s*)inf(%s*[,%]}])', '%1"inf"%2')
+	
+	return jsonStr
+end
+
+local function json(): ArgumentType
+	return {
+		parse = function(input: string): (any, number)
+			-- Find JSON object starting with {
+			if input:sub(1, 1) ~= "{" then
+				error("Expected JSON object starting with '{'")
+			end
+			
+			-- Simple bracket matching to find end of JSON
+			local braceCount = 0
+			local endPos = 0
+			for i = 1, #input do
+				local char = input:sub(i, i)
+				if char == "{" then
+					braceCount = braceCount + 1
+				elseif char == "}" then
+					braceCount = braceCount - 1
+					if braceCount == 0 then
+						endPos = i
+						break
+					end
+				end
+			end
+			
+			if endPos == 0 then
+				error("Unterminated JSON object")
+			end
+			
+			local jsonStr = input:sub(1, endPos)
+			jsonStr = preprocessJSON(jsonStr)
+			local success, jsonData = pcall(function()
+				return HttpService:JSONDecode(jsonStr)
+			end)
+			
+			if not success then
+				error("Invalid JSON: " .. jsonData)
+			end
+			
+			return jsonData, endPos
+		end
+	}
+end
+
+local function itemWithAttributes(): ArgumentType
+	return {
+		parse = function(input: string): (any, number)
+			-- Parse item name first
+			local itemName = input:match("^%S+")
+			if not itemName then
+				error("Expected item name")
+			end
+			
+			local consumed = itemName:len()
+			local remaining = input:sub(consumed + 1)
+			
+			-- Check if there's JSON attributes
+			remaining = remaining:match("^%s*(.*)") -- trim whitespace
+			local attributes = nil
+			
+			if remaining and remaining:sub(1, 1) == "{" then
+				local jsonArg = json()
+				local attrData, jsonConsumed = jsonArg.parse(remaining)
+				attributes = attrData
+				consumed = consumed + (input:len() - remaining:len()) + jsonConsumed
+			end
+			
+			return {
+				itemName = itemName,
+				attributes = attributes
+			}, consumed
 		end
 	}
 end
@@ -347,30 +433,67 @@ local TOOLS_PER_INST = {
 	["c4"] = ReplicatedStorage.ExplFolder["Remote Explosive"]
 } :: { [string]: Instance }
 
+local ATTRIBUTE_HANDLERS = {
+	fbb = {
+		mags = function(item: Instance, value: any)
+			item.settings.magleft.Value = value
+		end,
+		fireInterval = function(item: Instance, value: any)
+			item.settings.speed.Value = value
+		end,
+		magCapacity = function(item: Instance, value: any)
+			item.settings.maxmagcapacity.Value = value
+		end,
+	}
+}
+
+local function applyAttributes(item: Instance, itemName: string, attributes: {[string]: any})
+	local handlers = ATTRIBUTE_HANDLERS[itemName]
+	if not handlers or not attributes then return end
+	
+	for attrName, attrValue in pairs(attributes) do
+		local handler = handlers[attrName]
+		if handler then
+			handler(item, attrValue)
+		else
+			warn(`Unknown attribute '{attrName}' for item '{itemName}'`)
+		end
+	end
+end
+
 dispatcher:register(
 	literal("give")
 		:andThen(
 			argument("targets", player())
 				:andThen(
-					argument("itemName", string())
+					argument("itemData", itemWithAttributes())
 						:executes(function(c)
-							local itemName = c:getArgument("itemName")
+							local itemData = c:getArgument("itemData")
+							local itemName = itemData.itemName
+							local attributes = itemData.attributes
+							
 							local itemInst = TOOLS_PER_INST[itemName]
 							if not itemInst then
-								error(itemName, "Not a valid item name")
+								error(`'{itemName}' is not a valid item name`)
 							end
+							
 							local selectorData = c:getArgument("targets")
 							local source = c:getSource()
 							local targets = resolvePlayerSelector(selectorData, source)
 
 							for _, target in targets do
-								if not target:IsA("Player") then
-									continue
-								end
+								if not target:IsA("Player") then continue end
 
 								local itemClone = itemInst:Clone()
+								
+								if attributes then
+									applyAttributes(itemClone, itemName, attributes)
+								end
+								
 								itemClone.Parent = target.Backpack
 							end
+							
+							return #targets
 						end)
 				)
 		)
