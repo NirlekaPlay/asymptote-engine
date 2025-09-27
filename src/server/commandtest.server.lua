@@ -7,10 +7,15 @@ local ServerStorage = game:GetService("ServerStorage")
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
+local BooleanArgumentType = require(ReplicatedStorage.shared.commands.arguments.BooleanArgumentType)
+local IntegerArgumentType = require(ReplicatedStorage.shared.commands.arguments.IntegerArgumentType)
+local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+
+local INF = math.huge
 
 type ArgumentType = ArgumentType.ArgumentType
 type CommandContext = CommandContext.CommandContext
@@ -18,33 +23,18 @@ type CommandDispatcher = CommandDispatcher.CommandDispatcher
 type CommandNode = CommandNode.CommandNode
 type CommandFunction = CommandFunction.CommandFunction
 
-local INF = math.huge
+--
 
--- Argument Types
+local function boolean(): ArgumentType
+	return BooleanArgumentType
+end
+
 local function integer(): ArgumentType
-	return {
-		parse = function(input: string): (any, number)
-			local num = tonumber(input:match("^%-?%d+"))
-			if num then
-				local len = tostring(math.floor(num)):len()
-				if input:sub(1, 1) == "-" then len += 1 end
-				return num, len
-			end
-			error("Expected integer, got: " .. input)
-		end
-	}
+	return IntegerArgumentType
 end
 
 local function string(): ArgumentType
-	return {
-		parse = function(input: string): (any, number)
-			local word = input:match("^%S+")
-			if word then
-				return word, word:len()
-			end
-			error("Expected string argument")
-		end
-	}
+	return StringArgumentType
 end
 
 local function player(): ArgumentType
@@ -134,22 +124,6 @@ local function resolvePlayerSelector(selectorData, source: Player): {Player}
 	end
 	
 	return {}
-end
-
-local function boolean(): ArgumentType
-	return {
-		parse = function(input: string): (any, number)
-			local word = input:match("^%S+"):lower()
-			
-			if word == "true" then
-				return true, 4
-			elseif word == "false" then
-				return false, 5
-			else
-				error("Expected 'true' or 'false', got: " .. word)
-			end
-		end
-	}
 end
 
 local function preprocessJSON(jsonStr: string): string
