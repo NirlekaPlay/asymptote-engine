@@ -18,6 +18,8 @@ type CommandDispatcher = CommandDispatcher.CommandDispatcher
 type CommandNode = CommandNode.CommandNode
 type CommandFunction = CommandFunction.CommandFunction
 
+local INF = math.huge
+
 -- Argument Types
 local function integer(): ArgumentType
 	return {
@@ -444,6 +446,23 @@ local ATTRIBUTE_HANDLERS = {
 		magCapacity = function(item: Instance, value: any)
 			item.settings.maxmagcapacity.Value = value
 		end,
+	},
+	c4 = {
+		radius = function(item: Instance, value: any)
+			require(item.Settings).ExpRange = value
+		end,
+		maxAmount = function(item: Instance, value: any)
+			require(item.Settings).MaxAmmo = value
+		end,
+		amount = function(item: Instance, value: any)
+			item.Handle:SetAttribute("Ammo", value)
+		end,
+		blastPressure = function(item: Instance, value: any)
+			require(item.Settings).BlastPressure = value
+		end,
+		plantRange = function(item: Instance, value: any)
+			require(item.Settings).PlantRange = value
+		end,
 	}
 }
 
@@ -452,6 +471,9 @@ local function applyAttributes(item: Instance, itemName: string, attributes: {[s
 	if not handlers or not attributes then return end
 	
 	for attrName, attrValue in pairs(attributes) do
+		if attrValue == "inf" then
+			attrValue = INF
+		end
 		local handler = handlers[attrName]
 		if handler then
 			handler(item, attrValue)
