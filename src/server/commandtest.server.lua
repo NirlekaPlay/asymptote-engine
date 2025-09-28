@@ -103,7 +103,7 @@ local function resolvePlayerSelector(selectorData, source: Player): {Player}
 			local t = {}
 
 			for _, inst in pairs(workspace:GetChildren()) do
-				if inst:FindFirstChildOfClass("Humanoid") then
+				if inst:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(inst) then
 					table.insert(t, inst)
 				end
 			end
@@ -113,7 +113,7 @@ local function resolvePlayerSelector(selectorData, source: Player): {Player}
 			local t = Players:GetPlayers()
 
 			for _, inst in pairs(workspace:GetChildren()) do
-				if inst:FindFirstChildOfClass("Humanoid") then
+				if inst:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(inst) then
 					table.insert(t, inst)
 				end
 			end
