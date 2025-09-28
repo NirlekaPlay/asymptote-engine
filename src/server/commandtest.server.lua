@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 local RestartServerCommand = require(ServerScriptService.server.commands.RestartServerCommand)
+local TagCommand = require(ServerScriptService.server.commands.TagCommand)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
@@ -797,6 +798,7 @@ dispatcher:register(
 )
 
 RestartServerCommand.register(dispatcher)
+TagCommand.register(dispatcher)
 
 Players.PlayerAdded:Connect(function(player)
 	player.Chatted:Connect(function(str)
