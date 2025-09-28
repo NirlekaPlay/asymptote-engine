@@ -11,40 +11,50 @@ local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local LiteralArgumentBuilder = {}
 LiteralArgumentBuilder.__index = LiteralArgumentBuilder
 
-export type LiteralArgumentBuilder = typeof(setmetatable({} :: {
+export type LiteralArgumentBuilder<S> = typeof(setmetatable({} :: {
 	literalString: string,
 	command: CommandFunction?,
+	redirectNode: CommandNode<S>?,
 	children: { ArgumentBuilder }
 }, LiteralArgumentBuilder))
 
 type ArgumentBuilder = ArgumentBuilder.ArgumentBuilder
 type CommandFunction = CommandFunction.CommandFunction
-type CommandNode = CommandNode.CommandNode
+type CommandNode<S> = CommandNode.CommandNode<S>
 
-function LiteralArgumentBuilder.new(literalString: string): LiteralArgumentBuilder
+function LiteralArgumentBuilder.new(literalString: string): LiteralArgumentBuilder<any>
 	return setmetatable({
 		literalString = literalString,
 		command = nil :: CommandFunction?,
-		children = {}
+		children = {},
+		redirectNode = nil :: CommandNode<any>?
 	}, LiteralArgumentBuilder)
 end
 
-function LiteralArgumentBuilder.executes(self: LiteralArgumentBuilder, commandFunc: CommandFunction): ArgumentBuilder
+function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction): ArgumentBuilder
 	self.command = commandFunc
 	return self :: ArgumentBuilder
 end
 
-function LiteralArgumentBuilder.andThen(self: LiteralArgumentBuilder, child: ArgumentBuilder): ArgumentBuilder
+function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder): ArgumentBuilder
 	table.insert(self.children, child)
 	return self :: ArgumentBuilder
 end
 
-function LiteralArgumentBuilder.build(self: LiteralArgumentBuilder): CommandNode
+function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: CommandNode<S>): ArgumentBuilder
+	self.redirectNode = target
+	return self :: ArgumentBuilder
+end
+
+function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): CommandNode<S>
 	local node = CommandNode.new(self.literalString, "literal", nil)
 	node.command = self.command
-	
-	for _, child in self.children do
-		node:addChild(child:build())
+	node.redirect = self.redirectNode
+
+	if not node.redirect then
+		for _, child in self.children do
+			node:addChild((child :: any):build())
+		end
 	end
 	
 	return node

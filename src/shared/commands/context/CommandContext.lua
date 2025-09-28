@@ -6,23 +6,23 @@
 local CommandContext = {}
 CommandContext.__index = CommandContext
 
-export type CommandContext = typeof(setmetatable({} :: {
+export type CommandContext<S> = typeof(setmetatable({} :: {
 	arguments: { [string]: any },
 	source: any
 }, CommandContext))
 
-function CommandContext.new(arguments: { [string]: any }, source: any): CommandContext
+function CommandContext.new<S>(arguments: { [string]: any }, source: S): CommandContext<S>
 	return setmetatable({
 		arguments = arguments,
 		source = source
 	}, CommandContext)
 end
 
-function CommandContext.getArgument(self: CommandContext, name: string): ()
+function CommandContext.getArgument<S>(self: CommandContext<S>, name: string): ()
 	return self.arguments[name]
 end
 
-function CommandContext.getSource(self: CommandContext): any
+function CommandContext.getSource<S>(self: CommandContext<S>): S
 	return self.source
 end
 

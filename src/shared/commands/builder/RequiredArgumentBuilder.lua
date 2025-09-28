@@ -16,20 +16,22 @@ export type RequiredArgumentBuilder = typeof(setmetatable({} :: {
 	argumentName: string,
 	argumentType: ArgumentType,
 	command: CommandFunction?,
-	children: { ArgumentBuilder }
+	children: { ArgumentBuilder },
+	redirectNode: CommandNode<S>?
 }, RequiredArgumentBuilder))
 
 type ArgumentBuilder = ArgumentBuilder.ArgumentBuilder
 type ArgumentType = ArgumentType.ArgumentType
 type CommandFunction = CommandFunction.CommandFunction
-type CommandNode = CommandNode.CommandNode
+type CommandNode<S> = CommandNode.CommandNode<S>
 
 function RequiredArgumentBuilder.new(argumentName: string, argumentType: ArgumentType): RequiredArgumentBuilder
 	return setmetatable({
 		argumentName = argumentName,
 		argumentType = argumentType,
 		command = nil :: CommandFunction?,
-		children = {}
+		children = {},
+		redirectNode = nil :: CommandNode<S>?
 	}, RequiredArgumentBuilder)
 end
 
@@ -43,12 +45,15 @@ function RequiredArgumentBuilder.andThen(self: RequiredArgumentBuilder, child: A
 	return self :: ArgumentBuilder
 end
 
-function RequiredArgumentBuilder.build(self: RequiredArgumentBuilder): CommandNode
+function RequiredArgumentBuilder.build(self: RequiredArgumentBuilder): CommandNode<S>
 	local node = CommandNode.new(self.argumentName, "argument", self.argumentType)
 	node.command = self.command
-	
-	for _, child in self.children do
-		node:addChild(child:build())
+	node.redirect = self.redirectNode
+
+	if not node.redirect then
+		for _, child in self.children do
+			node:addChild((child :: any):build())
+		end
 	end
 	
 	return node

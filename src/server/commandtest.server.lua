@@ -15,13 +15,14 @@ local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 local INF = math.huge
 
 type ArgumentType = ArgumentType.ArgumentType
-type CommandContext = CommandContext.CommandContext
-type CommandDispatcher = CommandDispatcher.CommandDispatcher
-type CommandNode = CommandNode.CommandNode
+type CommandContext<S> = CommandContext.CommandContext<S>
+type CommandDispatcher<S> = CommandDispatcher.CommandDispatcher<S>
+type CommandNode<S> = CommandNode.CommandNode<S>
 type CommandFunction = CommandFunction.CommandFunction
 
 --
@@ -212,6 +213,128 @@ local function itemWithAttributes(): ArgumentType
 	}
 end
 
+local function parseCoordinate(input: string): (CoordinateData?, number)
+	-- Relative coordinate: ~5, ~-10, ~
+	local relativeMatch = input:match("^~(%-?%d*)")
+	if relativeMatch ~= nil then
+		local offset = relativeMatch == "" and 0 or tonumber(relativeMatch)
+		local consumed = 1 + #relativeMatch
+		return {
+			type = "relative",
+			value = offset
+		}, consumed
+	end
+	
+	-- Local coordinate: ^5, ^-2, ^
+	local localMatch = input:match("^%^(%-?%d*)")
+	if localMatch ~= nil then
+		local offset = localMatch == "" and 0 or tonumber(localMatch)
+		local consumed = 1 + #localMatch
+		return {
+			type = "local", 
+			value = offset
+		}, consumed
+	end
+	
+	-- Absolute coordinate: 10, -5, 0
+	local absoluteMatch = input:match("^(%-?%d+%.?%d*)")
+	if absoluteMatch then
+		return {
+			type = "absolute",
+			value = tonumber(absoluteMatch)
+		}, #absoluteMatch
+	end
+	
+	return nil, 0
+end
+
+local function vec3(): ArgumentType
+	return {
+		parse = function(input: string): (any, number)
+			local remaining = input
+			local coords = {}
+			local totalConsumed = 0
+			
+			-- Parse 3 coordinates (x, y, z)
+			for i = 1, 3 do
+				-- Skip whitespace
+				remaining = remaining:match("^%s*(.*)") or remaining
+				
+				-- Try to parse a coordinate (can be relative ~, absolute number, or local ^)
+				local coord, consumed = parseCoordinate(remaining)
+				if not coord then
+					error(`Expected coordinate {i == 1 and "x" or i == 2 and "y" or "z"}`)
+				end
+				
+				coords[i] = coord
+				remaining = remaining:sub(consumed + 1)
+				totalConsumed = totalConsumed + consumed
+				
+				-- Add whitespace consumption
+				local whitespace = remaining:match("^(%s*)")
+				if whitespace then
+					remaining = remaining:sub(#whitespace + 1)
+					totalConsumed = totalConsumed + #whitespace
+				end
+			end
+			
+			return {
+				x = coords[1],
+				y = coords[2], 
+				z = coords[3]
+			}, totalConsumed
+		end
+	}
+end
+
+export type CoordinateData = {
+	type: "relative" | "absolute" | "local",
+	value: number
+}
+
+export type Vec3Data = {
+	x: CoordinateData,
+	y: CoordinateData,
+	z: CoordinateData
+}
+
+local function resolveVec3(vec3Data: Vec3Data, source: any): Vector3
+	local sourcePos = Vector3.new(0, 0, 0)
+	local sourceLook = Vector3.new(0, 0, -1) -- Forward direction
+	local sourceRight = Vector3.new(1, 0, 0) -- Right direction
+	local sourceUp = Vector3.new(0, 1, 0)    -- Up direction
+	
+	-- Get source position and orientation if it's a player
+	if typeof(source) == "Instance" and source:IsA("Player") and source.Character then
+		local character = source.Character
+		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		if humanoidRootPart then
+			sourcePos = humanoidRootPart.Position
+			sourceLook = humanoidRootPart.CFrame.LookVector
+			sourceRight = humanoidRootPart.CFrame.RightVector  
+			sourceUp = humanoidRootPart.CFrame.UpVector
+		end
+	end
+	
+	local function resolveCoord(coord: CoordinateData, currentPos: number, localAxis: Vector3): number
+		if coord.type == "absolute" then
+			return coord.value
+		elseif coord.type == "relative" then
+			return currentPos + coord.value
+		elseif coord.type == "local" then
+			-- Local coordinates are relative to entity's facing direction
+			return currentPos + coord.value
+		end
+		return coord.value
+	end
+	
+	return Vector3.new(
+		resolveCoord(vec3Data.x, sourcePos.X, sourceRight),
+		resolveCoord(vec3Data.y, sourcePos.Y, sourceUp), 
+		resolveCoord(vec3Data.z, sourcePos.Z, sourceLook)
+	)
+end
+
 --
 
 local function getEntityPosition(entity): CFrame?
@@ -245,7 +368,7 @@ end
 
 --
 
-local dispatcher: CommandDispatcher = CommandDispatcher.new()
+local dispatcher: CommandDispatcher<Player> = CommandDispatcher.new()
 
 --[=[
 	root
@@ -254,43 +377,29 @@ local dispatcher: CommandDispatcher = CommandDispatcher.new()
 	│   └── <player1>
 	│       ├── <player2> (tp player1 to player2)
 	│       └── [execute] (tp self to player1)
-	└── kill
-		├── <target>
-		└── [execute] (kill target)
+	├── kill
+	│   ├── <target>
+	│   └── [execute] (kill target)
+	├── ?
+	│   ├── [execute] (shows a list of commands)
+	│   └── <command>
+	│       └─── [execute] (shows the usage of that command)
 ]=]
-dispatcher:register(
+local teleportNode = dispatcher:register(
 	literal("teleport")
 		:andThen(
-			argument("x", integer())
-				:andThen(
-					argument("y", integer())
-						:andThen(
-							argument("z", integer())
-								:executes(function(c)
-									local x = c:getArgument("x")
-									local y = c:getArgument("y") 
-									local z = c:getArgument("z")
-									local playerSource = c:getSource()
-
-									local playerCharacter = (playerSource :: Player).Character
-									if not playerCharacter then
-										error("Player has no Character.")
-									end
-
-									-- what the fuck.
-									local cf2 = playerCharacter.PrimaryPart.CFrame
-									local posSource = CFrame.new(x, y, z)
-									local oriSource = CFrame.new(0, 0, 0,
-										cf2.XVector.X, cf2.YVector.X, cf2.ZVector.X,
-										cf2.XVector.Y, cf2.YVector.Y, cf2.ZVector.Y,
-										cf2.XVector.Z, cf2.YVector.Z, cf2.ZVector.Z
-									)
-									playerCharacter:PivotTo(posSource * oriSource)
-
-									return 1
-								end)
-						)
-				)
+			argument("location", vec3())
+				:executes(function(c)
+					local vec3Data = c:getArgument("location")
+					local source = c:getSource()
+					local targetPos = resolveVec3(vec3Data, source)
+					
+					local character = source.Character
+					if character then
+						character:PivotTo(CFrame.new(targetPos))
+					end
+					return 1
+				end)
 		)
 		:andThen(
 			argument("player1", player())
@@ -625,6 +734,64 @@ dispatcher:register(
 					entityInstClone.Parent = workspace
 				end)
 		)
+)
+
+local helpNode = dispatcher:register(
+	literal("?")
+		:executes(function(c)
+			local source = c:getSource()
+			local availableCommands = dispatcher:getAllUsage(dispatcher.root, source, false)
+			
+			local helpText = "Available commands:\n"
+			for i, command in ipairs(availableCommands) do
+				helpText = helpText .. "/" .. command .. "\n"
+			end
+			
+			-- Remove trailing newline
+			helpText = helpText:sub(1, -2)
+			
+			TypedRemotes.ClientBoundChatMessage:FireClient(source, {
+				literalString = helpText, 
+				type = "plain"
+			})
+			
+			return #availableCommands
+		end)
+		:andThen(
+			argument("command", string())
+				:executes(function(c)
+					local source = c:getSource()
+					local commandName = c:getArgument("command")
+					
+					local commandNode = dispatcher.root:getChild(commandName)
+					if not commandNode then
+						error(`'{commandName}' is not a valid command.`)
+					end
+					
+					local commandsDetail = dispatcher:getAllUsage(commandNode, source, false)
+					local helpText = `Command tree for '{commandName}':\n`
+					for i, command in ipairs(commandsDetail) do
+						helpText = helpText .. "/" .. commandName .. " " .. command .. "\n"
+					end
+
+					helpText = helpText:sub(1, -2)
+					
+					TypedRemotes.ClientBoundChatMessage:FireClient(source, {
+						literalString = helpText, 
+						type = "plain"
+					})
+				end)
+		)
+)
+
+dispatcher:register(
+	literal("help")
+		:redirect(helpNode)
+)
+
+dispatcher:register(
+	literal("tp")
+		:redirect(teleportNode)
 )
 
 Players.PlayerAdded:Connect(function(player)

@@ -13,10 +13,11 @@ ArgumentBuilder.__index = ArgumentBuilder
 export type ArgumentBuilder = typeof(setmetatable({} :: {
 	executes: (self: ArgumentBuilder, command: CommandFunction) -> ArgumentBuilder,
 	andThen: (self: ArgumentBuilder, child: ArgumentBuilder) -> ArgumentBuilder,
-	build: (self: ArgumentBuilder) -> CommandNode
+	redirect: (self: ArgumentBuilder, target: CommandNode<S>) -> ArgumentBuilder,
+	build: (self: ArgumentBuilder) -> CommandNode<S>
 }, ArgumentBuilder))
 
 type CommandFunction = CommandFunction.CommandFunction
-type CommandNode = CommandNode.CommandNode
+type CommandNode<S> = CommandNode.CommandNode<S>
 
 return ArgumentBuilder

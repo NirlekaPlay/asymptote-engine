@@ -13,28 +13,59 @@ local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local CommandDispatcher = {}
 CommandDispatcher.__index = CommandDispatcher
 
-export type CommandDispatcher = typeof(setmetatable({} :: {
-	root: CommandNode
+export type CommandDispatcher<S> = typeof(setmetatable({} :: {
+	root: CommandNode<S>
 }, CommandDispatcher))
 
-type CommandNode = CommandNode.CommandNode
-type CommandContext = CommandContext.CommandContext
-type LiteralArgumentBuilder = LiteralArgumentBuilder.LiteralArgumentBuilder
+type CommandNode<S> = CommandNode.CommandNode<S>
+type CommandContext<S> = CommandContext.CommandContext<S>
+type LiteralArgumentBuilder<S> = LiteralArgumentBuilder.LiteralArgumentBuilder<S>
 
 --[=[
 	Creates a new `CommandDispatcher` with an empty command tree.
 ]=]
-function CommandDispatcher.new(): CommandDispatcher
+function CommandDispatcher.new(): CommandDispatcher<any>
 	return setmetatable({ root = CommandNode.new("", "literal", nil) }, CommandDispatcher)
 end
 
-function CommandDispatcher.register(self: CommandDispatcher, command: LiteralArgumentBuilder): CommandNode
-	local node = command:build()
+function CommandDispatcher.register<S>(self: CommandDispatcher<S>, command: LiteralArgumentBuilder<S>): CommandNode<S>
+	local node = command:build() :: CommandNode<S> -- cant stfu
 	self.root:addChild(node)
 	return node
 end
 
-function CommandDispatcher.parse(self: CommandDispatcher, input: string, source: any): (CommandContext?, string?)
+function CommandDispatcher.getRoot<S>(self: CommandDispatcher<S>): CommandNode<S>
+	return self.root
+end
+
+function CommandDispatcher:getAllUsage(node: CommandNode, source: any, restricted: boolean): {string}
+	local result = {}
+	self:_getAllUsage(node, source, result, "", restricted)
+	return result
+end
+
+function CommandDispatcher:_getAllUsage(node: CommandNode, source: any, result: {string}, prefix: string, restricted: boolean)
+	if restricted and not node:canUse(source) then
+		return
+	end
+	
+	if node.command then
+		table.insert(result, prefix)
+	end
+	
+	if node.redirect then
+		local redirect = node.redirect == self.root and "..." or "-> " .. node.redirect:getUsageText()
+		local redirectText = prefix == "" and node:getUsageText() .. " " .. redirect or prefix .. " " .. redirect
+		table.insert(result, redirectText)
+	elseif node.children then
+		for _, child in node.children do
+			local newPrefix = prefix == "" and child:getUsageText() or prefix .. " " .. child:getUsageText()
+			self:_getAllUsage(child, source, result, newPrefix, restricted)
+		end
+	end
+end
+
+function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, source: any): (CommandContext<S>?, string?)
 	local context = CommandContext.new({}, source)
 	local remaining = input:gsub("^%s+", "") -- trim leading whitespace
 	local currentNode = self.root
@@ -42,7 +73,6 @@ function CommandDispatcher.parse(self: CommandDispatcher, input: string, source:
 	while remaining ~= "" do
 		local found = false
 		local nextWord = remaining:match("^%S+")
-		
 		if not nextWord then break end
 		
 		-- Try literal matches first
@@ -51,6 +81,12 @@ function CommandDispatcher.parse(self: CommandDispatcher, input: string, source:
 			currentNode = literalChild
 			remaining = remaining:sub(nextWord:len() + 1):gsub("^%s+", "")
 			found = true
+			
+			-- Handle redirect immediately after matching
+			if currentNode.redirect then
+				currentNode = currentNode.redirect
+			end
+			
 		else
 			-- Try argument matches
 			for _, child in currentNode.children do
@@ -61,6 +97,12 @@ function CommandDispatcher.parse(self: CommandDispatcher, input: string, source:
 						currentNode = child
 						remaining = remaining:sub(consumed + 1):gsub("^%s+", "")
 						found = true
+						
+						-- Handle redirect for argument nodes too
+						if currentNode.redirect then
+							currentNode = currentNode.redirect
+						end
+						
 						break
 					end
 				end
@@ -72,12 +114,11 @@ function CommandDispatcher.parse(self: CommandDispatcher, input: string, source:
 		end
 	end
 	
-	-- Store current node in context for execution
 	(context :: any).currentNode = currentNode
 	return context, remaining
 end
 
-function CommandDispatcher.execute(self: CommandDispatcher, input: string, source: any): number
+function CommandDispatcher.execute<S>(self: CommandDispatcher<S>, input: string, source: S): number
 	local context, remaining = self:parse(input, source)
 	
 	if not context then
