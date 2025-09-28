@@ -6,6 +6,9 @@ local Players = game:GetService("Players")
 	@class EntitySelectorParser
 
 	A Minecraft-style entity selector parser and resolver for Roblox.
+	If the input does not start with a selector (e.g. @a) then the parser
+	will resolve by treating it as a player name and search with case-insensitive
+	partial matching for each players' name and display name.
 	
 	## Supported Selectors
 	 * `@a`  - All players
@@ -110,7 +113,30 @@ function EntitySelectorParser.parse(input: string): (any, number)
 	
 	-- Check if it starts with @ (selector indicator)
 	if input:sub(1, 1) ~= "@" then
-		return nil, 0
+		print("called on a non selector")
+		-- Regular player name parsing
+
+		-- TODO: Might be a problem if there are multiple
+		-- players with similar names. e.g. John, john123, Johnny
+		local playerName = input:match("^%S+")
+		if not playerName then
+			error("Expected player name or selector")
+		end
+		
+		local foundPlayer = nil
+		for _, player in Players:GetPlayers() do
+			if player.Name:lower():find(playerName:lower(), 1, true) == 1 or
+				player.DisplayName:lower():find(playerName:lower(), 1, true) == 1 then
+				foundPlayer = player
+				break
+			end
+		end
+		
+		if not foundPlayer then
+			error("Player '" .. playerName .. "' not found")
+		end
+		
+		return foundPlayer, playerName:len()
 	end
 	
 	-- Parse the selector pattern: @<type>[parameters]
