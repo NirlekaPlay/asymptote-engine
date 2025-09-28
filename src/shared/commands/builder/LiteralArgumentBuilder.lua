@@ -31,19 +31,19 @@ function LiteralArgumentBuilder.new(literalString: string): LiteralArgumentBuild
 	}, LiteralArgumentBuilder)
 end
 
-function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction): ArgumentBuilder
+function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction): LiteralArgumentBuilder<S>
 	self.command = commandFunc
-	return self :: ArgumentBuilder
+	return self
 end
 
-function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder): ArgumentBuilder
+function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder): LiteralArgumentBuilder<S>
 	table.insert(self.children, child)
-	return self :: ArgumentBuilder
+	return self
 end
 
-function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: CommandNode<S>): ArgumentBuilder
+function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: CommandNode<S>): LiteralArgumentBuilder<S>
 	self.redirectNode = target
-	return self :: ArgumentBuilder
+	return self
 end
 
 function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): CommandNode<S>
