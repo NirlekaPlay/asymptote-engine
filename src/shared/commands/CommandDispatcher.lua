@@ -11,6 +11,7 @@ local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
 		return
 	end
 }
+
 --[=[
 	@class CommandDispatcher
 
@@ -59,7 +60,7 @@ function CommandDispatcher.getAllUsage<S>(self: CommandDispatcher<S>, node: Comm
 	return result
 end
 
-function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: any, result: {string}, prefix: string, restricted: boolean)
+function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: S, result: {string}, prefix: string, restricted: boolean)
 	if restricted and not node:canUse(source) then
 		return
 	end
@@ -80,7 +81,7 @@ function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: Com
 	end
 end
 
-function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, source: any): (CommandContext<S>?, string?)
+function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, source: S): (CommandContext<S>?, string?)
 	local context = CommandContext.new({}, source)
 	local remaining = input:gsub("^%s+", "") -- trim leading whitespace
 	local currentNode = self.root
@@ -106,7 +107,7 @@ function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, s
 			-- Try argument matches
 			for _, child in currentNode.children do
 				if child.nodeType == "argument" and child.argumentType then
-					local success, value, consumed = pcall(child.argumentType.parse, remaining)
+					local success, value, consumed: number = pcall(child.argumentType.parse, remaining)
 					if success then
 						context.arguments[child.name] = value
 						currentNode = child
