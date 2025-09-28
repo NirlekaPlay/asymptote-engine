@@ -8,7 +8,7 @@ CommandContext.__index = CommandContext
 
 export type CommandContext<S> = typeof(setmetatable({} :: {
 	arguments: { [string]: any },
-	source: any
+	source: S
 }, CommandContext))
 
 function CommandContext.new<S>(arguments: { [string]: any }, source: S): CommandContext<S>
