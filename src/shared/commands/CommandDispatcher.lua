@@ -1,10 +1,16 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ResultConsumer = require(ReplicatedStorage.shared.commands.ResultConsumer)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
+local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
+	onCommandComplete = function(context: CommandContext<any>, success: boolean, result: number)
+		return
+	end
+}
 --[=[
 	@class CommandDispatcher
 
@@ -14,18 +20,23 @@ local CommandDispatcher = {}
 CommandDispatcher.__index = CommandDispatcher
 
 export type CommandDispatcher<S> = typeof(setmetatable({} :: {
-	root: CommandNode<S>
+	root: CommandNode<S>,
+	consumer: ResultConsumer<S>
 }, CommandDispatcher))
 
 type CommandNode<S> = CommandNode.CommandNode<S>
 type CommandContext<S> = CommandContext.CommandContext<S>
 type LiteralArgumentBuilder<S> = LiteralArgumentBuilder.LiteralArgumentBuilder<S>
+type ResultConsumer<S> = ResultConsumer.ResultConsumer<S>
 
 --[=[
 	Creates a new `CommandDispatcher` with an empty command tree.
 ]=]
 function CommandDispatcher.new(): CommandDispatcher<any>
-	return setmetatable({ root = CommandNode.new("", "literal", nil) }, CommandDispatcher)
+	return setmetatable({
+		root = CommandNode.new("", "literal", nil),
+		consumer = EMPTY_RESULT_CONSUMER
+	}, CommandDispatcher)
 end
 
 function CommandDispatcher.register<S>(self: CommandDispatcher<S>, command: LiteralArgumentBuilder<S>): CommandNode<S>
@@ -34,17 +45,21 @@ function CommandDispatcher.register<S>(self: CommandDispatcher<S>, command: Lite
 	return node
 end
 
+function CommandDispatcher.setConsumer<S>(self: CommandDispatcher<S>, consumer: ResultConsumer<S>): ()
+	self.consumer = consumer
+end
+
 function CommandDispatcher.getRoot<S>(self: CommandDispatcher<S>): CommandNode<S>
 	return self.root
 end
 
-function CommandDispatcher:getAllUsage(node: CommandNode, source: any, restricted: boolean): {string}
-	local result = {}
+function CommandDispatcher.getAllUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: any, restricted: boolean): {string}
+	local result: {string} = {}
 	self:_getAllUsage(node, source, result, "", restricted)
 	return result
 end
 
-function CommandDispatcher:_getAllUsage(node: CommandNode, source: any, result: {string}, prefix: string, restricted: boolean)
+function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: any, result: {string}, prefix: string, restricted: boolean)
 	if restricted and not node:canUse(source) then
 		return
 	end
