@@ -18,7 +18,7 @@ function CommandContext.new<S>(arguments: { [string]: any }, source: S): Command
 	}, CommandContext)
 end
 
-function CommandContext.getArgument<S>(self: CommandContext<S>, name: string): ()
+function CommandContext.getArgument<S>(self: CommandContext<S>, name: string): any
 	return self.arguments[name]
 end
 
