@@ -16,7 +16,7 @@
       ["Control! I just found a bomb!"],
       ["Control! I think I just found a bomb!"],
       ["I've got an explosive device over here!"],
-      ["Shrimp!", "Control! I found an IDE!"]
+      ["Shrimp!", "Control! I found an IED!"]
     ],
     "entity_dead_body_unknown": [
       ["Control, I just found someone's corpse!"],
