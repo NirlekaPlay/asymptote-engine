@@ -32,7 +32,7 @@ workspace.DescendantAdded:Connect(function(inst)
 
 	if inst:IsA("Accessory") or inst:IsA("Hat") or inst.Name == "HumanoidRootPart" then
 		table.insert(sharedRayIgnoreList, inst)
-	elseif inst:IsA("BasePart") and not inst.CanCollide and not inst.Parent:FindFirstChildOfClass("Humanoid") then
+	elseif inst:IsA("BasePart") and not inst.CanCollide and not (inst.Parent and inst.Parent:FindFirstChildOfClass("Humanoid")) then
 		table.insert(sharedRayIgnoreList, inst)
 	end
 end)
