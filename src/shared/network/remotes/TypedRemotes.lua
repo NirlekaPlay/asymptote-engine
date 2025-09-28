@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
+local ClientBoundChatMessagePayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundChatMessagePayload)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
@@ -26,5 +27,7 @@ return {
 	JoinStableServer = RE("JoinStableServer") :: RE<>,
 	--
 	BrainDebugDump = RE("BrainDebugDump") :: RE<{BrainDebugPayload.BrainDump}>,
-	SubscribeDebugDump = RE("SubscribeDebugDump") :: RE<string, boolean>
+	SubscribeDebugDump = RE("SubscribeDebugDump") :: RE<string, boolean>,
+	--
+	ClientBoundChatMessage = RE("ClientBoundChatMessage") :: RE<ClientBoundChatMessagePayload.ClientBoundChatMessagePayload>
 }
