@@ -4,7 +4,9 @@ local Debris = game:GetService("Debris")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
+local RestartServerCommand = require(ServerScriptService.server.commands.RestartServerCommand)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
@@ -793,6 +795,8 @@ dispatcher:register(
 	literal("tp")
 		:redirect(teleportNode)
 )
+
+RestartServerCommand.register(dispatcher)
 
 Players.PlayerAdded:Connect(function(player)
 	player.Chatted:Connect(function(str)
