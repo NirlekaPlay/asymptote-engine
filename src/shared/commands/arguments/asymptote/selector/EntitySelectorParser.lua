@@ -39,6 +39,9 @@ local Players = game:GetService("Players")
 	
 	 * `team=TeamName`  - Players on specific team
 	 * `team=!TeamName` - Players NOT on this team
+
+	 * `alive=true`     - Alive entities
+	 * `alive=false`    - Dead entities  
 	
 	 * `limit=N`        - Maximum number of results
 
