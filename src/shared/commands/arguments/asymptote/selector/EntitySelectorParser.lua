@@ -315,6 +315,28 @@ local function applyFilters(entities, params, source)
 			if negate then teamMatch = not teamMatch end
 			if not teamMatch then include = false end
 		end
+
+		-- Alive filter
+		if params.alive then
+			local shouldBeAlive = params.alive:lower() == "true"
+			local isAlive = false
+			
+			if entity.ClassName == "Player" then
+				local character = entity.Character
+				if character then
+					local humanoid = character:FindFirstChildOfClass("Humanoid")
+					isAlive = humanoid and humanoid.Health > 0
+				end
+			else
+				-- For NPCs, check Humanoid directly
+				local humanoid = entity:FindFirstChildOfClass("Humanoid")
+				isAlive = humanoid and humanoid.Health > 0
+			end
+			
+			if shouldBeAlive ~= isAlive then
+				include = false
+			end
+		end
 		
 		-- Limit filter - handled after all other filtering
 		if include then
