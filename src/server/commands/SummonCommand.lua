@@ -18,12 +18,17 @@ local NAMES_PER_ENTITIES = {
 }
 
 function SummonCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
-	dispatcher:register(
+	local summonNode = dispatcher:register(
 		LiteralArgumentBuilder.new("summon")
 			:andThen(
 				RequiredArgumentBuilder.new("entityName", StringArgumentType)
 					:executes(SummonCommand.summon)
 			)
+	)
+
+	dispatcher:register(
+		LiteralArgumentBuilder.new("spawn")
+			:redirect(summonNode)
 	)
 end
 
