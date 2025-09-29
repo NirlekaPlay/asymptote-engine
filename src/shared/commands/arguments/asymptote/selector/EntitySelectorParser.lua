@@ -148,7 +148,7 @@ function EntitySelectorParser.parse(input: string): (any, number)
 	local parameters = ""
 	
 	-- Parse selector type (@a, @p, @e, etc.)
-	local typeMatch = input:match("^@([apesr])")
+	local typeMatch = input:match("^@([apesrm])")
 	if not typeMatch then
 		return nil, 0
 	end
