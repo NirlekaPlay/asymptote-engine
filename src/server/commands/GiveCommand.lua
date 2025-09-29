@@ -16,7 +16,8 @@ local GiveCommand = {}
 local TOOLS_PER_INST = {
 	["fbb"] = ServerStorage.Tools["FB Beryl"],
 	["bob_spawner"] = ServerStorage.Tools["Bob Spawner"],
-	["c4"] = ReplicatedStorage.ExplFolder["Remote Explosive"]
+	["c4"] = ReplicatedStorage.ExplFolder["Remote Explosive"],
+	["f3x"] = ServerStorage.Tools["F3X"]
 } :: { [string]: Instance }
 
 local ATTRIBUTE_HANDLERS = {
