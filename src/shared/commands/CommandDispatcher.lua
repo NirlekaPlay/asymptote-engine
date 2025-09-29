@@ -120,6 +120,8 @@ function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, s
 						end
 						
 						break
+					else
+						warn("argument parser returned failure.\n", value)
 					end
 				end
 			end
