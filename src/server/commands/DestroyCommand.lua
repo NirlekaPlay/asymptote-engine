@@ -25,9 +25,8 @@ end
 function DestroyCommand.destroyAllTargets(targets: {Instance}): ()
 	for _, inst in ipairs(targets) do 
 		if inst:IsA("Player") then
-			if inst.Character then
-				inst.Character:Destroy()
-			end
+			warn(`Destroy command: Cannot attempt to destroy {inst}, as its a Player.`)
+			continue
 		else
 			inst:Destroy()
 		end
