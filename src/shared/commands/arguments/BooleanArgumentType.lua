@@ -36,7 +36,7 @@ function BooleanArgumentType.getBool<S>(context: CommandContext.CommandContext<S
 	return boolArg
 end
 
-function BooleanArgumentType.parse(self: BooleanArgumentType, input: string): (any, number)
+function BooleanArgumentType.parse(self: BooleanArgumentType, input: string): (boolean, number)
 	local word = (input:match("^%S+") :: string):lower()
 	
 	if word == "true" then
