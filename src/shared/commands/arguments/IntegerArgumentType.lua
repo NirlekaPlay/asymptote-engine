@@ -1,5 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+
 --[=[
 	@class IntegerArgumentType
 
@@ -43,6 +46,14 @@ function IntegerArgumentType.integer(min: number?, max: number?): IntegerArgumen
 	else
 		return IntegerArgumentType.new(DEFAULT_MIN_INT, DEFAULT_MAX_INT)
 	end
+end
+
+function IntegerArgumentType.getInteger<S>(context: CommandContext.CommandContext<S>, name: string): number
+	local intArg = context:getArgument(name)
+	if type(intArg) ~= "number" then
+		error(`Argument '{name}' results in a value of type {typeof(intArg)}, expected number`)
+	end
+	return intArg
 end
 
 function IntegerArgumentType.parse(self: IntegerArgumentType, input: string): (number, number)

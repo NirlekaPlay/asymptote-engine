@@ -1,5 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+
 --[=[
 	@class BooleanArgumentType
 
@@ -23,6 +26,14 @@ function BooleanArgumentType.bool(): BooleanArgumentType
 		return setmetatable({}, BooleanArgumentType) :: BooleanArgumentType
 	end
 	return BOOL_INST
+end
+
+function BooleanArgumentType.getBool<S>(context: CommandContext.CommandContext<S>, name: string): boolean
+	local boolArg = context:getArgument(name)
+	if type(boolArg) ~= "boolean" then
+		error(`Argument '{name}' results in a value of type {typeof(boolArg)}, expected boolean`)
+	end
+	return boolArg
 end
 
 function BooleanArgumentType.parse(self: BooleanArgumentType, input: string): (any, number)
