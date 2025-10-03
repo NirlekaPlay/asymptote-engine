@@ -82,58 +82,82 @@ function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: Com
 end
 
 function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, source: S): (CommandContext<S>?, string?)
-	local context = CommandContext.new({}, source)
-	local remaining = input:gsub("^%s+", "") -- trim leading whitespace
-	local currentNode = self.root
+	-- Try to parse, collecting ALL possible results
+	local results = self:tryParseAll(self.root, input, source, {})
 	
-	while remaining ~= "" do
-		local found = false
-		local nextWord = remaining:match("^%S+")
-		if not nextWord then break end
-		
-		-- Try literal matches first
-		local literalChild = currentNode:getChild(nextWord)
-		if literalChild and literalChild.nodeType == "literal" then
-			currentNode = literalChild
-			remaining = remaining:sub(nextWord:len() + 1):gsub("^%s+", "")
-			found = true
-			
-			-- Handle redirect immediately after matching
-			if currentNode.redirect then
-				currentNode = currentNode.redirect
-			end
-			
-		else
-			-- Try argument matches
-			for _, child in currentNode.children do
-				if child.nodeType == "argument" and child.argumentType then
-					local success, value, consumed: number = pcall(child.argumentType.parse, child.argumentType, remaining)
-					if success then
-						context.arguments[child.name] = value
-						currentNode = child
-						remaining = remaining:sub(consumed + 1):gsub("^%s+", "")
-						found = true
-						
-						-- Handle redirect for argument nodes too
-						if currentNode.redirect then
-							currentNode = currentNode.redirect
-						end
-						
-						break
-					else
-						warn("argument parser returned failure.\n", value)
-					end
-				end
-			end
+	if #results == 0 then
+		return nil, "No valid parse found"
+	end
+	
+	-- Pick the result that consumed the most input
+	table.sort(results, function(a, b)
+		return #a.remaining < #b.remaining
+	end)
+	
+	return results[1].context, results[1].remaining
+end
+
+function CommandDispatcher.tryParseAll<S>(
+	self: CommandDispatcher<S>,
+	node: any,
+	remaining: string,
+	source: S,
+	argsSoFar: {[string]: any}
+): {{context: CommandContext<S>, remaining: string}}
+	
+	remaining = remaining:gsub("^%s+", "")
+	
+	if remaining == "" then
+		-- End of input - return this parse if node can execute
+		if node:canExecute() then
+			local ctx = CommandContext.new(argsSoFar, source);
+			(ctx :: any).currentNode = node
+			return {{context = ctx, remaining = ""}}
 		end
-		
-		if not found then
-			break
+		return {}
+	end
+	
+	local allResults = {}
+	local nextWord = remaining:match("^%S+")
+	
+	-- Try literal children
+	local literalChild = node:getChild(nextWord)
+	if literalChild and literalChild.nodeType == "literal" then
+		local newRemaining = remaining:sub(#nextWord + 1):gsub("^%s+", "")
+		local targetNode = literalChild.redirect or literalChild
+		local results = self:tryParseAll(targetNode, newRemaining, source, argsSoFar)
+		for _, r in results do
+			table.insert(allResults, r)
 		end
 	end
 	
-	(context :: any).currentNode = currentNode
-	return context, remaining
+	-- Try ALL argument children (not just first match!)
+	for _, child in node.children do
+		if child.nodeType == "argument" and child.argumentType then
+			local success, value, consumed = pcall(child.argumentType.parse, child.argumentType, remaining)
+			if success then
+				local newArgs = table.clone(argsSoFar)
+				newArgs[child.name] = value
+				local newRemaining = remaining:sub(consumed + 1):gsub("^%s+", "")
+				local targetNode = child.redirect or child
+				
+				-- Recursively try to parse rest
+				local results = self:tryParseAll(targetNode, newRemaining, source, newArgs)
+				for _, r in results do
+					table.insert(allResults, r)
+				end
+			end
+		end
+	end
+	
+	-- If current node can execute, also consider stopping here
+	if node:canExecute() and #allResults == 0 then
+		local ctx = CommandContext.new(argsSoFar, source);
+		(ctx :: any).currentNode = node
+		return {{context = ctx, remaining = remaining}}
+	end
+	
+	return allResults
 end
 
 function CommandDispatcher.execute<S>(self: CommandDispatcher<S>, input: string, source: S): number
