@@ -23,7 +23,7 @@ function ForceFieldCommand.register(dispatcher: CommandDispatcher.CommandDispatc
 			end)
 		
 		:andThen(
-			RequiredArgumentBuilder.new("targets", EntitySelectorParser)
+			RequiredArgumentBuilder.new("targets", EntitySelectorParser.entities())
 				:executes(function(c)
 					local selectorData = c:getArgument("targets") :: any
 					local source = c:getSource()

@@ -21,7 +21,7 @@ function HighlightCommand.register(dispatcher: CommandDispatcher.CommandDispatch
 		end)
 	
 	-- Create the entities node
-	local entitiesNode = RequiredArgumentBuilder.new("entities", EntitySelectorParser)
+	local entitiesNode = RequiredArgumentBuilder.new("entities", EntitySelectorParser.entities())
 		:andThen(boolNode)
 		:executes(function(c)
 			-- Default to true when no boolean is provided

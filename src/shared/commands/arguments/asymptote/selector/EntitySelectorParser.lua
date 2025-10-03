@@ -59,6 +59,11 @@ local Players = game:GetService("Players")
 	*NOTE: Distance calculations require HumanoidRootPart or PrimaryPart*
 ]=]
 local EntitySelectorParser = {}
+EntitySelectorParser.__index = EntitySelectorParser
+
+function EntitySelectorParser.entities()
+	return setmetatable({}, EntitySelectorParser)
+end
 
 local function parseParameters(paramString: string)
 	local params = {}
@@ -109,7 +114,7 @@ local function parseParameters(paramString: string)
 	return params
 end
 
-function EntitySelectorParser.parse(input: string): (any, number)
+function EntitySelectorParser.parse(self, input: string): (any, number)
 	if not input or input == "" then
 		return nil, 0
 	end

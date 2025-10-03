@@ -11,7 +11,7 @@ function DestroyCommand.register(dispatcher: CommandDispatcher.CommandDispatcher
 	dispatcher:register(
 		LiteralArgumentBuilder.new("destroy")
 			:andThen(
-				RequiredArgumentBuilder.new("victims", EntitySelectorParser)
+				RequiredArgumentBuilder.new("victims", EntitySelectorParser.entities())
 					:executes(function(c)
 						local selectorData = c:getArgument("victims") :: any
 						local source = c:getSource()

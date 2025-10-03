@@ -19,144 +19,19 @@ local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.Argumen
 local BooleanArgumentType = require(ReplicatedStorage.shared.commands.arguments.BooleanArgumentType)
 local IntegerArgumentType = require(ReplicatedStorage.shared.commands.arguments.IntegerArgumentType)
 local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
+local JsonArgumentType = require(ReplicatedStorage.shared.commands.arguments.json.JsonArgumentType)
+local Vector3ArgumentType = require(ReplicatedStorage.shared.commands.arguments.position.Vector3ArgumentType)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
 type ArgumentType = ArgumentType.ArgumentType
 type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandDispatcher<S> = CommandDispatcher.CommandDispatcher<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
 type CommandFunction = CommandFunction.CommandFunction
-
-local function parseCoordinate(input: string): (CoordinateData?, number)
-	-- Relative coordinate: ~5, ~-10, ~
-	local relativeMatch = input:match("^~(%-?%d*)")
-	if relativeMatch ~= nil then
-		local offset = relativeMatch == "" and 0 or tonumber(relativeMatch)
-		local consumed = 1 + #relativeMatch
-		return {
-			type = "relative",
-			value = offset
-		}, consumed
-	end
-	
-	-- Local coordinate: ^5, ^-2, ^
-	local localMatch = input:match("^%^(%-?%d*)")
-	if localMatch ~= nil then
-		local offset = localMatch == "" and 0 or tonumber(localMatch)
-		local consumed = 1 + #localMatch
-		return {
-			type = "local", 
-			value = offset
-		}, consumed
-	end
-	
-	-- Absolute coordinate: 10, -5, 0
-	local absoluteMatch = input:match("^(%-?%d+%.?%d*)")
-	if absoluteMatch then
-		return {
-			type = "absolute",
-			value = tonumber(absoluteMatch)
-		}, #absoluteMatch
-	end
-	
-	return nil, 0
-end
-
-local function vec3(): ArgumentType
-	return {
-		parse = function(input: string): (any, number)
-			local remaining = input
-			local coords = {}
-			local totalConsumed = 0
-			
-			-- Parse 3 coordinates (x, y, z)
-			for i = 1, 3 do
-				-- Skip whitespace
-				remaining = remaining:match("^%s*(.*)") or remaining
-				
-				-- Try to parse a coordinate (can be relative ~, absolute number, or local ^)
-				local coord, consumed = parseCoordinate(remaining)
-				if not coord then
-					error(`Expected coordinate {i == 1 and "x" or i == 2 and "y" or "z"}`)
-				end
-				
-				coords[i] = coord
-				remaining = remaining:sub(consumed + 1)
-				totalConsumed = totalConsumed + consumed
-				
-				-- Add whitespace consumption
-				local whitespace = remaining:match("^(%s*)")
-				if whitespace then
-					remaining = remaining:sub(#whitespace + 1)
-					totalConsumed = totalConsumed + #whitespace
-				end
-			end
-			
-			return {
-				x = coords[1],
-				y = coords[2], 
-				z = coords[3]
-			}, totalConsumed
-		end
-	}
-end
-
-export type CoordinateData = {
-	type: "relative" | "absolute" | "local",
-	value: number
-}
-
-export type Vec3Data = {
-	x: CoordinateData,
-	y: CoordinateData,
-	z: CoordinateData
-}
-
-local function resolveVec3(vec3Data: Vec3Data, source: any): Vector3
-	local sourcePos = Vector3.new(0, 0, 0)
-	local sourceLook = Vector3.new(0, 0, -1) -- Forward direction
-	local sourceRight = Vector3.new(1, 0, 0) -- Right direction
-	local sourceUp = Vector3.new(0, 1, 0)    -- Up direction
-	
-	-- Get source position and orientation if it's a player
-	if typeof(source) == "Instance" and source:IsA("Player") and source.Character then
-		local character = source.Character
-		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-		if humanoidRootPart then
-			sourcePos = humanoidRootPart.Position
-			sourceLook = humanoidRootPart.CFrame.LookVector
-			sourceRight = humanoidRootPart.CFrame.RightVector  
-			sourceUp = humanoidRootPart.CFrame.UpVector
-		end
-	end
-	
-	local function resolveCoord(coord: CoordinateData, currentPos: number, localAxis: Vector3): number
-		if coord.type == "absolute" then
-			return coord.value
-		elseif coord.type == "relative" then
-			return currentPos + coord.value
-		elseif coord.type == "local" then
-			-- Local coordinates are relative to entity's facing direction
-			return currentPos + coord.value
-		end
-		return coord.value
-	end
-	
-	return Vector3.new(
-		resolveCoord(vec3Data.x, sourcePos.X, sourceRight),
-		resolveCoord(vec3Data.y, sourcePos.Y, sourceUp), 
-		resolveCoord(vec3Data.z, sourcePos.Z, sourceLook)
-	)
-end
-
---
-
-
-
---
 
 local dispatcher: CommandDispatcher<Player> = CommandDispatcher.new()
 
@@ -170,6 +45,22 @@ ForceFieldCommand.register(dispatcher)
 SummonCommand.register(dispatcher)
 GiveCommand.register(dispatcher)
 HelpCommand.register(dispatcher)
+--[=[dispatcher:register(
+	LiteralArgumentBuilder.new("foo")
+		:andThen(
+			RequiredArgumentBuilder.new("bar", Vector3ArgumentType.vec3())
+				:executes(function(c)
+					local pos = Vector3ArgumentType.resolveAndGetVec3(c, "bar", c:getSource())
+					Draw.point(pos)
+					--[[local parsedResult = Vector3ArgumentType.getVec3(c, "bar")
+					print("Parsed result:", parsedResult)
+					local resolvedPosition = Vector3ArgumentType.resolveVec3(parsedResult, c:getSource())
+					print("current position:", c:getSource().Character.HumanoidRootPart.Position)
+					print("resolved pos:", resolvedPosition)
+					Draw.point(resolvedPosition)]]
+				end)
+		)
+)]=]
 
 Players.PlayerAdded:Connect(function(player)
 	player.Chatted:Connect(function(str)

@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
+local Vector3ArgumentType = require(ReplicatedStorage.shared.commands.arguments.position.Vector3ArgumentType)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 
@@ -12,9 +13,19 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 	local teleportNode = dispatcher:register(
 		LiteralArgumentBuilder.new("teleport")
 			:andThen(
-				RequiredArgumentBuilder.new("entity1", EntitySelectorParser)
+				RequiredArgumentBuilder.new("location", Vector3ArgumentType.vec3())
 					:executes(function(c)
-						local selectorData = c:getArgument("entity1") :: any
+						local source = c:getSource()
+						local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source)
+						TeleportCommand.teleportEntity(source, CFrame.new(vec3.X, vec3.Y, vec3.Z), false)
+						return 1
+					end)
+			)
+
+			:andThen(
+				RequiredArgumentBuilder.new("destination", EntitySelectorParser.entities())
+					:executes(function(c)
+						local selectorData = c:getArgument("destination") :: any
 						local source = c:getSource() :: Player
 
 						if not source.Character or not source.Character.PrimaryPart then
@@ -28,12 +39,15 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 
 						TeleportCommand.teleportEntityToEntity(source, targets[1])
 					end)
+			)
 
+			:andThen(
+				RequiredArgumentBuilder.new("targets", EntitySelectorParser.entities())
 					:andThen(
-						RequiredArgumentBuilder.new("entity2", EntitySelectorParser)
+						RequiredArgumentBuilder.new("destination", EntitySelectorParser.entities())
 							:executes(function(c)
-								local targetData = c:getArgument("entity2")
-								local sourceData = c:getArgument("entity1")
+								local targetData = c:getArgument("destination")
+								local sourceData = c:getArgument("targets")
 								local cmdSource = c:getSource()
 								
 								local targets = EntitySelectorParser.resolvePlayerSelector(targetData, cmdSource)
@@ -52,13 +66,31 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 								return #sources
 							end)
 					)
+
+					:andThen(
+						RequiredArgumentBuilder.new("location", Vector3ArgumentType.vec3())
+							:executes(function(c)
+								print("called")
+								local targetData = c:getArgument("targets")
+								local cmdSource = c:getSource()
+								local targets = EntitySelectorParser.resolvePlayerSelector(targetData, cmdSource)
+								local source = c:getSource()
+								local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source)
+								
+								for _, target in targets do
+									TeleportCommand.teleportEntity(target, CFrame.new(vec3.X, vec3.Y, vec3.Z), false)
+								end
+
+								return #targets
+							end)
+					)
 			)
 	)
 
 	dispatcher:register(
 		LiteralArgumentBuilder.new("tp")
 			:redirect(teleportNode)
-)
+	)
 end
 
 function TeleportCommand.getEntityPosition(entity: Instance): CFrame?
@@ -80,14 +112,26 @@ function TeleportCommand.teleportEntityToEntity(from: Instance, to: Instance): (
 	TeleportCommand.teleportEntity(from, toCframe)
 end
 
-function TeleportCommand.teleportEntity(entity: Instance, targetCFrame: CFrame): ()
+function TeleportCommand.teleportEntity(entity: Instance, targetCFrame: CFrame, rotated: boolean?): ()
 	if entity:IsA("Player") then
 		local char = entity.Character
 		if char then
-			char:PivotTo(targetCFrame)
+			if rotated then
+				char:PivotTo(targetCFrame)
+			else
+				local current = char:GetPivot()
+				local posOnly = CFrame.new(targetCFrame.Position) * (current - current.Position)
+				char:PivotTo(posOnly)
+			end
 		end
 	elseif entity:IsA("Model") and entity:FindFirstChildOfClass("Humanoid") then
-		entity:PivotTo(targetCFrame)
+		if rotated then
+			entity:PivotTo(targetCFrame)
+		else
+			local current = entity:GetPivot()
+			local posOnly = CFrame.new(targetCFrame.Position) * (current - current.Position)
+			entity:PivotTo(posOnly)
+		end
 	end
 end
 

@@ -103,7 +103,7 @@ function GiveCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Pl
 	dispatcher:register(
 		LiteralArgumentBuilder.new("give")
 			:andThen(
-				RequiredArgumentBuilder.new("target", EntitySelectorParser)
+				RequiredArgumentBuilder.new("target", EntitySelectorParser.entities())
 					:andThen(
 						RequiredArgumentBuilder.new("itemData", itemWithAttributes())
 							:executes(function(c)
