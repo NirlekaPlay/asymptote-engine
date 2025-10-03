@@ -35,7 +35,7 @@ function Vector3ArgumentType.vec3(): Vector3ArgumentType
 end
 
 function Vector3ArgumentType.resolveAndGetVec3<S>(context: CommandContext.CommandContext<S>, name: string, source: S): Vector3
-	return Vector3ArgumentType.resolveVec3(Vector3ArgumentType.getVec3(context, name))
+	return Vector3ArgumentType.resolveVec3(Vector3ArgumentType.getVec3(context, name), source)
 end
 
 function Vector3ArgumentType.getVec3<S>(context: CommandContext.CommandContext<S>, name: string): ParsedVector3Result
@@ -72,11 +72,11 @@ function Vector3ArgumentType.resolveVec3(parsedVec3Result: ParsedVector3Result, 
 end
 
 function Vector3ArgumentType.resolveCoord(coord: CoordinateData, currentPos: number, localAxis: Vector3): number
-	if coord.type == "absolute" then
+	if coord.type == COORDINATE_TYPES.ABSOLUTE then
 		return coord.value
-	elseif coord.type == "relative" then
+	elseif coord.type == COORDINATE_TYPES.RELATIVE then
 		return currentPos + coord.value
-	elseif coord.type == "local" then
+	elseif coord.type == COORDINATE_TYPES.LOCAL then
 		-- Local coordinates are relative to entity's facing direction
 		return currentPos + coord.value
 	end
@@ -121,21 +121,22 @@ function Vector3ArgumentType.parse(self: Vector3ArgumentType, input: string): (P
 end
 
 function Vector3ArgumentType.parseCoordinate(input: string): (CoordinateData?, number)
-	-- Relative coordinate: ~5, ~-10, ~
-	local relativeMatch = input:match("^~(%-?%d*)")
+	-- Relative coordinate: ~5, ~-10, ~, ~1.5, ~.25
+	local relativeMatch = input:match("^~(%-?%d*%.?%d*)")
 	if relativeMatch ~= nil then
-		local offset = relativeMatch == "" and 0 or tonumber(relativeMatch)
+		-- Handle empty string after ~ (just "~")
+		local offset = (relativeMatch == "" and 0) or tonumber(relativeMatch)
 		local consumed = 1 + #relativeMatch
 		return {
-			type = COORDINATE_TYPES.ABSOLUTE,
+			type = COORDINATE_TYPES.RELATIVE,
 			value = offset :: number
 		}, consumed
 	end
 	
-	-- Local coordinate: ^5, ^-2, ^
-	local localMatch = input:match("^%^(%-?%d*)")
+	-- Local coordinate: ^5, ^-2, ^, ^1.5, ^.25
+	local localMatch = input:match("^%^(%-?%d*%.?%d*)")
 	if localMatch ~= nil then
-		local offset = localMatch == "" and 0 or tonumber(localMatch)
+		local offset = (localMatch == "" and 0) or tonumber(localMatch)
 		local consumed = 1 + #localMatch
 		return {
 			type = COORDINATE_TYPES.LOCAL, 
@@ -143,7 +144,7 @@ function Vector3ArgumentType.parseCoordinate(input: string): (CoordinateData?, n
 		}, consumed
 	end
 	
-	-- Absolute coordinate: 10, -5, 0
+	-- Absolute coordinate: 10, -5, 0, 1.25, -0.75
 	local absoluteMatch = input:match("^(%-?%d+%.?%d*)")
 	if absoluteMatch then
 		return {
