@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
@@ -6,6 +6,7 @@ local BooleanArgumentType = require(ReplicatedStorage.shared.commands.arguments.
 local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 local HighlightCommand = {}
 
@@ -13,7 +14,7 @@ local HIGHLIGHT_INST_NAME = "CmdHighlight"
 
 function HighlightCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
 	-- Create the full command node
-	local boolNode = RequiredArgumentBuilder.new("bool", BooleanArgumentType)
+	local boolNode = RequiredArgumentBuilder.new("bool", BooleanArgumentType.bool())
 		:executes(function(c)
 			local flag = c:getArgument("bool") :: boolean
 			return HighlightCommand.executeHighlight(c, flag)
@@ -34,14 +35,14 @@ function HighlightCommand.register(dispatcher: CommandDispatcher.CommandDispatch
 	)
 end
 
-function HighlightCommand.executeHighlight(context, flag: boolean)
+function HighlightCommand.executeHighlight<S>(context: CommandContext.CommandContext<S>, flag: boolean): number
 	local selectorData = context:getArgument("entities")
 	local source = context:getSource()
 	local targets = EntitySelectorParser.resolvePlayerSelector(selectorData, source)
 	
 	for _, target in targets do
 		local targetChar
-		if target:IsA("Player") then
+		if target:IsA("Player") and target.Character then
 			targetChar = target.Character
 		else
 			targetChar = target

@@ -107,7 +107,7 @@ function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, s
 			-- Try argument matches
 			for _, child in currentNode.children do
 				if child.nodeType == "argument" and child.argumentType then
-					local success, value, consumed: number = pcall(child.argumentType.parse, remaining)
+					local success, value, consumed: number = pcall(child.argumentType.parse, child.argumentType, remaining)
 					if success then
 						context.arguments[child.name] = value
 						currentNode = child

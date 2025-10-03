@@ -1,11 +1,8 @@
---!nonstrict
+--!strict
 
-local Debris = game:GetService("Debris")
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
 local DestroyCommand = require(ServerScriptService.server.commands.DestroyCommand)
 local ForceFieldCommand = require(ServerScriptService.server.commands.ForceFieldCommand)
 local GiveCommand = require(ServerScriptService.server.commands.GiveCommand)
@@ -22,54 +19,16 @@ local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.Argumen
 local BooleanArgumentType = require(ReplicatedStorage.shared.commands.arguments.BooleanArgumentType)
 local IntegerArgumentType = require(ReplicatedStorage.shared.commands.arguments.IntegerArgumentType)
 local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
-local JsonArgumentType = require(ReplicatedStorage.shared.commands.arguments.json.JsonArgumentType)
-local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
-local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
-
-local INF = math.huge
 
 type ArgumentType = ArgumentType.ArgumentType
 type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandDispatcher<S> = CommandDispatcher.CommandDispatcher<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
 type CommandFunction = CommandFunction.CommandFunction
-
---
-
-local function itemWithAttributes(): ArgumentType
-	return {
-		parse = function(input: string): (any, number)
-			-- Parse item name first
-			local itemName = input:match("^%S+")
-			if not itemName then
-				error("Expected item name")
-			end
-			
-			local consumed = itemName:len()
-			local remaining = input:sub(consumed + 1)
-			
-			-- Check if there's JSON attributes
-			remaining = remaining:match("^%s*(.*)") -- trim whitespace
-			local attributes = nil
-			
-			if remaining and remaining:sub(1, 1) == "{" then
-				local jsonArg = json()
-				local attrData, jsonConsumed = jsonArg.parse(remaining)
-				attributes = attrData
-				consumed = consumed + (input:len() - remaining:len()) + jsonConsumed
-			end
-			
-			return {
-				itemName = itemName,
-				attributes = attributes
-			}, consumed
-		end
-	}
-end
 
 local function parseCoordinate(input: string): (CoordinateData?, number)
 	-- Relative coordinate: ~5, ~-10, ~
