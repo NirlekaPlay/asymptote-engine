@@ -1,14 +1,15 @@
 --!strict
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
 
+local QuoteOfTheDay = require(ReplicatedStorage.shared.quotes.QuoteOfTheDay)
+local QuoteOfTheDayList = require(ReplicatedStorage.shared.quotes.QuoteOfTheDayList)
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
-local QuoteOfTheDay = require(script.Parent.QuoteOfTheDay)
-local QuoteOfTheDayList = require(script.Parent.QuoteOfTheDayList)
 local UITextShadow = require(script.Parent.UITextShadow)
 
 local DEBUG_MODE_ATTRIBUTE_NAME = "QuoteOfTheDayDebugMode"
