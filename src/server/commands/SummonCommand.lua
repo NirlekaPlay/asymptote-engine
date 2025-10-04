@@ -21,7 +21,7 @@ function SummonCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<
 	local summonNode = dispatcher:register(
 		LiteralArgumentBuilder.new("summon")
 			:andThen(
-				RequiredArgumentBuilder.new("entityName", StringArgumentType)
+				RequiredArgumentBuilder.new("entityName", StringArgumentType.word())
 					:executes(SummonCommand.summon)
 			)
 	)

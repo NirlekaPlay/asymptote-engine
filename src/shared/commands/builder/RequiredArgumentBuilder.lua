@@ -14,18 +14,18 @@ RequiredArgumentBuilder.__index = RequiredArgumentBuilder
 
 export type RequiredArgumentBuilder = typeof(setmetatable({} :: {
 	argumentName: string,
-	argumentType: ArgumentType,
+	argumentType: ArgumentType<any>,
 	command: CommandFunction?,
 	children: { ArgumentBuilder },
 	redirectNode: CommandNode<S>?
 }, RequiredArgumentBuilder))
 
 type ArgumentBuilder = ArgumentBuilder.ArgumentBuilder
-type ArgumentType = ArgumentType.ArgumentType
+type ArgumentType<T> = ArgumentType.ArgumentType<T>
 type CommandFunction = CommandFunction.CommandFunction
 type CommandNode<S> = CommandNode.CommandNode<S>
 
-function RequiredArgumentBuilder.new(argumentName: string, argumentType: ArgumentType): RequiredArgumentBuilder
+function RequiredArgumentBuilder.new<T>(argumentName: string, argumentType: ArgumentType<T>): RequiredArgumentBuilder
 	return setmetatable({
 		argumentName = argumentName,
 		argumentType = argumentType,
