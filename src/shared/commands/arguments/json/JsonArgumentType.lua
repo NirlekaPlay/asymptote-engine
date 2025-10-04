@@ -41,7 +41,7 @@ export type JsonType = "JSON_OBJECT"
 
 export type JsonArgumentType = {
 	jsonType: JsonType,
-	parse: (self: JsonArgumentType, input: string) -> ({ [any]: any }, number)
+	parse: (self: JsonArgumentType, input: string) -> ({ [string]: any }, number)
 }
 
 function JsonArgumentType.new(jsonType: JsonType): JsonArgumentType
@@ -58,7 +58,7 @@ end
 
 --
 
-function JsonArgumentType.getJson<S>(context: CommandContext.CommandContext<S>, name: string): { [any]: any }
+function JsonArgumentType.getJson<S>(context: CommandContext.CommandContext<S>, name: string): { [string]: any }
 	local jsonArg = context:getArgument(name)
 	if type(jsonArg) ~= "table" then
 		error(`Argument '{name}' results in a value of type {typeof(jsonArg)}, expected table`)
@@ -66,7 +66,7 @@ function JsonArgumentType.getJson<S>(context: CommandContext.CommandContext<S>, 
 	return jsonArg
 end
 
-function JsonArgumentType.parse(self: JsonArgumentType, input: string): ({ [any]: any }, number)
+function JsonArgumentType.parse(self: JsonArgumentType, input: string): ({ [string]: any }, number)
 	if self.jsonType == JsonArgumentType.JsonType.JSON_ARRAY then
 		return JsonArgumentType.parseJsonArray(input)
 	else
@@ -74,7 +74,7 @@ function JsonArgumentType.parse(self: JsonArgumentType, input: string): ({ [any]
 	end
 end
 
-function JsonArgumentType.parseJsonObject(jsonStr: string): ({ [any]: any }, number)
+function JsonArgumentType.parseJsonObject(jsonStr: string): ({ [string]: any }, number)
 	-- Find JSON object starting with {
 	if jsonStr:sub(1, 1) ~= "{" then
 		error("Expected JSON object starting with '{'")
@@ -98,7 +98,7 @@ function JsonArgumentType.parseJsonObject(jsonStr: string): ({ [any]: any }, num
 	return jsonData, endPos
 end
 
-function JsonArgumentType.parseJsonArray(jsonStr: string): ({ [any]: any }, number)
+function JsonArgumentType.parseJsonArray(jsonStr: string): ({ [string]: any }, number)
 	if jsonStr:sub(1, 1) ~= "[" then
 		error("Expected JSON array starting with '['")
 	end
