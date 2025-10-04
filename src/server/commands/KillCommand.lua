@@ -16,7 +16,7 @@ function KillCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Pl
 				KillCommand.kill(c, {c:getSource()})
 			end)
 			:andThen(
-				RequiredArgumentBuilder.new("victims", EntitySelectorParser)
+				RequiredArgumentBuilder.new("victims", EntitySelectorParser.entities())
 					:executes(function(c)
 						local selectorData = c:getArgument("victims") :: any
 						local source = c:getSource()
