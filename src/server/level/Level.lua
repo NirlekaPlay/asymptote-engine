@@ -7,12 +7,14 @@ local CellConfig = require(ServerScriptService.server.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local HIDE_CELLS = true
+local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5
 local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
 
 local levelFolder: Folder?
 local cellsConfig: { [string]: CellConfig.Config}?
+local cellsList: { Model } = {}
 
 --[=[
 	@class Level
@@ -70,11 +72,17 @@ function Level.initializeCells(cellsFolder: Folder): ()
 		if HIDE_CELLS then
 			Level.hideCell(cellModel)
 		end
+
+		table.insert(cellsList, cellModel)
 	end
 end
 
 function Level.getCellConfig(cellName: string): CellConfig.Config?
 	return cellsConfig and cellsConfig[cellName] or nil
+end
+
+function Level.getCellModels(): {Model}
+	return cellsList
 end
 
 function Level.hideCell(cellModel: Model): ()
@@ -88,6 +96,16 @@ function Level.hideCell(cellModel: Model): ()
 		cellChild.CanQuery = false
 		cellChild.CanTouch = false
 		cellChild.AudioCanCollide = false
+	end
+end
+
+function Level.showCell(cellModel: Model): ()
+	for _, cellChild in ipairs(cellModel:GetChildren()) do
+		if not cellChild:IsA("BasePart") then
+			continue
+		end
+
+		cellChild.Transparency = DEBUG_MIN_CELLS_TRANSPARENCY
 	end
 end
 
