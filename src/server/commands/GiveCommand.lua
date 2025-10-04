@@ -4,10 +4,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
+local ItemArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.ItemArgument)
 local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
 local JsonArgumentType = require(ReplicatedStorage.shared.commands.arguments.json.JsonArgumentType)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 local INF = math.huge
 
@@ -68,75 +70,46 @@ local function applyAttributes(item: Instance, itemName: string, attributes: {[s
 	end
 end
 
-local function itemWithAttributes(): ArgumentType.ArgumentType
-	return {
-		parse = function(input: string): (any, number)
-			-- Parse item name first
-			local itemName = input:match("^%S+")
-			if not itemName then
-				error("Expected item name")
-			end
-			
-			local consumed = itemName:len()
-			local remaining = input:sub(consumed + 1)
-			
-			-- Check if there's JSON attributes
-			remaining = remaining:match("^%s*(.*)") -- trim whitespace
-			local attributes = nil
-			
-			if remaining and remaining:sub(1, 1) == "{" then
-				local jsonArg = JsonArgumentType
-				local attrData, jsonConsumed = jsonArg.parse(remaining)
-				attributes = attrData
-				consumed = consumed + (input:len() - remaining:len()) + jsonConsumed
-			end
-			
-			return {
-				itemName = itemName,
-				attributes = attributes
-			}, consumed
-		end
-	}
-end
-
 function GiveCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
 	dispatcher:register(
 		LiteralArgumentBuilder.new("give")
 			:andThen(
 				RequiredArgumentBuilder.new("target", EntitySelectorParser.entities())
 					:andThen(
-						RequiredArgumentBuilder.new("itemData", itemWithAttributes())
-							:executes(function(c)
-								local itemData = c:getArgument("itemData")
-								local itemName = itemData.itemName
-								local attributes = itemData.attributes
-								
-								local itemInst = TOOLS_PER_INST[itemName]
-								if not itemInst then
-									error(`'{itemName}' is not a valid item name`)
-								end
-								
-								local selectorData = c:getArgument("target")
-								local source = c:getSource()
-								local targets = EntitySelectorParser.resolvePlayerSelector(selectorData, source)
-
-								for _, target in targets do
-									if not target:IsA("Player") then continue end
-
-									local itemClone = itemInst:Clone()
-									
-									if attributes then
-										applyAttributes(itemClone, itemName, attributes)
-									end
-									
-									itemClone.Parent = target.Backpack
-								end
-								
-								return #targets
-							end)
+						RequiredArgumentBuilder.new("itemData", ItemArgument.item())
+							:executes(GiveCommand.giveItem)
 					)
 			)
 	)
+end
+
+function GiveCommand.giveItem(context: CommandContext.CommandContext<Player>)
+	local itemData = ItemArgument.getItemData(context, "itemData")
+	local itemName = itemData.itemName
+	local attributes = itemData.attributes
+	
+	local itemInst = TOOLS_PER_INST[itemName]
+	if not itemInst then
+		error(`'{itemName}' is not a valid item name`)
+	end
+	
+	local selectorData = context:getArgument("target")
+	local source = context:getSource()
+	local targets = EntitySelectorParser.resolvePlayerSelector(selectorData, source)
+
+	for _, target in targets do
+		if not target:IsA("Player") then continue end
+
+		local itemClone = itemInst:Clone()
+		
+		if attributes then
+			applyAttributes(itemClone, itemName, attributes)
+		end
+		
+		itemClone.Parent = target.Backpack
+	end
+	
+	return #targets
 end
 
 return GiveCommand
