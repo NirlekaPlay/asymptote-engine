@@ -2,41 +2,42 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local Level = require(ServerScriptService.server.level.Level)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
 local CellCommand = {}
 
 local debugBoundsPerCells : { [Model]: BasePart } = {}
 
-function CellCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function CellCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
-		LiteralArgumentBuilder.new("cell")
+		CommandHelper.literal("cell")
 			:andThen(
-				LiteralArgumentBuilder.new("show")
+				CommandHelper.literal("show")
 					:andThen(
-						LiteralArgumentBuilder.new("surfaces")
+						CommandHelper.literal("surfaces")
 							:executes(CellCommand.showAllCells)
 					)
 					:andThen(
-						LiteralArgumentBuilder.new("bounds")
+						CommandHelper.literal("bounds")
 							:executes(function()
-								return CellCommand.showOrHideDebugBounds(true)
+								return CellCommand.showOrHideDebugBounds(true) :: number
 							end)
 					)
 			)
 			:andThen(
-				LiteralArgumentBuilder.new("hide")
+				CommandHelper.literal("hide")
 					:andThen(
-						LiteralArgumentBuilder.new("surfaces")
+						CommandHelper.literal("surfaces")
 							:executes(CellCommand.hideAllCells)
 					)
 					:andThen(
-						LiteralArgumentBuilder.new("bounds")
+						CommandHelper.literal("bounds")
 							:executes(function()
-								return CellCommand.showOrHideDebugBounds(false)
+								return CellCommand.showOrHideDebugBounds(false) :: number
 							end)
 					)
 			)
