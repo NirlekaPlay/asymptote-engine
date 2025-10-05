@@ -23,7 +23,8 @@ export type BooleanArgumentType = {
 
 function BooleanArgumentType.bool(): BooleanArgumentType
 	if not BOOL_INST then
-		return setmetatable({}, BooleanArgumentType) :: BooleanArgumentType
+		BOOL_INST = setmetatable({}, BooleanArgumentType) :: BooleanArgumentType
+		return BOOL_INST :: any
 	end
 	return BOOL_INST
 end
