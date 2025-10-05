@@ -5,48 +5,45 @@ local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunctio
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
---[=[
-	@class LiteralArgumentBuilder
-]=]
 local LiteralArgumentBuilder = {}
 LiteralArgumentBuilder.__index = LiteralArgumentBuilder
+
+type ArgumentBuilder<S, T> = ArgumentBuilder.ArgumentBuilder<S, T>
+type CommandFunction<S> = CommandFunction.CommandFunction<S>
+type CommandNode<S> = CommandNode.CommandNode<S>
 
 export type LiteralArgumentBuilder<S> = {
 	literalString: string,
 	command: CommandFunction<S>?,
+	children: { ArgumentBuilder<S, any> },
 	redirectNode: CommandNode<S>?,
-	children: { ArgumentBuilder<S> },
-	--
-	executes: (self: LiteralArgumentBuilder<S>, command: CommandFunction<S>) -> LiteralArgumentBuilder<S>,
-	andThen: (self: LiteralArgumentBuilder<S>, child: ArgumentBuilder<S>) -> LiteralArgumentBuilder<S>,
-	redirect: (self: LiteralArgumentBuilder<S>, target: CommandNode<S>) -> LiteralArgumentBuilder<S>,
-	build: (self: LiteralArgumentBuilder<S>) -> CommandNode<S>
+	
+	executes: <T>(self: T, commandFunc: CommandFunction<S>) -> T,
+	andThen: <T>(self: T, child: ArgumentBuilder<S, any>) -> T,
+	redirect: <T>(self: T, target: CommandNode<S>) -> T,
+	build: <T>(self: T) -> CommandNode<S>
 }
-
-type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S>
-type CommandFunction<S> = CommandFunction.CommandFunction<S>
-type CommandNode<S> = CommandNode.CommandNode<S>
 
 function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBuilder<S>
 	return setmetatable({
 		literalString = literalString,
-		command = nil :: CommandFunction<S>?,
+		command = nil,
 		children = {},
-		redirectNode = nil :: CommandNode<S>?
-	}, LiteralArgumentBuilder) :: LiteralArgumentBuilder<S>
+		redirectNode = nil
+	}, LiteralArgumentBuilder) :: any
 end
 
-function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction<S>): LiteralArgumentBuilder<S>
+function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction<S>)
 	self.command = commandFunc
 	return self
 end
 
-function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder<S>): LiteralArgumentBuilder<S>
+function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder<S, any>)
 	table.insert(self.children, child)
 	return self
 end
 
-function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: CommandNode<S>): LiteralArgumentBuilder<S>
+function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: CommandNode<S>)
 	self.redirectNode = target
 	return self
 end
@@ -55,10 +52,10 @@ function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): Comma
 	local node = CommandNode.new(self.literalString, "literal", nil)
 	node.command = self.command
 	node.redirect = self.redirectNode
-
+	
 	if not node.redirect then
 		for _, child in self.children do
-			node:addChild((child :: any):build())
+			node:addChild(child:build())
 		end
 	end
 	
