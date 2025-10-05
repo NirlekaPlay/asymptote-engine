@@ -19,7 +19,11 @@ function CommandContext.new<S>(arguments: { [string]: any }, source: S): Command
 end
 
 function CommandContext.getArgument<S>(self: CommandContext<S>, name: string): any
-	return self.arguments[name]
+	local argument = self.arguments[name]
+	if argument == nil then
+		error(`No such argument '{name}' exists on this command.`)
+	end
+	return argument
 end
 
 function CommandContext.getSource<S>(self: CommandContext<S>): S
