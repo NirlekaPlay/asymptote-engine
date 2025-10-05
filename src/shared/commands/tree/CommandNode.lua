@@ -14,23 +14,23 @@ export type CommandNode<S> = typeof(setmetatable({} :: {
 	nodeType: "literal" | "argument",
 	requirement: Predicate<S>?,
 	redirect: CommandNode<S>?,
-	argumentType: ArgumentType?,
-	command: CommandFunction?,
+	argumentType: ArgumentType<any>?,
+	command: CommandFunction<S>?,
 	children: { [string]: CommandNode<S> }
 }, CommandNode))
 
-type ArgumentType = ArgumentType.ArgumentType
-type CommandFunction = CommandFunction.CommandFunction
+type ArgumentType<T> = ArgumentType.ArgumentType<T>
+type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type Predicate<T> = (T) -> boolean
 
-function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType?, requirement: Predicate<S>?, redirect: CommandNode<S>?): CommandNode<S>
+function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>?, requirement: Predicate<S>?, redirect: CommandNode<S>?): CommandNode<S>
 	return setmetatable({
 		name = name,
 		nodeType = nodeType,
 		requirement = requirement,
 		redirect = redirect,
 		argumentType = argumentType,
-		command = nil :: CommandFunction?,
+		command = nil :: CommandFunction<S>?,
 		children = {}
 	}, CommandNode)
 end

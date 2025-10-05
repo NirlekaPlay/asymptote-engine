@@ -12,40 +12,45 @@ local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local RequiredArgumentBuilder = {}
 RequiredArgumentBuilder.__index = RequiredArgumentBuilder
 
-export type RequiredArgumentBuilder = typeof(setmetatable({} :: {
+export type RequiredArgumentBuilder<S> = {
 	argumentName: string,
 	argumentType: ArgumentType<any>,
-	command: CommandFunction?,
-	children: { ArgumentBuilder },
-	redirectNode: CommandNode<S>?
-}, RequiredArgumentBuilder))
+	command: CommandFunction<S>?,
+	children: { ArgumentBuilder<S> },
+	redirectNode: CommandNode<S>?,
+	--
+	executes: (self: RequiredArgumentBuilder<S>, command: CommandFunction<S>) -> RequiredArgumentBuilder<S>,
+	andThen: (self: RequiredArgumentBuilder<S>, child: ArgumentBuilder<S>) -> RequiredArgumentBuilder<S>,
+	redirect: (self: RequiredArgumentBuilder<S>, target: CommandNode<S>) -> RequiredArgumentBuilder<S>,
+	build: (self: RequiredArgumentBuilder<S>) -> CommandNode<S>
+}
 
-type ArgumentBuilder = ArgumentBuilder.ArgumentBuilder
+type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S>
 type ArgumentType<T> = ArgumentType.ArgumentType<T>
-type CommandFunction = CommandFunction.CommandFunction
+type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
 
-function RequiredArgumentBuilder.new<T>(argumentName: string, argumentType: ArgumentType<T>): RequiredArgumentBuilder
+function RequiredArgumentBuilder.new<S, T>(argumentName: string, argumentType: ArgumentType<T>): RequiredArgumentBuilder<S>
 	return setmetatable({
 		argumentName = argumentName,
 		argumentType = argumentType,
-		command = nil :: CommandFunction?,
+		command = nil :: CommandFunction<S>?,
 		children = {},
 		redirectNode = nil :: CommandNode<S>?
-	}, RequiredArgumentBuilder)
+	}, RequiredArgumentBuilder) :: RequiredArgumentBuilder<S>
 end
 
-function RequiredArgumentBuilder.executes(self: RequiredArgumentBuilder, commandFunc: CommandFunction): ArgumentBuilder
+function RequiredArgumentBuilder.executes<S>(self: RequiredArgumentBuilder<S>, commandFunc: CommandFunction<S>): RequiredArgumentBuilder<S>
 	self.command = commandFunc
-	return self :: ArgumentBuilder
+	return self
 end
 
-function RequiredArgumentBuilder.andThen(self: RequiredArgumentBuilder, child: ArgumentBuilder): ArgumentBuilder
+function RequiredArgumentBuilder.andThen<S>(self: RequiredArgumentBuilder<S>, child: ArgumentBuilder<S>): RequiredArgumentBuilder<S>
 	table.insert(self.children, child)
-	return self :: ArgumentBuilder
+	return self
 end
 
-function RequiredArgumentBuilder.build(self: RequiredArgumentBuilder): CommandNode<S>
+function RequiredArgumentBuilder.build<S>(self: RequiredArgumentBuilder<S>): CommandNode<S>
 	local node = CommandNode.new(self.argumentName, "argument", self.argumentType)
 	node.command = self.command
 	node.redirect = self.redirectNode

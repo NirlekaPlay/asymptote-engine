@@ -11,32 +11,37 @@ local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local LiteralArgumentBuilder = {}
 LiteralArgumentBuilder.__index = LiteralArgumentBuilder
 
-export type LiteralArgumentBuilder<S> = typeof(setmetatable({} :: {
+export type LiteralArgumentBuilder<S> = {
 	literalString: string,
-	command: CommandFunction?,
+	command: CommandFunction<S>?,
 	redirectNode: CommandNode<S>?,
-	children: { ArgumentBuilder }
-}, LiteralArgumentBuilder))
+	children: { ArgumentBuilder<S> },
+	--
+	executes: (self: LiteralArgumentBuilder<S>, command: CommandFunction<S>) -> LiteralArgumentBuilder<S>,
+	andThen: (self: LiteralArgumentBuilder<S>, child: ArgumentBuilder<S>) -> LiteralArgumentBuilder<S>,
+	redirect: (self: LiteralArgumentBuilder<S>, target: CommandNode<S>) -> LiteralArgumentBuilder<S>,
+	build: (self: LiteralArgumentBuilder<S>) -> CommandNode<S>
+}
 
-type ArgumentBuilder = ArgumentBuilder.ArgumentBuilder
-type CommandFunction = CommandFunction.CommandFunction
+type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S>
+type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
 
-function LiteralArgumentBuilder.new(literalString: string): LiteralArgumentBuilder<any>
+function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBuilder<S>
 	return setmetatable({
 		literalString = literalString,
-		command = nil :: CommandFunction?,
+		command = nil :: CommandFunction<S>?,
 		children = {},
-		redirectNode = nil :: CommandNode<any>?
-	}, LiteralArgumentBuilder)
+		redirectNode = nil :: CommandNode<S>?
+	}, LiteralArgumentBuilder) :: LiteralArgumentBuilder<S>
 end
 
-function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction): LiteralArgumentBuilder<S>
+function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction<S>): LiteralArgumentBuilder<S>
 	self.command = commandFunc
 	return self
 end
 
-function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder): LiteralArgumentBuilder<S>
+function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder<S>): LiteralArgumentBuilder<S>
 	table.insert(self.children, child)
 	return self
 end
