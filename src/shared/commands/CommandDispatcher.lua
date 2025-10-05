@@ -33,10 +33,10 @@ type ResultConsumer<S> = ResultConsumer.ResultConsumer<S>
 --[=[
 	Creates a new `CommandDispatcher` with an empty command tree.
 ]=]
-function CommandDispatcher.new(): CommandDispatcher<any>
+function CommandDispatcher.new<S>(): CommandDispatcher<S>
 	return setmetatable({
-		root = CommandNode.new("", "literal", nil),
-		consumer = EMPTY_RESULT_CONSUMER
+		root = CommandNode.new("", "literal", nil) :: CommandNode<S>,
+		consumer = EMPTY_RESULT_CONSUMER :: ResultConsumer<S>
 	}, CommandDispatcher)
 end
 
@@ -90,7 +90,7 @@ function CommandDispatcher.parse<S>(self: CommandDispatcher<S>, input: string, s
 	end
 	
 	-- Pick the result that consumed the most input
-	table.sort(results, function(a, b)
+	table.sort(results, function(a: any, b: any)
 		return #a.remaining < #b.remaining
 	end)
 	
@@ -99,10 +99,10 @@ end
 
 function CommandDispatcher.tryParseAll<S>(
 	self: CommandDispatcher<S>,
-	node: any,
+	node: CommandNode<S>,
 	remaining: string,
 	source: S,
-	argsSoFar: {[string]: any}
+	argsSoFar: {[string]: CommandNode<S>}
 ): {{context: CommandContext<S>, remaining: string}}
 	
 	remaining = remaining:gsub("^%s+", "")
@@ -118,7 +118,7 @@ function CommandDispatcher.tryParseAll<S>(
 	end
 	
 	local allResults = {}
-	local nextWord = remaining:match("^%S+")
+	local nextWord = remaining:match("^%S+") :: string
 	
 	-- Try literal children
 	local literalChild = node:getChild(nextWord)
@@ -134,7 +134,7 @@ function CommandDispatcher.tryParseAll<S>(
 	-- Try ALL argument children (not just first match!)
 	for _, child in node.children do
 		if child.nodeType == "argument" and child.argumentType then
-			local success, value, consumed = pcall(child.argumentType.parse, child.argumentType, remaining)
+			local success, value, consumed: number = pcall(child.argumentType.parse, child.argumentType, remaining)
 			if success then
 				local newArgs = table.clone(argsSoFar)
 				newArgs[child.name] = value
