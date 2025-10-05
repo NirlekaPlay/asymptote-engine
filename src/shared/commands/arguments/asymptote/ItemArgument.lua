@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local JsonArgumentType = require(ReplicatedStorage.shared.commands.arguments.json.JsonArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
@@ -10,9 +11,7 @@ local CommandContext = require(ReplicatedStorage.shared.commands.context.Command
 local ItemArgument = {}
 ItemArgument.__index = ItemArgument
 
-export type ItemArgument = {
-	parse: (self: ItemArgument, input: string) -> (ParsedItemDataResult, number)
-}
+export type ItemArgument = ArgumentType.ArgumentType<ParsedItemDataResult>
 
 export type ParsedItemDataResult = {
 	itemName: string,

@@ -2,6 +2,7 @@
 
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 --[=[
@@ -39,9 +40,8 @@ JsonArgumentType.JsonType = {
 export type JsonType = "JSON_OBJECT"
 	| "JSON_ARRAY"
 
-export type JsonArgumentType = {
-	jsonType: JsonType,
-	parse: (self: JsonArgumentType, input: string) -> ({ [string]: any }, number)
+export type JsonArgumentType = ArgumentType.ArgumentType<{ [string]: any }> & {
+	jsonType: JsonType
 }
 
 function JsonArgumentType.new(jsonType: JsonType): JsonArgumentType

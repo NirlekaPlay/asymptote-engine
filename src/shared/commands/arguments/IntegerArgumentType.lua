@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 --[=[
@@ -16,10 +17,9 @@ IntegerArgumentType.__index = IntegerArgumentType
 local DEFAULT_MIN_INT = -2^23
 local DEFAULT_MAX_INT = 2^23
 
-export type IntegerArgumentType = {
+export type IntegerArgumentType = ArgumentType.ArgumentType<number> & {
 	minimum: number,
-	maximum: number,
-	parse: (self: IntegerArgumentType, input: string) -> (number, number)
+	maximum: number
 }
 
 function IntegerArgumentType.new(min: number, max: number): IntegerArgumentType

@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 --[=[
@@ -15,9 +16,7 @@ local COORDINATE_TYPES = {
 	RELATIVE = "relative" :: "relative",
 }
 
-export type Vector3ArgumentType = {
-	parse: (self: Vector3ArgumentType, input: string) -> (ParsedVector3Result, number)
-}
+export type Vector3ArgumentType = ArgumentType.ArgumentType<ParsedVector3Result>
 
 export type ParsedVector3Result = {
 	x: CoordinateData,
