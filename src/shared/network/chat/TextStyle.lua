@@ -32,7 +32,7 @@ function TextStyle.new(
 		color = color,
 		shadowColor = shadowColor,
 		bold = bold,
-		italic = bold,
+		italic = italic,
 		obfuscated = obfuscated
 	}, TextStyle) :: TextStyle
 end
@@ -153,6 +153,24 @@ function TextStyle.withObfuscated(self: TextStyle, obfuscated: boolean?): TextSt
 			self.obfuscated,
 			obfuscated
 		)
+	end
+end
+
+function TextStyle.applyTo(self: TextStyle, otherStyle: TextStyle): TextStyle
+	if self:isEmpty() then
+		return otherStyle
+	else
+		if otherStyle:isEmpty() then
+			return self
+		else
+			return TextStyle.new(
+				self.color and self.color or otherStyle.color,
+				self.shadowColor and self.shadowColor or otherStyle.shadowColor,
+				self.bold and self.bold or otherStyle.bold,
+				self.italic and self.italic or otherStyle.italic,
+				self.obfuscated and self.obfuscated or otherStyle.obfuscated
+			)
+		end
 	end
 end
 
