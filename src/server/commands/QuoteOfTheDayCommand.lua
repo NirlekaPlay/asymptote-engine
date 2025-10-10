@@ -1,95 +1,120 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
-local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
+local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
+local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
 local QuoteOfTheDay = require(ReplicatedStorage.shared.quotes.QuoteOfTheDay)
 local QuoteOfTheDayList = require(ReplicatedStorage.shared.quotes.QuoteOfTheDayList)
 
 local QuoteOfTheDayCommand = {}
 
-function QuoteOfTheDayCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function QuoteOfTheDayCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
-		LiteralArgumentBuilder.new("quote")
+		CommandHelper.literal("quote")
 			:andThen(
-				LiteralArgumentBuilder.new("list")
+				CommandHelper.literal("list")
 					:executes(QuoteOfTheDayCommand.listQuotes)
 			)
 			:andThen(
-				LiteralArgumentBuilder.new("predict")
+				CommandHelper.literal("predict")
 					:executes(QuoteOfTheDayCommand.nextQuote)
 			)
 			:andThen(
-				LiteralArgumentBuilder.new("schedule")
+				CommandHelper.literal("schedule")
 					:executes(QuoteOfTheDayCommand.listSchedule)
 			)
 	)
 end
 
-function QuoteOfTheDayCommand.listQuotes(context: CommandContext.CommandContext<Player>): number
+function QuoteOfTheDayCommand.listQuotes(context: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
 	local source = context:getSource()
 	local allQuotes = QuoteOfTheDayList
 	
-	local quoteListText = "All quotes:\n"
+	local quoteListText = MutableTextComponent.literal("All quotes:\n")
 	for i, quote in ipairs(allQuotes) do
 		local formattedQuote = QuoteOfTheDayCommand.formatQuote(quote, i)
-		quoteListText = quoteListText .. formattedQuote .. "\n"
+		quoteListText:appendComponent(formattedQuote)
+			:appendString("\n")
 	end
-
-	quoteListText = quoteListText:sub(1, -2)
 
 	print(quoteListText)
 	
-	TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-		literalString = quoteListText, 
-		type = "plain"
-	})
+	source:sendSuccess(quoteListText)
 
 	return 1
 end
 
-function QuoteOfTheDayCommand.nextQuote(context: CommandContext.CommandContext<Player>): number
+function QuoteOfTheDayCommand.nextQuote(context: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
 	local nextQuote = QuoteOfTheDay.getNextQuote()
 	local formattedQuote = QuoteOfTheDayCommand.formatQuote(nextQuote)
 	local nextQuoteHours = QuoteOfTheDay.getHoursUntilNextQuote()
 	local formattedHours = QuoteOfTheDayCommand.formatTime(nextQuoteHours)
-	local predictionText = `The next quote is:\n{formattedQuote}\n in {formattedHours}`
+	local predictionText = MutableTextComponent.literal("The next quote is:\n")
+		:appendComponent(formattedQuote)
+		:appendString("\n")
+		:appendComponent(
+			MutableTextComponent.literal("in ")
+				:appendString(formattedHours)
+		)
 	local source = context:getSource()
 
-	TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-		literalString = predictionText, 
-		type = "plain"
-	})
+	source:sendSuccess(predictionText)
 
 	return 1
 end
 
-function QuoteOfTheDayCommand.listSchedule(context: CommandContext.CommandContext<Player>): number
+function QuoteOfTheDayCommand.listSchedule(context: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
 	local fullSchedule = QuoteOfTheDay.getFullQuoteSchedule()
-	local scheduleText = ""
+	local scheduleText = MutableTextComponent.literal("")
 
-	for _, entry in ipairs(fullSchedule) do
-		local date = `[{tostring(os.date("%Y-%m-%d %H:%M:%S", os.time(entry.date :: any)))}] `
-		scheduleText = scheduleText .. date .. QuoteOfTheDayCommand.formatQuote(entry.quote) .. "\n"
+	for i, entry in ipairs(fullSchedule) do
+		scheduleText:appendComponent(QuoteOfTheDayCommand.formatDate(entry.date))
+			:appendComponent(
+				QuoteOfTheDayCommand.formatQuote(entry.quote, i)
+					:appendString("\n")
+			)
 	end
 
-	local source = context:getSource()
-
-	TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-		literalString = scheduleText, 
-		type = "plain"
-	})
+	context:getSource():sendSuccess(scheduleText)
 
 	return 1
 end
 
-function QuoteOfTheDayCommand.formatQuote(quote: QuoteOfTheDayList.Quote, i: number?): string
+function QuoteOfTheDayCommand.formatQuote(quote: QuoteOfTheDayList.Quote, i: number?): MutableTextComponent.MutableTextComponent
+	local rootText = MutableTextComponent.literal("")
+		:appendComponent(
+			MutableTextComponent.literal(quote.message .. " ")
+				:withStyle(
+					TextStyle.empty()
+						:withBold(true)
+						:withColor(NamedTextColors.CREAM)
+				)
+		)
+		:appendComponent(
+			MutableTextComponent.literal(quote.author)
+				:withStyle(
+					TextStyle.empty()
+						:withItalic(true)
+						:withColor(NamedTextColors.DARK_AQUA)
+				)
+		)
+
 	if i then
-		return "Index: " .. i .. " Quote: " .. quote.message .. ", author: " .. quote.author
+		return MutableTextComponent.literal("Index: ")
+			:withStyle(
+				TextStyle.empty()
+					:withBold(true)
+					:withColor(NamedTextColors.YELLOW)
+			)
+			:appendComponent(rootText)
 	else
-		return "Quote: " .. quote.message .. ", author: " .. quote.author
+		return rootText
 	end
 end
 
@@ -117,6 +142,41 @@ function QuoteOfTheDayCommand.formatTime(timeInHours: number): string
 	else
 		return secs .. (secs == 1 and " second" or " seconds")
 	end
+end
+
+function QuoteOfTheDayCommand.formatDate(date): MutableTextComponent.MutableTextComponent
+	local hyphenText = MutableTextComponent.literal("-")
+		:withStyle(
+			TextStyle.empty()
+				:withColor(NamedTextColors.MUTED_LIGHT_BLUE)
+		)
+	local dateText = MutableTextComponent.literal("[")
+		:appendComponent(
+			MutableTextComponent.literal(tostring(date.day))
+				:withStyle(
+					TextStyle.empty()
+						:withColor(NamedTextColors.MUTED_SOFT_AQUA)
+				)
+		)
+		:appendComponent(hyphenText)
+		:appendComponent(
+			MutableTextComponent.literal(tostring(date.day))
+				:withStyle(
+					TextStyle.empty()
+						:withColor(NamedTextColors.SOFT_YELLOW)
+				)
+		)
+		:appendComponent(hyphenText)
+		:appendComponent(
+			MutableTextComponent.literal(tostring(date.year))
+				:withStyle(
+					TextStyle.empty()
+						:withColor(NamedTextColors.LIGHT_GRAY)
+				)
+		)
+		:appendString("] ")
+
+	return dateText
 end
 
 return QuoteOfTheDayCommand
