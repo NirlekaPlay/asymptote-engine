@@ -56,20 +56,22 @@ function KillCommand.kill(c: CommandContext.CommandContext<CommandSourceStack.Co
 									:withColor(NamedTextColors.DARK_AQUA)
 							)
 					)
-					:appendString(" (a.k.a)")
-						:withStyle(
-							TextStyle.empty()
-								:withItalic()
-					)
-					:appendComponent(
-						MutableTextComponent.literal(` {target.DisplayName}`)
+					if target.Name ~= target.DisplayName then
+						targetNameComp:appendString(" (a.k.a)")
 							:withStyle(
 								TextStyle.empty()
-									:withBold(true)
-									:withItalic(true)
-									:withColor(NamedTextColors.YELLOW)
-							)
-					)
+									:withItalic()
+						)
+						:appendComponent(
+							MutableTextComponent.literal(` {target.DisplayName}`)
+								:withStyle(
+									TextStyle.empty()
+										:withBold(true)
+										:withItalic(true)
+										:withColor(NamedTextColors.YELLOW)
+								)
+						)
+					end
 				else
 					targetNameComp:appendComponent(
 						MutableTextComponent.literal(`{targetName}`)
