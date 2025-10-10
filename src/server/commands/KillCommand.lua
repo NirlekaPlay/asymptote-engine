@@ -1,45 +1,93 @@
---!nonstrict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
-local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
-local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
+local EntityArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.EntityArgument)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
+local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
+local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
 
 local KillCommand = {}
 
-function KillCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function KillCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
-		LiteralArgumentBuilder.new("kill")
+		CommandHelper.literal("kill")
 			:executes(function(c)
-				KillCommand.kill(c, {c:getSource()})
+				return KillCommand.kill(c, {c:getSource():getPlayerOrThrow()})
 			end)
 			:andThen(
-				RequiredArgumentBuilder.new("victims", EntitySelectorParser.entities())
+				CommandHelper.argument("victims", EntityArgument.entities())
 					:executes(function(c)
-						local selectorData = c:getArgument("victims") :: any
-						local source = c:getSource()
-						local targets = EntitySelectorParser.resolvePlayerSelector(selectorData, source)
-						KillCommand.kill(c, targets)
+						local targets = EntityArgument.getEntities(c, "victims")
+						return KillCommand.kill(c, targets)
 					end)
 			)
 	)
 end
 
-function KillCommand.kill(c: CommandContext.CommandContext<Player>, targets: {Instance}): number
+function KillCommand.kill(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>, targets: {Instance}): number
 	for _, target in targets do
+		local targetName: string
 		local targetChar
 		if target:IsA("Player") then
+			targetName = target.Name
 			targetChar = target.Character
 		else
+			targetName = target.Name
 			targetChar = target
 		end
 		if targetChar then
 			local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
 			if humanoid then
 				humanoid.Health = 0
-				print("Killed " .. target.Name)
+				local targetNameComp: MutableTextComponent.MutableTextComponent = MutableTextComponent.literal("")
+
+				if target:IsA("Player") then
+					targetNameComp:appendComponent(
+						MutableTextComponent.literal(`@{targetName}`)
+							:withStyle(
+								TextStyle.empty()
+									:withItalic(true)
+									:withBold(true)
+									:withColor(NamedTextColors.DARK_AQUA)
+							)
+					)
+					:appendString(" (a.k.a)")
+						:withStyle(
+							TextStyle.empty()
+								:withItalic()
+					)
+					:appendComponent(
+						MutableTextComponent.literal(` {target.DisplayName}`)
+							:withStyle(
+								TextStyle.empty()
+									:withBold(true)
+									:withItalic(true)
+									:withColor(NamedTextColors.YELLOW)
+							)
+					)
+				else
+					targetNameComp:appendComponent(
+						MutableTextComponent.literal(`{targetName}`)
+							:withStyle(
+								TextStyle.empty()
+									:withItalic(true)
+									:withBold(true)
+									:withColor(NamedTextColors.DARK_AQUA)
+							)
+					)
+				end
+				
+				c:getSource():sendSuccess(
+					MutableTextComponent.literal(`Killed `)
+						:appendComponent(
+								targetNameComp
+						)
+				)
 			end
 		end
 	end
