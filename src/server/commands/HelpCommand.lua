@@ -1,17 +1,18 @@
---!nonstrict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
-local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
-local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 
 local HelpCommand = {}
 
-function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	local helpNode = dispatcher:register(
-		LiteralArgumentBuilder.new("help")
+		CommandHelper.literal("help")
 			:executes(function(c)
 				local source = c:getSource()
 				local availableCommands = dispatcher:getAllUsage(dispatcher.root, source, false)
@@ -24,22 +25,22 @@ function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Pl
 				-- Remove trailing newline
 				helpText = helpText:sub(1, -2)
 				
-				TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-					literalString = helpText, 
-					type = "plain"
-				})
+				c:getSource():sendSuccess(MutableTextComponent.literal(helpText))
 				
 				return #availableCommands
 			end)
 			:andThen(
-				RequiredArgumentBuilder.new("command", StringArgumentType)
+				CommandHelper.argument("command", StringArgumentType.string())
 					:executes(function(c)
 						local source = c:getSource()
 						local commandName = c:getArgument("command")
 						
 						local commandNode = dispatcher.root:getChild(commandName)
 						if not commandNode then
-							error(`'{commandName}' is not a valid command.`)
+							c:getSource():sendFailure(
+								MutableTextComponent.literal(`'{commandName}' is not a valid command.`)
+							)
+							return 0
 						end
 						
 						local commandsDetail = dispatcher:getAllUsage(commandNode, source, false)
@@ -50,16 +51,15 @@ function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Pl
 
 						helpText = helpText:sub(1, -2)
 						
-						TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-							literalString = helpText, 
-							type = "plain"
-						})
+						c:getSource():sendSuccess(MutableTextComponent.literal(helpText))
+
+						return 1
 					end)
 			)
 	)
 
 	dispatcher:register(
-		LiteralArgumentBuilder.new("?")
+		CommandHelper.literal("?")
 			:redirect(helpNode)
 	)
 end
