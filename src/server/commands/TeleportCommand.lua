@@ -1,57 +1,56 @@
---!nonstrict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
-local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
+local EntityArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.EntityArgument)
 local Vector3ArgumentType = require(ReplicatedStorage.shared.commands.arguments.position.Vector3ArgumentType)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
-local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 local TeleportCommand = {}
 
-function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	local teleportNode = dispatcher:register(
-		LiteralArgumentBuilder.new("teleport")
+		CommandHelper.literal("teleport")
 			:andThen(
-				RequiredArgumentBuilder.new("location", Vector3ArgumentType.vec3())
+				CommandHelper.argument("location", Vector3ArgumentType.vec3())
 					:executes(function(c)
 						local source = c:getSource()
 						local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source)
-						TeleportCommand.teleportEntity(source, CFrame.new(vec3.X, vec3.Y, vec3.Z), false)
+						TeleportCommand.teleportEntity(source:getPlayerOrThrow(), CFrame.new(vec3.X, vec3.Y, vec3.Z), false)
 						return 1
 					end)
 			)
 
 			:andThen(
-				RequiredArgumentBuilder.new("destination", EntitySelectorParser.entities())
+				CommandHelper.argument("destination", EntityArgument.entities())
 					:executes(function(c)
-						local selectorData = c:getArgument("destination") :: any
-						local source = c:getSource() :: Player
+						local sourcePlayer = c:getSource():getPlayerOrThrow()
 
-						if not source.Character or not source.Character.PrimaryPart then
+						if not sourcePlayer.Character or not sourcePlayer.Character.PrimaryPart then
 							error("Player has no character.")
 						end
 
-						local targets = EntitySelectorParser.resolvePlayerSelector(selectorData, source)
+						local targets = EntityArgument.getEntities(c, "destination")
 						if next(targets) == nil then
 							error("No targets to teleport to found.")
 						end
 
-						TeleportCommand.teleportEntityToEntity(source, targets[1])
+						TeleportCommand.teleportEntityToEntity(sourcePlayer, targets[1])
+
+						return 1
 					end)
 			)
 
 			:andThen(
-				RequiredArgumentBuilder.new("targets", EntitySelectorParser.entities())
+				CommandHelper.argument("targets", EntityArgument.entities())
 					:andThen(
-						RequiredArgumentBuilder.new("destination", EntitySelectorParser.entities())
+						CommandHelper.argument("destination", EntityArgument.entities())
 							:executes(function(c)
-								local targetData = c:getArgument("destination")
-								local sourceData = c:getArgument("targets")
-								local cmdSource = c:getSource()
-								
-								local targets = EntitySelectorParser.resolvePlayerSelector(targetData, cmdSource)
-								local sources = EntitySelectorParser.resolvePlayerSelector(sourceData, cmdSource)
+								local targets = EntityArgument.getEntities(c, "destination")
+								local sources = EntityArgument.getEntities(c, "targets")
 								
 								if #targets == 0 then error("No target found") end
 								if #sources == 0 then error("No source found") end
@@ -68,12 +67,9 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 					)
 
 					:andThen(
-						RequiredArgumentBuilder.new("location", Vector3ArgumentType.vec3())
-							:executes(function(c)
-								print("called")
-								local targetData = c:getArgument("targets")
-								local cmdSource = c:getSource()
-								local targets = EntitySelectorParser.resolvePlayerSelector(targetData, cmdSource)
+						CommandHelper.argument("location", Vector3ArgumentType.vec3())
+							:executes(function(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>)
+								local targets = EntityArgument.getEntities(c, "targets")
 								local source = c:getSource()
 								local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source)
 								
@@ -88,16 +84,16 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 	)
 
 	dispatcher:register(
-		LiteralArgumentBuilder.new("tp")
+		CommandHelper.literal("tp")
 			:redirect(teleportNode)
 	)
 end
 
 function TeleportCommand.getEntityPosition(entity: Instance): CFrame?
-	if typeof(entity) == "Instance" and entity:IsA("Player") then
+	if entity:IsA("Player") then
 		local char = entity.Character
-		return char and char.PrimaryPart and char.PrimaryPart.CFrame
-	elseif typeof(entity) == "Instance" and entity:FindFirstChildOfClass("Humanoid") then
+		return char and char.PrimaryPart and (char.PrimaryPart :: BasePart).CFrame
+	elseif entity:IsA("Model") and entity:FindFirstChildOfClass("Humanoid") then
 		return entity.PrimaryPart and entity.PrimaryPart.CFrame
 	end
 	return nil
