@@ -2,26 +2,32 @@
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
-local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 
 local TagCommand = {}
 
-function TagCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function TagCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
-		LiteralArgumentBuilder.new("tag")
+		CommandHelper.literal("tag")
 			:andThen(
-				LiteralArgumentBuilder.new("list")
+				CommandHelper.literal("list")
 					:executes(TagCommand.listAllTags)
 			)
 	)
 end
 
-function TagCommand.listAllTags(c: CommandContext.CommandContext<Player>): number
+function TagCommand.listAllTags(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
 	local source = c:getSource()
 	local allTags = CollectionService:GetAllTags()
+	if next(allTags) == nil then
+		source.source:sendSystemMessage(MutableTextComponent.literal("It appears there is no tags found in CollectionService..."))
+		return 0
+	end
 	table.sort(allTags)
 
 	local allTagsText = "All tags registered in CollectionService:\n"
@@ -31,10 +37,7 @@ function TagCommand.listAllTags(c: CommandContext.CommandContext<Player>): numbe
 
 	allTagsText = allTagsText:sub(1, -2)
 
-	TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-		literalString = allTagsText,
-		type = "plain"
-	})
+	source:sendSuccess(MutableTextComponent.literal(allTagsText))
 
 	return #allTags
 end
