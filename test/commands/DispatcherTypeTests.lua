@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local IntegerArgumentType = require(ReplicatedStorage.shared.commands.arguments.IntegerArgumentType)
+local EntityArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.EntityArgument)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 
@@ -41,15 +42,30 @@ dispatcher:register(
 
 		:andThen(
 			argument("x", IntegerArgumentType.integer())
-				:executes(function()
+				:executes(function(c)
 					return 1
 				end)
 
 				:andThen(
 					argument("y", IntegerArgumentType.integer())
-						:executes(function()
+						:executes(function(c)
 							return 1
 						end)
 				)
 		)
 )
+
+dispatcher:register(
+		literal("kill")
+			:executes(function(c)
+				local _source = c:getSource()
+				return 1
+			end)
+			:andThen(
+				argument("victims", EntityArgument.entities())
+					:executes(function(c)
+						local _source = c:getSource()
+						return 1
+					end)
+			)
+	)
