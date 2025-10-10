@@ -11,6 +11,8 @@ local ItemArgument = require(ReplicatedStorage.shared.commands.arguments.asympto
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local SpellCorrectionSuggestion = require(ReplicatedStorage.shared.commands.context.SpellCorrectionSuggestion)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
+local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
+local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
 
 local INF = math.huge
 
@@ -117,6 +119,45 @@ function GiveCommand.giveItem(context: CommandContext.CommandContext<CommandSour
 		end
 		
 		itemClone.Parent = target.Backpack
+		local playerText = MutableTextComponent.literal(""):appendComponent(
+				MutableTextComponent.literal(`@{target.Name}`)
+					:withStyle(
+						TextStyle.empty()
+							:withItalic(true)
+							:withBold(true)
+							:withColor(NamedTextColors.MUTED_SOFT_AQUA)
+					)
+			)
+		
+		if target.Name ~= target.DisplayName then
+			playerText:appendString(" (a.k.a)")
+				:withStyle(
+					TextStyle.empty()
+						:withItalic()
+			)
+			:appendComponent(
+				MutableTextComponent.literal(` {target.DisplayName}`)
+					:withStyle(
+						TextStyle.empty()
+							:withBold(true)
+							:withItalic(true)
+							:withColor(NamedTextColors.MUTED_LIGHT_BLUE)
+					)
+			)
+		end
+
+		local itemText = MutableTextComponent.literal(` {itemClone.Name}`)
+			:withStyle(
+				TextStyle.empty()
+					:withBold(true)
+					:withColor(NamedTextColors.YELLOW)
+			)
+
+		local successMessage = MutableTextComponent.literal("Gave ")
+			:appendComponent(playerText)
+			:appendComponent(itemText)
+
+		context:getSource():sendSuccess(successMessage)
 	end
 	
 	return #targets
