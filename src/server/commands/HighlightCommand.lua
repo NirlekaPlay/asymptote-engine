@@ -21,7 +21,7 @@ function HighlightCommand.register(dispatcher: CommandDispatcher.CommandDispatch
 	local boolNode = CommandHelper.argument("bool", BooleanArgumentType.bool())
 		:executes(function(c)
 			local flag = BooleanArgumentType.getBool(c, "bool")
-			return HighlightCommand.executeHighlight(c, flag)
+			return HighlightCommand.executeHighlight(c, flag) :: number
 		end)
 	
 	-- Create the entities node
@@ -29,7 +29,7 @@ function HighlightCommand.register(dispatcher: CommandDispatcher.CommandDispatch
 		:andThen(boolNode)
 		:executes(function(c)
 			-- Default to true when no boolean is provided
-			return HighlightCommand.executeHighlight(c, true)
+			return HighlightCommand.executeHighlight(c, true) :: number
 		end)
 	
 	-- Register the main command
