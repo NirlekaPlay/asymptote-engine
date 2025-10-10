@@ -1,8 +1,10 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
+
 export type ClientBoundChatMessagePayload = {
-	literalString: string,
-	type: "plain" | "error"
+	content: MutableTextComponent.SerializedComponentResult
 }
 
 return nil
