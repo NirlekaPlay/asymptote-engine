@@ -98,29 +98,7 @@ function CommandDispatcher.executeParsed<S>(
 	self: CommandDispatcher<S>, 
 	parse: ParseResults.ParseResults<S>
 ): number
-	local context = parse:getContext()
-	local node = (context :: any).currentNode
-	-- At this point, validation already happened in finishParsing
-	-- So we can assume we have a valid command to execute
 	
-	if not node or node.command == nil then
-		error("No executable command found") -- This shouldn't happen after validation
-	end
-	
-	-- Execute the command
-	local success, result = pcall(function()
-		return node.command(context)
-	end)
-	
-	if success then
-		-- Notify consumer of success
-		self.consumer.onCommandComplete(context, true, result or 0)
-		return result or 0
-	else
-		-- Notify consumer of failure
-		self.consumer.onCommandComplete(context, false, 0)
-		error(result) -- Re-throw the error
-	end
 end
 
 function CommandDispatcher.parseString<S>(self: CommandDispatcher<S>, inputStr: string, source: S): ParseResults.ParseResults<S>
@@ -161,6 +139,7 @@ function CommandDispatcher.parseNodes<S>(
 		end)
 
 		if not success then
+			warn(err)
 			-- Errors returned by `pcall` and other methods always includes the traceback.
 			-- e.g. "ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser:218: Player 's' not found"
 			-- This prevents that.
@@ -170,7 +149,7 @@ function CommandDispatcher.parseNodes<S>(
 		end
 
 		context:withCommand(childNode.command) -- there should be a fucking method for this.
-		if reader:canRead(if childNode.redirect then 2 else 1) then -- again.. A METHOD!!!
+		if reader:canRead(childNode.redirect == nil and 2 or 1) then -- again.. A METHOD!!!
 			reader:skip()
 
 			if childNode.redirect ~= nil then
@@ -193,25 +172,26 @@ function CommandDispatcher.parseNodes<S>(
 	-- ill fix it later.
 
 	-- for some fucking reason the function signature on this cannot correctly resolve the types of a and b.
-	if #potentials > 1 then
-		(table.sort :: any)(potentials, function(a: ParseResults<S>, b: ParseResults<S>)
-			-- Prefer results where reader is fully consumed (can't read more)
-			if not a:getReader():canRead() and b:getReader():canRead() then
-				return true  -- a comes first
-			end
-			if a:getReader():canRead() and not b:getReader():canRead() then
-				return false  -- b comes first
-			end
-			-- Prefer results with no errors
-			if (next(a:getErrors()) == nil) and not (next(b:getErrors()) == nil) then
-				return true  -- a comes first
-			end
-			if not (next(a:getErrors()) == nil) and (next(b:getErrors()) == nil) then
-				return true  -- a comes first (this was also wrong - you had -1 again)
-			end
-			return false  -- equal, maintain order
-		end)
-		return potentials[1]
+	if #potentials > 0 then
+		if #potentials > 1 then
+			table.sort(potentials, function(a: ParseResults<S>, b: ParseResults<S>)
+				if not a:getReader():canRead() and b:getReader():canRead() then
+					return true
+				end
+				if a:getReader():canRead() and not b:getReader():canRead() then
+					return false
+				end
+				if next(a:getErrors()) == nil and next(b:getErrors()) ~= nil then
+					return true
+				end
+				if next(a:getErrors()) ~= nil and next(b:getErrors()) == nil then
+					return false
+				end
+				return false
+			end)
+		end
+
+		return potentials[1] -- return the parse result from the deepest branch
 	end
 
 	return ParseResults.new(contextSoFar, originalReader, errors)
