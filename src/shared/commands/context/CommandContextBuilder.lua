@@ -42,6 +42,10 @@ function CommandContextBuilder.getSource<S>(self: CommandContextBuilder<S>): S
 	return self.source
 end
 
+function CommandContextBuilder.getRange<S>(self: CommandContextBuilder<S>): StringRange.StringRange
+	return self.range
+end
+
 function CommandContextBuilder.getRootNode<S>(self: CommandContextBuilder<S>): CommandNode.CommandNode<S>
 	return self.rootNode
 end

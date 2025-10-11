@@ -98,7 +98,85 @@ function CommandDispatcher.executeParsed<S>(
 	self: CommandDispatcher<S>, 
 	parse: ParseResults.ParseResults<S>
 ): number
-	
+	if parse:getReader():canRead() then
+		local errors = parse:getErrors()
+		local errorsCount = 0
+		local firstError = nil
+
+		for _, err in pairs(errors) do
+			errorsCount += 1
+			if not firstError then
+				firstError = err
+			end
+		end
+
+		if errorsCount == 1 then
+			error(firstError)
+		elseif parse:getContext():getRange():isEmpty() then
+			error("UNKNOWN_COMMAND")
+		else
+			error("UNKNOWN_ARGUMENT")
+		end
+	end
+
+	local result = 0
+	local successfulForks = 0
+	local forked = false
+	local foundCommand = false
+	local command = parse:getReader():getString()
+	local original = parse:getContext():build(command)
+	local contexts: { CommandContext<S> }? = {original}
+	local next: {CommandContext<S>}? = nil
+
+	while contexts ~= nil do
+		for _, context in contexts do
+			local child = context:getChild()
+			
+
+			if child ~= nil then
+				forked = forked or (nil) -- child:isForked()
+
+				if child:hasNodes() then
+					foundCommand = true
+					local modifier = nil -- context:getRedirectModifier()
+					if modifier == nil then
+						if next == nil then
+							next = {}
+						end
+						table.insert((next :: any), child:copyFor(context:getSource()))
+					else
+						-- TODO: redirection stuff here
+					end
+				end
+			elseif context:getCommand() ~= nil then
+				foundCommand = true
+
+				local success, err = pcall(function()
+					local value = context:getCommand()(context)
+					result += value
+					self.consumer.onCommandComplete(context, true, value)
+					successfulForks += 1
+				end)
+
+				if not success then
+					self.consumer.onCommandComplete(context, false, result)
+					if not forked then
+						error(err)
+					end
+				end
+			end
+		end
+
+		contexts = next
+		next = nil
+	end
+
+	if not foundCommand then
+		self.consumer.onCommandComplete(original, false, result)
+		error("UNKNOWN_COMMAND")
+	end
+
+	return forked and successfulForks or result
 end
 
 function CommandDispatcher.parseString<S>(self: CommandDispatcher<S>, inputStr: string, source: S): ParseResults.ParseResults<S>
@@ -139,7 +217,6 @@ function CommandDispatcher.parseNodes<S>(
 		end)
 
 		if not success then
-			warn(err)
 			-- Errors returned by `pcall` and other methods always includes the traceback.
 			-- e.g. "ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser:218: Player 's' not found"
 			-- This prevents that.

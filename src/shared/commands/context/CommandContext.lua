@@ -46,12 +46,23 @@ function CommandContext.new<S>(
 	}, CommandContext)
 end
 
+function CommandContext.copyFor<S>(self: CommandContext<S>, source: S): CommandContext<S>
+	if (self.source :: any) == (source :: any) then
+		return self
+	end
+	return CommandContext.new(self.source, self.input, self.arguments, self.command, self.rootNode, self.nodes, self.range, self.child)
+end
+
+function CommandContext.getCommand<S>(self: CommandContext<S>): CommandFunction<S>
+	return self.command
+end
+
 function CommandContext.getArgument<S>(self: CommandContext<S>, name: string): any
 	local argument = self.arguments[name]
 	if argument == nil then
 		error(`No such argument '{name}' exists on this command.`)
 	end
-	return argument
+	return argument:getResult()
 end
 
 function CommandContext.getSource<S>(self: CommandContext<S>): S
@@ -64,6 +75,10 @@ end
 
 function CommandContext.getChild<S>(self: CommandContext<S>): CommandContext<S>
 	return self.child
+end
+
+function CommandContext.hasNodes<S>(self: CommandContext<S>): boolean
+	return next(self.nodes) ~= nil
 end
 
 return CommandContext
