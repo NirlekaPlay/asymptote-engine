@@ -1,31 +1,32 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
+local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
 local ParseResults = {}
 ParseResults.__index = ParseResults
 
 export type ParseResults<S> = typeof(setmetatable({} :: {
-	context: CommandContext.CommandContext<S>,
+	context: CommandContextBuilder.CommandContextBuilder<S>,
 	errors: { [CommandNode.CommandNode<S>]: string },
-	remaining: string
+	reader: StringReader.StringReader
 }, ParseResults))
 
 function ParseResults.new<S>(
-	context: CommandContext.CommandContext<S>,
-	errors: { [CommandNode.CommandNode<S>]: string },
-	remaining: string
+	context: CommandContextBuilder.CommandContextBuilder<S>,
+	reader: StringReader.StringReader,
+	errors: { [CommandNode.CommandNode<S>]: string }
 ): ParseResults<S>
 	return setmetatable({
 		context = context,
 		errors = errors,
-		remaining = remaining
+		reader = reader
 	}, ParseResults)
 end
 
-function ParseResults.getContext<S>(self: ParseResults<S>): CommandContext.CommandContext<S>
+function ParseResults.getContext<S>(self: ParseResults<S>): CommandContextBuilder.CommandContextBuilder<S>
 	return self.context
 end
 
@@ -33,8 +34,8 @@ function ParseResults.getErrors<S>(self: ParseResults<S>): { [CommandNode.Comman
 	return self.errors
 end
 
-function ParseResults.getRemaining<S>(self: ParseResults<S>): string
-	return self.remaining
+function ParseResults.getReader<S>(self: ParseResults<S>): StringReader.StringReader
+	return self.reader
 end
 
 return ParseResults
