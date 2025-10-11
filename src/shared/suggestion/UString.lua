@@ -127,4 +127,29 @@ function UString.damerauLevenshteinDistance(str1: string, str2: string): number
 	return d[str1Length][str2Length]
 end
 
+function UString.isWhitespace(char: string): boolean
+	if #char == 0 then
+		return false
+	end
+	
+	local codepoint = utf8.codepoint(char)
+	
+	-- Control characters (0x09-0x0D, 0x1C-0x1F)
+	if (codepoint >= 0x0009 and codepoint <= 0x000D) or 
+	   (codepoint >= 0x001C and codepoint <= 0x001F) then
+		return true
+	end
+	
+	-- Space separators and specific whitespace characters
+	return codepoint == 0x0020  -- Space
+		or codepoint == 0x00A0  -- Non-breaking space
+		or codepoint == 0x1680  -- Ogham space mark
+		or (codepoint >= 0x2000 and codepoint <= 0x200A)  -- Various spaces (en, em, thin, etc.)
+		or codepoint == 0x2028  -- Line separator
+		or codepoint == 0x2029  -- Paragraph separator
+		or codepoint == 0x202F  -- Narrow no-break space
+		or codepoint == 0x205F  -- Medium mathematical space
+		or codepoint == 0x3000  -- Ideographic space
+end
+
 return UString
