@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ParsedArgument = require(ReplicatedStorage.shared.commands.context.ParsedArgument)
 local StringRange = require(ReplicatedStorage.shared.commands.context.StringRange)
 
 --[=[
@@ -10,22 +11,36 @@ local CommandContext = {}
 CommandContext.__index = CommandContext
 
 export type CommandContext<S> = typeof(setmetatable({} :: {
-	arguments: { [string]: any },
 	source: S,
+	input: string,
+	arguments: { [string]: ParsedArgument.ParsedArgument<S, any> },
+	command: CommandFunction<S>,
+	rootNode: CommandNode.CommandNode, -- CIRCULAR DEPENDENCY BULLSHIT WTF WHY
+	nodes: { ParsedCommandNode.ParsedCommandNode<S> }, -- ANOTHER CIRCULAR DEPENDENCY, CANT WE JUST GET THE FUCKING TYPES IN PEACE
 	range: StringRange.StringRange,
 	child: CommandContext<S>
 }, CommandContext))
 
+type CommandFunction<S> = (context: CommandContext<S>) -> number -- to avoid circular dependency bullshit
+
 function CommandContext.new<S>(
-	arguments: { [string]: any },
 	source: S,
-	child: CommandContext<S>,
-	range: StringRange.StringRange
+	input: string,
+	arguments: { [string]: ParsedArgument.ParsedArgument<S, any> },
+	command: CommandFunction<S>,
+	rootNode: CommandNode.CommandNode,
+	nodes: { ParsedCommandNode.ParsedCommandNode<S> },
+	range: StringRange.StringRange,
+	child: CommandContext<S>
 ): CommandContext<S>
 
 	return setmetatable({
-		arguments = arguments,
 		source = source,
+		input = input,
+		arguments = arguments,
+		command = command,
+		rootNode = rootNode,
+		nodes = nodes,
 		range = range,
 		child = child
 	}, CommandContext)

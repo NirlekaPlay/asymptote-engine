@@ -25,7 +25,7 @@ export type RequiredArgumentBuilder<S> = {
 	build: (self: RequiredArgumentBuilder<S>) -> CommandNode<S>
 }
 
-type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S>
+type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S, any>
 type ArgumentType<T> = ArgumentType.ArgumentType<T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>

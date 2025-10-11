@@ -61,7 +61,7 @@ function Commands.performCommand(input: string, source: CommandSourceStack.Comma
 	-- Remove leading slash if present
 	input = input:sub(1, 1) == "/" and input:sub(2) or input
 
-	local parseResults = dispatcher:parse(input, source)
+	local parseResults = dispatcher:parseString(input, source)
 
 	local success, errorMsg = Commands.finishParsing(parseResults, source)
 	
@@ -87,7 +87,8 @@ function Commands.finishParsing(
 	parsed: ParseResults.ParseResults<CommandSourceStack.CommandSourceStack>,
 	source: CommandSourceStack.CommandSourceStack
 ): (boolean, string?)
-	local remaining = parsed:getRemaining()
+	print(parsed)
+	local remaining = parsed:getReader():getRemaining()
 	local errors = parsed:getErrors()
 	
 	-- Check if there's unparsed input remaining
