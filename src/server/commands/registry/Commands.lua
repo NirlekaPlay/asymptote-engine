@@ -15,13 +15,10 @@ local RestartServerCommand = require(ServerScriptService.server.commands.Restart
 local SummonCommand = require(ServerScriptService.server.commands.SummonCommand)
 local TagCommand = require(ServerScriptService.server.commands.TagCommand)
 local TeleportCommand = require(ServerScriptService.server.commands.TeleportCommand)
-local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
 local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEntityPosition)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
-local EntityArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.EntityArgument)
-local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
@@ -87,43 +84,32 @@ function Commands.finishParsing(
 	parsed: ParseResults.ParseResults<CommandSourceStack.CommandSourceStack>,
 	source: CommandSourceStack.CommandSourceStack
 ): (boolean, string?)
-	print(parsed)
-	local remaining = parsed:getReader():getRemaining()
-	local errors = parsed:getErrors()
-	
-	-- Check if there's unparsed input remaining
-	if remaining ~= "" then
-		-- Count errors to determine what message to show
-		local errorCount = 0
-		local singleError = nil
-		
-		for node, err in pairs(errors) do
-			errorCount = errorCount + 1
-			singleError = err
-		end
-		
-		-- If exactly one error, show the specific error message
-		if errorCount == 1 then
-			return false, singleError
-		else
-			-- Multiple errors or no errors = generic message
-			local context = parsed:getContext()
-			if not context or not context.currentNode then
-				return false, "Unknown command"
-			else
-				return false, "Unknown argument at: " .. remaining
-			end
-		end
-	end
-	
-	-- Check if we found an executable command
-	local context = parsed:getContext()
-	if not context or not context.currentNode or not context.currentNode.command then
-		return false, "Unknown command"
+
+	local parseErrors = Commands.getParseErrors(parsed)
+	if parseErrors then
+		return false, parseErrors
 	end
 	
 	-- Validation passed!
 	return true, nil
+end
+
+function Commands.getParseErrors<S>(parseResults: ParseResults.ParseResults<S>): string?
+	if not parseResults:getReader():canRead() then
+		return nil
+	elseif #parseResults:getErrors() == 1 then
+		local errors = parseResults:getErrors()
+		local str: string
+		for _, err in pairs(errors) do
+			str = err
+			break
+		end
+		return str
+	else
+		return parseResults:getContext():getRange():isEmpty()
+			and "Unknown or incomplete command"
+			or "Incorrect argument for command"
+	end
 end
 
 --
