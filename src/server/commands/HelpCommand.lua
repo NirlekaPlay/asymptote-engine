@@ -15,10 +15,12 @@ function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Co
 		CommandHelper.literal("help")
 			:executes(function(c)
 				local source = c:getSource()
-				local availableCommands = dispatcher:getAllUsage(dispatcher.root, source, false)
+				local availableCommands = dispatcher:getSmartUsage(dispatcher:getRoot(), source, false)
+				local count = 0
 				
 				local helpText = "Available commands:\n"
-				for i, command in ipairs(availableCommands) do
+				for _, command in pairs(availableCommands) do
+					count += 1
 					helpText = helpText .. "/" .. command .. "\n"
 				end
 				
@@ -27,33 +29,35 @@ function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Co
 				
 				c:getSource():sendSuccess(MutableTextComponent.literal(helpText))
 				
-				return #availableCommands
+				return count
 			end)
 			:andThen(
 				CommandHelper.argument("command", StringArgumentType.string())
 					:executes(function(c)
-						local source = c:getSource()
-						local commandName = c:getArgument("command")
-						
-						local commandNode = dispatcher.root:getChild(commandName)
-						if not commandNode then
-							c:getSource():sendFailure(
-								MutableTextComponent.literal(`'{commandName}' is not a valid command.`)
-							)
-							return 0
-						end
-						
-						local commandsDetail = dispatcher:getAllUsage(commandNode, source, false)
-						local helpText = `Command tree for '{commandName}':\n`
-						for i, command in ipairs(commandsDetail) do
-							helpText = helpText .. "/" .. commandName .. " " .. command .. "\n"
-						end
+						local parseResults = dispatcher:parseString(
+							StringArgumentType.getString(c, "command"), c:getSource()
+						)
 
-						helpText = helpText:sub(1, -2)
-						
-						c:getSource():sendSuccess(MutableTextComponent.literal(helpText))
+						if next(parseResults:getContext():getNodes()) == nil then
+							error("Unknown command")
+						else
+							local nodes = parseResults:getContext():getNodes()
+							local nodesSize = #nodes
+							local last = nodes[nodesSize]:getNode()
+							local map = dispatcher:getSmartUsage(last, c:getSource())
 
-						return 1
+							local fullUsageText = "Full command tree:\n"
+							local count = 0
+							for _, usage in pairs(map) do
+								count += 1
+								fullUsageText ..= "/" .. parseResults:getReader():getString() .. " " .. usage .. "\n"
+							end
+
+							fullUsageText = fullUsageText:sub(1, -2)
+
+							c:getSource():sendSuccess(MutableTextComponent.literal(fullUsageText))
+							return 1
+						end
 					end)
 			)
 	)

@@ -17,9 +17,9 @@ export type CommandNode<S> = typeof(setmetatable({} :: {
 	name: string,
 	nodeType: "literal" | "argument",
 	requirement: Predicate<S>?,
-	redirect: CommandNode<S>?,
+	redirect: CommandNode<S>,
 	argumentType: ArgumentType<any>,
-	command: CommandFunction<S>?,
+	command: CommandFunction<S>,
 	children: { [string]: CommandNode<S> }
 }, CommandNode))
 
@@ -27,16 +27,28 @@ type ArgumentType<T> = ArgumentType.ArgumentType<T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type Predicate<T> = (T) -> boolean
 
-function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>?): CommandNode<S>
+function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>): CommandNode<S>
 	return setmetatable({
 		name = name,
 		nodeType = nodeType,
 		requirement = requirement,
 		redirect = redirect,
 		argumentType = argumentType,
-		command = nil :: CommandFunction<S>?,
+		command = nil :: any,
 		children = {}
 	}, CommandNode)
+end
+
+function CommandNode.getCommand<S>(self: CommandNode<S>): CommandFunction<S>
+	return self.command
+end
+
+function CommandNode.getRedirect<S>(self: CommandNode<S>): CommandNode<S>?
+	return self.redirect
+end
+
+function CommandNode.getChildren<S>(self: CommandNode<S>): { [string]: CommandNode<S> }
+	return self.children
 end
 
 function CommandNode.getName<S>(self: CommandNode<S>): string
@@ -69,8 +81,6 @@ function CommandNode.parseLiteral<S>(self: CommandNode<S>, reader: StringReader.
 		contextBuilder:withNode(self, StringRange.between(startPos, endPos))
 		return
 	end
-
-	print("failure?")
 
 	error("LITERAL_INCORRECT")
 end

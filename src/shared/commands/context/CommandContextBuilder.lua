@@ -46,6 +46,10 @@ function CommandContextBuilder.getRange<S>(self: CommandContextBuilder<S>): Stri
 	return self.range
 end
 
+function CommandContextBuilder.getNodes<S>(self: CommandContextBuilder<S>): { ParsedCommandNode.ParsedCommandNode<S> }
+	return self.nodes
+end
+
 function CommandContextBuilder.getRootNode<S>(self: CommandContextBuilder<S>): CommandNode.CommandNode<S>
 	return self.rootNode
 end

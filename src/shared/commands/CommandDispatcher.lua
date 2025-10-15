@@ -15,8 +15,6 @@ local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
 	end
 }
 
-local ARGUMENT_SEPARATOR_CHAR = ' '
-
 --[=[
 	@class CommandDispatcher
 
@@ -24,6 +22,16 @@ local ARGUMENT_SEPARATOR_CHAR = ' '
 ]=]
 local CommandDispatcher = {}
 CommandDispatcher.__index = CommandDispatcher
+
+local ARGUMENT_SEPARATOR = " "
+
+local ARGUMENT_SEPARATOR_CHAR = ' '
+
+local USAGE_OPTIONAL_OPEN = "["
+local USAGE_OPTIONAL_CLOSE = "]"
+local USAGE_REQUIRED_OPEN = "("
+local USAGE_REQUIRED_CLOSE = ")"
+local USAGE_OR = "|"
 
 export type CommandDispatcher<S> = typeof(setmetatable({} :: {
 	root: CommandNode<S>,
@@ -46,16 +54,25 @@ function CommandDispatcher.new<S>(): CommandDispatcher<S>
 	}, CommandDispatcher)
 end
 
+--[=[
+	Utility method to register new commands.
+]=]
 function CommandDispatcher.register<S>(self: CommandDispatcher<S>, command: LiteralArgumentBuilder<S>): CommandNode<S>
 	local node = command:build()
 	self.root:addChild(node)
 	return node
 end
 
+--[=[
+	Sets a callback to be informed of the result of every command.
+]=]
 function CommandDispatcher.setConsumer<S>(self: CommandDispatcher<S>, consumer: ResultConsumer<S>): ()
 	self.consumer = consumer
 end
 
+--[=[
+	Gets the dispatcher's command root.
+]=]
 function CommandDispatcher.getRoot<S>(self: CommandDispatcher<S>): CommandNode<S>
 	return self.root
 end
@@ -67,6 +84,8 @@ function CommandDispatcher.getAllUsage<S>(self: CommandDispatcher<S>, node: Comm
 end
 
 function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: S, result: {string}, prefix: string, restricted: boolean)
+	-- TODO: This is a very bad design for a method.
+	-- Should just return a value and not mutate the result table.
 	if restricted and not node:canUse(source) then
 		return
 	end
@@ -76,7 +95,7 @@ function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: Com
 	end
 	
 	if node.redirect then
-		local redirect = node.redirect == self.root and "..." or "-> " .. node.redirect:getUsageText()
+		local redirect = node:getRedirect() == self.root and "..." or "-> " .. node.redirect:getUsageText()
 		local redirectText = prefix == "" and node:getUsageText() .. " " .. redirect or prefix .. " " .. redirect
 		table.insert(result, redirectText)
 	elseif node.children then
@@ -85,6 +104,94 @@ function CommandDispatcher._getAllUsage<S>(self: CommandDispatcher<S>, node: Com
 			self:_getAllUsage(child, source, result, newPrefix, restricted)
 		end
 	end
+end
+
+function CommandDispatcher.getSmartUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: S): { [CommandNode<S>]: string }
+	local result: { [CommandNode<S>]: string } = {}
+	local optional = node:getCommand() ~= nil
+
+	for _, child in pairs(node:getChildren()) do
+		local usage = self:_getSmartUsage(child, source, optional, false)
+		if usage ~= nil then
+			result[child] = usage
+		end
+	end
+
+	return result;
+end
+
+function CommandDispatcher._getSmartUsage<S>(self: CommandDispatcher<S>, node: CommandNode<S>, source: S, optional: boolean, deep: boolean): string?
+	if not node:canUse(source) then
+		return nil
+	end
+
+	local selfStr = optional and USAGE_OPTIONAL_OPEN .. node:getUsageText() .. USAGE_OPTIONAL_CLOSE or node:getUsageText()
+	local childOptional = node:getCommand() ~= nil
+	local open = childOptional and USAGE_OPTIONAL_OPEN or USAGE_REQUIRED_OPEN
+	local close = childOptional and USAGE_OPTIONAL_CLOSE or USAGE_REQUIRED_CLOSE
+
+	if not deep then
+		if node:getRedirect() ~= nil then
+			local redirect = node:getRedirect() == self.root and "..." or "-> " .. node:getRedirect():getUsageText()
+			return selfStr .. ARGUMENT_SEPARATOR .. redirect
+		else
+			local children: { CommandNode<S> } = {}
+			local childrenCount = 0
+			local firstChild: CommandNode<S>?
+			for _, child in pairs(node:getChildren()) do
+				if child:canUse(source) then
+					childrenCount += 1
+					if not firstChild then
+						firstChild = child
+					end
+					table.insert(children, child)
+				end
+			end
+
+			if childrenCount == 1 and firstChild then
+				local usage = self:_getSmartUsage(firstChild, source, childOptional, childOptional)
+				if usage ~= nil then
+					return selfStr .. ARGUMENT_SEPARATOR .. usage
+				end
+			elseif childrenCount > 1 then
+				local childUsage: { [string]: true } = {}
+				local childUsageCount = 0
+				local firstUsage: string?
+				for _, child in pairs(children) do
+					local usage = self:_getSmartUsage(child, source, childOptional, true)
+					if usage ~= nil then
+						childUsageCount += 1
+						if not firstUsage then
+							firstUsage = usage
+						end
+						childUsage[usage] = true
+					end
+				end
+
+				if childUsageCount == 1 and firstChild then
+					local usage = firstUsage
+					return selfStr .. ARGUMENT_SEPARATOR .. (childOptional and USAGE_OPTIONAL_OPEN .. usage .. USAGE_OPTIONAL_CLOSE or usage)
+				elseif childUsageCount > 1 and firstChild then
+					local str = open
+					local count = 0
+					for _, child in pairs(children) do
+						if count > 0 then
+							str ..= USAGE_OR
+						end
+						str ..= child:getUsageText()
+						count += 1
+					end
+
+					if count > 0 then
+						str ..= close
+						return selfStr .. ARGUMENT_SEPARATOR .. str
+					end
+				end
+			end
+		end
+	end
+
+	return selfStr
 end
 
 --
@@ -225,11 +332,11 @@ function CommandDispatcher.parseNodes<S>(
 			continue
 		end
 
-		context:withCommand(childNode.command) -- there should be a fucking method for this.
-		if reader:canRead(childNode.redirect == nil and 2 or 1) then -- again.. A METHOD!!!
+		context:withCommand(childNode:getCommand())
+		if reader:canRead(childNode:getRedirect() == nil and 2 or 1) then
 			reader:skip()
 
-			if childNode.redirect ~= nil then
+			if childNode:getRedirect() ~= nil then
 				local childContext = CommandContextBuilder.new(source, childNode.redirect, reader:getCursorPos())
 				local parse = self:parseNodes(childNode.redirect, reader, childContext) -- istg recursion feels like a sin.
 				context:withChild(childContext)
