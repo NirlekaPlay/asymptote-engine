@@ -32,7 +32,7 @@ function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Co
 				return count
 			end)
 			:andThen(
-				CommandHelper.argument("command", StringArgumentType.string())
+				CommandHelper.argument("command", StringArgumentType.greedyString())
 					:executes(function(c)
 						local parseResults = dispatcher:parseString(
 							StringArgumentType.getString(c, "command"), c:getSource()
