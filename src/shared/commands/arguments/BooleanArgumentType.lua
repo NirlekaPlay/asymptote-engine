@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 --[=[
@@ -17,13 +18,12 @@ BooleanArgumentType.__index = BooleanArgumentType
 -- for memory efficiency.
 local BOOL_INST: BooleanArgumentType? = nil
 
-export type BooleanArgumentType = {
-	parse: (self: BooleanArgumentType, input: string) -> (boolean, number)
-}
+export type BooleanArgumentType = ArgumentType.ArgumentType<boolean>
 
 function BooleanArgumentType.bool(): BooleanArgumentType
 	if not BOOL_INST then
-		return setmetatable({}, BooleanArgumentType) :: BooleanArgumentType
+		BOOL_INST = setmetatable({}, BooleanArgumentType) :: BooleanArgumentType
+		return BOOL_INST :: any
 	end
 	return BOOL_INST
 end

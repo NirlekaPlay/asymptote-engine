@@ -4,20 +4,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
---[=[
-	@class ArgumentBuilder
-]=]
-local ArgumentBuilder = {}
-ArgumentBuilder.__index = ArgumentBuilder
+export type ArgumentBuilder<S, T> = {
+	command: CommandFunction<S>?,
+	redirectNode: CommandNode<S>?,
+	children: { ArgumentBuilder<S, T> },
+	--
+	executes: (self: T, command: CommandFunction<S>) -> T,
+	andThen: (self: T, child: ArgumentBuilder<S, T>) -> T,
+	redirect: (self: T, target: CommandNode<S>) -> T,
+	build: (self: T) -> CommandNode<S>
+}
 
-export type ArgumentBuilder = typeof(setmetatable({} :: {
-	executes: (self: ArgumentBuilder, command: CommandFunction) -> ArgumentBuilder,
-	andThen: (self: ArgumentBuilder, child: ArgumentBuilder) -> ArgumentBuilder,
-	redirect: (self: ArgumentBuilder, target: CommandNode<S>) -> ArgumentBuilder,
-	build: (self: ArgumentBuilder) -> CommandNode<S>
-}, ArgumentBuilder))
-
-type CommandFunction = CommandFunction.CommandFunction
+type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
 
-return ArgumentBuilder
+return nil

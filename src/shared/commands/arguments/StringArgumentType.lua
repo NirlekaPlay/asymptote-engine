@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 --[=[
@@ -20,9 +21,8 @@ export type StringType = "SINGLE_WORD"
 	| "QUOTABLE_PHRASE"
 	| "GREEDY_PHRASE"
 
-export type StringArgumentType = {
-	stringType: StringType,
-	parse: (self: StringArgumentType, input: string) -> (string, number)
+export type StringArgumentType = ArgumentType.ArgumentType<string> & {
+	stringType: StringType
 }
 
 function StringArgumentType.new(stringType: StringType): StringArgumentType

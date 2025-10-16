@@ -1,65 +1,69 @@
---!nonstrict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
-local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
-local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 
 local HelpCommand = {}
 
-function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	local helpNode = dispatcher:register(
-		LiteralArgumentBuilder.new("help")
+		CommandHelper.literal("help")
 			:executes(function(c)
 				local source = c:getSource()
-				local availableCommands = dispatcher:getAllUsage(dispatcher.root, source, false)
+				local availableCommands = dispatcher:getSmartUsage(dispatcher:getRoot(), source, false)
+				local count = 0
 				
 				local helpText = "Available commands:\n"
-				for i, command in ipairs(availableCommands) do
+				for _, command in pairs(availableCommands) do
+					count += 1
 					helpText = helpText .. "/" .. command .. "\n"
 				end
 				
 				-- Remove trailing newline
 				helpText = helpText:sub(1, -2)
 				
-				TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-					literalString = helpText, 
-					type = "plain"
-				})
+				c:getSource():sendSuccess(MutableTextComponent.literal(helpText))
 				
-				return #availableCommands
+				return count
 			end)
 			:andThen(
-				RequiredArgumentBuilder.new("command", StringArgumentType)
+				CommandHelper.argument("command", StringArgumentType.greedyString())
 					:executes(function(c)
-						local source = c:getSource()
-						local commandName = c:getArgument("command")
-						
-						local commandNode = dispatcher.root:getChild(commandName)
-						if not commandNode then
-							error(`'{commandName}' is not a valid command.`)
-						end
-						
-						local commandsDetail = dispatcher:getAllUsage(commandNode, source, false)
-						local helpText = `Command tree for '{commandName}':\n`
-						for i, command in ipairs(commandsDetail) do
-							helpText = helpText .. "/" .. commandName .. " " .. command .. "\n"
-						end
+						local parseResults = dispatcher:parseString(
+							StringArgumentType.getString(c, "command"), c:getSource()
+						)
 
-						helpText = helpText:sub(1, -2)
-						
-						TypedRemotes.ClientBoundChatMessage:FireClient(source, {
-							literalString = helpText, 
-							type = "plain"
-						})
+						if next(parseResults:getContext():getNodes()) == nil then
+							error("Unknown command")
+						else
+							local nodes = parseResults:getContext():getNodes()
+							local nodesSize = #nodes
+							local last = nodes[nodesSize]:getNode()
+							local map = dispatcher:getSmartUsage(last, c:getSource())
+
+							local fullUsageText = "Full command tree:\n"
+							local count = 0
+							for _, usage in pairs(map) do
+								count += 1
+								fullUsageText ..= "/" .. parseResults:getReader():getString() .. " " .. usage .. "\n"
+							end
+
+							fullUsageText = fullUsageText:sub(1, -2)
+
+							c:getSource():sendSuccess(MutableTextComponent.literal(fullUsageText))
+							return 1
+						end
 					end)
 			)
 	)
 
 	dispatcher:register(
-		LiteralArgumentBuilder.new("?")
+		CommandHelper.literal("?")
 			:redirect(helpNode)
 	)
 end

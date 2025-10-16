@@ -13,6 +13,7 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
+local Commands = require(ServerScriptService.server.commands.registry.Commands)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.level.Level)
@@ -191,3 +192,5 @@ Players.PlayerRemoving:Connect(function(player)
 		playerConnections[player] = nil
 	end
 end)
+
+Commands.register()

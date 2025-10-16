@@ -54,12 +54,26 @@ local Players = game:GetService("Players")
 	
 	 * `/kill @e[type=!player,distance=..50]`        - Kill all non-players within 50 units
 	 * `/tp @p[team=Blue] @s`                        - Teleport nearest Blue team player to self
-	 * `/give @a[level=10..,limit=5] sword`          - Give sword to first 5 players with level 10+
 	
 	*NOTE: Distance calculations require HumanoidRootPart or PrimaryPart*
 ]=]
 local EntitySelectorParser = {}
 EntitySelectorParser.__index = EntitySelectorParser
+
+local SELECTORS = {
+	a = "all players",
+	p = "nearest player",
+	e = "entities",
+	s = "self",
+	r = "random player",
+	m = "marked entity",
+}
+
+export type ParsedEntitySelectorOutput = {
+	type: "selector" | "player",
+	selector: "a" | "p" | "s" | "r" | "e" | "m",
+	parameters: { [string]: string }
+}
 
 function EntitySelectorParser.entities()
 	return setmetatable({}, EntitySelectorParser)
@@ -115,36 +129,15 @@ local function parseParameters(paramString: string)
 end
 
 function EntitySelectorParser.parse(self, input: string): (any, number)
-	if not input or input == "" then
-		return nil, 0
+	local inputProxy = input -- without this shit, `input` will get refined to type `string & ~""`
+	if not input or inputProxy == "" then
+		error("Empty entity selector")
 	end
 	
 	-- Check if it starts with @ (selector indicator)
-	if input:sub(1, 1) ~= "@" then
-		print("called on a non selector")
-		-- Regular player name parsing
-
-		-- TODO: Might be a problem if there are multiple
-		-- players with similar names. e.g. John, john123, Johnny
-		local playerName = input:match("^%S+")
-		if not playerName then
-			error("Expected player name or selector")
-		end
-		
-		local foundPlayer = nil
-		for _, player in Players:GetPlayers() do
-			if player.Name:lower():find(playerName:lower(), 1, true) == 1 or
-				player.DisplayName:lower():find(playerName:lower(), 1, true) == 1 then
-				foundPlayer = player
-				break
-			end
-		end
-		
-		if not foundPlayer then
-			error("Player '" .. playerName .. "' not found")
-		end
-		
-		return foundPlayer, playerName:len()
+	local firstChar = input:sub(1, 1)
+	if firstChar ~= "@" then
+		return EntitySelectorParser.parsePlayerNames(input)
 	end
 	
 	-- Parse the selector pattern: @<type>[parameters]
@@ -152,13 +145,16 @@ function EntitySelectorParser.parse(self, input: string): (any, number)
 	local selectorType = ""
 	local parameters = ""
 	
-	-- Parse selector type (@a, @p, @e, etc.)
-	local typeMatch = input:match("^@([apesrm])")
-	if not typeMatch then
-		return nil, 0
+	local selector = input:match("^@(.?)")
+	if not selector or selector == "" then
+		error(`Invalid selector syntax near '{input}'`)
 	end
-	
-	selectorType = "@" .. typeMatch
+
+	if not SELECTORS[selector] then
+		error(`Unknown entity selector '{selector}'`)
+	end
+
+	selectorType = "@" .. selector
 	consumed = 2 -- @ + type character
 	
 	-- Check for parameters
@@ -216,6 +212,28 @@ function EntitySelectorParser.parse(self, input: string): (any, number)
 	}
 	
 	return selectorData, consumed
+end
+
+function EntitySelectorParser.parsePlayerNames(input: string)
+	local playerName = input:match("^%S+")
+	if not playerName then
+		error("Expected player name or selector")
+	end
+	
+	local matches: { Player } = {}
+	for _, player in Players:GetPlayers() do
+		if player.Name:lower():sub(1, #playerName) == playerName:lower() then
+			table.insert(matches, player)
+		end
+	end
+
+	if #matches == 0 then
+		error("Player '" .. playerName .. "' not found")
+	elseif #matches > 1 then
+		error("Multiple players found: " .. table.concat(table.map(matches, function(p) return p.Name end), ", "))
+	end
+
+	return matches[1], playerName:len()
 end
 
 local function getDistance(pos1: Vector3, pos2: Vector3)

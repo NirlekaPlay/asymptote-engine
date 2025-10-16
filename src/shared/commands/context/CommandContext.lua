@@ -1,5 +1,9 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ParsedArgument = require(ReplicatedStorage.shared.commands.context.ParsedArgument)
+local StringRange = require(ReplicatedStorage.shared.commands.context.StringRange)
+
 --[=[
 	@class CommandContext
 ]=]
@@ -7,23 +11,74 @@ local CommandContext = {}
 CommandContext.__index = CommandContext
 
 export type CommandContext<S> = typeof(setmetatable({} :: {
-	arguments: { [string]: any },
-	source: S
+	source: S,
+	input: string,
+	arguments: { [string]: ParsedArgument.ParsedArgument<S, any> },
+	command: CommandFunction<S>,
+	rootNode: CommandNode.CommandNode, -- CIRCULAR DEPENDENCY BULLSHIT WTF WHY
+	nodes: { ParsedCommandNode.ParsedCommandNode<S> }, -- ANOTHER CIRCULAR DEPENDENCY, CANT WE JUST GET THE FUCKING TYPES IN PEACE
+	range: StringRange.StringRange,
+	child: CommandContext<S>
 }, CommandContext))
 
-function CommandContext.new<S>(arguments: { [string]: any }, source: S): CommandContext<S>
+type CommandFunction<S> = (context: CommandContext<S>) -> number -- to avoid circular dependency bullshit
+
+function CommandContext.new<S>(
+	source: S,
+	input: string,
+	arguments: { [string]: ParsedArgument.ParsedArgument<S, any> },
+	command: CommandFunction<S>,
+	rootNode: CommandNode.CommandNode,
+	nodes: { ParsedCommandNode.ParsedCommandNode<S> },
+	range: StringRange.StringRange,
+	child: CommandContext<S>
+): CommandContext<S>
+
 	return setmetatable({
+		source = source,
+		input = input,
 		arguments = arguments,
-		source = source
+		command = command,
+		rootNode = rootNode,
+		nodes = nodes,
+		range = range,
+		child = child
 	}, CommandContext)
 end
 
+function CommandContext.copyFor<S>(self: CommandContext<S>, source: S): CommandContext<S>
+	if (self.source :: any) == (source :: any) then
+		return self
+	end
+	return CommandContext.new(self.source, self.input, self.arguments, self.command, self.rootNode, self.nodes, self.range, self.child)
+end
+
+function CommandContext.getCommand<S>(self: CommandContext<S>): CommandFunction<S>
+	return self.command
+end
+
 function CommandContext.getArgument<S>(self: CommandContext<S>, name: string): any
-	return self.arguments[name]
+	local argument = self.arguments[name]
+	if argument == nil then
+		error(`No such argument '{name}' exists on this command.`)
+	end
+	return argument:getResult()
 end
 
 function CommandContext.getSource<S>(self: CommandContext<S>): S
 	return self.source
+end
+
+function CommandContext.getRange<S>(self: CommandContext<S>): StringRange.StringRange
+	return self.range
+end
+
+function CommandContext.getChild<S>(self: CommandContext<S>): CommandContext<S>
+	return self.child
+end
+
+function CommandContext.hasNodes<S>(self: CommandContext<S>): boolean
+	return next(self.nodes) ~= nil
 end
 
 return CommandContext

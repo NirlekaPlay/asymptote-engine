@@ -27,6 +27,10 @@
     "ReplicatedFirst": {
       "$path": "src/client/ReplicatedFirst",
       "$ignoreUnknownInstances": true
+    },
+    "TestService": {
+      "$path": "test",
+      "$ignoreUnknownInstances": true
     }
   }
 }

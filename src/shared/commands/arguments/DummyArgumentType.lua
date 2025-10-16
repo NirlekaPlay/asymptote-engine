@@ -1,6 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 
 --[=[
@@ -15,9 +16,7 @@ local CommandContext = require(ReplicatedStorage.shared.commands.context.Command
 local DummyArgumentType = {}
 DummyArgumentType.__index = DummyArgumentType
 
-export type DummyArgumentType = {
-	parse: (self: DummyArgumentType, input: string) -> (any, number)
-}
+export type DummyArgumentType = ArgumentType.ArgumentType<any> & {}
 
 function DummyArgumentType.dummy(): DummyArgumentType
 	return {} :: any

@@ -1,15 +1,18 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
+local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
-local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
+local EntityArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.EntityArgument)
 local ItemArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.ItemArgument)
-local EntitySelectorParser = require(ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser)
-local JsonArgumentType = require(ReplicatedStorage.shared.commands.arguments.json.JsonArgumentType)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
-local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local SpellCorrectionSuggestion = require(ReplicatedStorage.shared.commands.suggestion.SpellCorrectionSuggestion)
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
+local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
+local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
 
 local INF = math.huge
 
@@ -21,6 +24,11 @@ local TOOLS_PER_INST = {
 	["c4"] = ReplicatedStorage.ExplFolder["Remote Explosive"],
 	["f3x"] = ServerStorage.Tools["F3X"]
 } :: { [string]: Instance }
+
+local TOOLS_NAME_LIST: { string } = {}
+for toolName in TOOLS_PER_INST do
+	table.insert(TOOLS_NAME_LIST, toolName)
+end
 
 local ATTRIBUTE_HANDLERS = {
 	fbb = {
@@ -70,32 +78,36 @@ local function applyAttributes(item: Instance, itemName: string, attributes: {[s
 	end
 end
 
-function GiveCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Player>): ()
+function GiveCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
-		LiteralArgumentBuilder.new("give")
+		CommandHelper.literal("give")
 			:andThen(
-				RequiredArgumentBuilder.new("target", EntitySelectorParser.entities())
+				CommandHelper.argument("targets", EntityArgument.entities())
 					:andThen(
-						RequiredArgumentBuilder.new("itemData", ItemArgument.item())
+						CommandHelper.argument("itemData", ItemArgument.item())
 							:executes(GiveCommand.giveItem)
 					)
 			)
 	)
 end
 
-function GiveCommand.giveItem(context: CommandContext.CommandContext<Player>)
+function GiveCommand.giveItem(context: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>)
 	local itemData = ItemArgument.getItemData(context, "itemData")
 	local itemName = itemData.itemName
 	local attributes = itemData.attributes
 	
 	local itemInst = TOOLS_PER_INST[itemName]
 	if not itemInst then
-		error(`'{itemName}' is not a valid item name`)
+		local suggest = SpellCorrectionSuggestion.didYouMean(itemName, TOOLS_NAME_LIST)
+		local message = MutableTextComponent.literal(`'{itemName}' is not a valid item name! `)
+		if suggest then
+			message:appendString(suggest)
+		end
+		context:getSource():sendFailure(message)
+		return 0
 	end
-	
-	local selectorData = context:getArgument("target")
-	local source = context:getSource()
-	local targets = EntitySelectorParser.resolvePlayerSelector(selectorData, source)
+
+	local targets = EntityArgument.getEntities(context, "targets")
 
 	for _, target in targets do
 		if not target:IsA("Player") then continue end
@@ -107,6 +119,45 @@ function GiveCommand.giveItem(context: CommandContext.CommandContext<Player>)
 		end
 		
 		itemClone.Parent = target.Backpack
+		local playerText = MutableTextComponent.literal(""):appendComponent(
+				MutableTextComponent.literal(`@{target.Name}`)
+					:withStyle(
+						TextStyle.empty()
+							:withItalic(true)
+							:withBold(true)
+							:withColor(NamedTextColors.MUTED_SOFT_AQUA)
+					)
+			)
+		
+		if target.Name ~= target.DisplayName then
+			playerText:appendString(" (a.k.a)")
+				:withStyle(
+					TextStyle.empty()
+						:withItalic()
+			)
+			:appendComponent(
+				MutableTextComponent.literal(` {target.DisplayName}`)
+					:withStyle(
+						TextStyle.empty()
+							:withBold(true)
+							:withItalic(true)
+							:withColor(NamedTextColors.MUTED_LIGHT_BLUE)
+					)
+			)
+		end
+
+		local itemText = MutableTextComponent.literal(` {itemClone.Name}`)
+			:withStyle(
+				TextStyle.empty()
+					:withBold(true)
+					:withColor(NamedTextColors.YELLOW)
+			)
+
+		local successMessage = MutableTextComponent.literal("Gave ")
+			:appendComponent(playerText)
+			:appendComponent(itemText)
+
+		context:getSource():sendSuccess(successMessage)
 	end
 	
 	return #targets
