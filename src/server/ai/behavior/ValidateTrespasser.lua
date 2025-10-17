@@ -1,13 +1,14 @@
---!nonstrict
+--!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local Agent = require(ServerScriptService.server.Agent)
+local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 --[=[
 	@class ValidateTrespasser
@@ -21,7 +22,7 @@ export type ValidateTrespasser = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent
+type Agent = Agent.Agent & DetectionAgent.DetectionAgent
 
 function ValidateTrespasser.new(): ValidateTrespasser
 	return setmetatable({
@@ -41,13 +42,18 @@ function ValidateTrespasser.getMemoryRequirements(self: ValidateTrespasser): { [
 end
 
 function ValidateTrespasser.checkExtraStartConditions(self: ValidateTrespasser, agent: Agent): boolean
-	for status, player in pairs(agent:getSuspicionManager().detectedStatuses) do
-		if status == PlayerStatusTypes.MINOR_TRESPASSING then
-			return true
+	local detetectionManager = agent:getDetectionManager()
+	local focusingTarget = detetectionManager:getFocusingTarget()
+	if focusingTarget then
+		-- TODO: Maybe prevent this from getting called repetedly
+		local detLevel = detetectionManager:getDetectionLevel(focusingTarget.entityUuid)
+		if not detLevel or detLevel < 1 then
+			return false
 		end
+		return true
 	end
 
-	return true
+	return false
 end
 
 function ValidateTrespasser.canStillUse(self: ValidateTrespasser, agent: Agent): boolean
@@ -55,24 +61,23 @@ function ValidateTrespasser.canStillUse(self: ValidateTrespasser, agent: Agent):
 end
 
 function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
-	local highestStatus: PlayerStatus.PlayerStatus?
-	local player: Player?
-	local highestPriority = -math.huge
-
-	for status, plr in pairs(agent:getSuspicionManager().detectedStatuses) do
-		local statusPriority = status:getPriorityLevel()
-
-		if statusPriority > highestPriority then
-			highestPriority = statusPriority
-			highestStatus = status
-			player = plr
+	local detetectionManager = agent:getDetectionManager()
+	local focusingTarget = detetectionManager:getFocusingTarget()
+	
+	if focusingTarget then
+		local status = focusingTarget.status
+		-- "why. WHY. WHYYYY"
+		-- I ask myself to past me.
+		-- But for real, CONSISTENCY IN GETTING, COMPARING, AND STORING PLAYER STATUSES!!!
+		if (status :: any) == PlayerStatusTypes.MINOR_TRESPASSING.name then
+			local entity = EntityManager.getEntityByUuid(focusingTarget.entityUuid)
+			if not entity or entity.name ~= "Player" or entity.isStatic == true then
+				error("The fucking entity is not a valid Player or is nil. Non-players shouldnt even have trespassing statuses!!")
+			end
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, entity.instance)
 		end
-	end
-
-	if highestStatus and highestStatus == PlayerStatusTypes.MINOR_TRESPASSING then
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, player)
 	else
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, nil)
+		error("Strange, ValidateTrespasser:doStart() is called but focusing target is nil.")
 	end
 end
 

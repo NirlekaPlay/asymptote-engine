@@ -57,7 +57,7 @@ function GuardAi.makeBrain(agent: Agent)
 	GuardAi.initCoreActivity(brain)
 	GuardAi.initWorkActivity(brain)
 	GuardAi.initPanicActivity(brain)
-	--GuardAi.initConfrontActivity(brain)
+	GuardAi.initConfrontActivity(brain)
 	GuardAi.initFightActivity(brain)
 	brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, agent.designatedPosts)
 	brain:setCoreActivities({Activity.CORE})
@@ -72,8 +72,8 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
-		--BehaviorWrapper.new(ValidateTrespasser.new()),
-		--BehaviorWrapper.new(FollowPlayerSink.new())
+		BehaviorWrapper.new(ValidateTrespasser.new()),
+		BehaviorWrapper.new(FollowPlayerSink.new())
 	})
 end
 

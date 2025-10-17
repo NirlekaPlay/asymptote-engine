@@ -7,9 +7,11 @@ local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTy
 local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
+local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local Cell = require(ServerScriptService.server.level.cell.Cell)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
@@ -21,19 +23,17 @@ ConfrontTrespasser.__index = ConfrontTrespasser
 ConfrontTrespasser.ClassName = "ConfrontTrespasser"
 
 export type ConfrontTrespasser = typeof(setmetatable({} :: {
-	patienceCooldown: number
+	-- maybe add stuff here
 }, ConfrontTrespasser))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent
+type Agent = Agent.Agent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent & DetectionAgent.DetectionAgent
 
 function ConfrontTrespasser.new(): ConfrontTrespasser
 	return setmetatable({
-		minDuration = 1000,
-		maxDuration = 1000,
-		--
-		patienceCooldown = 0
+		minDuration = math.huge,
+		maxDuration = math.huge,
 	}, ConfrontTrespasser)
 end
 
@@ -51,104 +51,70 @@ function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, 
 end
 
 function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent): boolean
-	return (not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING)) 
-		and agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER)
-		and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.KILL_TARGET)
+	return agent:getBrain():hasMemoryValue(MemoryModuleTypes.SPOTTED_TRESPASSER)
 end
 
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
-	local susMan = agent:getSuspicionManager()
-	local talkCntrl = agent:getTalkControl()
-	local trespasser = susMan.detectedStatuses[PlayerStatusTypes.MINOR_TRESPASSING] :: Player
-
-	if not trespasser then
-		return
+	print("Confronting trespasser - setting angry face")
+	
+	local brain = agent:getBrain()
+	local spottedTrespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+	local spottedTrespasserPlr = spottedTrespasser:get()
+	
+	if spottedTrespasser:isPresent() then
+		brain:setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, spottedTrespasserPlr)
 	end
 
 	agent:getFaceControl():setFace("Angry")
-	local speechDurPercentageGain = 10 -- percent
-	local trespasserAreaName = Cell.getPlayerOccupiedAreaName(trespasser)
+
+	local trespasserAreaName = Cell.getPlayerOccupiedAreaName(spottedTrespasserPlr)
 	local reportDialogue: string
 	if trespasserAreaName then
 		reportDialogue = `Trespasser in the {trespasserAreaName}.`
 	else
 		reportDialogue = `I've got a trespasser over here.`
 	end
-	local reportDialogueSpeechDur = talkCntrl.getStringSpeechDuration(reportDialogue) * (1 + (speechDurPercentageGain / 100))
-	talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
-	agent:getReportControl():reportOn(ReportType.TRESPASSER_SPOTTED, reportDialogue)
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.LOOK_TARGET, trespasser)
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, trespasser)
+
+	agent:getTalkControl():say(reportDialogue)
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
-	if not agent:getBrain():hasMemoryValue(MemoryModuleTypes.KILL_TARGET) then
-		agent:getFaceControl():setFace("Neutral")
-	end
-	agent:getReportControl():interruptReport()
-	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
-	agent:getBrain():eraseMemory(MemoryModuleTypes.REPORTING_ON)
-	agent:getBrain():eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+	agent:getFaceControl():setFace("Neutral")
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 end
 
 function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, deltaTime: number): ()
-	if agent:getReportControl():isReporting() then
+	local brain = agent:getBrain()
+	local spottedTrespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+	if spottedTrespasser:isEmpty() then
 		return
 	end
 
-	local trespasser = agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):orElse(nil)
-	if not trespasser then
-		warn("Trespasser is nil!")
-		return
+	local trespasserPlayer = spottedTrespasser:get()
+	local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(trespasserPlayer)
+	if not statusHolder then
+		error("STATUS_HOLDER_NIL: " .. trespasserPlayer.Name)
 	end
 
-	local trespasserWarnsMemory = agent:getBrain():getMemory(MemoryModuleTypes.TRESPASSERS_WARNS)
-		:orElse({})
+	if not statusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING) then
+		print(trespasserPlayer.Name, "No longer trespassing. Erasing memory.")
+		brain:eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 
-	local playerStatuses = PlayerStatusRegistry.getPlayerStatusHolder(trespasser)
-	local highestStatus = playerStatuses:getHighestPriorityStatus()
-	if highestStatus == PlayerStatusTypes.MAJOR_TRESPASSING then
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
-		return
-	end
+		local detectionManager = agent:getDetectionManager()
 
-	if (agent:getSuspicionManager().detectedStatuses[highestStatus] and highestStatus ~= PlayerStatusTypes.MINOR_TRESPASSING) then
-		warn("aborting confrontation to higher priority status")
-		agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
-	elseif playerStatuses.currentStatusesMap[PlayerStatusTypes.MINOR_TRESPASSING] == nil then
-		warn("player is no longer trespassing")
-		agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
-		agent:getSuspicionManager().detectedStatuses[PlayerStatusTypes.MINOR_TRESPASSING] = nil
-		if agent:getSuspicionManager().suspicionLevels[trespasser][PlayerStatusTypes.MINOR_TRESPASSING] >= 1 then
-			agent:getSuspicionManager().suspicionLevels[trespasser][PlayerStatusTypes.MINOR_TRESPASSING] = nil
+		-- TODO: Fucking fix this bullshit thank you.
+		-- Find and clear the detection level for this player
+		local entity = EntityManager.getEntityByUuid(tostring(trespasserPlayer.UserId))
+		if entity then
+			local entityUuid = entity.uuid
+			-- Clear ALL detection keys for this player
+			for key, _ in pairs(detectionManager.detectionLevels) do
+				if string.match(key, "^" .. entityUuid .. ":") then
+					detectionManager.detectionLevels[key] = nil
+				end
+			end
 		end
 	end
-
-	if trespasserWarnsMemory[trespasser] == nil or trespasserWarnsMemory[trespasser] <= 0 then
-		agent:getTalkControl():say("This area is restricted. You need to leave.")
-		trespasserWarnsMemory[trespasser] = trespasserWarnsMemory[trespasser] or 0
-		trespasserWarnsMemory[trespasser] += 1
-	end
-
-	if not agent:getTalkControl():isTalking() then
-		self.patienceCooldown += deltaTime
-	end
-
-	if self.patienceCooldown >= 2 then
-		self.patienceCooldown = 0
-		trespasserWarnsMemory[trespasser] += 1
-		if trespasserWarnsMemory[trespasser] == 2 then
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.FOLLOW_TARGET, trespasser)
-			agent:getTalkControl():saySequences({"I'm not going to warn you again.", "You need to leave now."})
-		elseif trespasserWarnsMemory[trespasser] == 3 then
-			agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
-			agent:getTalkControl():say("Alright! You were warned!")
-		end
-	end
-
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.TRESPASSERS_WARNS, trespasserWarnsMemory)
 end
 
 --
