@@ -102,17 +102,9 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 
 		local detectionManager = agent:getDetectionManager()
 
-		-- TODO: Fucking fix this bullshit thank you.
-		-- Find and clear the detection level for this player
 		local entity = EntityManager.getEntityByUuid(tostring(trespasserPlayer.UserId))
 		if entity then
-			local entityUuid = entity.uuid
-			-- Clear ALL detection keys for this player
-			for key, _ in pairs(detectionManager.detectionLevels) do
-				if string.match(key, "^" .. entityUuid .. ":") then
-					detectionManager.detectionLevels[key] = nil
-				end
-			end
+			detectionManager:eraseEntityStatusEntry(entity.uuid, PlayerStatusTypes.MINOR_TRESPASSING)
 		end
 	end
 end

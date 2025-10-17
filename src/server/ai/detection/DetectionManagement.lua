@@ -99,6 +99,14 @@ function DetectionManagement.getFocusingTarget(self: DetectionManagement)
 	return self.focusingTarget
 end
 
+function DetectionManagement.eraseEntityStatusEntry(self: DetectionManagement, entityUuid: string, status: PlayerStatus.PlayerStatus): ()
+	-- what the fuck. why.
+	-- why did i make shit harder for myself.
+
+	local entry = entityUuid .. ":" .. status.name
+	self.detectionLevels[entry] = nil
+end
+
 --[=[
 	Gets the current detection level for a specific entity
 	@param entityUuid string -- The entity's UUID
