@@ -16,6 +16,7 @@ local Cell = require(ServerScriptService.server.level.cell.Cell)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local DEFAULT_TRESPASSING_UPDATE_TIME = 3
+local WARNING_INTERVAL = 2 -- seconds between warnings
 
 --[=[
 	@class ConfrontTrespasser
@@ -26,7 +27,11 @@ ConfrontTrespasser.ClassName = "ConfrontTrespasser"
 
 export type ConfrontTrespasser = typeof(setmetatable({} :: {
 	trespassingUpdateTime: number,
-	trespassingCheckTimeAccum: number
+	trespassingCheckTimeAccum: number,
+	warningLevel: number,
+	timeSinceLastDialogue: number,
+	currentlySpeaking: boolean,
+	currentSpeechDuration: number
 }, ConfrontTrespasser))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
@@ -39,7 +44,11 @@ function ConfrontTrespasser.new(): ConfrontTrespasser
 		maxDuration = math.huge,
 		--
 		trespassingUpdateTime = DEFAULT_TRESPASSING_UPDATE_TIME,
-		trespassingCheckTimeAccum = 0
+		trespassingCheckTimeAccum = 0,
+		warningLevel = 0,
+		timeSinceLastDialogue = 0,
+		currentlySpeaking = false,
+		currentSpeechDuration = 0
 	}, ConfrontTrespasser)
 end
 
@@ -86,11 +95,24 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	local reportDialogueSpeechDur = talkCntrl.getStringSpeechDuration(reportDialogue) * (1 + (speechDurPercentageGain / 100))
 	talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
 	agent:getReportControl():reportOn(ReportType.TRESPASSER_SPOTTED, reportDialogue)
+	
+	-- Track speeches
+	-- TODO: Probably use memory instead
+	self.currentlySpeaking = true
+	self.currentSpeechDuration = reportDialogueSpeechDur
+	self.warningLevel = 0
+	self.timeSinceLastDialogue = 0
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
+	-- TODO: Not fucking resetting face if at max escalation
+
 	agent:getFaceControl():setFace("Neutral")
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+
+	self.warningLevel = 0
+	self.timeSinceLastDialogue = 0
+	self.currentlySpeaking = false
 end
 
 function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, deltaTime: number): ()
@@ -109,6 +131,25 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 
 	local isTrespassing = statusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING)
 
+	-- Update speech timer
+	if self.currentlySpeaking then
+		self.currentSpeechDuration -= deltaTime
+		if self.currentSpeechDuration <= 0 then
+			self.currentlySpeaking = false
+		end
+	end
+
+	-- Update dialogue timer
+	if not self.currentlySpeaking then
+		self.timeSinceLastDialogue += deltaTime
+	end
+
+	-- Escalate warnings
+	if isTrespassing and not self.currentlySpeaking and self.timeSinceLastDialogue >= WARNING_INTERVAL then
+		self:escalateWarning(agent)
+	end
+
+	-- Check if player stopped trespassing (debounce logic)
 	if not isTrespassing then
 		self.trespassingCheckTimeAccum += deltaTime
 	else
@@ -121,12 +162,45 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 		brain:eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 
 		local detectionManager = agent:getDetectionManager()
-
 		local entity = EntityManager.getEntityByUuid(tostring(trespasserPlayer.UserId))
 		if entity then
 			detectionManager:eraseEntityStatusEntry(entity.uuid, PlayerStatusTypes.MINOR_TRESPASSING)
 		end
 	end
+end
+
+function ConfrontTrespasser.escalateWarning(self: ConfrontTrespasser, agent: Agent): ()
+	-- TODO: Add warnings between trespassing encounters
+	local talkCntrl = agent:getTalkControl()
+	local speechDurPercentageGain = 10
+	
+	self.warningLevel += 1
+	
+	local dialogue: string
+
+	-- TODO: Add support for dialogue segments.
+	if self.warningLevel == 1 then
+		dialogue = "This area is restricted, you need to leave."
+	elseif self.warningLevel == 2 then
+		dialogue = "I'm not gonna warn you again, you need to leave now."
+	elseif self.warningLevel == 3 then
+		dialogue = "Alright! You were warned!"
+		print("TRIGGER ATTACK BEHAVIOR")
+		-- TODO: We need to actually implement a targetting system
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER):get())
+	else
+		-- Already at max warning level, don't say anything more
+		return
+	end
+	
+	local speechDuration = talkCntrl.getStringSpeechDuration(dialogue) * (1 + (speechDurPercentageGain / 100))
+	talkCntrl:say(dialogue, speechDuration)
+
+	self.currentlySpeaking = true
+	self.currentSpeechDuration = speechDuration
+	self.timeSinceLastDialogue = 0
+	
+	print(`Warning level {self.warningLevel}: "{dialogue}"`)
 end
 
 --
