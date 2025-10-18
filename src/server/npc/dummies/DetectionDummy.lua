@@ -11,6 +11,7 @@ local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
+local ReportControl = require(ServerScriptService.server.ai.control.ReportControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -42,6 +43,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	talkControl: TalkControl.TalkControl,
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
+	reportControl: ReportControl.ReportControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
@@ -69,6 +71,7 @@ function DummyAgent.new(character: Model): DummyAgent
 	self.gunControl = GunControl.new(self)
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
 	self.ragdollControl = RagdollControl.new(character)
+	self.reportControl = ReportControl.new(self)
 	self.random = Random.new(tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -146,6 +149,7 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	self.brain:update(deltaTime)
 	self.lookControl:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
+	self.reportControl:update(deltaTime)
 end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean
@@ -206,6 +210,10 @@ end
 
 function DummyAgent.getTalkControl(self: DummyAgent): TalkControl.TalkControl
 	return self.talkControl
+end
+
+function DummyAgent.getReportControl(self: DummyAgent): ReportControl.ReportControl
+	return self.reportControl
 end
 
 function DummyAgent.getPrimaryPart(self: DummyAgent): BasePart

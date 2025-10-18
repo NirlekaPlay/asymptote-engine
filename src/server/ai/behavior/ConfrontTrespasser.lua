@@ -15,6 +15,8 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local Cell = require(ServerScriptService.server.level.cell.Cell)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
+local DEFAULT_TRESPASSING_UPDATE_TIME = 3
+
 --[=[
 	@class ConfrontTrespasser
 ]=]
@@ -23,7 +25,8 @@ ConfrontTrespasser.__index = ConfrontTrespasser
 ConfrontTrespasser.ClassName = "ConfrontTrespasser"
 
 export type ConfrontTrespasser = typeof(setmetatable({} :: {
-	-- maybe add stuff here
+	trespassingUpdateTime: number,
+	trespassingCheckTimeAccum: number
 }, ConfrontTrespasser))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
@@ -34,6 +37,9 @@ function ConfrontTrespasser.new(): ConfrontTrespasser
 	return setmetatable({
 		minDuration = math.huge,
 		maxDuration = math.huge,
+		--
+		trespassingUpdateTime = DEFAULT_TRESPASSING_UPDATE_TIME,
+		trespassingCheckTimeAccum = 0
 	}, ConfrontTrespasser)
 end
 
@@ -58,8 +64,10 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	print("Confronting trespasser - setting angry face")
 	
 	local brain = agent:getBrain()
+	local talkCntrl = agent:getTalkControl()
 	local spottedTrespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 	local spottedTrespasserPlr = spottedTrespasser:get()
+	local speechDurPercentageGain = 10 -- percent
 	
 	if spottedTrespasser:isPresent() then
 		brain:setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, spottedTrespasserPlr)
@@ -75,7 +83,9 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 		reportDialogue = `I've got a trespasser over here.`
 	end
 
-	agent:getTalkControl():say(reportDialogue)
+	local reportDialogueSpeechDur = talkCntrl.getStringSpeechDuration(reportDialogue) * (1 + (speechDurPercentageGain / 100))
+	talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
+	agent:getReportControl():reportOn(ReportType.TRESPASSER_SPOTTED, reportDialogue)
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
@@ -93,10 +103,20 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 	local trespasserPlayer = spottedTrespasser:get()
 	local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(trespasserPlayer)
 	if not statusHolder then
-		error("STATUS_HOLDER_NIL: " .. trespasserPlayer.Name)
+		warn("STATUS_HOLDER_NIL: " .. trespasserPlayer.Name)
+		return
 	end
 
-	if not statusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING) then
+	local isTrespassing = statusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING)
+
+	if not isTrespassing then
+		self.trespassingCheckTimeAccum += deltaTime
+	else
+		self.trespassingCheckTimeAccum = 0
+	end
+
+	if self.trespassingCheckTimeAccum >= self.trespassingUpdateTime then
+		self.trespassingCheckTimeAccum = 0
 		print(trespasserPlayer.Name, "No longer trespassing. Erasing memory.")
 		brain:eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 
