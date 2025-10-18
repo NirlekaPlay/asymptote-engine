@@ -6,6 +6,7 @@ local CLUTTER_HOVERING_SPOTLIGHT_PROP_NAME = "Spotlight"
 local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 
+local rng = Random.new(os.clock())
 local clutterInstances: { [Instance]: true } = {}
 local hoveringSpotlightsInstances: { [Model]: HoveringSpotlight } = {}
 
@@ -15,7 +16,8 @@ type HoveringSpotlight = {
 	maxRotationY: number,
 	time: number,
 	speed: number,
-	baseCframe: CFrame
+	baseCframe: CFrame,
+	noiseOffset: Vector3
 }
 
 local function initialize(inst: Instance): ()
@@ -32,7 +34,12 @@ local function initialize(inst: Instance): ()
 			maxRotationY = 10,
 			time = 0,
 			speed = 0.5,
-			baseCframe = inst:GetBoundingBox()
+			baseCframe = inst:GetBoundingBox(),
+			noiseOffset = Vector3.new(
+				rng:NextNumber(0, 1000),
+				rng:NextNumber(0, 1000),
+				rng:NextNumber(0, 1000)
+			)
 		}
 	end
 end
@@ -57,13 +64,15 @@ RunService.PreRender:Connect(function(deltaTime)
 		object.time = (object.time + deltaTime * object.speed) % 1000 -- prevents it for accumulating over time
 		local time = object.time
 
-		local x = math.noise(time, 0, 0) * 5
-		local y = math.noise(0, time, 0) * 3
-		local z = math.noise(0, 0, time) * 5
+		local o = object.noiseOffset
+		local x = math.noise(time + o.X, o.Y, o.Z) * 5
+		local y = math.noise(o.X, time + o.Y, o.Z) * 3
+		local z = math.noise(o.X, o.Y, time + o.Z) * 5
 
-		local rotX = math.noise(time + 100, 0, 0) * object.maxTiltX
-		local rotY = math.noise(0, time + 100, 0) * object.maxRotationY
-		local rotZ = math.noise(0, 0, time + 100) * object.maxTiltZ
+		local rotX = math.noise(time + 100 + o.X, o.Y, o.Z) * object.maxTiltX
+		local rotY = math.noise(o.X, time + 100 + o.Y, o.Z) * object.maxRotationY
+		local rotZ = math.noise(o.X, o.Y, time + 100 + o.Z) * object.maxTiltZ
+
 
 		local targetCFrame = CFrame.new(object.baseCframe.Position + Vector3.new(x, y, z)) * 
 			object.baseCframe.Rotation *
