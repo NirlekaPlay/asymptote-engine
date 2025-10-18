@@ -1,0 +1,71 @@
+{
+  "trespassing.minor.report.area.unknown": [
+    ["Control, I found a trespasser here."],
+    ["Got a trespasser here."],
+    ["I got a trespasser over here."],
+    ["Control, got a wanderer here."],
+    ["Control, I've for a wanderer over here."]
+  ],
+  "trespassing.minor.report.area.known": [
+    ["Trespasser in %s."],
+    ["Control, found a trespasser in %s."],
+    ["Suspicious person in %s."],
+    ["Unauthorized person in %s."],
+    ["10-66, in %s."]
+  ],
+  "trespassing.minor.warn.1": [
+    ["Hey!", "You can't be in here!"],
+    ["You there!", "This is a restricted area."],
+    ["Hey, you're not allowed to be here."]
+  ],
+  "trespassing.minor.warn.2": [
+    ["This area is restricted.", "You need to leave."],
+    ["I'm not gonna warn you again", "You need to leave."]
+  ],
+  "trespassing.minor.warn.3": [
+    ["Alright! You were warned!"]
+  ],
+  "trespassing.minor.non_cooperative": [
+    ["Non-cooperative intruder, possibly armed."],
+    ["Agitative trespasser, I need backup here!"],
+    ["This trespasser is not cooperating! possibly armed!"]
+  ],
+  "trespassing.major.report.area.unknown": [
+    ["Control, I've got a guy snooping around here!"],
+    ["Hey! Found a guy that's off-limits!"],
+    ["Just found a guy that shouldn't be where they are!"]
+  ],
+  "trespassing.major.report.area.known": [
+    ["Control, theres someone snooping around in %s!"],
+    ["Dangerous trespasser in %s."]
+  ],
+  "status.armed": [
+    ["We have an armed guy here!"],
+    ["Control! Someone here has a gun!"],
+    ["I see someone with a gun!"]
+  ],
+  "status.dangerous_item": [
+    ["Control! Someone here has a bomb!"],
+    ["Oh God!", "Control! Someone's got a bomb!"],
+    ["Control! Someone here is carrying an explosive!"],
+    ["Control! I found someone with a bomb!"]
+  ],
+  "entity.c4": [
+    ["Control! I found a bomb!"],
+    ["Control! I just found a bomb!"],
+    ["Control! I think I just found a bomb!"],
+    ["I've got an explosive device over here!"],
+    ["Shrimp!", "Control! I found an IED!"]
+  ],
+  "entity.dead_body_unknown": [
+    ["Control, I just found someone's corpse!"],
+    ["Control! I've got a dead body over here!"],
+    ["Found someone's unresponsive!"]
+  ],
+  "entity.dead_body_known": [
+    ["Control! Someone took down %s!"],
+    ["Control! %s is down!", "I repeat!", "%s is down!"],
+    ["Control! %s is unresponsive!"],
+    ["Control!! %s is dead over here!"]
+  ]
+}

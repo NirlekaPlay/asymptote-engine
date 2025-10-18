@@ -1,0 +1,54 @@
+{
+  "Lighting": {
+    "$properties": {
+      "Ambient": [70, 70, 70],
+      "Brightness": 0,
+      "ClockTime": 20.2,
+      "ColorShift_Bottom": [0, 0, 0],
+      "ColorShift_Top": [0, 0, 0],
+      "EnvironmentDiffuseScale": 0.4,
+      "EnvironmentSpecularScale": 0.4,
+      "ExposureCompensation": 0,
+      "GlobalShadows": true,
+      "LightingStyle": "Enum.LightingStyle.Realistic",
+      "OutdoorAmbient": [70, 70, 70],
+      "PrioritizeLightingQuality": true,
+      "ShadowSoftness": 0.31
+    }
+  },
+  "Atmosphere": {
+    "$properties": {
+      "Color": [0, 0, 0],
+      "Decay": [0, 0, 0],
+      "Density": 0.67,
+      "Glare": 0,
+      "Haze": 2.02,
+      "Offset": 1
+    }
+  },
+  "DepthOfField": {
+    "$properties": {
+      "FarIntensity": 0.236,
+      "FocusDistance": 26.96,
+      "InFocusRadius": 0,
+      "NearIntensity": 0
+    }
+  },
+  "Sky": {
+    "$properties": {
+      "CelestialBodiesShown": true,
+      "MoonAngularSize": 11,
+      "MoonTextureId": "rbxasset://sky/moon.jpg",
+      "SkyboxBk": "rbxassetid://600830446",
+      "SkyboxDn": "rbxassetid://600831635",
+      "SkyboxFt": "rbxassetid://600832720",
+      "SkyboxLf": "rbxassetid://600886090",
+      "SkyboxOrientation": [0, 0, 0],
+      "SkyboxRt": "rbxassetid://600833862",
+      "SkyboxUp": "rbxassetid://600835177",
+      "StarCount": 3000,
+      "SunAngularSize": 21,
+      "SunTextureId": "rbxasset://sky/sun.jpg"
+    }
+  }
+}
