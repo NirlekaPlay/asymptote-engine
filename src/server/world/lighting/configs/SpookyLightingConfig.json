@@ -26,8 +26,9 @@
       "Offset": 1
     }
   },
-  "DepthOfField": {
+  "DepthOfFieldEffect": {
     "$properties": {
+      "Name": "DepthOfField",
       "FarIntensity": 0.236,
       "FocusDistance": 26.96,
       "InFocusRadius": 0,
