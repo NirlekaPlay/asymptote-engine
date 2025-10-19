@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Cell = require(ServerScriptService.server.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local Clutter = require(ServerScriptService.server.world.clutter.Clutter)
 
 local HIDE_CELLS = true
 local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5
@@ -42,6 +43,11 @@ function Level.initializeLevel(): ()
 		Level.initializeCells(cellsFolder)
 	end
 
+	local propsFolder = levelFolder:FindFirstChild("Props")
+	if propsFolder and (propsFolder:IsA("Model") or propsFolder:IsA("Folder")) then
+		Level.initializeClutters(propsFolder)
+	end
+
 	local playerCollidersFolder = levelFolder:FindFirstChild("PlayerColliders")
 	if playerCollidersFolder then
 		for _, part in ipairs(playerCollidersFolder:GetChildren()) do
@@ -53,6 +59,13 @@ function Level.initializeLevel(): ()
 			part.CollisionGroup = CollisionGroupTypes.PLAYER_COLLIDER
 			part.Transparency = 1
 		end
+	end
+end
+
+function Level.initializeClutters(levelPropsFolder: Model | Folder): ()
+	local successfull = Clutter.initialize()
+	if successfull then
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder)
 	end
 end
 
