@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
+local StarterPack = game:GetService("StarterPack")
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
 local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
@@ -18,16 +19,18 @@ local INF = math.huge
 
 local GiveCommand = {}
 
-local TOOLS_PER_INST = {
-	["fbb"] = ServerStorage.Tools["FB Beryl"],
-	["bob_spawner"] = ServerStorage.Tools["Bob Spawner"],
-	["c4"] = ReplicatedStorage.ExplFolder["Remote Explosive"],
-	["f3x"] = ServerStorage.Tools["F3X"]
-} :: { [string]: Instance }
+local TOOLS_PER_INST = {} :: { [string]: Instance }
 
-local TOOLS_NAME_LIST: { string } = {}
-for toolName in TOOLS_PER_INST do
-	table.insert(TOOLS_NAME_LIST, toolName)
+local toolsFolder = ServerStorage:FindFirstChild("Tools")
+if toolsFolder then
+	TOOLS_PER_INST["fbb"] = toolsFolder:FindFirstChild("FB Beryl")
+	TOOLS_PER_INST["bob_spawner"] = toolsFolder:FindFirstChild("Bob Spawner")
+	TOOLS_PER_INST["f3x"] = toolsFolder:FindFirstChild("F3X")
+end
+
+local explFolder = ReplicatedStorage:FindFirstChild("ExplFolder")
+if explFolder then
+	TOOLS_PER_INST["c4"] = explFolder:FindFirstChild("Remote Explosive")
 end
 
 local ATTRIBUTE_HANDLERS = {
@@ -61,7 +64,56 @@ local ATTRIBUTE_HANDLERS = {
 	}
 }
 
-local function applyAttributes(item: Instance, itemName: string, attributes: {[string]: any})
+local TOOL_SEARCH_LOCATIONS = {
+	ServerStorage:FindFirstChild("Tools"),
+	ServerStorage,
+	StarterPack
+}
+
+local function findToolByName(toolName: string): Instance?
+	local predefined = TOOLS_PER_INST[toolName]
+	if predefined then
+		return predefined
+	end
+	
+	for _, location in ipairs(TOOL_SEARCH_LOCATIONS) do
+		if not location then continue end
+		
+		local tool = location:FindFirstChild(toolName)
+		if tool and (tool:IsA("Tool") or tool:IsA("Model")) then
+			return tool
+		end
+	end
+	
+	return nil
+end
+
+local function getAllAvailableToolNames(): { string }
+	local toolNames: {string} = {}
+	local seen: { [string]: boolean } = {}
+	
+	for toolName in TOOLS_PER_INST do
+		if not seen[toolName] then
+			table.insert(toolNames, toolName)
+			seen[toolName] = true
+		end
+	end
+
+	for _, location in ipairs(TOOL_SEARCH_LOCATIONS) do
+		if not location then continue end
+		
+		for _, child in ipairs(location:GetChildren()) do
+			if (child:IsA("Tool") or child:IsA("Model")) and not seen[child.Name] then
+				table.insert(toolNames, child.Name)
+				seen[child.Name] = true
+			end
+		end
+	end
+	
+	return toolNames
+end
+
+local function applyAttributes(item: Instance, itemName: string, attributes: { [string]: any })
 	local handlers = ATTRIBUTE_HANDLERS[itemName]
 	if not handlers or not attributes then return end
 	
@@ -96,9 +148,10 @@ function GiveCommand.giveItem(context: CommandContext.CommandContext<CommandSour
 	local itemName = itemData.itemName
 	local attributes = itemData.attributes
 	
-	local itemInst = TOOLS_PER_INST[itemName]
+	local itemInst = findToolByName(itemName)
 	if not itemInst then
-		local suggest = SpellCorrectionSuggestion.didYouMean(itemName, TOOLS_NAME_LIST)
+		local allTools = getAllAvailableToolNames()
+		local suggest = SpellCorrectionSuggestion.didYouMean(itemName, allTools)
 		local message = MutableTextComponent.literal(`'{itemName}' is not a valid item name! `)
 		if suggest then
 			message:appendString(suggest)
@@ -119,6 +172,7 @@ function GiveCommand.giveItem(context: CommandContext.CommandContext<CommandSour
 		end
 		
 		itemClone.Parent = target.Backpack
+		
 		local playerText = MutableTextComponent.literal(""):appendComponent(
 				MutableTextComponent.literal(`@{target.Name}`)
 					:withStyle(
