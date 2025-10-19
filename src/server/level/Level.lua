@@ -45,7 +45,7 @@ function Level.initializeLevel(): ()
 
 	local propsFolder = levelFolder:FindFirstChild("Props")
 	if propsFolder and (propsFolder:IsA("Model") or propsFolder:IsA("Folder")) then
-		Level.initializeClutters(propsFolder)
+		Level.initializeClutters(propsFolder, (require :: any)(missionSetupModule).Colors)
 	end
 
 	local playerCollidersFolder = levelFolder:FindFirstChild("PlayerColliders")
@@ -62,10 +62,10 @@ function Level.initializeLevel(): ()
 	end
 end
 
-function Level.initializeClutters(levelPropsFolder: Model | Folder): ()
+function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): ()
 	local successfull = Clutter.initialize()
 	if successfull then
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder)
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap)
 	end
 end
 

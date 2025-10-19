@@ -53,7 +53,7 @@ function Clutter.initialize(): boolean
 	return true
 end
 
-function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder): ()
+function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?): ()
 	for _, child in ipairs(levelPropsFolder:GetChildren()) do
 		if not child:IsA("BasePart") then
 			continue
@@ -68,7 +68,7 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder):
 
 		local propClone = prop:Clone() :: Model -- why tf is it `any`
 		Clutter.positionProp(propClone, child)
-		Clutter.recolorProp(propClone, child)
+		Clutter.recolorProp(propClone, child, colorsMap)
 
 		propClone.Parent = levelPropsFolder
 		child:Destroy()
@@ -87,9 +87,10 @@ function Clutter.positionProp(propModel: Model, placeholder: BasePart): ()
 	end
 end
 
-function Clutter.recolorProp(propModel: Model, placeholder: BasePart)
+function Clutter.recolorProp(propModel: Model, placeholder: BasePart, colorsMap: { [string]: Color3 }?)
 	local index = 0
 	local colors: { [string]: { color: (Color3 | BrickColor)?, material: Enum.Material? } } = {}
+	
 	while true do
 		local colour = placeholder:GetAttribute(PROP_COLOR_ATTRIBUTE_PREFIX .. index)
 		local material = placeholder:GetAttribute(PROP_MATERIAL_ATTRIBUTE_PREFIX .. index)
@@ -100,13 +101,34 @@ function Clutter.recolorProp(propModel: Model, placeholder: BasePart)
 
 		if colour or material then
 			colors["Part" .. index] = {}
+			
 			if colour then
-				local isValidColor = Clutter.isValidColor(colour)
-				if not isValidColor then
-					error(`Failed to set {PROP_COLOR_ATTRIBUTE_PREFIX}{index} color for {placeholder:GetFullName()}: Given color attribute value must be of type Color3 or BrickColor. Got '{typeof(colour)}'`)
+				if typeof(colour) == "string" then
+					if colour ~= "" then
+						colour = nil -- kind ignore that shit
+					end
+					if colorsMap then
+						local mappedColor = colorsMap[colour]
+						if mappedColor then
+							colour = mappedColor
+						else
+							warn(`Color key '{colour}' not found in colorsMap for {placeholder:GetFullName()}`)
+							colour = nil
+						end
+					else
+						error(`Failed to set {PROP_COLOR_ATTRIBUTE_PREFIX}{index} color for {placeholder:GetFullName()}: String color key '{colour}' provided but no colorsMap available`)
+					end
 				end
-				colors["Part" .. index].color = colour :: any
+				
+				if colour then
+					local isValidColor = Clutter.isValidColor(colour)
+					if not isValidColor then
+						error(`Failed to set {PROP_COLOR_ATTRIBUTE_PREFIX}{index} color for {placeholder:GetFullName()}: Given color attribute value must be of type Color3 or BrickColor. Got '{typeof(colour)}'`)
+					end
+					colors["Part" .. index].color = colour :: any
+				end
 			end
+			
 			if material then
 				local isValidMaterial, errMsg = Clutter.isValidMaterial(material)
 				if not isValidMaterial and errMsg then
