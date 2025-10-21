@@ -26,13 +26,20 @@ local characterToCheck: Model? = nil
 local activeSpook: Model? = nil
 local activeSpookCorners: {Vector3}? = nil
 local updateConnection: RBXScriptConnection? = nil
+local characterConnection: RBXScriptConnection? = nil
+local isActive = false
 
 function DeanHaunt.initialize()
+	if isActive then return end
+	isActive = true
+	
 	local player = Players.LocalPlayer
 	if not player then return end
 
-	player.CharacterAppearanceLoaded:Connect(function(character)
-		DeanHaunt.startSpookCheck(character)
+	characterConnection = player.CharacterAppearanceLoaded:Connect(function(character)
+		if isActive then
+			DeanHaunt.startSpookCheck(character)
+		end
 	end)
 
 	if player.Character then
@@ -40,18 +47,62 @@ function DeanHaunt.initialize()
 	end
 end
 
+function DeanHaunt.stop()
+	if not isActive then return end
+	isActive = false
+	
+	if characterConnection then
+		characterConnection:Disconnect()
+		characterConnection = nil
+	end
+	
+	if updateConnection then
+		updateConnection:Disconnect()
+		updateConnection = nil
+	end
+	
+	if HANGING_AROUND_SOUND.IsPlaying then
+		HANGING_AROUND_SOUND:Stop()
+	end
+	
+	if activeSpook then
+		if activeSpook.Parent then
+			activeSpook:Destroy()
+		end
+		activeSpook = nil
+		activeSpookCorners = nil
+	end
+	
+	characterToCheck = nil
+end
+
+function DeanHaunt.isRunning(): boolean
+	return isActive
+end
+
 function DeanHaunt.startSpookCheck(character: Model): ()
+	if not isActive then return end
+	
 	characterToCheck = character
+	if updateConnection then
+		updateConnection:Disconnect()
+	end
 	updateConnection = RunService.Heartbeat:Connect(DeanHaunt.update)
 end
 
 function DeanHaunt.update(deltaTime: number): ()
+	if not isActive then
+		DeanHaunt.stop()
+		return
+	end
+	
 	local character = characterToCheck
 	local humanoidRootPart: BasePart
 	if not character or not character.Parent then
 		if updateConnection then
 			characterToCheck = nil
 			updateConnection:Disconnect()
+			updateConnection = nil
 		end
 		return
 	else
@@ -60,6 +111,7 @@ function DeanHaunt.update(deltaTime: number): ()
 			if updateConnection then
 				characterToCheck = nil
 				updateConnection:Disconnect()
+				updateConnection = nil
 			end
 			return
 		end
@@ -90,7 +142,8 @@ function DeanHaunt.update(deltaTime: number): ()
 end
 
 function DeanHaunt.spawnBehindPlayerIfPossible(rootPart: BasePart): ()
-	--warn("Spawned")
+	if not isActive then return end
+	
 	local cameraCFrame = camera.CFrame
 	local lookVector = cameraCFrame.LookVector
 	local behindVector = -lookVector
@@ -145,6 +198,7 @@ function DeanHaunt.playSound(sound: Sound, minPlaySpeed: number?, maxPlaySpeed: 
 end
 
 function DeanHaunt.canSpawn(): boolean
+	if not isActive then return false end
 	local random = rng:NextNumber(0, 1)
 	local randomChance = random < SPAWN_CHANCE
 	return not activeSpook and randomChance
@@ -156,7 +210,9 @@ function DeanHaunt.disappear(spookModel: Model): ()
 
 	task.spawn(function()
 		task.wait(DESPAWN_SPEED)
-		spookModel:Destroy()
+		if spookModel and spookModel.Parent then
+			spookModel:Destroy()
+		end
 		DeanHaunt.playSound(DISAPPEAR_SOUND, nil, nil, true)
 	end)
 end
