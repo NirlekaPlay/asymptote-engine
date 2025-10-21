@@ -87,7 +87,13 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 		-- Luau you stupid bastard fix this shit, `placeholder` is of type `unknown`.
 
 		-- TODO: If you cant see it already, this is bad. make it better.
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop:Model & { Base: BasePart })
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
+			if passed and prop then
+				for attName, v in pairs(placeholder:GetAttributes()) do
+					prop:SetAttribute(attName, v)
+				end
+			end
+			
 			if placeholder.Name == "SpawnLocation" then
 				local newSpawnLocation = Instance.new("SpawnLocation")
 				local decal = newSpawnLocation:FindFirstChildOfClass("Decal")

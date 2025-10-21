@@ -16,7 +16,7 @@ local FLOAT_SPEED_ATT_NAME = "FloatSpeed"
 
 local rng = Random.new(os.clock())
 --local clutterInstances: { [Instance]: true } = {}
-local hoveringSpotlightsInstances: { [Model]: HoveringSpotlight } = {}
+local floatingClutters: { [Model | BasePart]: HoveringSpotlight } = {}
 
 type HoveringSpotlight = {
 	maxTiltX: number,
@@ -38,6 +38,9 @@ local function getAttributeOrDefault<T>(inst: Instance, attribute: string, defau
 end
 
 local function initialize(inst: Instance): ()
+	if not inst:IsDescendantOf(workspace) then
+		return
+	end
 	--clutterInstances[inst] = true
 	local propName = inst:GetAttribute(CLUTTER_PROP_ATTRIBUTE_NAME)
 	if not propName then
@@ -48,14 +51,14 @@ local function initialize(inst: Instance): ()
 		SurfaceText.createFromPart(inst)
 	end
 
-	if inst:IsA("Model") and inst:GetAttribute(FLOAT_ATTRIBUTE_NAME) == true then
-		hoveringSpotlightsInstances[inst] = {
+	if inst:IsA("Model") or inst:IsA("BasePart") and inst:GetAttribute(FLOAT_ATTRIBUTE_NAME) == true then
+		floatingClutters[inst] = {
 			maxTiltX = getAttributeOrDefault(inst, FLOAT_MAX_TILT_X_ATT_NAME, 5),
 			maxTiltZ = getAttributeOrDefault(inst, FLOAT_MAX_TILT_Z_ATT_NAME, 5),
 			maxRotationY = getAttributeOrDefault(inst, FLOAT_MAX_ROT_Y, 10),
 			time = 0,
 			speed = getAttributeOrDefault(inst, FLOAT_SPEED_ATT_NAME, 0.5),
-			baseCframe = inst:GetBoundingBox(),
+			baseCframe = if inst:IsA("Model") then inst:GetBoundingBox() else inst.CFrame,
 			noiseOffset = Vector3.new(
 				rng:NextNumber(0, 1000),
 				rng:NextNumber(0, 1000),
@@ -74,13 +77,13 @@ CollectionService:GetInstanceAddedSignal(CLUTTER_TAG_NAME):Connect(function(inst
 end)
 
 CollectionService:GetInstanceRemovedSignal(CLUTTER_TAG_NAME):Connect(function(inst)
-	if inst:IsA("Model") and hoveringSpotlightsInstances[inst] then
-		hoveringSpotlightsInstances[inst] = nil
+	if inst:IsA("Model") and floatingClutters[inst] then
+		floatingClutters[inst] = nil
 	end
 end)
 
 RunService.PreRender:Connect(function(deltaTime)
-	for spotlight, object in pairs(hoveringSpotlightsInstances) do
+	for clutter, object in pairs(floatingClutters) do
 
 		object.time = (object.time + deltaTime * object.speed) % 1000 -- prevents it for accumulating over time
 		local time = object.time
@@ -103,6 +106,10 @@ RunService.PreRender:Connect(function(deltaTime)
 				math.rad(rotZ)
 			)
 
-		spotlight:PivotTo(spotlight:GetPivot():Lerp(targetCFrame, 0.1))
+		if clutter:IsA("Model") then
+			clutter:PivotTo(clutter:GetPivot():Lerp(targetCFrame, 0.1))
+		else
+			clutter.CFrame = clutter.CFrame:Lerp(targetCFrame, 0.1)
+		end
 	end
 end)
