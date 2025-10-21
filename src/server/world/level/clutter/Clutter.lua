@@ -53,7 +53,7 @@ function Clutter.initialize(): boolean
 	return true
 end
 
-function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, callback: ((prop: BasePart) -> boolean)?): ()
+function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, callback: ((placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart }) -> boolean)?): ()
 	for _, child in ipairs(levelPropsFolder:GetChildren()) do
 		if not child:IsA("BasePart") then
 			continue
@@ -63,7 +63,7 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, 
 		local prop = Clutter.getPropByName(propName)
 		if not prop then
 			if callback then
-				local success = callback(child)
+				local success = callback(child, false)
 				if success then
 					continue
 				end
@@ -79,6 +79,10 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, 
 		Clutter.recolorProp(propClone, child, colorsMap)
 
 		propClone.Parent = levelPropsFolder
+
+		if callback then
+			callback(child, true, propClone)
+		end
 		child:Destroy()
 	end
 end
@@ -116,7 +120,7 @@ function Clutter.recolorProp(propModel: Model, placeholder: BasePart, colorsMap:
 						colour = nil -- kind ignore that shit
 					end
 					if colorsMap then
-						local mappedColor = colorsMap[colour]
+						local mappedColor = colorsMap[colour :: any]
 						if mappedColor then
 							colour = mappedColor
 						else

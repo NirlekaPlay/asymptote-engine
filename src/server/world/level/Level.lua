@@ -87,7 +87,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 		-- Luau you stupid bastard fix this shit, `placeholder` is of type `unknown`.
 
 		-- TODO: If you cant see it already, this is bad. make it better.
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart)
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop:Model & { Base: BasePart })
 			if placeholder.Name == "SpawnLocation" then
 				local newSpawnLocation = Instance.new("SpawnLocation")
 				local decal = newSpawnLocation:FindFirstChildOfClass("Decal")
@@ -177,6 +177,36 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				placeholder.CanQuery = false
 				placeholder.CanTouch = false
 				placeholder.AudioCanCollide = false
+				return true
+			end
+
+			if placeholder:GetAttribute("Disguise") ~= nil and passed and prop then
+				local disguiseName = placeholder:GetAttribute("Disguise") :: string
+				if not levelFolder then
+					error("Level folder is nil wtf?")
+				end
+
+				local missionSetup = levelFolder:FindFirstChild("MissionSetup")
+				if not missionSetup then
+					error("MissionSetup doesnt exist in level folder.\nStrange. Should've been checked.") -- this will never happen.
+				end
+
+				missionSetup = (require)(missionSetup)
+				local disguiseProfile = missionSetup.CustomDisguises[disguiseName]
+				if not disguiseProfile then
+					error(`'{disguiseName}' profile doesnt exist in MissionSetup.`)
+				end
+
+				local localizedDisguiseName = missionSetup.CustomStrings[disguiseProfile.Name]
+				local shirtId = disguiseProfile.Outfits[1][1]
+				local pantsId = disguiseProfile.Outfits[1][2]
+
+				local newDisguiser = PropDisguiseGiver.new(prop, localizedDisguiseName, {
+					Shirt = Content.fromAssetId(shirtId),
+					Pants = Content.fromAssetId(pantsId)
+				}, disguiseProfile.BrickColor)
+
+				newDisguiser:setupProximityPrompt()
 				return true
 			end
 
