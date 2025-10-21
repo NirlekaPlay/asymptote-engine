@@ -1,13 +1,21 @@
 --!strict
 
-local CLUTTER_TAG_NAME = "Clutter"
-local CLUTTER_PROP_ATTRIBUTE_NAME = "ClutterPropName"
-local CLUTTER_HOVERING_SPOTLIGHT_PROP_NAME = "Spotlight"
 local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
+local StarterPlayer = game:GetService("StarterPlayer")
+local SurfaceText = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.SurfaceText)
+
+local CLUTTER_TAG_NAME = "Clutter"
+local CLUTTER_PROP_ATTRIBUTE_NAME = "ClutterPropName"
+
+local FLOAT_ATTRIBUTE_NAME = "Float"
+local FLOAT_MAX_TILT_X_ATT_NAME = "MaxTiltX"
+local FLOAT_MAX_TILT_Z_ATT_NAME = "MaxTiltZ"
+local FLOAT_MAX_ROT_Y = "MaxRotY"
+local FLOAT_SPEED_ATT_NAME = "FloatSpeed"
 
 local rng = Random.new(os.clock())
-local clutterInstances: { [Instance]: true } = {}
+--local clutterInstances: { [Instance]: true } = {}
 local hoveringSpotlightsInstances: { [Model]: HoveringSpotlight } = {}
 
 type HoveringSpotlight = {
@@ -20,20 +28,33 @@ type HoveringSpotlight = {
 	noiseOffset: Vector3
 }
 
+local function getAttributeOrDefault<T>(inst: Instance, attribute: string, default: T): T
+	local get = inst:GetAttribute(attribute)
+	if get == nil then
+		return default
+	else
+		return get
+	end
+end
+
 local function initialize(inst: Instance): ()
-	clutterInstances[inst] = true
+	--clutterInstances[inst] = true
 	local propName = inst:GetAttribute(CLUTTER_PROP_ATTRIBUTE_NAME)
 	if not propName then
 		return
 	end
 
-	if propName == CLUTTER_HOVERING_SPOTLIGHT_PROP_NAME and inst:IsA("Model") then
+	if propName == "FloatingFlatText" and inst:IsA("BasePart") then
+		SurfaceText.createFromPart(inst)
+	end
+
+	if inst:IsA("Model") and inst:GetAttribute(FLOAT_ATTRIBUTE_NAME) == true then
 		hoveringSpotlightsInstances[inst] = {
-			maxTiltX = 5,
-			maxTiltZ = 5,
-			maxRotationY = 10,
+			maxTiltX = getAttributeOrDefault(inst, FLOAT_MAX_TILT_X_ATT_NAME, 5),
+			maxTiltZ = getAttributeOrDefault(inst, FLOAT_MAX_TILT_Z_ATT_NAME, 5),
+			maxRotationY = getAttributeOrDefault(inst, FLOAT_MAX_ROT_Y, 10),
 			time = 0,
-			speed = 0.5,
+			speed = getAttributeOrDefault(inst, FLOAT_SPEED_ATT_NAME, 0.5),
 			baseCframe = inst:GetBoundingBox(),
 			noiseOffset = Vector3.new(
 				rng:NextNumber(0, 1000),

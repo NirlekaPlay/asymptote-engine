@@ -210,6 +210,17 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "FloatingFlatText" then
+				placeholder:AddTag("Clutter")
+				placeholder:SetAttribute("ClutterPropName", "FloatingFlatText")
+				placeholder.Transparency = 1
+				placeholder.CanCollide = false
+				placeholder.CanQuery = false
+				placeholder.CanTouch = false
+				placeholder.AudioCanCollide = false
+				return true
+			end
+
 			return false
 		end)
 	end
