@@ -49,16 +49,27 @@ function Level.initializeLevel(): ()
 	end
 
 	local playerCollidersFolder = levelFolder:FindFirstChild("PlayerColliders")
-	if playerCollidersFolder then
-		for _, part in ipairs(playerCollidersFolder:GetChildren()) do
-			if not part:IsA("BasePart") then
-				continue
-			end
+	if playerCollidersFolder and playerCollidersFolder:IsA("Folder") then
+		Level.initializePlayerColliders(playerCollidersFolder)
+	end
 
-			part.Anchored = true
-			part.CollisionGroup = CollisionGroupTypes.PLAYER_COLLIDER
-			part.Transparency = 1
+	local barriersFolder = levelFolder:FindFirstChild("Barrier")
+	if barriersFolder and barriersFolder:IsA("Folder") then
+		Level.initializePlayerColliders(barriersFolder)
+	end
+end
+
+function Level.initializePlayerColliders(folder: Folder): ()
+	for _, part in ipairs(folder:GetChildren()) do
+		if not part:IsA("BasePart") then
+			continue
 		end
+
+		part.CanTouch = false
+		part.AudioCanCollide = false
+		part.Anchored = true
+		part.CollisionGroup = CollisionGroupTypes.PLAYER_COLLIDER
+		part.Transparency = 1
 	end
 end
 
