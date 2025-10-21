@@ -53,7 +53,7 @@ function Clutter.initialize(): boolean
 	return true
 end
 
-function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?): ()
+function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, callback: ((prop: BasePart) -> boolean)?): ()
 	for _, child in ipairs(levelPropsFolder:GetChildren()) do
 		if not child:IsA("BasePart") then
 			continue
@@ -62,7 +62,15 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, 
 		local propName = child.Name
 		local prop = Clutter.getPropByName(propName)
 		if not prop then
+			if callback then
+				local success = callback(child)
+				if success then
+					continue
+				end
+			end
+
 			warn(`Unknown prop '{propName}' at {child:GetFullName()}`)
+			
 			continue
 		end
 

@@ -2,6 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
@@ -31,9 +32,15 @@ function Level.initializeLevel(): ()
 
 	local missionSetupModule = levelFolder:FindFirstChild("MissionSetup") :: ModuleScript?
 	if not missionSetupModule or not missionSetupModule:IsA("ModuleScript") then
-		warn("Unable to initialize Mission: MissionSetup module not found in Level folder or is not a ModuleScript.")
+		error("Unable to initialize Mission: MissionSetup module not found in Level folder or is not a ModuleScript.")
 	else
 		cellsConfig = (require :: any)(missionSetupModule).Cells
+	end
+
+	-- TODO: Should probably parse it first THEN create a mission object with getter methods
+	-- or something.
+	if (require :: any)(missionSetupModule).CustomDisguises == nil then
+		error("CustomDisguises is nil in MissionSetup. Must atleast be an empty table.")
 	end
 
 	local cellsFolder = levelFolder:FindFirstChild("Cells")
@@ -76,7 +83,105 @@ end
 function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): ()
 	local successfull = Clutter.initialize()
 	if successfull then
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap)
+		-- this is stupid as shit but we gotta.
+		-- Luau you stupid bastard fix this shit, `placeholder` is of type `unknown`.
+
+		-- TODO: If you cant see it already, this is bad. make it better.
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart)
+			if placeholder.Name == "SpawnLocation" then
+				local newSpawnLocation = Instance.new("SpawnLocation")
+				local decal = newSpawnLocation:FindFirstChildOfClass("Decal")
+				if decal then
+					decal:Destroy()
+				end
+				newSpawnLocation.Anchored = true
+				newSpawnLocation.CFrame = placeholder.CFrame
+				newSpawnLocation.Size = placeholder.Size
+				newSpawnLocation.Transparency = 1
+				newSpawnLocation.CanCollide = false
+				newSpawnLocation.CanQuery = false
+				newSpawnLocation.CanTouch = false
+				newSpawnLocation.AudioCanCollide = false
+				newSpawnLocation.Parent = placeholder.Parent
+				placeholder:Destroy()
+				return true
+			end
+
+			if placeholder.Name == "DisguiseTrigger" then
+				local disguiseName = placeholder:GetAttribute("Disguise") :: any
+				if not disguiseName then
+					error(`Failed to create disguise giver: On {placeholder:GetFullName()} placeholder does not have 'Disguise' attribute.`)
+				end
+				if type(disguiseName) ~= "string" then
+					error(`Failed to create disguise giver: On {placeholder:GetFullName()} 'Disguise' attribute must be a string.`)
+				end
+				if disguiseName == "" then
+					error(`Failed to create disguise giver: On {placeholder:GetFullName()} 'Disguise' is an empty string.`)
+				end
+
+				if not levelFolder then
+					error("Level folder is nil wtf?")
+				end
+
+				local missionSetup = levelFolder:FindFirstChild("MissionSetup")
+				if not missionSetup then
+					error("MissionSetup doesnt exist in level folder.\nStrange. Should've been checked.") -- this will never happen.
+				end
+
+				missionSetup = (require)(missionSetup)
+				local disguiseProfile = missionSetup.CustomDisguises[disguiseName]
+				if not disguiseProfile then
+					error(`'{disguiseName}' profile doesnt exist in MissionSetup.`)
+				end
+
+				-- im too lazy to add further checks.
+
+				-- backwards compatibility with InfiltrationEngine:
+
+				-- i think this should be on the client side but idfk.
+				local localizedDisguiseName = missionSetup.CustomStrings[disguiseProfile.Name]
+				local shirtId = disguiseProfile.Outfits[1][1]
+				local pantsId = disguiseProfile.Outfits[1][2]
+
+				-- For some reason, in InfiltrationEngine, the axis to make the
+				-- prompt forward face is the positive X axis instead of the typical
+				-- positive Z axis like LookVectors.
+
+				local triggerAttachment = Instance.new("Attachment")
+				triggerAttachment.Name = "Trigger"
+				triggerAttachment.Parent = placeholder
+
+				-- Position it half a unit along the placeholder's X axis
+				local halfSize = placeholder.Size.X / 2
+				triggerAttachment.Position = Vector3.new(halfSize, 0, 0)
+
+				-- Orient its Z axis to face the placeholder's X axis
+				-- placeholder.CFrame.RightVector is the direction of positive X in world space
+				triggerAttachment.CFrame = CFrame.lookAt(Vector3.zero, -Vector3.new(1, 0, 0))
+
+				-- what the shit.
+				local model = Instance.new("Model")
+				model.Name = placeholder.Name
+				model.PrimaryPart = placeholder
+				model.Parent = placeholder.Parent
+
+				local newDisguiser = PropDisguiseGiver.new(model, localizedDisguiseName, {
+					Shirt = Content.fromAssetId(shirtId),
+					Pants = Content.fromAssetId(pantsId)
+				})
+
+				newDisguiser:setupProximityPrompt()
+
+				placeholder.Transparency = 1
+				placeholder.CanCollide = false
+				placeholder.CanQuery = false
+				placeholder.CanTouch = false
+				placeholder.AudioCanCollide = false
+				return true
+			end
+
+			return false
+		end)
 	end
 end
 
