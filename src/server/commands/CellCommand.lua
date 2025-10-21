@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
 local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
-local Level = require(ServerScriptService.server.level.Level)
+local Level = require(ServerScriptService.server.world.level.Level)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 

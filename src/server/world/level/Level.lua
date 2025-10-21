@@ -2,10 +2,10 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Cell = require(ServerScriptService.server.level.cell.Cell)
-local CellConfig = require(ServerScriptService.server.level.cell.CellConfig)
+local Cell = require(ServerScriptService.server.world.level.cell.Cell)
+local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
-local Clutter = require(ServerScriptService.server.world.clutter.Clutter)
+local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 
 local HIDE_CELLS = true
 local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5

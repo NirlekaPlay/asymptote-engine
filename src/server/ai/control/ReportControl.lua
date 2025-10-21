@@ -5,7 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local TalkControl = require(script.Parent.TalkControl)
 local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
-local Mission = require(ServerScriptService.server.level.mission.Mission)
+local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 
 local ReportControl = {}
 ReportControl.__index = ReportControl

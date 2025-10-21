@@ -12,7 +12,7 @@ local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
-local Cell = require(ServerScriptService.server.level.cell.Cell)
+local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local DEFAULT_TRESPASSING_UPDATE_TIME = 3
