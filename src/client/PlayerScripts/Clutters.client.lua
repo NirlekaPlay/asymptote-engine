@@ -52,7 +52,6 @@ local function initialize(inst: Instance): ()
 	end
 
 	if (inst:IsA("Model") or inst:IsA("BasePart")) and inst:GetAttribute(FLOAT_ATTRIBUTE_NAME) == true then
-		print(inst:GetAttribute(FLOAT_ATTRIBUTE_NAME))
 		floatingClutters[inst] = {
 			maxTiltX = getAttributeOrDefault(inst, FLOAT_MAX_TILT_X_ATT_NAME, 5),
 			maxTiltZ = getAttributeOrDefault(inst, FLOAT_MAX_TILT_Z_ATT_NAME, 5),
