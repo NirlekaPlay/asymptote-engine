@@ -159,11 +159,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 				-- Position it half a unit along the placeholder's X axis
 				local halfSize = placeholder.Size.X / 2
-				triggerAttachment.Position = Vector3.new(halfSize, 0, 0)
 
-				-- Orient its Z axis to face the placeholder's X axis
-				-- placeholder.CFrame.RightVector is the direction of positive X in world space
-				triggerAttachment.CFrame = CFrame.lookAt(Vector3.zero, -Vector3.new(1, 0, 0))
+				-- Create a CFrame that positions AND orients the attachment
+				-- Position: halfSize units along X axis (in object space)
+				-- Orientation: Z axis faces along the placeholder's X axis (so -X direction in object space)
+				triggerAttachment.CFrame = CFrame.new(-halfSize, 0, 0) * CFrame.lookAt(Vector3.zero, -Vector3.new(1, 0, 0))
 
 				-- what the shit.
 				local model = Instance.new("Model")
