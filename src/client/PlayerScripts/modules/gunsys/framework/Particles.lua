@@ -48,6 +48,7 @@ function Particles.emitParticle(
 		task.wait(lifetime)
 		particleEmitter.Enabled = false
 		Debris:AddItem(particleEmitter, 0.5)
+		Debris:AddItem(part, 0.6)
 	end)
 end
 
