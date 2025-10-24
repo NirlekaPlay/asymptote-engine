@@ -8,6 +8,9 @@ local Level = require(ServerScriptService.server.world.level.Level)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
+local PART_ACTIVE_TRANSPARENCY = 0.75
+local PART_INACTIVE_TRANSPARENCY = 1
+
 local CellCommand = {}
 
 local debugBoundsPerCells : { [Model]: BasePart } = {}
@@ -67,15 +70,18 @@ function CellCommand.showOrHideDebugBounds(show: boolean): number
 	for _, cellModel in pairs(Level.getCellModels()) do
 		if show and not debugBoundsPerCells[cellModel] then
 			local newDebugBounds = Draw.box(cellModel:GetBoundingBox())
+			newDebugBounds.Transparency = PART_ACTIVE_TRANSPARENCY
 			debugBoundsPerCells[cellModel] = newDebugBounds
 		elseif show and debugBoundsPerCells[cellModel] then
 			local debugBounds = debugBoundsPerCells[cellModel]
+			debugBounds.Transparency = PART_ACTIVE_TRANSPARENCY
 			local boxHanldeAdornment = debugBounds:FindFirstChildOfClass("BoxHandleAdornment")
 			if boxHanldeAdornment then
 				boxHanldeAdornment.Visible = true
 			end
 		elseif not show and debugBoundsPerCells[cellModel] then
 			local debugBounds = debugBoundsPerCells[cellModel]
+			debugBounds.Transparency = PART_INACTIVE_TRANSPARENCY
 			local boxHanldeAdornment = debugBounds:FindFirstChildOfClass("BoxHandleAdornment")
 			if boxHanldeAdornment then
 				boxHanldeAdornment.Visible = false
