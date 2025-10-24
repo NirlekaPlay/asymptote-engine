@@ -10,6 +10,8 @@ local DeanHaunt = {}
 local rng = Random.new(os.clock() + tick())
 local CHARACTER = ReplicatedStorage:FindFirstChild("Dean") :: Model
 local SPAWN_CHANCE = 0.001
+local MIN_SPAWN_COOLDOWN = 10
+local MAX_SPAWN_COOLDOWN = 15
 local MIN_SPAWN_DISTANCE = 5
 local MAX_SPAWN_DISTANCE = 15
 local DESPAWN_SPEED = 0.3
@@ -28,6 +30,8 @@ local activeSpookCorners: {Vector3}? = nil
 local updateConnection: RBXScriptConnection? = nil
 local characterConnection: RBXScriptConnection? = nil
 local isActive = false
+local lastTimeSpawned = os.clock()
+local currentSpawnCooldown = rng:NextNumber(MIN_SPAWN_COOLDOWN, MAX_SPAWN_COOLDOWN)
 
 function DeanHaunt.initialize()
 	if isActive then return end
@@ -128,6 +132,8 @@ function DeanHaunt.update(deltaTime: number): ()
 			HANGING_AROUND_SOUND:Stop()
 			DeanHaunt.disappear(activeSpook)
 			return
+		else
+			DeanHaunt.turnToCharacter(activeSpook, characterToCheck)
 		end
 		if not HANGING_AROUND_SOUND.IsPlaying then
 			HANGING_AROUND_SOUND.Volume = 0
@@ -169,14 +175,32 @@ function DeanHaunt.spawnBehindPlayerIfPossible(rootPart: BasePart): ()
 		local lookAtPlayer = CFrame.lookAt(spawnPosition, rootPart.Position)
 		local spookModel = CHARACTER:Clone()
 		spookModel:PivotTo(lookAtPlayer)
-		
 		local cframe, size = spookModel:GetBoundingBox()
+		
+		-- Offset upward by half the model's height to avoid sinking
+		local offsetPosition = spawnPosition + Vector3.new(0, size.Y / 2, 0)
+		spookModel:PivotTo(CFrame.lookAt(offsetPosition, rootPart.Position))
+		
 		activeSpook = spookModel
 		activeSpookCorners = BoundingBox.getCornersFromBoundingBox(cframe, size)
 		spookModel.Parent = workspace
-
+		lastTimeSpawned = os.clock()
 		DeanHaunt.playSound(SPAWN_SOUND, SPAWN_SOUND_MIN_PLAYBACK_SPEED, SPAWN_SOUND_MAX_PLAYBACK_SPEED)
 	end
+end
+
+function DeanHaunt.turnToCharacter(spookModel: Model, toChar: Model?): ()
+	if not toChar then
+		return
+	end
+
+	local primaryPart = toChar.PrimaryPart
+	if not primaryPart then
+		return
+	end
+
+	local spookModelPivot = spookModel:GetPivot()
+	spookModel:PivotTo(CFrame.lookAt(spookModelPivot.Position, primaryPart.Position))
 end
 
 function DeanHaunt.checkIfOnScreen(spookModel: Model): boolean
@@ -199,9 +223,12 @@ end
 
 function DeanHaunt.canSpawn(): boolean
 	if not isActive then return false end
+	local timeDiff = os.clock() - lastTimeSpawned
 	local random = rng:NextNumber(0, 1)
 	local randomChance = random < SPAWN_CHANCE
-	return not activeSpook and randomChance
+	return not activeSpook and
+		randomChance and
+		timeDiff >= currentSpawnCooldown
 end
 
 function DeanHaunt.disappear(spookModel: Model): ()
