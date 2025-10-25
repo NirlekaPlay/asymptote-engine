@@ -171,7 +171,7 @@ function WalkToRandomPost.getRandomUnoccupiedPost(self: WalkToRandomPost, agent:
 		return nil
 	end
 
-	return unoccupied[math.random(1, #unoccupied)]
+	return unoccupied[agent:getRandom():NextInteger(1, #unoccupied)]
 end
 
 function WalkToRandomPost.connectDiedConnection(self: WalkToRandomPost, agent: Agent): ()
