@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local localPlayer = Players.LocalPlayer
 local localPlayerGui = localPlayer.PlayerGui
@@ -43,6 +44,16 @@ function HitMarkerHandler.onHitRegistered(causedDeath: boolean): ()
 		task.wait(0.2)
 		HIT_MARKER_SOUND:Play()
 	end)
+end
+
+function HitMarkerHandler.update(): ()
+	if not (hitMarkerSizeTween.PlaybackState == Enum.PlaybackState.Playing and
+		hitMarkerTransTween.PlaybackState == Enum.PlaybackState.Playing) then
+		return
+	end
+
+	local vec2 = UserInputService:GetMouseLocation()
+	HIT_MARKER_SCREENGUI.Hitmarker.Position = UDim2.fromOffset(vec2.X, vec2.Y)
 end
 
 return HitMarkerHandler
