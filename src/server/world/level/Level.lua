@@ -7,6 +7,8 @@ local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
+local LightingNames = require(ServerScriptService.server.world.lighting.LightingNames)
+local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
 local HIDE_CELLS = true
 local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5
@@ -15,7 +17,7 @@ local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
 
 local levelFolder: Folder?
-local cellsConfig: { [string]: CellConfig.Config}?
+local cellsConfig: { [string]: CellConfig.Config }?
 local cellsList: { Model } = {}
 
 --[=[
@@ -41,6 +43,17 @@ function Level.initializeLevel(): ()
 	-- or something.
 	if (require :: any)(missionSetupModule).CustomDisguises == nil then
 		error("CustomDisguises is nil in MissionSetup. Must atleast be an empty table.")
+	end
+
+	if (require :: any)(missionSetupModule).LightingSettings ~= nil then
+		local lightingPresetName = (require :: any)(missionSetupModule).LightingSettings
+		local lightingPreset = (LightingNames :: any)[lightingPresetName]
+		if not lightingPreset then
+			warn(`'{lightingPresetName}' is not a valid lighting preset name.`)
+			return
+		end
+
+		LightingSetter.readConfig(lightingPreset)
 	end
 
 	local cellsFolder = levelFolder:FindFirstChild("Cells")
