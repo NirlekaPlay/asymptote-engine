@@ -251,12 +251,12 @@ function Level.initializeCells(cellsFolder: Folder): ()
 			continue
 		end
 
-		local cellName = cellModel.Name
+		--[[local cellName = cellModel.Name
 		local cellConfig = Level.getCellConfig(cellName)
 		local cframe, size = cellModel:GetBoundingBox()
 		local areaName = cellModel:GetAttribute("AreaName") :: string?
 		local bounds = { CFrame = cframe, Size = size, AreaName = areaName }
-		Cell.addCell(cellName, bounds, cellConfig)
+		Cell.addCell(cellName, bounds, cellConfig)]]
 
 		if HIDE_CELLS then
 			Level.hideCell(cellModel)
