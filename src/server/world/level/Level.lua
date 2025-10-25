@@ -244,6 +244,30 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "SoundSource" then
+				placeholder.Transparency = 1
+				placeholder.CanCollide = false
+				placeholder.CanQuery = false
+				placeholder.CanTouch = false
+				placeholder.AudioCanCollide = false
+
+				local sound = Instance.new("Sound")
+				sound.Volume = (placeholder:GetAttribute("Volume") :: number?) or 1
+				sound.SoundId = "rbxassetid://" .. tostring((placeholder:GetAttribute("SoundId") :: number?))
+				sound.Looped = (placeholder:GetAttribute("Looped") :: boolean?) or true
+
+				for _, child in placeholder:GetChildren() do
+					child.Parent = sound
+					if child:IsA("BaseScript") then
+						child.Enabled = true
+					end
+				end
+
+				sound.Parent = placeholder
+				sound:Play()
+				return true
+			end
+
 			return false
 		end)
 	end
