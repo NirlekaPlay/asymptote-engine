@@ -57,7 +57,6 @@ function IntegerArgumentType.getInteger<S>(context: CommandContext.CommandContex
 end
 
 function IntegerArgumentType.parse(self: IntegerArgumentType, input: string): (number, number)
-	print(self.minimum, self.maximum)
 	local str = input:match("^%-?%d+$")
 	local num = tonumber(str)
 	if not num then
