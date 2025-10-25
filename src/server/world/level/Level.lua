@@ -201,6 +201,10 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if placeholder:GetAttribute("Disguise") ~= nil and passed and prop then
 				local disguiseName = placeholder:GetAttribute("Disguise") :: string
+				if disguiseName == "" then
+					warn(`The Disguise attribute of {placeholder:GetFullName()} is an empty string.`)
+					return false
+				end
 				if not levelFolder then
 					error("Level folder is nil wtf?")
 				end
