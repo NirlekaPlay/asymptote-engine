@@ -54,37 +54,54 @@ function Clutter.initialize(): boolean
 end
 
 function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, callback: ((placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart }) -> boolean)?): ()
-	for _, child in ipairs(levelPropsFolder:GetChildren()) do
-		if not child:IsA("BasePart") then
-			continue
+	local stack = {levelPropsFolder} :: {Instance}
+	local index = 1
+
+	while index > 0 do
+		local current = stack[index]
+		stack[index] = nil
+		index = index - 1
+
+		if current:IsA("BasePart") then
+			Clutter.proccessPlaceholder(current, colorsMap, callback :: any)
 		end
 
-		local propName = child.Name
-		local prop = Clutter.getPropByName(propName)
-		if not prop then
-			if callback then
-				local success = callback(child, false)
-				if success then
-					continue
-				end
+		if current:IsA("Folder") then
+			local children = current:GetChildren()
+			for i = #children, 1, -1 do
+				index = index + 1
+				stack[index] = children[i]
 			end
-
-			warn(`Unknown prop '{propName}' at {child:GetFullName()}`)
-			
-			continue
 		end
-
-		local propClone = prop:Clone() :: Model -- why tf is it `any`
-		Clutter.positionProp(propClone, child)
-		Clutter.recolorProp(propClone, child, colorsMap)
-
-		propClone.Parent = levelPropsFolder
-
-		if callback then
-			callback(child, true, propClone)
-		end
-		child:Destroy()
 	end
+end
+
+function Clutter.proccessPlaceholder(placeholder: BasePart, colorsMap, callback: ((placeholder: BasePart, passed: boolean, prop: (Model & { Base: BasePart })?) -> boolean)?): ()
+	local propName = placeholder.Name
+	local prop = Clutter.getPropByName(propName)
+	if not prop then
+		if callback then
+			local success = callback(placeholder, false, nil)
+			if success then
+				return
+			end
+		end
+
+		warn(`Unknown prop '{propName}' at {placeholder:GetFullName()}`)
+		
+		return
+	end
+
+	local propClone = prop:Clone() :: Model -- why tf is it `any`
+	Clutter.positionProp(propClone, placeholder)
+	Clutter.recolorProp(propClone, placeholder, colorsMap)
+
+	propClone.Parent = placeholder.Parent
+
+	if callback then
+		callback(placeholder, true, propClone)
+	end
+	placeholder:Destroy()
 end
 
 function Clutter.positionProp(propModel: Model, placeholder: BasePart): ()
