@@ -18,7 +18,7 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 				CommandHelper.argument("location", Vector3ArgumentType.vec3())
 					:executes(function(c)
 						local source = c:getSource()
-						local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source)
+						local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source:getPlayerOrThrow())
 						TeleportCommand.teleportEntity(source:getPlayerOrThrow(), CFrame.new(vec3.X, vec3.Y, vec3.Z), false)
 						return 1
 					end)
@@ -71,7 +71,7 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 							:executes(function(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>)
 								local targets = EntityArgument.getEntities(c, "targets")
 								local source = c:getSource()
-								local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source)
+								local vec3 = Vector3ArgumentType.resolveAndGetVec3(c, "location", source:getPlayerOrThrow())
 								
 								for _, target in targets do
 									TeleportCommand.teleportEntity(target, CFrame.new(vec3.X, vec3.Y, vec3.Z), false)
