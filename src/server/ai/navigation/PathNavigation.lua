@@ -31,6 +31,16 @@ end
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
 	self:stop()
 	self.pathfinder:Run(toPos)
+	if not self.pathConnections["err"] then
+		self.pathConnections["err"] = self.pathfinder.Error:Connect(function(model, reason)
+			warn("What?! Looks like pathfinding threw an error for", model:GetFullName(), "for:", reason)
+		end)
+	end
+	if not self.pathConnections["blocked"] then
+		self.pathConnections["blocked"] = self.pathfinder.Blocked:Connect(function(model, waypoint)
+			warn("Hmm.. Looks like pathfinding got blocked for", model:GetFullName(), "for waypoint:", waypoint)
+		end)
+	end
 	self.reachedConnection = self.pathfinder.Reached:Once(function()
 		self.finished = true
 	end)

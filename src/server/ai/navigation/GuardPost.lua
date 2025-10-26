@@ -36,7 +36,7 @@ function GuardPost.vacate(self: GuardPost): ()
 end
 
 function GuardPost.__tostring(self: GuardPost): string
-	return `GuardPost\{ occupied: {self.occupied}; \}`
+	return `GuardPost\{ occupied: {self.occupied}; pos: {self.cframe} \}`
 end
 
 return GuardPost

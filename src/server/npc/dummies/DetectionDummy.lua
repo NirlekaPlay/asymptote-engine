@@ -51,15 +51,16 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	designatedPosts: { GuardPost.GuardPost }
 }, DummyAgent))
 
-function DummyAgent.new(character: Model): DummyAgent
+function DummyAgent.new(character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
+	self.characterName = charName or ""
 	self.alive = true
 	self.pathNavigation = PathNavigation.new(character, {
 		AgentRadius = 2,
 		AgentHeight = 2,
-		AgentCanJump = true,
+		AgentCanJump = false,
 		WaypointSpacing = 1
 	})
 	self.detectionManager = DetectionManagement.new(self)
@@ -72,7 +73,7 @@ function DummyAgent.new(character: Model): DummyAgent
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self)
-	self.random = Random.new(tick())
+	self.random = Random.new(seed or tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()

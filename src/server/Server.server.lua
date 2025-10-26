@@ -22,8 +22,7 @@ local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local guards: { [Model]: Guard.Guard } = {}
-local basicGuardPosts: { GuardPost.GuardPost } = {}
-local advancedGuardPosts: { GuardPost.GuardPost } = {}
+local nodes: { [string]: { GuardPost.GuardPost } } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
 
 local SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME = true
@@ -68,10 +67,35 @@ local function onMapTaggedGuard(guardChar: Model): ()
 	setupGuard(guardChar)
 end
 
+local function getNodes(char: Model): { GuardPost.GuardPost }
+	-- TODO: This. YES. THIS ONE, OFFICER.
+	-- TODO: This will break if we attempt to spawn an NPC in game.
+	local nodesName = char:GetAttribute("Nodes") :: string
+	if not nodes[nodesName] then
+		nodes[nodesName] = {}
+		local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodesName, true)
+
+		for _, node in nodesFolder:GetChildren() do
+			if not node:IsA("BasePart") then
+				continue
+			end
+			node.Anchored = true
+			node.Transparency = 1
+			node.CanCollide = false
+			node.CanQuery = false
+			node.CanTouch = false
+			node.AudioCanCollide = false
+			table.insert(nodes[nodesName], GuardPost.fromPart(node, false))
+		end
+	end
+
+	return nodes[nodesName]
+end
+
 local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
-	local newDummy = DetectionDummy.new(dummyChar)
-		:setDesignatedPosts(basicGuardPosts)
+	local newDummy = DetectionDummy.new(dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
+		:setDesignatedPosts(getNodes(dummyChar))
 
 	guards[dummyChar] = newDummy
 end
@@ -93,20 +117,6 @@ local function onMapTaggedDummies(dummyChar: Model): ()
 	
 	setupDummy(dummyChar)
 end
-
-CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
-	if not post:IsDescendantOf(workspace) then
-		return
-	end
-
-	local newGuardPost = GuardPost.fromPart(post, false)
-	
-	if (post.Parent :: Instance).Name == "advanced" then
-		table.insert(advancedGuardPosts, newGuardPost)
-	else
-		table.insert(basicGuardPosts, newGuardPost)
-	end
-end)
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 

@@ -1,8 +1,12 @@
 --!strict
 
+local InsertService = game:GetService("InsertService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
+local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
@@ -77,6 +81,168 @@ function Level.initializeLevel(): ()
 	if barriersFolder and barriersFolder:IsA("Folder") then
 		Level.initializePlayerColliders(barriersFolder)
 	end
+
+	local npcsFolder = levelFolder:FindFirstChild("Bots") or levelFolder:FindFirstChild("Npcs")
+	if npcsFolder then
+		local stack = {npcsFolder}
+		local index = 1
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index = index - 1
+
+			if current:IsA("BoolValue") or current:IsA("Configuration") then
+				-- NOTES: This might create problems. Oh well.
+				-- TODO: Oh and by the way MAYBEEEEE the accessories bullshit should be
+				-- on the client side.
+				task.spawn(Level.initializeNpc, current)
+			end
+
+			if current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
+			end
+		end
+	end
+end
+
+-- TODO: THIS SHIT TOO.
+local RIG_TO_CLONE = ReplicatedStorage.shared.assets.characters.Rig
+local RIG_CFRAME, RIG_SIZE = RIG_TO_CLONE:GetBoundingBox()
+local OUTFITS = {
+	["PsdPlainColourable"] = { 4893820412, 4893808612 },
+	["PsdPlain"] = { 4893814518, 4893808612 }
+} :: { [string]: { number } }
+function Level.initializeNpc(inst: Instance): ()
+	-- TODO: SOMEONE FUCKING FIX THIS BULLSHIT THANK YOU
+	-- whats worse is this shit is initialized in Server sever script so theres no way to access it
+	-- so the only we is to add a tag to it and write a small refactor on the script
+	-- too fucking fucked to write a seperate npcs manager and turning the server into a module script
+	-- creates a circular dependency bullshit.
+
+	-- TODO: Apperance of the NPC or some shit.
+	local nodes = inst:GetAttribute("Nodes")
+	if not nodes then
+		warn(`Looks like we cannot spawn '{inst.Name}' (which is located in {inst:GetFullName()}) as it does not have a Nodes attribute, we cannot spawn it anywhere!`)
+		return
+	end
+	if type(nodes) ~= "string" then
+		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Nodes must be a string that points to a group of nodes!`)
+		return
+	end
+	local charName = inst:GetAttribute("CharName") :: string?
+	local seed =( inst:GetAttribute("Seed") or tick() ) :: number
+	local rng = Random.new(seed)
+
+	local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodes, true)
+	if not nodesFolder then
+		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Node group '{nodes}' not found!`)
+		return
+	end
+	local nodesFolderChildren = nodesFolder:GetChildren()
+	if next(nodesFolderChildren) == nil then
+		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Node group '{nodes}' is empty!`)
+		return
+	end
+
+	-- TODO: Whats even more worse is that this will fuck shit up if we have multiple NPCs
+	-- in the same node group.
+	local selectedRandomNode = nodesFolderChildren[rng:NextInteger(1, #nodesFolderChildren)] :: BasePart
+	local nodeCframe = selectedRandomNode.CFrame
+
+	local characterRigClone = RIG_TO_CLONE:Clone()
+	if charName then
+		characterRigClone.Name = charName
+	end
+
+	local outfitName = inst:GetAttribute("Outfit") :: string?
+	if (outfitName and OUTFITS[outfitName] == nil) then
+		warn(`It seems like the outfit '{outfitName}' doesnt exist!`)
+	elseif (outfitName and OUTFITS[outfitName]) then
+		local shirt = Instance.new("Shirt")
+		shirt.ShirtTemplate = "rbxassetid://" .. OUTFITS[outfitName][1]
+		local pants = Instance.new("Pants")
+		pants.PantsTemplate = "rbxassetid://" .. OUTFITS[outfitName][2] -- we're still doing this shit arent we?
+
+		shirt.Parent = characterRigClone
+		pants.Parent = characterRigClone
+	end
+
+	local skinColor = inst:GetAttribute("SkinColor") :: (Color3 | BrickColor)?
+	if not skinColor then
+		skinColor = BrickColor.new("Pastel brown")
+	end
+	if skinColor then
+		-- Hmm.. racism.
+		local bodyColorsInst = characterRigClone:FindFirstChild("Body Colors")
+		if not bodyColorsInst then
+			warn("Body Colors instance not found in character rig clone!")
+			return
+		end
+
+		-- no sane person will ever do this.
+		if typeof(skinColor) == "BrickColor" then
+			bodyColorsInst.HeadColor = skinColor
+			bodyColorsInst.LeftArmColor = skinColor
+			bodyColorsInst.RightArmColor = skinColor
+			bodyColorsInst.LeftLegColor = skinColor
+			bodyColorsInst.RightLegColor = skinColor
+			bodyColorsInst.TorsoColor = skinColor
+
+		elseif typeof(skinColor) == "Color3" then
+			bodyColorsInst.HeadColor3 = skinColor
+			bodyColorsInst.LeftArmColor3 = skinColor
+			bodyColorsInst.RightArmColor3 = skinColor
+			bodyColorsInst.LeftLegColor3 = skinColor
+			bodyColorsInst.RightLegColor3 = skinColor
+			bodyColorsInst.TorsoColor3 = skinColor
+		end
+	end
+
+	-- TODO: For accessories, maybe just parent the accesorries to the instance
+	-- OR have number values instance as its children under the instance,
+	-- that way we can have both the name of the accessory AND the asset id.
+	local index = 0
+	while true do
+		local assetId = inst:GetAttribute("Asset" .. index)
+		if assetId == nil then
+			break -- no more attributes
+		end
+
+		if type(assetId) ~= "number" then
+			warn(("Invalid Asset%d attribute: expected number, got %s"):format(index, typeof(assetId)))
+			break
+		end
+
+		local success, model: Instance = (pcall :: any)(InsertService.LoadAsset, InsertService, assetId)
+		if not success then
+			warn("An error occured while trying to fetch asset: ", model)
+		else
+			for _, child in model:GetChildren() do
+				print(child)
+				child.Parent = characterRigClone
+			end
+
+			index += 1
+		end
+	end
+
+	for _, child in inst:GetChildren() do
+		child.Parent = characterRigClone
+	end
+
+	local offsetPosition = nodeCframe.Position + Vector3.new(0, RIG_SIZE.Y / 2, 0)
+	characterRigClone:PivotTo(CFrame.new(offsetPosition, offsetPosition + nodeCframe.LookVector))
+
+	characterRigClone.Parent = workspace
+	characterRigClone:SetAttribute("Seed", seed)
+	characterRigClone:SetAttribute("Nodes", nodes)
+	characterRigClone:SetAttribute("CharName", charName)
+	characterRigClone:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName) -- this aint a dummy no more
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
