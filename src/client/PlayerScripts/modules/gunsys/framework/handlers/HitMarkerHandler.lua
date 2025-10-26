@@ -47,8 +47,7 @@ function HitMarkerHandler.onHitRegistered(causedDeath: boolean): ()
 end
 
 function HitMarkerHandler.update(): ()
-	if not (hitMarkerSizeTween.PlaybackState == Enum.PlaybackState.Playing and
-		hitMarkerTransTween.PlaybackState == Enum.PlaybackState.Playing) then
+	if HIT_MARKER_SCREENGUI.Hitmarker.GroupTransparency <= 0 then
 		return
 	end
 
