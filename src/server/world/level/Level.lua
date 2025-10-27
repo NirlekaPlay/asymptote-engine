@@ -235,7 +235,7 @@ function Level.initializeNpc(inst: Instance): ()
 		child.Parent = characterRigClone
 	end
 
-	local offsetPosition = nodeCframe.Position + Vector3.new(0, RIG_SIZE.Y / 2, 0)
+	local offsetPosition = nodeCframe.Position
 	characterRigClone:PivotTo(CFrame.new(offsetPosition, offsetPosition + nodeCframe.LookVector))
 
 	characterRigClone.Parent = workspace
