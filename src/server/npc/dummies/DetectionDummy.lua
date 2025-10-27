@@ -90,6 +90,12 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 		end
 	end
 
+	-- TODO: Legacy. Fix the Animate script.
+	local isPathfindingBoolValue = Instance.new("BoolValue")
+	isPathfindingBoolValue.Name = "isPathfinding"
+	isPathfindingBoolValue.Value = false
+	isPathfindingBoolValue.Parent = character
+
 	local descendantAddedConnection = character.DescendantAdded:Connect(function(inst)
 		-- make the Agent not collide with players
 		-- exclude "RagdollColliderPart" as those are ragdoll parts.
@@ -151,6 +157,13 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	self.lookControl:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.reportControl:update(deltaTime)
+
+	-- TODO: Legacy walking animation code.
+	if self.pathNavigation.pathfinder.Status == "Active" then
+		self.character.isPathfinding.Value = true
+	else
+		self.character.isPathfinding.Value = false
+	end
 end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean
