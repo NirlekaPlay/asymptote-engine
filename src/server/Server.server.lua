@@ -167,7 +167,12 @@ if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE
 	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
 end
 
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PLAYER) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PLAYER)
+end
+
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
 
 Players.PlayerAdded:Connect(function(player)
 	-- entity reg here:
