@@ -27,6 +27,7 @@ local MemoryModuleTypes = {
 	KILL_TARGET = register("kill_target") :: MemoryModuleType<Player>,
 	FOLLOW_TARGET = register("follow_target") :: MemoryModuleType<Player>,
 	PANIC_SOURCE_ENTITY_UUID = register("panic_source_entity_uuid"):: MemoryModuleType<string>,
+	CURRENT_POST = register("current_post") :: MemoryModuleType<GuardPost.GuardPost>,
 	TARGET_POST = register("target_post") :: MemoryModuleType<GuardPost.GuardPost>,
 	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{GuardPost.GuardPost}>,
 	PATROL_STATE = register("patrol_state") :: MemoryModuleType<PatrolState.PatrolState>,

@@ -8,6 +8,8 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 
+local REACH_THRESHOLD = 3
+
 --[=[
 	@class WalkToRandomPost
 
@@ -20,6 +22,7 @@ WalkToRandomPost.ClassName = "WalkToRandomPost"
 
 export type WalkToRandomPost = typeof(setmetatable({} :: {
 	diedConnection: RBXScriptConnection?,
+	destroyedConnection: RBXScriptConnection?,
 	previousPost: GuardPost?,
 	isAtTargetPost: boolean,
 	pathToPost: Path?,
@@ -58,8 +61,8 @@ function WalkToRandomPost.getMemoryRequirements(self: WalkToRandomPost): { [Memo
 end
 
 function WalkToRandomPost.checkExtraStartConditions(self: WalkToRandomPost, agent: Agent): boolean
-	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER) or
-		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING)
+	return not (agent:getBrain():hasMemoryValue(MemoryModuleTypes.CONFRONTING_TRESPASSER) and
+		agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING))
 end
 
 function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boolean
@@ -91,9 +94,11 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 
 	local targetPostMemory = brain:getMemory(MemoryModuleTypes.TARGET_POST)
 	local patrolStateMemory = brain:getMemory(MemoryModuleTypes.PATROL_STATE)
+	local currentPostMemory = brain:getMemory(MemoryModuleTypes.CURRENT_POST)
 
 	local targetPost = targetPostMemory:orElse(nil)
 	local patrolState = patrolStateMemory:orElse(nil)
+	local currentPost = currentPostMemory:orElse(nil)
 
 	if not patrolState then
 		patrolState = PatrolState.UNEMPLOYED
@@ -102,7 +107,11 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 	end
 
 	if patrolState == PatrolState.RESUMING then
-		if targetPost and targetPost:isOccupied() then
+		if currentPost then
+			rot:setRotateToDirection(currentPost.cframe.LookVector)
+			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING);
+			(agent :: any).character.isGuarding.Value = true
+		elseif targetPost and targetPost:isOccupied() then
 			if (not self.isAtTargetPost) or (self.isAtTargetPost and nav:getPath() ~= self.pathToPost) then
 				self:moveToPost(agent, targetPost)
 			else
@@ -121,23 +130,33 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 	
 	if patrolState == PatrolState.WALKING and nav.finished and not self.isAtTargetPost then
 		nav.finished = false
-		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
 		self.isAtTargetPost = true
-		self.timeToReleasePost = math.random(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
+		self.timeToReleasePost = agent:getRandom():NextNumber(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
+
 		if targetPost then
+			brain:setNullableMemory(MemoryModuleTypes.CURRENT_POST, targetPost)
 			rot:setRotateToDirection(targetPost.cframe.LookVector)
 		end
+
+		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING);
 		(agent :: any).character.isGuarding.Value = true
 	elseif patrolState == PatrolState.STAYING then
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
-			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.UNEMPLOYED)
-			self.previousPost = targetPost
+			self.previousPost = brain:getMemory(MemoryModuleTypes.CURRENT_POST):orElse(nil)
+			if self.previousPost then
+				self.previousPost:vacate()
+			end
+
+			brain:setNullableMemory(MemoryModuleTypes.CURRENT_POST, nil)
 			brain:setNullableMemory(MemoryModuleTypes.TARGET_POST, nil)
+			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.UNEMPLOYED)
+
 			self.isAtTargetPost = false
 			rot:setRotateToDirection(nil)
 		end
 	end
+
 
 	if patrolState == PatrolState.UNEMPLOYED then
 		local post = self:getRandomUnoccupiedPost(agent)
@@ -152,12 +171,35 @@ end
 --
 
 function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post: GuardPost): ()
+	local rootPart = agent.character:FindFirstChild("HumanoidRootPart")
+	if not (rootPart and rootPart:IsA("BasePart")) then
+		warn("WalkToRandomPost: Missing HumanoidRootPart for", agent.character)
+		return
+	end
+
+	local distance = (rootPart.Position - post.cframe.Position).Magnitude
+
+	-- Skip pathfinding if we're already close enough to the post
+	if distance <= REACH_THRESHOLD then
+		self.isAtTargetPost = true
+		self.timeToReleasePost = agent:getRandom():NextNumber(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
+
+		local brain = agent:getBrain()
+		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
+		brain:setNullableMemory(MemoryModuleTypes.TARGET_POST, post)
+		brain:setNullableMemory(MemoryModuleTypes.CURRENT_POST, post);
+		((agent :: any).character :: any).isGuarding.Value = true
+		return
+	end
+
 	post:occupy()
 	self.isAtTargetPost = false
 	if self.previousPost then
 		self.previousPost:vacate()
 	end
+
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.TARGET_POST, post)
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.CURRENT_POST, nil)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.WALKING)
 	agent:getNavigation():moveTo(post.cframe.Position)
 	self.pathToPost = agent:getNavigation():getPath()
@@ -184,18 +226,34 @@ function WalkToRandomPost.connectDiedConnection(self: WalkToRandomPost, agent: A
 		local humanoid = agent.character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			self.diedConnection = humanoid.Died:Once(function()
-				local targetPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST)
-				if targetPost:isPresent() then
-					targetPost:get():vacate()
-				end
-
-				if agent:getBrain():getMemory(MemoryModuleTypes.PATROL_STATE):get() == PatrolState.WALKING then
-					if self.previousPost then
-						self.previousPost:vacate()
-					end
-				end
+				self:nullify(agent)
 			end)
 		end
+	end
+
+	if not self.destroyedConnection then
+		self.destroyedConnection = agent.character.Destroying:Once(function()
+			self:nullify(agent)
+		end)
+	end
+end
+
+function WalkToRandomPost.nullify(self: WalkToRandomPost, agent: Agent): ()
+	local targetPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST)
+	if targetPost:isPresent() then
+		targetPost:get():vacate()
+	end
+
+	if agent:getBrain():getMemory(MemoryModuleTypes.PATROL_STATE):get() == PatrolState.WALKING then
+		if self.previousPost then
+			self.previousPost:vacate()
+		end
+	end
+
+	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.CURRENT_POST)
+	if currentPost:isPresent() then
+		currentPost:get():vacate()
+		agent:getBrain():eraseMemory(MemoryModuleTypes.CURRENT_POST)
 	end
 end
 

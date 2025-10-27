@@ -37,6 +37,7 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.IS_FLEEING,
 	MemoryModuleTypes.DESIGNATED_POSTS,
 	MemoryModuleTypes.PATROL_STATE,
+	MemoryModuleTypes.CURRENT_POST,
 	MemoryModuleTypes.TARGET_POST,
 	MemoryModuleTypes.POST_VACATE_COOLDOWN,
 	MemoryModuleTypes.CONFRONTING_TRESPASSER,
