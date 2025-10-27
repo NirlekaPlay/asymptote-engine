@@ -101,6 +101,11 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	isRunning.Value = false
 	isRunning.Parent = character
 
+	local isGuarding = Instance.new("BoolValue")
+	isGuarding.Name = "isGuarding"
+	isGuarding.Value = false
+	isGuarding.Parent = character
+
 	local descendantAddedConnection = character.DescendantAdded:Connect(function(inst)
 		-- make the Agent not collide with players
 		-- exclude "RagdollColliderPart" as those are ragdoll parts.

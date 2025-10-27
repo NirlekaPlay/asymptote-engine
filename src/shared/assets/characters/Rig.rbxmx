@@ -1802,6 +1802,8 @@
 			<Properties>
 				<ProtectedString name="Source"><![CDATA[-- humanoidAnimatePlayEmote.lua
 
+-- humanoidAnimatePlayEmote.lua
+
 local Figure = script.Parent
 local Torso = Figure:WaitForChild("Torso")
 local RightShoulder = Torso:WaitForChild("Right Shoulder")
@@ -1841,7 +1843,10 @@ local animNames = {
 	}, 
 	run = 	{
 		{ id = "http://www.roblox.com/asset/?id=79947225688040", weight = 10 } 
-	}, 
+	},
+	guarding = {
+		{ id = "http://www.roblox.com/asset/?id=125499080017830", weight = 10 }
+	},
 	jump = 	{
 		{ id = "http://www.roblox.com/asset/?id=125750702", weight = 10 } 
 	}, 
@@ -2152,6 +2157,15 @@ end
 
 local isPathfindingBoolValue = script.Parent:WaitForChild("isPathfinding") :: BoolValue
 local isRunningBoolValue = script.Parent:WaitForChild("isRunning") :: BoolValue
+local isGuarding = script.Parent:WaitForChild("isGuarding") :: BoolValue
+
+isGuarding.Changed:Connect(function(value)
+	if value then
+		playAnimation("guarding", 0.3, Humanoid)
+	else
+		playAnimation("idle", 0.3, Humanoid)
+	end
+end)
  
 function onRunning(speed: number): ()
 	speed /= getRigScale()
@@ -2168,7 +2182,11 @@ function onRunning(speed: number): ()
 		pose = "Running"
 	elseif not isPathfindingBoolValue.Value then
 		if emoteNames[currentAnim] == nil then
-			playAnimation("idle", 0.1, Humanoid)
+			if isGuarding.Value then
+				playAnimation("guarding", 0.1, Humanoid)
+			else
+				playAnimation("idle", 0.1, Humanoid)
+			end
 			pose = "Standing"
 		end
 	end

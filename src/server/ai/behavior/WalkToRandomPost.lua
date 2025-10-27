@@ -79,7 +79,9 @@ end
 
 function WalkToRandomPost.doStop(self: WalkToRandomPost, agent: Agent): ()
 	agent:getBodyRotationControl():setRotateToDirection(nil)
-	agent:getNavigation():stop()
+	agent:getNavigation():stop();
+	-- TODO: Instances of this are to be replaced with propper animation handling.
+	(agent :: any).character.isGuarding.Value = false
 end
 
 function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTime: number): ()
@@ -95,7 +97,8 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 
 	if not patrolState then
 		patrolState = PatrolState.UNEMPLOYED
-		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, patrolState)
+		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, patrolState);
+		(agent :: any).character.isGuarding.Value = false
 	end
 
 	if patrolState == PatrolState.RESUMING then
@@ -104,7 +107,8 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 				self:moveToPost(agent, targetPost)
 			else
 				rot:setRotateToDirection(targetPost.cframe.LookVector)
-				brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
+				brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING);
+				(agent :: any).character.isGuarding.Value = true
 			end
 		else
 			local post = self:getRandomUnoccupiedPost(agent)
@@ -123,6 +127,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		if targetPost then
 			rot:setRotateToDirection(targetPost.cframe.LookVector)
 		end
+		(agent :: any).character.isGuarding.Value = true
 	elseif patrolState == PatrolState.STAYING then
 		self.timeToReleasePost -= deltaTime
 		if self.timeToReleasePost <= 0 then
