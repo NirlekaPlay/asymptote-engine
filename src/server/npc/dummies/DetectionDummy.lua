@@ -48,7 +48,8 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
 	--
-	designatedPosts: { GuardPost.GuardPost }
+	designatedPosts: { GuardPost.GuardPost },
+	enforceClass: { [string]: number }
 }, DummyAgent))
 
 function DummyAgent.new(character: Model, charName: string?, seed: number?): DummyAgent
@@ -83,6 +84,7 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	self.uuid = HttpService:GenerateGUID(false)
 	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
 	self.designatedPosts = {} :: { GuardPost.GuardPost }
+	self.enforceClass = {}
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
@@ -129,6 +131,11 @@ end
 function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { GuardPost.GuardPost }): DummyAgent
 	self.designatedPosts = posts
 	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, posts)
+	return self
+end
+
+function DummyAgent.setEnforceClass(self: DummyAgent, enforceClass: { [string]: number }): DummyAgent
+	self.enforceClass = enforceClass
 	return self
 end
 

@@ -97,6 +97,20 @@ local function setupDummy(dummyChar: Model): ()
 	local newDummy = DetectionDummy.new(dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
 		:setDesignatedPosts(getNodes(dummyChar))
 
+	local enforceClassName = dummyChar:GetAttribute("EnforceClass") :: string?
+	if dummyChar:GetAttribute("EnforceClass") then
+		if not (require)((workspace :: any).Level.MissionSetup).EnforceClass then
+			warn("EnforceClass must ATLEAST be an empty table.")
+		else
+			local enforceClass = (require)((workspace :: any).Level.MissionSetup).EnforceClass[enforceClassName]
+			if not enforceClass then
+				warn(`Enforce class {enforceClassName} doesnt exist in MissionSetup.`)
+			elseif next(enforceClass) ~= nil then
+				newDummy:setEnforceClass(enforceClass)
+			end
+		end
+	end
+
 	guards[dummyChar] = newDummy
 end
 

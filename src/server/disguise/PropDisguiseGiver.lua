@@ -18,6 +18,7 @@ PropDisguiseGiver.__index = PropDisguiseGiver
 export type PropDisguiseGiver = typeof(setmetatable({} :: {
 	model: Model,
 	disguiseName: string,
+	disguiseId: string,
 	disguiseClothings: DisguiseClothings,
 	disguiseUpperColor: BrickColor?
 }, PropDisguiseGiver))
@@ -27,10 +28,11 @@ export type DisguiseClothings = {
 	Pants: Content
 }
 
-function PropDisguiseGiver.new(model: Model, disguiseName: string, disguiseClothings: DisguiseClothings, disguiseUpperColor: BrickColor?): PropDisguiseGiver
+function PropDisguiseGiver.new(model: Model, disguiseId: string, disguiseName: string, disguiseClothings: DisguiseClothings, disguiseUpperColor: BrickColor?): PropDisguiseGiver
 	return setmetatable({
 		model = model,
 		disguiseName = disguiseName,
+		disguiseId = disguiseId,
 		disguiseClothings = disguiseClothings,
 		disguiseUpperColor = disguiseUpperColor
 	}, PropDisguiseGiver)
@@ -82,6 +84,8 @@ function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player
 	if isDisguised then
 		return
 	end
+
+	playerStatus:setDisguise(self.disguiseId)
 
 	local playerCharacter = player.Character
 	if not playerCharacter then return end

@@ -6,7 +6,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
-local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
@@ -112,7 +111,6 @@ end
 
 -- TODO: THIS SHIT TOO.
 local RIG_TO_CLONE = ReplicatedStorage.shared.assets.characters.Rig
-local RIG_CFRAME, RIG_SIZE = RIG_TO_CLONE:GetBoundingBox()
 local OUTFITS = {
 	["PsdPlainColourable"] = { 4893820412, 4893808612 },
 	["PsdPlain"] = { 4893814518, 4893808612 }
@@ -242,6 +240,9 @@ function Level.initializeNpc(inst: Instance): ()
 	characterRigClone:SetAttribute("Seed", seed)
 	characterRigClone:SetAttribute("Nodes", nodes)
 	characterRigClone:SetAttribute("CharName", charName)
+	if inst:GetAttribute("EnforceClass") then
+		characterRigClone:SetAttribute("EnforceClass", inst:GetAttribute("EnforceClass"))
+	end
 	characterRigClone:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName) -- this aint a dummy no more
 end
 
@@ -350,7 +351,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				model.PrimaryPart = placeholder
 				model.Parent = placeholder.Parent
 
-				local newDisguiser = PropDisguiseGiver.new(model, localizedDisguiseName, {
+				local newDisguiser = PropDisguiseGiver.new(model, disguiseName, localizedDisguiseName, {
 					Shirt = Content.fromAssetId(shirtId),
 					Pants = Content.fromAssetId(pantsId)
 				})
@@ -390,7 +391,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				local shirtId = disguiseProfile.Outfits[1][1]
 				local pantsId = disguiseProfile.Outfits[1][2]
 
-				local newDisguiser = PropDisguiseGiver.new(prop, localizedDisguiseName, {
+				local newDisguiser = PropDisguiseGiver.new(prop, disguiseName, localizedDisguiseName, {
 					Shirt = Content.fromAssetId(shirtId),
 					Pants = Content.fromAssetId(pantsId)
 				}, disguiseProfile.BrickColor)

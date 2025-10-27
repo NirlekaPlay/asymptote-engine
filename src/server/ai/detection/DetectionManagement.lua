@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 
@@ -10,6 +11,7 @@ local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 
 local BASE_DETECTION_TIME = 1.25
 local QUICK_DETECTION_RANGE = 10
@@ -202,6 +204,7 @@ function DetectionManagement.getEntityPriorityInfo(
 	local distance = (self.agent:getPrimaryPart().Position - entityPos).Magnitude
 
 	if entityObject.name == "Player" then
+		
 		entityObject = entityObject :: EntityManager.DynamicEntity
 		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(entityObject.instance :: Player)
 
@@ -219,6 +222,12 @@ function DetectionManagement.getEntityPriorityInfo(
 		for _, status in ipairs(statuses) do
 			local statusName = status.name
 			local playerStatus = PlayerStatusTypes.getStatusFromName(statusName)
+			if playerStatus == PlayerStatusTypes.DISGUISED then
+				local canDetect = self:canAgentDetectThroughDisguise(entityObject, detectionProfile)
+				if not canDetect then
+					continue
+				end
+			end
 			local priority = playerStatus and playerStatus:getPriorityLevel() or STATUS_PRIORITIES[statusName] or 0
 			local speedMultiplier = playerStatus and playerStatus:getDetectionSpeedModifier() or SPEED_MULTIPLIERS[statusName] or 1.0
 
@@ -273,6 +282,47 @@ function DetectionManagement.findHighestPriorityEntity(
 	end
 
 	return highestPriority
+end
+
+function DetectionManagement.canAgentDetectThroughDisguise(
+	self: DetectionManagement,
+	entity: EntityManager.DynamicEntity,
+	detectionProfile: DetectionProfile
+): boolean
+	if not detectionProfile.isVisible then
+		return false
+	end
+
+	local playerInstance = entity.instance :: Player
+	local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(playerInstance)
+	if not playerStatusHolder then
+		warn(`cant evaluate disguise: status holder for {playerInstance.Name} is nil... thats not supposed to happen.`)
+		return false
+	end
+
+	local currentDisguise = playerStatusHolder:getDisguise() :: string -- impossible if its empty
+	local agentEnforceClass = (self.agent :: any).enforceClass -- it exists shut up.
+	if not agentEnforceClass[currentDisguise] then
+		return false
+	else
+		local condition = agentEnforceClass[currentDisguise]
+		local currentAlertLevel = Mission.getAlertLevel()
+
+		-- bother even trying?
+		if condition >= 5 then
+			return true
+		elseif condition == 1 and currentAlertLevel == AlertLevels.ALERT then
+			return true
+		elseif condition == 2 and currentAlertLevel == AlertLevels.NORMAL then
+			return true
+		elseif condition == 3 and currentAlertLevel == AlertLevels.CALM then
+			return true
+		elseif condition == 4 and currentAlertLevel == AlertLevels.SEARCHING then
+			return true
+		end
+	end
+
+	return false
 end
 
 function DetectionManagement.update(self: DetectionManagement, deltaTime: number): ()
