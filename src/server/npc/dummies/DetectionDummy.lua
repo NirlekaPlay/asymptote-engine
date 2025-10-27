@@ -34,7 +34,7 @@ DummyAgent.__index = DummyAgent
 export type DummyAgent = typeof(setmetatable({} :: {
 	uuid: string,
 	characterName: string,
-	character: Model,
+	character: Model & { Humanoid: Humanoid },
 	alive: boolean,
 	brain: Brain.Brain<any>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
@@ -95,6 +95,11 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	isPathfindingBoolValue.Name = "isPathfinding"
 	isPathfindingBoolValue.Value = false
 	isPathfindingBoolValue.Parent = character
+
+	local isRunning = Instance.new("BoolValue")
+	isRunning.Name = "isRunning"
+	isRunning.Value = false
+	isRunning.Parent = character
 
 	local descendantAddedConnection = character.DescendantAdded:Connect(function(inst)
 		-- make the Agent not collide with players
@@ -161,8 +166,14 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	-- TODO: Legacy walking animation code.
 	if self.pathNavigation.pathfinder.Status == "Active" then
 		self.character.isPathfinding.Value = true
+		if self.character.Humanoid.WalkSpeed >= 18 then
+			self.character.isRunning.Value = true
+		else
+			self.character.isRunning.Value = false
+		end
 	else
 		self.character.isPathfinding.Value = false
+		self.character.isRunning.Value = false
 	end
 end
 

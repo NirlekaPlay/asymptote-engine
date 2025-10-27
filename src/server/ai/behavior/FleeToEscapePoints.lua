@@ -65,7 +65,7 @@ end
 function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 	local post = self:getPostWithMinimumDistanceFromPanicPos(agent)
 	if post then
-		agent.character.Humanoid.WalkSpeed = 19
+		agent.character.Humanoid.WalkSpeed = 30
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
 		agent:getNavigation():moveTo(post.cframe.Position)
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
