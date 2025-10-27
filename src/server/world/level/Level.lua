@@ -494,9 +494,10 @@ end
 
 function Level.update(deltaTime: number): ()
 	timeAccum += deltaTime
-	if timeAccum >= UPDATE_INTERVAL then
-		timeAccum = 0
-		Level.doUpdate(deltaTime)
+
+	while timeAccum >= UPDATE_INTERVAL do
+		Level.doUpdate(UPDATE_INTERVAL)
+		timeAccum -= UPDATE_INTERVAL
 	end
 end
 
