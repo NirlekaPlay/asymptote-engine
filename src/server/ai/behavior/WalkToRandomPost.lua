@@ -108,6 +108,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 
 	if patrolState == PatrolState.RESUMING then
 		if currentPost then
+			brain:eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 			rot:setRotateToDirection(currentPost.cframe.LookVector)
 			brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING);
 			(agent :: any).character.isGuarding.Value = true
@@ -188,6 +189,7 @@ function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post:
 		brain:setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.STAYING)
 		brain:setNullableMemory(MemoryModuleTypes.TARGET_POST, post)
 		brain:setNullableMemory(MemoryModuleTypes.CURRENT_POST, post);
+		agent:getBodyRotationControl():setRotateToDirection(post.cframe.LookVector);
 		((agent :: any).character :: any).isGuarding.Value = true
 		return
 	end
