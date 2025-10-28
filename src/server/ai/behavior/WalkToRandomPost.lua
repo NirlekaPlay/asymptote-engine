@@ -209,18 +209,20 @@ end
 
 function WalkToRandomPost.getRandomUnoccupiedPost(self: WalkToRandomPost, agent: Agent): GuardPost?
 	local unoccupied = {}
+	local count = 0
 
 	for _, post in ipairs(agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()) do
 		if not post:isOccupied() then
-			table.insert(unoccupied, post)
+			count += 1
+			unoccupied[count] = post
 		end
 	end
 
-	if #unoccupied == 0 then
+	if count == 0 then
 		return nil
 	end
 
-	return unoccupied[agent:getRandom():NextInteger(1, #unoccupied)]
+	return unoccupied[agent:getRandom():NextInteger(1, count)]
 end
 
 function WalkToRandomPost.connectDiedConnection(self: WalkToRandomPost, agent: Agent): ()

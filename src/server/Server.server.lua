@@ -22,7 +22,8 @@ local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local guards: { [Model]: Guard.Guard } = {}
-local nodes: { [string]: { GuardPost.GuardPost } } = {}
+local nodeGroups: { [string]: { GuardPost.GuardPost } } = {}
+local allNodes: { [BasePart]: GuardPost.GuardPost } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
 
 local SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME = true
@@ -68,34 +69,57 @@ local function onMapTaggedGuard(guardChar: Model): ()
 end
 
 local function getNodes(char: Model): { GuardPost.GuardPost }
-	-- TODO: This. YES. THIS ONE, OFFICER.
-	-- TODO: This will break if we attempt to spawn an NPC in game.
 	local nodesName = char:GetAttribute("Nodes") :: string
-	if not nodes[nodesName] then
-		nodes[nodesName] = {}
-		local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodesName, true)
+	if not nodeGroups[nodesName] then
+		nodeGroups[nodesName] = {}
+		local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodesName, true) :: Folder
 
-		for _, node in nodesFolder:GetChildren() do
-			if not node:IsA("BasePart") then
-				continue
+		local nodesCount = 0
+		local stack = { nodesFolder }
+		local index = 1
+		local seenParts = {}
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index -= 1
+
+			if current:IsA("BasePart") and current.Name == "Node" and not seenParts[current] then
+				nodesCount += 1
+				local newNode
+				-- to prevent duplicated nodes
+				if allNodes[current] then
+					newNode = allNodes[current]
+				else
+					current.Anchored = true
+					current.Transparency = 1
+					current.CanCollide = false
+					current.CanQuery = false
+					current.CanTouch = false
+					current.AudioCanCollide = false
+					newNode = GuardPost.fromPart(current, false)
+					allNodes[current] = newNode
+				end
+				nodeGroups[nodesName][nodesCount] = newNode
+				seenParts[current] = true
+			elseif current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index += 1
+					stack[index] = children[i]
+				end
 			end
-			node.Anchored = true
-			node.Transparency = 1
-			node.CanCollide = false
-			node.CanQuery = false
-			node.CanTouch = false
-			node.AudioCanCollide = false
-			table.insert(nodes[nodesName], GuardPost.fromPart(node, false))
 		end
 	end
 
-	return nodes[nodesName]
+	return nodeGroups[nodesName]
 end
 
 local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
+	local nodes = getNodes(dummyChar)
 	local newDummy = DetectionDummy.new(dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
-		:setDesignatedPosts(getNodes(dummyChar))
+		:setDesignatedPosts(nodes)
 
 	local enforceClassName = dummyChar:GetAttribute("EnforceClass") :: string?
 	if dummyChar:GetAttribute("EnforceClass") then
