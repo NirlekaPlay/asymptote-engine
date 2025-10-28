@@ -133,6 +133,7 @@ function Level.initializeNpc(inst: Instance): ()
 		return
 	end
 	local charName = inst:GetAttribute("CharName") :: string?
+	print(charName, "nodes of", '"' .. nodes ..'"')
 	local seed =( inst:GetAttribute("Seed") or tick() ) :: number
 	local rng = Random.new(seed)
 
@@ -149,7 +150,33 @@ function Level.initializeNpc(inst: Instance): ()
 
 	-- TODO: Whats even more worse is that this will fuck shit up if we have multiple NPCs
 	-- in the same node group.
-	local selectedRandomNode = nodesFolderChildren[rng:NextInteger(1, #nodesFolderChildren)] :: BasePart
+	local nodesArray: { BasePart } = {}
+	local nodesCount = 0
+
+	-- all descendant nodes of the folder are all part of a singular node.
+	local stack = nodesFolderChildren
+	local index = 1
+
+	while index > 0 do
+		local current = stack[index]
+		stack[index] = nil
+		index = index - 1
+
+		if current:IsA("BasePart") and current.Name == "Node" then
+			nodesCount += 1
+			nodesArray[nodesCount] = current
+		end
+
+		if current:IsA("Folder") then
+			local children = current:GetChildren()
+			for i = #children, 1, -1 do
+				index = index + 1
+				stack[index] = children[i]
+			end
+		end
+	end
+
+	local selectedRandomNode = nodesArray[rng:NextInteger(1, nodesCount)] :: BasePart
 	local nodeCframe = selectedRandomNode.CFrame
 
 	local characterRigClone = RIG_TO_CLONE:Clone()
