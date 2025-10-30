@@ -2,6 +2,7 @@ site_name: Asymptote Engine Docs
 site_url: https://nirlekaplay.github.io/asymptote-engine/
 repo_name: NirlekaPlay/asymptote-engine
 repo_url: https://github.com/NirlekaPlay/asymptote-engine
+
 theme:
   name: material
   features:
@@ -13,3 +14,5 @@ nav:
   - Home: index.md
   - Level:
     - Level Setup: level/level-setup.md
+
+use_directory_urls: false
