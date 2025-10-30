@@ -21,7 +21,11 @@ All `Part`s who are descendants of this folder will act as, well, barriers!<p>
 In-game, they will become invisible and collides with players, but any other game objects such as NPCs do not. Make sure to keep
 these parts anchored.
 
-Keep in mind that the engine does a [depth-first-search](https://en.wikipedia.org/wiki/Depth-first_search) traversal. When traversing this folder, it will skip instances that are not `Folder`s. This means any Parts inside a `Model`, other `Part`s, or any other instances that are not `Folder`s will not be proccessed.
+!!! note "Traversal"
+
+    Keep in mind that the engine does a [depth-first-search](https://en.wikipedia.org/wiki/Depth-first_search) traversal.
+    When traversing this folder, it will skip instances that are not `Folder`s.
+    This means any Parts inside a `Model`, other `Part`s, or any other instances that are not `Folder`s will not be proccessed.
 
 # Npcs
 <sup>This folder can be named either `Npcs` or `Bots`, and it will work the same.<p></sup>

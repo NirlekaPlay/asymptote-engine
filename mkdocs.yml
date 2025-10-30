@@ -7,6 +7,7 @@ repo_url: https://github.com/NirlekaPlay/asymptote-engine
 # Appearance
 theme:
   name: material
+  custom_dir: overrides
   features:
       - announce.dismiss
       - content.action.edit
@@ -57,6 +58,11 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 
 # Plugins
 plugins:
