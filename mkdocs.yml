@@ -10,4 +10,4 @@ theme:
 nav:
   - Home: index.md
   - Level:
-    - Level Setup: level/level_setup.md
+    - Level Setup: level/level-setup.md
