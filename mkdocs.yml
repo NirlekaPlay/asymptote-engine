@@ -1,14 +1,70 @@
+# Site stuff
 site_name: Asymptote Engine Docs
 site_url: https://nirlekaplay.github.io/asymptote-engine/
 repo_name: NirlekaPlay/asymptote-engine
 repo_url: https://github.com/NirlekaPlay/asymptote-engine
 
+# Appearance
 theme:
   name: material
   features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.path
+      - announce.dismiss
+      - content.action.edit
+      - content.action.view
+      - content.code.annotate
+      - content.code.copy
+      # - content.code.select
+      # - content.footnote.tooltips
+      # - content.tabs.link
+      - content.tooltips
+      # - header.autohide
+      # - navigation.expand
+      - navigation.footer
+      - navigation.indexes
+      # - navigation.instant
+      # - navigation.instant.prefetch
+      # - navigation.instant.progress
+      # - navigation.prune
+      - navigation.sections
+      - navigation.tabs
+      # - navigation.tabs.sticky
+      - navigation.top
+      - navigation.tracking
+      - search.highlight
+      - search.share
+      - search.suggest
+      - toc.follow
+      # - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+# Plugins
+plugins:
+  - blog
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
 
 nav:
   - Home: index.md
