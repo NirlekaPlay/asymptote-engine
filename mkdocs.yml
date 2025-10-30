@@ -1,0 +1,13 @@
+site_name: Asymptote Engine Docs
+site_url: https://nirlekaplay.github.io/asymptote-engine/
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+
+nav:
+  - Home: index.md
+  - Level:
+    - Level Setup: level/level_setup.md
