@@ -155,3 +155,35 @@ end
 Oh, the contrast. The documentation comment everyone sees when they hover their little mouse over the method. Clean. Elegant. The person using the method will think the code is all sunshine and rainbows. Until you get to the comments inside the method.
 
 Yes. It is acceptable to vent your frusterations and rage. Infact, its ***MANDATORY.***
+
+### Constants
+For the love of all that is holy, please do not write [magic numbers](https://en.wikipedia.org/wiki/Magic_number_(programming)), or any other hard-coded values. Do not, and **I mean under no godforsaken circumstance—write magic numbers in your code.**
+
+You know what I'm talking about. Those random little gremlins like `42`, `0.37`, or `69` (nice)
+that you sprinkle into your logic because "you'll remember what it means later."
+You won't. You never will. Future you will stare at it six months from now, dead-eyed, wondering which
+past-life version of yourself thought `0.73` was a perfectly reasonable value for "ghost spawn offset."
+
+For example:
+
+```lua hl_lines="3"
+function DeanHaunt.spawnBehindPlayerIfPossible(rootPart: BasePart): ()
+	-- ...
+
+	local spawnDistance = rng:NextNumber(MIN_SPAWN_DISTANCE, MAX_SPAWN_DISTANCE)
+
+	-- ...
+end
+```
+
+See that? That's clean. That's readable. That's merciful. Someone can open this file, see `MIN_SPAWN_DISTANCE`
+and `MAX_SPAWN_DISTANCE`, and actually have a fighting chance of figuring out what the hell is going on.
+That's civilization right there.
+
+Now imagine this instead:
+
+```lua
+local spawnDistance = rng:NextNumber(7.5, 13.25)
+```
+
+Congratulations, you've just created a mystery novel no one asked for. What's 7.5? What's 13.25? Are those meters? Studs? The number of brain cells you lost debugging this later? No one knows. Every developer who encounters it loses a little sanity reading it.
