@@ -32,6 +32,7 @@ function ValidateTrespasser.new(): ValidateTrespasser
 end
 
 local MEMORY_REQUIREMENTS = {
+	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.KILL_TARGET] = MemoryStatus.VALUE_ABSENT

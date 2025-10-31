@@ -50,7 +50,7 @@ function RetreatToCombatNodes.checkExtraStartConditions(self: RetreatToCombatNod
 end
 
 function RetreatToCombatNodes.canStillUse(self: RetreatToCombatNodes, agent: Agent): boolean
-	return self.choosenNode ~= nil
+	return self.choosenNode ~= nil and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.HAS_RETREATED)
 end
 
 function RetreatToCombatNodes.doStart(self: RetreatToCombatNodes, agent: Agent): ()
