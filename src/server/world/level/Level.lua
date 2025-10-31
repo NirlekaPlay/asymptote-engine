@@ -228,6 +228,28 @@ function Level.initializeNpc(inst: Instance): ()
 		end
 	end
 
+	local upperBodyColor = inst:GetAttribute("UpperBodyColor") :: (Color3 | BrickColor)?
+	if upperBodyColor then
+		-- ok not so racist
+		-- maybe sun burns
+		local bodyColorsInst = characterRigClone:FindFirstChild("Body Colors")
+		if not bodyColorsInst then
+			warn("Body Colors instance not found in character rig clone!")
+			return
+		end
+
+		if typeof(upperBodyColor) == "BrickColor" then
+			bodyColorsInst.LeftArmColor = upperBodyColor
+			bodyColorsInst.RightArmColor = upperBodyColor
+			bodyColorsInst.TorsoColor = upperBodyColor
+
+		elseif typeof(upperBodyColor) == "Color3" then
+			bodyColorsInst.LeftArmColor3 = upperBodyColor
+			bodyColorsInst.RightArmColor3 = upperBodyColor
+			bodyColorsInst.TorsoColor3 = upperBodyColor
+		end
+	end
+
 	-- TODO: For accessories, maybe just parent the accesorries to the instance
 	-- OR have number values instance as its children under the instance,
 	-- that way we can have both the name of the accessory AND the asset id.
