@@ -1,4 +1,6 @@
-# Folder Structure
+# Level
+
+## Folder Structure
 In order for your levels, or *missions* to work, you need to set up your workspace.
 
 In `workspace` make sure you have a `Folder` named `Level`
@@ -16,7 +18,7 @@ with this folder structure:
 
 I will explain what each folder does.
 
-# Barrier
+## Barrier
 All `Part`s who are descendants of this folder will act as, well, barriers!<p>
 In-game, they will become invisible and collides with players, but any other game objects such as NPCs do not. Make sure to keep
 these parts anchored.
@@ -27,7 +29,7 @@ these parts anchored.
     When traversing this folder, it will skip instances that are not `Folder`s.
     This means any Parts inside a `Model`, other `Part`s, or any other instances that are not `Folder`s will not be proccessed.
 
-# Npcs
+## Npcs
 !!! info
 
     This folder can be named either `Npcs` or `Bots`, and it will work the same.
@@ -36,12 +38,12 @@ What's a stealth game without its NPCs? This is where you store your custom NPCs
 
 Only traverses `Folder`s.
 
-## Attributes
+### Attributes
 
-### `CharName` *(string)*
+#### `CharName` *(string)*
 A non-unique name that is used in NPC dialogues. For example, if a guard founds a another guard with the `CharName` attribute set to *"Kelly"*, then the guard will say *"Control! Someone took down Kelly!"*
 
-### `Nodes` *(string)*
+#### `Nodes` *(string)*
 This is the name of a `Folder` that can be found inside the `Nodes` folder. This is what the engine use to randomly spawn the NPC on the defined nodes and what the NPC uses where to walk.
 
 For NPCs with patrolling behaviors, such as guards, these nodes act like 'posts.' They will choose a seemingly
@@ -70,25 +72,25 @@ random node, walk towards it, stay on it for a random time, then choose another 
     And your `Nodes` attributes is set to '`Upstairs`' then it will also include the nodes of
     '`FirstFloor`' and '`SecondFloor`'.
 
-# Cells
+## Cells
 *Cells* or *Zones* are an important part of missions. Currently, they are used to check if a player is trespassing
 and what status to give them.
 
 Cells must be a `Model` containing atleast 1 `Floor` and 1 `Roof` which are both `BasePart`s. This is what the engine
 use to determine if a point in space is "inside" a cell, which is when said point is BETWEEN a `Floor` and `Roof` parts.
 
-# Geometry
+## Geometry
 This is where you store static level geometries.
 
-# Glass
+## Glass
 This is where you store glass parts. This feature currently does not exist. In the future, glass parts can be shot,
 broken, and see through for NPCs.
 
-# Nodes
+## Nodes
 Not to be confused with waypoints, nodes can be used for a variety of cases for NPCs, such as patrolling posts,
 and investigation areas. Nodes must be `BasePart`s, and you can place them around the map to your liking.
 Just make sure that NPCs can actually pathfind there.
 
-# Props
+## Props
 Oh boy. You will use this often. Props are either static assets represented with placeholders that are replaced
 with the actual prop asset during level initialization, or fully functional props. This section will be expanded.

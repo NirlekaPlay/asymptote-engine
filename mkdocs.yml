@@ -118,5 +118,8 @@ plugins:
 
 nav:
   - Home: index.md
+  - Tutorials:
+    - Disguises: tutorials/disguises.md
   - Level:
     - Level Setup: level/level-setup.md
+  - Contributing: contributing/conventions.md
