@@ -303,12 +303,16 @@ function Level.initializePlayerColliders(folder: Folder): ()
 			continue
 		end
 
-		part.CanTouch = false
-		part.AudioCanCollide = false
-		part.Anchored = true
-		part.CollisionGroup = CollisionGroupTypes.PLAYER_COLLIDER
-		part.Transparency = 1
+		Level.initializePlayerCollider(part)
 	end
+end
+
+function Level.initializePlayerCollider(part: BasePart): ()
+	part.CanTouch = false
+	part.AudioCanCollide = false
+	part.Anchored = true
+	part.CollisionGroup = CollisionGroupTypes.PLAYER_COLLIDER
+	part.Transparency = 1
 end
 
 function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): ()
@@ -493,6 +497,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				placeholder.CanTouch = false
 				placeholder.AudioCanCollide = false
 				table.insert(guardCombatNodes, GuardPost.fromPart(placeholder))
+				return true
+			end
+
+			if placeholder.Name == "PlayerCollider" then
+				Level.initializePlayerCollider(placeholder)
 				return true
 			end
 
