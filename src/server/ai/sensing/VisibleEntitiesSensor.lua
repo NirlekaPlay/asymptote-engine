@@ -12,6 +12,8 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 local DEBUG_RAYCAST = false
 local DEBUG_RAYCAST_LIFETIME = 1 / 20
+local VISIBILITY_THRESHOLD = 0.3
+local MAX_ITERATIONS = 10
 local RED = Color3.new(1, 0, 0)
 local GREEN = Color3.new(0, 1, 0)
 local ORANGE = BrickColor.Yellow().Color
@@ -68,79 +70,95 @@ end
 
 function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Agent, entity: EntityManager.DynamicEntity): boolean
 	local agentPrimaryPart = agent:getPrimaryPart()
+	if not agentPrimaryPart then return false end
 
 	local agentPos = agentPrimaryPart.Position
 	local entityInstance: Instance
 	local entityPos
 
+	-- Determine entity's main reference position and instance
 	if entity.instance:IsA("BasePart") then
 		entityPos = entity.instance.Position
-		entityInstance = entity.instance :: BasePart
+		entityInstance = entity.instance
 	elseif entity.instance:IsA("Model") then
-		entityPos = (entity.instance.PrimaryPart :: Part).Position
-		entityInstance = entity.instance.PrimaryPart :: BasePart
-	end
-
-	if entity.name == "Player" then -- c: oh fuck no
-		if not entity.instance then return false end
-		if not entity.instance:IsA("Player") then return false end
-		if not entity.instance.Character then return false end
-		if not entity.instance.Character:IsA("Model") then return false end
-		if not entity.instance.Character.PrimaryPart then return false end
-
+		if not entity.instance.PrimaryPart then return false end
+		entityPos = entity.instance.PrimaryPart.Position
+		entityInstance = entity.instance.PrimaryPart
+	elseif entity.name == "Player" then
+		if not (entity.instance and entity.instance:IsA("Player") and entity.instance.Character and entity.instance.Character.PrimaryPart) then
+			return false
+		end
 		entityPos = entity.instance.Character.PrimaryPart.Position
-		entityInstance = entity.instance.Character :: Model
+		entityInstance = entity.instance.Character
+	else
+		return false
 	end
 
-	-- this is the first time we have a shitton of checks
-	-- in my entire programming career
-	-- we will fix that later c:
-	-- just DO IT (for now)
-	
-	if not entityPos then return false end
-	if not entityInstance then return false end
-	
+	if not entityPos or not entityInstance then return false end
+
+	-- Basic distance and vision cone checks
 	local diff = entityPos - agentPos
 	local dist = diff.Magnitude
- 
-	if dist > agent:getSightRadius() then
-		return false
-	end
+	if dist > agent:getSightRadius() then return false end
 
 	local dot = agentPrimaryPart.CFrame.LookVector:Dot(diff.Unit)
-
 	local cosHalfAngle = math.cos(math.rad(agent:getPeripheralVisionAngle() / 2))
-	if dot < cosHalfAngle then
-		return false
-	end
+	if dot < cosHalfAngle then return false end
 
+	-- Initialize raycast parameters
 	local rayParams = self.rayParams
 	if not rayParams then
-		local newRayParams = RaycastParams.new()
-		newRayParams.FilterType = Enum.RaycastFilterType.Exclude
-		newRayParams.FilterDescendantsInstances = { agent.character }
-		self.rayParams = newRayParams
-		rayParams = newRayParams
+		rayParams = RaycastParams.new()
+		rayParams.FilterType = Enum.RaycastFilterType.Exclude
+		rayParams.FilterDescendantsInstances = { agent.character }
+		self.rayParams = rayParams
 	end
 
-	local ray = Ray.new(agentPos, diff.Unit * agent:getSightRadius())
-	local rayResult = workspace:Raycast(ray.Origin, ray.Direction, rayParams)
-	if not rayResult then
-		if DEBUG_RAYCAST then
-			Debris:AddItem(Draw.ray(ray, RED), DEBUG_RAYCAST_LIFETIME) -->:)
-		end
-		return false
-	end
+	-- Perform multi-pass raycast with transparency handling
+	local direction = diff.Unit * agent:getSightRadius()
+	local origin = agentPos
+	local remainingTransparency = 1.0
 
-	-- that fixes it.
-	if rayResult.Instance == entityInstance or rayResult.Instance:IsDescendantOf(entityInstance) then
-		if DEBUG_RAYCAST then
-			Debris:AddItem(Draw.line(ray.Origin, rayResult.Position, GREEN), DEBUG_RAYCAST_LIFETIME)
+	for _ = 1, MAX_ITERATIONS do
+		local rayResult = workspace:Raycast(origin, direction, rayParams)
+
+		if not rayResult then
+			if DEBUG_RAYCAST then
+				Debris:AddItem(Draw.ray(Ray.new(origin, direction), GREEN), DEBUG_RAYCAST_LIFETIME)
+			end
+			return true
 		end
-		return true
-	else
-		if DEBUG_RAYCAST then
-			Debris:AddItem(Draw.line(ray.Origin, rayResult.Position, ORANGE), DEBUG_RAYCAST_LIFETIME)
+
+		local hitPart = rayResult.Instance
+		local hitTransparency = hitPart.Transparency
+
+		if (hitPart == entityInstance :: BasePart) or hitPart:IsDescendantOf(entityInstance :: Instance) then
+			if DEBUG_RAYCAST then
+				Debris:AddItem(Draw.line(agentPos, entityPos, GREEN), DEBUG_RAYCAST_LIFETIME)
+			end
+			return remainingTransparency > VISIBILITY_THRESHOLD
+		end
+
+		if hitTransparency > 0 then
+			remainingTransparency = remainingTransparency * (1 - (hitTransparency * 0.7))
+			
+			origin = rayResult.Position + direction.Unit * 0.1
+			
+			local newFilter = table.clone(rayParams.FilterDescendantsInstances)
+			table.insert(newFilter, hitPart)
+			rayParams.FilterDescendantsInstances = newFilter
+
+			if remainingTransparency <= VISIBILITY_THRESHOLD then
+				if DEBUG_RAYCAST then
+					Debris:AddItem(Draw.line(agentPos, rayResult.Position, ORANGE), DEBUG_RAYCAST_LIFETIME)
+				end
+				return false
+			end
+		else
+			if DEBUG_RAYCAST then
+				Debris:AddItem(Draw.line(agentPos, rayResult.Position, RED), DEBUG_RAYCAST_LIFETIME)
+			end
+			return false
 		end
 	end
 
