@@ -49,7 +49,7 @@ random node, walk towards it, stay on it for a random time, then choose another 
 
 !!! info
 
-    If you are using your nodes for NPCs who patrols, the node's `CFrame.LookVector` (positive X-axis)
+    If you are using your nodes for NPCs who patrols, the node's `CFrame.LookVector` (positive Z-axis)
     will be used for the NPCs to turn to when they arrive and stay at the node.
 
 !!! note
