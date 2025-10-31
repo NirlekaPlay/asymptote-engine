@@ -93,7 +93,13 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	end
 
 	local reportDialogueSpeechDur = talkCntrl.getStringSpeechDuration(reportDialogue) * (1 + (speechDurPercentageGain / 100))
-	talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
+	task.spawn(function()
+		task.wait(0.5) -- TODO: report animation shit, this should be refactored!!!
+		if not self:canStillUse(agent) then
+			return
+		end
+		talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
+	end)
 	agent:getReportControl():reportOn(ReportType.TRESPASSER_SPOTTED, reportDialogue)
 	
 	-- Track speeches
@@ -109,6 +115,7 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 
 	agent:getFaceControl():setFace("Neutral")
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+	agent:getReportControl():interruptReport()
 
 	self.warningLevel = 0
 	self.timeSinceLastDialogue = 0

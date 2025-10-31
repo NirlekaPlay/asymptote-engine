@@ -1804,6 +1804,8 @@
 
 -- humanoidAnimatePlayEmote.lua
 
+-- humanoidAnimatePlayEmote.lua
+
 local Figure = script.Parent
 local Torso = Figure:WaitForChild("Torso")
 local RightShoulder = Torso:WaitForChild("Right Shoulder")
@@ -1846,6 +1848,9 @@ local animNames = {
 	},
 	guarding = {
 		{ id = "http://www.roblox.com/asset/?id=125499080017830", weight = 10 }
+	},
+	reporting = {
+		{ id = "http://www.roblox.com/asset/?id=103855021506602", weight = 10 } 
 	},
 	jump = 	{
 		{ id = "http://www.roblox.com/asset/?id=125750702", weight = 10 } 
@@ -2158,10 +2163,19 @@ end
 local isPathfindingBoolValue = script.Parent:WaitForChild("isPathfinding") :: BoolValue
 local isRunningBoolValue = script.Parent:WaitForChild("isRunning") :: BoolValue
 local isGuarding = script.Parent:WaitForChild("isGuarding") :: BoolValue
+local isReporting = script.Parent:WaitForChild("isReporting") :: BoolValue
 
 isGuarding.Changed:Connect(function(value)
 	if value then
 		playAnimation("guarding", 0.3, Humanoid)
+	else
+		playAnimation("idle", 0.3, Humanoid)
+	end
+end)
+
+isReporting.Changed:Connect(function(vale)
+	if vale then
+		playAnimation("reporting", 0.3, Humanoid)
 	else
 		playAnimation("idle", 0.3, Humanoid)
 	end
@@ -2184,6 +2198,8 @@ function onRunning(speed: number): ()
 		if emoteNames[currentAnim] == nil then
 			if isGuarding.Value then
 				playAnimation("guarding", 0.1, Humanoid)
+			elseif isReporting.Value then
+				playAnimation("reporting", 0.3, Humanoid)
 			else
 				playAnimation("idle", 0.1, Humanoid)
 			end
@@ -2322,7 +2338,7 @@ function move(time)
 	end
 
 	-- Tool Animation handling
-	local tool = getTool()
+	--[[local tool = getTool()
 	if tool and tool:FindFirstChild("Handle") then
 
 		local animStringValueObject = getToolAnim(tool)
@@ -2345,7 +2361,7 @@ function move(time)
 		toolAnim = "None"
 		toolAnimInstance = nil
 		toolAnimTime = 0
-	end
+	end]]
 end
 
 -- connect events
