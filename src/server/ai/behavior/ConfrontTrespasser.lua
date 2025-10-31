@@ -62,7 +62,10 @@ function ConfrontTrespasser.getMemoryRequirements(self: ConfrontTrespasser): { [
 end
 
 function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, agent: Agent): boolean
-	return true
+	return agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):filter(function(player)
+		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		return playerStatusHolder and playerStatusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING)
+	end):isPresent()
 end
 
 function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent): boolean
