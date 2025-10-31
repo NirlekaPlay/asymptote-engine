@@ -306,7 +306,6 @@ function FBBerylControl.reload(self: FBBerylControl): ()
 			self:animateIndividualPose(Poses.reloadmag[2].mag, handmagw, "reloadmag", 2, "mag", 0.1, backupremottick)
 			-- TODO: Remind me to make this client sided.
 			local flingmagmo, flingmagpart = self:cloneMagazineInstance(self.gunModel)
-			flingmagpart:SetNetworkOwner(nil)
 			local magv = Instance.new("BodyVelocity", flingmagpart)
 			magv.MaxForce = Vector3.new(1/0,1/0,1/0)
 			magv.Velocity = self.characterLimbs.humanoidRootPart.CFrame.lookVector*math.random(15,20)
