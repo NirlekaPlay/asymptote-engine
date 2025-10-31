@@ -213,7 +213,7 @@ end
 --
 
 function ConfrontTrespasser.getReactionTIme(self: ConfrontTrespasser, agent: Agent, deltaTime: number): number
-	return 0.7
+	return agent:getRandom():NextInteger(1, 1.5)
 end
 
 return ConfrontTrespasser
