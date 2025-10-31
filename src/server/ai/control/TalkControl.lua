@@ -39,7 +39,8 @@ export type TalkControl = typeof(setmetatable({} :: {
 type DialogueSegment = {
 	{
 		text: string,
-		customSpeechDur: number?
+		customSpeechDur: number?,
+		values: { any }?
 	}
 }
 
@@ -66,10 +67,10 @@ function TalkControl.saySequences(self: TalkControl, textArray: {string}): ()
 	self:createTalkThread(self:createDialogueSegmentFromArray(textArray))
 end
 
-function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}): ()
+function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}, ...): ()
 	local selectedDialogue = randomDialoguesArray[Random.new(tick()):NextInteger(1, #randomDialoguesArray)]
 	if selectedDialogue then
-		self:createTalkThread(self:createDialogueSegmentFromArray(selectedDialogue))
+		self:createTalkThread(self:createDialogueSegmentFromArray(selectedDialogue, ...))
 	end
 end
 
@@ -77,12 +78,13 @@ function TalkControl.saySegment(self: TalkControl, dialogueSegment: DialogueSegm
 	self:createTalkThread(dialogueSegment)
 end
 
-function TalkControl.createDialogueSegmentFromArray(self: TalkControl, textArray: {string}): DialogueSegment
+function TalkControl.createDialogueSegmentFromArray(self: TalkControl, textArray: {string}, ...): DialogueSegment
 	local dialogueSegment: DialogueSegment = {}
 
 	for i, text in ipairs(textArray) do
 		-- TODO: Maybe add some optimizations here, like ignore empty strings
-		dialogueSegment[i] = { text = text }
+		local valuesRef = table.pack(...)
+		dialogueSegment[i] = { text = text, values = valuesRef }
 	end
 
 	return dialogueSegment
@@ -102,7 +104,11 @@ function TalkControl.createTalkThread(self: TalkControl, dialogueSegment: Dialog
 			local speechDur = segment.customSpeechDur or
 				TalkControl.getStringSpeechDuration(segment.text)
 
-			self.bubbleChatControl:displayBubble(segment.text)
+			local finalText = segment.text
+			if segment.values and #segment.values >= 1 then
+				finalText = (finalText :: any):format(table.unpack(segment.values))
+			end
+			self.bubbleChatControl:displayBubble(finalText)
 			task.wait(speechDur)
 		end
 

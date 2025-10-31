@@ -76,7 +76,7 @@ function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent
 	end
 
 	faceCtrl:setFace("Angry")
-	talkCtrl:sayRandomSequences(reportDialogue)
+	talkCtrl:sayRandomSequences(reportDialogue, trespasserCurrentArea)
 	reportCtrl:reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2.3)
 end
 

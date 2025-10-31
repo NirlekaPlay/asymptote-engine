@@ -30,7 +30,22 @@ function Cell.getCellConfig(cell: Model): CellConfig.Config?
 end
 
 function Cell.getPlayerOccupiedAreaName(player: Player): string?
-	return "ERR_FUNCTION_DEPRECATED"
+	local cell = cellsPerPlayer[player]
+	if not cell then
+		return nil
+	end
+
+	local cellLocationSerialKey = cell:GetAttribute("Location") :: string?
+	if not cellLocationSerialKey then
+		return nil
+	end
+	local required = (require :: any)(workspace.Level.MissionSetup)
+	local actualName = required.CustomStrings[cellLocationSerialKey]
+	if not actualName then
+		return "UNLOCALIZED_STRING"
+	end
+
+	return actualName
 end
 
 --
