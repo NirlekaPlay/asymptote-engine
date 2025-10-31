@@ -4,6 +4,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
+local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
@@ -23,7 +24,7 @@ export type KillTarget = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent & ArmedAgent.ArmedAgent
+type Agent = Agent.Agent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent
 
 function KillTarget.new(): KillTarget
 	return setmetatable({
@@ -44,7 +45,7 @@ function KillTarget.getMemoryRequirements(self: KillTarget): { [MemoryModuleType
 end
 
 function KillTarget.checkExtraStartConditions(self: KillTarget, agent: Agent): boolean
-	return true
+	return not agent:getReportControl():isReporting()
 end
 
 function KillTarget.canStillUse(self: KillTarget, agent: Agent): boolean

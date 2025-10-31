@@ -13,9 +13,12 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local Level = require(ServerScriptService.server.world.level.Level)
 
 local MIN_DISTANCE_TO_ESCAPE_POS = 5
 local DIST_CHECK_UPDATE_INTERVAL = 0.5
+
+local rng = Random.new(tick())
 
 --[=[
 	@class FleeToEscapePoints
@@ -34,8 +37,8 @@ type Agent = Agent.Agent & ArmedAgent.ArmedAgent
 
 function FleeToEscapePoints.new(): FleeToEscapePoints
 	return setmetatable({
-		minDuration = 4,
-		maxDuration = 6,
+		minDuration = 3,
+		maxDuration = 5,
 		timeAccum = 0
 	}, FleeToEscapePoints)
 end
@@ -62,9 +65,10 @@ function FleeToEscapePoints.canStillUse(self: FleeToEscapePoints, agent: Agent):
 end
 
 function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
-	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get())
+	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
+	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), Level.getGuardCombatNodes())
 	if post then
-		agent.character.Humanoid.WalkSpeed = 30
+		agent:getNavigation():setWalkSpeed(30)
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
 		agent:getNavigation():moveTo(post.cframe.Position)
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
@@ -108,7 +112,7 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 	agent:getNavigation():stop()
 	agent:getFaceControl():setFace("Angry")
 
-	local maxDistance = 25
+	--[[local maxDistance = 25
 	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
 	local agentPos = agent:getPrimaryPart().Position
 	local direction = (panicPos - agentPos).Unit
@@ -131,7 +135,7 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 		Debris:AddItem(Draw.line(agentPos, rayResult.Position, Color3.new(0.184314, 0, 1)), 15)
 		Debris:AddItem(Draw.line(rayResult.Position, finalPos, Color3.new(0.184314, 0, 1)), 15)
 		Debris:AddItem(Draw.point(finalPos, Color3.new(0.968627, 0, 1)), 15)
-	end
+	end]]
 end
 
 function FleeToEscapePoints.doUpdate(self: FleeToEscapePoints, agent: Agent, deltaTime: number): ()
@@ -190,7 +194,7 @@ function FleeToEscapePoints.chooseEscapePoint(
 		local distance = (post.cframe.Position - panicSourcePos).Magnitude
 		local threatExposure = FleeToEscapePoints.getWaypointsThreatExposure(waypoints, panicSourcePos)
 		local pathCost = FleeToEscapePoints.getWaypointsPathLength(waypoints)
-		local randomSalt = math.random() * 0.1 -- number between 0 and 0.1
+		local randomSalt = rng:NextInteger(1, 5)
 
 		local score = WEIGHT_DISTANCE * distance - WEIGHT_THREAT_EXPOSURE * threatExposure - WEIGHT_PATH_COST * pathCost + randomSalt
 		if score > bestScore then

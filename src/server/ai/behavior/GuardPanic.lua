@@ -3,14 +3,19 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local PanicDialogues = require(ReplicatedStorage.shared.dialogue.PanicDialogues)
+local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
+local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+
+local SPEECH_DUR_PERCENTAGE_GAIN = 10
 
 --[=[
 	@class GuardPanic
@@ -24,7 +29,7 @@ export type GuardPanic = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent & DetectionAgent.DetectionAgent
+type Agent = Agent.Agent & DetectionAgent.DetectionAgent & ReporterAgent.ReporterAgent
 
 function GuardPanic.new(): GuardPanic
 	return setmetatable({
@@ -44,7 +49,7 @@ local ALARMING_STATUSES: { [ PlayerStatus.PlayerStatus ]: true } = {
 }
 
 local ALARMING_ENTITY_NAMES: { [string]: true } = {
-	["C4"] = true :: true -- my brother in christ
+	["C4"] = true
 }
 
 function GuardPanic.getMemoryRequirements(self: GuardPanic): { [MemoryModuleType<any>]: MemoryStatus }
@@ -105,6 +110,53 @@ end
 function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_PANICKING, true)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
+	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
+	agent:getBodyRotationControl():setRotateTowards(nil)
+	local talkCtrl = agent:getTalkControl()
+	local reportCtrl = agent:getReportControl()
+
+	local panicSource = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
+	local entity = EntityManager.getEntityByUuid(panicSource:get())
+	local reportDialogueSeg: {string}
+	local reportType: ReportType.ReportType
+	local reportDur: number
+
+	-- TODO: intimidation handling
+	if entity.name == "C4" then
+		reportDur = 2.37
+		reportType = ReportType.DANGEROUS_ITEM_SPOTTED
+		reportDialogueSeg = GuardGenericDialogues["entity.c4"] :: any
+	elseif entity.name == "Player" and not entity.isStatic and entity.instance:IsA("Player") then
+		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(entity.instance)
+		if not playerStatusHolder then
+			warn("PLAYER_STATUS_HOLDER_NIL", entity.instance)
+			return
+		end
+
+		local highestStatus = playerStatusHolder:getHighestPriorityStatus()
+		if highestStatus == PlayerStatusTypes.ARMED then
+			reportDur = 3
+			reportType = ReportType.ARMED_PERSON
+			reportDialogueSeg = GuardGenericDialogues["status.armed"] :: any
+		elseif highestStatus == PlayerStatusTypes.DANGEROUS_ITEM then
+			reportDur = 2.3
+			reportType = ReportType.PERSON_WITH_DANGEROUS_ITEM
+			reportDialogueSeg = GuardGenericDialogues["status.dangerous_item"] :: any
+		else
+			error("INVALID_CONDITION_1")
+		end
+	else
+		error("INVALID_CONDITION_2")
+	end
+	agent:getDetectionManager():blockAllDetection()
+	task.spawn(function()
+		task.wait(0.5) -- TODO: report animation shit, this should be refactored!!!
+		if not (agent and agent:isAlive()) then
+			return
+		end
+		talkCtrl:sayRandomSequences(reportDialogueSeg :: any)
+	end)
+	reportCtrl:reportWithCustomDur(reportType, reportDur)
 end
 
 function GuardPanic.doStop(self: GuardPanic, agent: Agent): ()
@@ -118,7 +170,7 @@ end
 --
 
 function GuardPanic.getReactionTime(self: GuardPanic, agent: Agent, deltaTime: number): number
-	return 0.7
+	return agent:getRandom():NextNumber(0.5, 1)
 end
 
 return GuardPanic

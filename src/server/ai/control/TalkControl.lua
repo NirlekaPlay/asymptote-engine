@@ -128,6 +128,15 @@ function TalkControl.connectOnDiedConnection(self: TalkControl): ()
 	end)
 end
 
+function TalkControl.getDialoguesTotalSpeechDuration(dialogues: {string}): number
+	local totalDur = 0
+	for _, segment in pairs(dialogues) do
+		local speechDur = TalkControl.getStringSpeechDuration(segment)
+		totalDur += speechDur
+	end
+	return totalDur
+end
+
 function TalkControl.getStringSpeechDuration(str: string): number
 	local stringWordCount = TalkControl.getStringWordCount(str)
 	if stringWordCount == 0 then

@@ -19,6 +19,7 @@ ReportControl.__index = ReportControl
 export type ReportControl = typeof(setmetatable({} :: {
 	agent: Agent,
 	radioTool: typeof(RADIO_TOOL),
+	radioEquipped: boolean,
 	agentDiedConnection: RBXScriptConnection?,
 	reportingOn: {
 		reportType: ReportType.ReportType,
@@ -33,6 +34,7 @@ function ReportControl.new(agent: Agent): ReportControl
 	return setmetatable({
 		agent = agent,
 		radioTool = RADIO_TOOL:Clone(),
+		radioEquipped = false,
 		reportingOn = nil :: any,
 		agentDiedConnection = nil :: RBXScriptConnection?
 	}, ReportControl)
@@ -42,17 +44,30 @@ function ReportControl.isReporting(self: ReportControl): boolean
 	return self.reportingOn ~= nil
 end
 
+function ReportControl.isRadioEquipped(self: ReportControl): boolean
+	return self.radioEquipped
+end
+
 function ReportControl.reportOn(
 	self: ReportControl, reportType: ReportType.ReportType, dialogue: string
 ): ()
-	if not self.agentDiedConnection then
-		self.agentDiedConnection = (self.agent.character:FindFirstChildOfClass("Humanoid") :: Humanoid).Died:Once(function()
-			self:dropRadio()
-			self:interruptReport()
-		end)
-	end
+	self:connectDiedConnection()
 	local dialogueDur = TalkControl.getStringSpeechDuration(dialogue)
 	local reportDur = dialogueDur * (1 + 25 / 100) + 0.5
+	self.reportingOn = {
+		reportType = reportType,
+		reportDuration = reportDur,
+		reportTimer = 0
+	}
+	(self :: any).agent.character.isReporting.Value = true
+	self:equipRadio()
+end
+
+function ReportControl.reportWithCustomDur(
+	self: ReportControl, reportType: ReportType.ReportType, absDur: number
+): ()
+	self:connectDiedConnection()
+	local reportDur = absDur + 0.5
 	self.reportingOn = {
 		reportType = reportType,
 		reportDuration = reportDur,
@@ -81,11 +96,17 @@ function ReportControl.update(self: ReportControl, deltaTime: number): ()
 end
 
 function ReportControl.equipRadio(self: ReportControl): ()
-	((self :: any).agent.character.Humanoid :: Humanoid):EquipTool(self.radioTool)
+	if not self:isRadioEquipped() then
+		self.radioEquipped = true
+		((self :: any).agent.character.Humanoid :: Humanoid):EquipTool(self.radioTool)
+	end
 end
 
 function ReportControl.unequipRadio(self: ReportControl): ()
-	((self :: any).agent.character.Humanoid :: Humanoid):UnequipTools()
+	if self:isRadioEquipped() then
+		self.radioEquipped = false
+		((self :: any).agent.character.Humanoid :: Humanoid):UnequipTools()
+	end
 end
 
 function ReportControl.dropRadio(self: ReportControl): ()
@@ -110,6 +131,21 @@ function ReportControl.dropRadio(self: ReportControl): ()
 	hanlde:ApplyImpulse(dir)
 
 	Debris:AddItem(hanlde, RADIO_DROPPED_LIFETIME)
+end
+
+--
+
+function ReportControl.connectDiedConnection(self: ReportControl): ()
+	if not self.agentDiedConnection then
+		self.agentDiedConnection = (self.agent.character:FindFirstChildOfClass("Humanoid") :: Humanoid).Died:Once(function()
+			if self:isRadioEquipped() then
+				self:dropRadio()
+			else
+				self.radioTool:Destroy()
+			end
+			self:interruptReport()
+		end)
+	end
 end
 
 return ReportControl

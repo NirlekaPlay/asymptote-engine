@@ -1,5 +1,6 @@
 --!strict
 
+local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SimplePath = require(ReplicatedStorage.shared.thirdparty.SimplePath)
 
@@ -10,6 +11,8 @@ PathNavigation.__index = PathNavigation
 
 export type PathNavigation = typeof(setmetatable({} :: {
 	pathfinder: SimplePath.SimplePath,
+	character: Model,
+	agentParams: AgentParameters?,
 	reachedConnection: RBXScriptConnection?,
 	pathConnections: { [string]: RBXScriptConnection },
 	finished: boolean
@@ -19,7 +22,9 @@ type AgentParameters = SimplePath.AgentParameters
 
 function PathNavigation.new(character: Model, agentParams: AgentParameters?): PathNavigation
 	return setmetatable({
+		character = character,
 		pathfinder = SimplePath.new(character, agentParams),
+		agentParams = agentParams,
 		reachedConnection = nil :: RBXScriptConnection?,
 		pathConnections = {},
 		finished = false
@@ -28,6 +33,32 @@ end
 
 function PathNavigation.getPath(self: PathNavigation): Path
 	return (self.pathfinder :: SimplePath.SimplePathInternal)._path
+end
+
+function PathNavigation.generatePath(self: PathNavigation, to: Vector3): (Path?, string?)
+	if not self.character:FindFirstChild("HumanoidRootPart") then
+		error(`Cannot generate path: {self.character} has no HumanoidRootPart!`)
+	end
+
+	local path = PathfindingService:CreatePath(self.agentParams :: any)
+	local success, errorMessage = pcall(function()
+		return path:ComputeAsync(self.character.HumanoidRootPart.Position, to)
+	end)
+
+	if success and path.Status == Enum.PathStatus.Success then
+		return path, nil
+	else
+		return nil, errorMessage
+	end
+end
+
+function PathNavigation.setWalkSpeed(self: PathNavigation, speed: number): ()
+	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		error(`{self.character} does not have a Humanoid!`)
+	else
+		humanoid.WalkSpeed = speed
+	end
 end
 
 function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()

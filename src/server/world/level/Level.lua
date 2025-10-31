@@ -4,6 +4,8 @@ local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
+local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
@@ -22,6 +24,7 @@ local timeAccum = 0
 local levelFolder: Folder?
 local cellsConfig: { [string]: CellConfig.Config }?
 local cellsList: { Model } = {}
+local guardCombatNodes: { GuardPost.GuardPost } = {}
 
 --[=[
 	@class Level
@@ -270,7 +273,6 @@ function Level.initializeNpc(inst: Instance): ()
 			warn("An error occured while trying to fetch asset: ", model)
 		else
 			for _, child in model:GetChildren() do
-				print(child)
 				child.Parent = characterRigClone
 			end
 
@@ -484,9 +486,23 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "GuardCombatNode" then
+				placeholder.Transparency = 1
+				placeholder.CanCollide = false
+				placeholder.CanQuery = false
+				placeholder.CanTouch = false
+				placeholder.AudioCanCollide = false
+				table.insert(guardCombatNodes, GuardPost.fromPart(placeholder))
+				return true
+			end
+
 			return false
 		end)
 	end
+end
+
+function Level.getGuardCombatNodes(): { GuardPost.GuardPost }
+	return guardCombatNodes
 end
 
 function Level.initializeCells(cellsFolder: Folder): ()
