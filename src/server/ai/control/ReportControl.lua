@@ -45,7 +45,7 @@ function ReportControl.isReporting(self: ReportControl): boolean
 end
 
 function ReportControl.isRadioEquipped(self: ReportControl): boolean
-	return self.radioEquipped
+	return self:manualRadioEquippedCheck()
 end
 
 function ReportControl.reportOn(
@@ -103,7 +103,7 @@ function ReportControl.equipRadio(self: ReportControl): ()
 end
 
 function ReportControl.unequipRadio(self: ReportControl): ()
-	if self:isRadioEquipped() and not self:manualRadioEquippedCheck() then
+	if self:isRadioEquipped() then
 		self.radioEquipped = false
 		((self :: any).agent.character.Humanoid :: Humanoid):UnequipTools()
 	end
