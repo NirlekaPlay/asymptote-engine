@@ -103,7 +103,7 @@ function ReportControl.equipRadio(self: ReportControl): ()
 end
 
 function ReportControl.unequipRadio(self: ReportControl): ()
-	if self:isRadioEquipped() then
+	if self:isRadioEquipped() and not self:manualRadioEquippedCheck() then
 		self.radioEquipped = false
 		((self :: any).agent.character.Humanoid :: Humanoid):UnequipTools()
 	end
@@ -134,6 +134,10 @@ function ReportControl.dropRadio(self: ReportControl): ()
 end
 
 --
+
+function ReportControl.manualRadioEquippedCheck(self: ReportControl): boolean
+	return self.radioTool and (self.radioTool.Parent :: any) == self.agent.character
+end
 
 function ReportControl.connectDiedConnection(self: ReportControl): ()
 	if not self.agentDiedConnection then

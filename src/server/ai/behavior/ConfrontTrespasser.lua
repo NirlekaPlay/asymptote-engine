@@ -54,6 +54,7 @@ end
 
 local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
+	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.VALUE_PRESENT
 }
 
@@ -62,10 +63,12 @@ function ConfrontTrespasser.getMemoryRequirements(self: ConfrontTrespasser): { [
 end
 
 function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, agent: Agent): boolean
-	return agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):filter(function(player)
-		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
-		return playerStatusHolder and playerStatusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING)
-	end):isPresent()
+	return agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+		:filter(function(player)
+			local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+			return playerStatusHolder and playerStatusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING)
+		end)
+		:isPresent()
 end
 
 function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent): boolean
@@ -215,7 +218,7 @@ end
 
 --
 
-function ConfrontTrespasser.getReactionTIme(self: ConfrontTrespasser, agent: Agent, deltaTime: number): number
+function ConfrontTrespasser.getReactionTime(self: ConfrontTrespasser, agent: Agent, deltaTime: number): number
 	return agent:getRandom():NextInteger(1, 1.5)
 end
 

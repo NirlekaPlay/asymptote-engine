@@ -6,6 +6,7 @@ local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
 local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
+local EnterCombatActivity = require(ServerScriptService.server.ai.behavior.EnterCombatActivity)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
 local FollowPlayerSink = require(ServerScriptService.server.ai.behavior.FollowPlayerSink)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
@@ -13,6 +14,8 @@ local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local LookAtSuspiciousEntities = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousEntities)
 local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
+local ReportMajorTrespasser = require(ServerScriptService.server.ai.behavior.ReportMajorTrespasser)
+local RetreatToCombatNodes = require(ServerScriptService.server.ai.behavior.RetreatToCombatNodes)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local ValidateTrespasser = require(ServerScriptService.server.ai.behavior.ValidateTrespasser)
@@ -32,9 +35,11 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.FOLLOW_TARGET,
 	MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID,
 	MemoryModuleTypes.FLEE_TO_POSITION,
+	MemoryModuleTypes.IS_COMBAT_MODE,
 	MemoryModuleTypes.IS_CURIOUS,
 	MemoryModuleTypes.IS_PANICKING,
 	MemoryModuleTypes.IS_FLEEING,
+	MemoryModuleTypes.IS_INTIMIDATED,
 	MemoryModuleTypes.DESIGNATED_POSTS,
 	MemoryModuleTypes.PATROL_STATE,
 	MemoryModuleTypes.CURRENT_POST,
@@ -46,6 +51,7 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.REPORTING_ON,
 	MemoryModuleTypes.PANIC_POSITION,
 	MemoryModuleTypes.HAS_FLED,
+	MemoryModuleTypes.HAS_RETREATED
 }
  
 local SENSOR_FACTORIES = {
@@ -69,6 +75,7 @@ end
 
 function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 	brain:addActivity(Activity.CORE, 2, {
+		BehaviorWrapper.new(EnterCombatActivity.new()),
 		BehaviorWrapper.new(SetIsCuriousMemory.new()),
 		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
@@ -92,7 +99,7 @@ function GuardAi.initPanicActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.PANIC, 1, {
 		BehaviorWrapper.new(SetPanicFace.new()),
 		BehaviorWrapper.new(FleeToEscapePoints.new()),
-		--BehaviorWrapper.new(KillTarget.new()),
+		BehaviorWrapper.new(KillTarget.new()),
 		BehaviorWrapper.new(PleaForMercy.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_PRESENT
@@ -102,6 +109,7 @@ end
 function GuardAi.initConfrontActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.CONFRONT, 3, {
 		BehaviorWrapper.new(ConfrontTrespasser.new()),
+		BehaviorWrapper.new(ReportMajorTrespasser.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
 		[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.VALUE_PRESENT,
@@ -111,8 +119,9 @@ end
 function GuardAi.initFightActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.FIGHT, 1, {
 		BehaviorWrapper.new(KillTarget.new()),
+		BehaviorWrapper.new(RetreatToCombatNodes.new())
 	}, {
-		[MemoryModuleTypes.KILL_TARGET] = MemoryStatus.VALUE_PRESENT,
+		[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_PRESENT,
 	})
 end
 

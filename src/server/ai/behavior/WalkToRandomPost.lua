@@ -48,6 +48,7 @@ function WalkToRandomPost.new(): WalkToRandomPost
 end
 
 local MEMORY_REQUIREMENTS = {
+	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_CURIOUS] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.DESIGNATED_POSTS] = MemoryStatus.VALUE_PRESENT,
 	[MemoryModuleTypes.TARGET_POST] = MemoryStatus.REGISTERED
@@ -69,6 +70,7 @@ function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boo
 	local brain = agent:getBrain()
 	return not (
 		brain:checkMemory(MemoryModuleTypes.IS_PANICKING, MemoryStatus.VALUE_PRESENT)
+		or brain:checkMemory(MemoryModuleTypes.IS_COMBAT_MODE, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.IS_CURIOUS, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, MemoryStatus.VALUE_PRESENT)
