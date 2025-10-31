@@ -15,7 +15,6 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 
 local MIN_DISTANCE_TO_ESCAPE_POS = 5
-local MIN_DISTANCE_FROM_PANIC_POS = 45
 local DIST_CHECK_UPDATE_INTERVAL = 0.5
 
 --[=[
@@ -63,7 +62,7 @@ function FleeToEscapePoints.canStillUse(self: FleeToEscapePoints, agent: Agent):
 end
 
 function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
-	local post = self:getPostWithMinimumDistanceFromPanicPos(agent)
+	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get())
 	if post then
 		agent.character.Humanoid.WalkSpeed = 30
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
@@ -167,95 +166,60 @@ end
 
 --
 
-function FleeToEscapePoints.getPostWithMinimumDistanceFromPanicPos(self: FleeToEscapePoints, agent: Agent): GuardPost.GuardPost?
-	local posts = agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()
-	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
-	local agentPos = agent:getPrimaryPart().Position
-	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):get()
-	
-	local bestPost = nil
+local WEIGHT_DISTANCE = 1.0          -- weight for distance from threat
+local WEIGHT_THREAT_EXPOSURE = 1.5   -- weight for threat exposure
+local WEIGHT_PATH_COST = 0.5         -- weight for path cost
+
+function FleeToEscapePoints.chooseEscapePoint(
+	self: FleeToEscapePoints,
+	agent: Agent,
+	panicSourcePos: Vector3,
+	escapePoints: {GuardPost.GuardPost}
+): GuardPost.GuardPost?
 	local bestScore = -math.huge
-	
-	for i, post in ipairs(posts) do
-		if post == currentPost then
+	local choosenEscapePoint: GuardPost.GuardPost? = nil
+
+	for _, post in escapePoints do
+		local path = agent:getNavigation():generatePath(post.cframe.Position)
+		if not path then
 			continue
 		end
-		
-		local postPos = post.cframe.Position-- Assuming posts have a getPosition method
-		
-		-- Calculate distance from panic position to this post
-		local distanceFromPanic = (postPos - panicPos).Magnitude
-		
-		-- Calculate direction away from panic (dot product for directional preference)
-		local panicToAgent = (agentPos - panicPos).Unit
-		local agentToPost = (postPos - agentPos).Unit
-		local directionalBonus = panicToAgent:Dot(agentToPost) -- Positive if same direction (away from panic)
-		
-		-- Calculate distance from agent to post (prefer closer posts for faster escape)
-		local distanceFromAgent = (postPos - agentPos).Magnitude
-		
-		-- Scoring system (higher = better)
-		local score = distanceFromPanic * 1.0 +  -- Further from panic is better
-					 directionalBonus * 20.0 +   -- Same direction as fleeing is much better
-					 -distanceFromAgent * 0.5 +   -- Closer to agent is slightly better
-					 Random.new(tick()):NextNumber(-5, 5) -- Add randomization
-		
-		-- Only consider posts that meet minimum distance requirement
-		if distanceFromPanic >= MIN_DISTANCE_FROM_PANIC_POS and score > bestScore then
+
+		local waypoints = path:GetWaypoints()
+
+		local distance = (post.cframe.Position - panicSourcePos).Magnitude
+		local threatExposure = FleeToEscapePoints.getWaypointsThreatExposure(waypoints, panicSourcePos)
+		local pathCost = FleeToEscapePoints.getWaypointsPathLength(waypoints)
+		local randomSalt = math.random() * 0.1 -- number between 0 and 0.1
+
+		local score = WEIGHT_DISTANCE * distance - WEIGHT_THREAT_EXPOSURE * threatExposure - WEIGHT_PATH_COST * pathCost + randomSalt
+		if score > bestScore then
 			bestScore = score
-			bestPost = post
+			choosenEscapePoint = post
 		end
 	end
-	
-	-- Fallback: if no post meets criteria, pick the furthest one
-	if bestPost == nil then
-		local furthestDistance = 0
-		for i, post in ipairs(posts) do
-			if post == currentPost then continue end
-			local postPos = post.cframe.Position
-			local distance = (postPos - panicPos).Magnitude
-			if distance > furthestDistance then
-				furthestDistance = distance
-				bestPost = post
-			end
-		end
-	end
-	
-	if bestPost then
-		print("Selected escape post with distance:", (bestPost.cframe.Position - panicPos).Magnitude)
-	end
-	
-	return bestPost
+
+	return choosenEscapePoint
 end
 
--- a more simpler approach if we just want basic "run away" behavior.
-function FleeToEscapePoints.getPostAwayFromPanic(self: FleeToEscapePoints, agent: Agent): GuardPost.GuardPost?
-	local posts = agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()
-	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
-	local agentPos = agent:getPrimaryPart().Position
-	local currentPost = agent:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):get()
-	
-	-- Find the post that's furthest from panic position and reasonably accessible
-	local bestPost = nil
-	local bestDistance = 0
-	
-	for i, post in ipairs(posts) do
-		if post == currentPost then continue end
-
-		local postPos = post.cframe.Position
-		local distanceFromPanic = (postPos - panicPos).Magnitude
-		local distanceFromAgent = (postPos - agentPos).Magnitude
-		
-		-- Prefer posts that are far from panic but not too far from agent
-		local suitability = distanceFromPanic - (distanceFromAgent * 0.3)
-		
-		if suitability > bestDistance then
-			bestDistance = suitability
-			bestPost = post
+function FleeToEscapePoints.getWaypointsThreatExposure(waypoints: {PathWaypoint}, panicSourcePos: Vector3): number
+	local minDistToThreat = math.huge
+	for _, point in ipairs(waypoints) do
+		local dist = (point.Position - panicSourcePos).Magnitude
+		if dist < minDistToThreat then
+			minDistToThreat = dist
 		end
 	end
-	
-	return bestPost
+
+	return 1 / (minDistToThreat + 0.001) -- closer paths get higher threat
+end
+
+function FleeToEscapePoints.getWaypointsPathLength(waypoints: {PathWaypoint}): number
+	local pathCost = 0
+	for i = 2, #waypoints do
+		pathCost = pathCost + (waypoints[i].Position - waypoints[i-1].Position).Magnitude
+	end
+	return pathCost
 end
 
 return FleeToEscapePoints
