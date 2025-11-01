@@ -14,6 +14,7 @@ local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local LookAtSuspiciousEntities = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousEntities)
 local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
+local ReactToDisguisedPlayers = require(ServerScriptService.server.ai.behavior.ReactToDisguisedPlayers)
 local ReportMajorTrespasser = require(ServerScriptService.server.ai.behavior.ReportMajorTrespasser)
 local RetreatToCombatNodes = require(ServerScriptService.server.ai.behavior.RetreatToCombatNodes)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
@@ -80,6 +81,7 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
+		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
 		BehaviorWrapper.new(ValidateTrespasser.new()),
 		BehaviorWrapper.new(FollowPlayerSink.new())
 	})
