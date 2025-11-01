@@ -19,6 +19,7 @@ local RANDOM_DEATH_DIALOGUES = {
 	"SHI-"
 }
 local RANDOM_DEATH_DIALOGUES_SIZE = #RANDOM_DEATH_DIALOGUES
+local rng = Random.new(tick())
 
 --[=[
 	@class TalkControl
@@ -68,10 +69,14 @@ function TalkControl.saySequences(self: TalkControl, textArray: {string}): ()
 end
 
 function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}, ...): ()
-	local selectedDialogue = randomDialoguesArray[Random.new(tick()):NextInteger(1, #randomDialoguesArray)]
+	local selectedDialogue = TalkControl.randomlyChosoeDialogueSequences(randomDialoguesArray)
 	if selectedDialogue then
 		self:createTalkThread(self:createDialogueSegmentFromArray(selectedDialogue, ...))
 	end
+end
+
+function TalkControl.randomlyChosoeDialogueSequences(randomDialoguesArray: {{string}}): {string}
+	return randomDialoguesArray[rng:NextInteger(1, #randomDialoguesArray)]
 end
 
 function TalkControl.saySegment(self: TalkControl, dialogueSegment: DialogueSegment): ()

@@ -77,11 +77,12 @@ function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: A
 	local faceCtrl = agent:getFaceControl()
 
 	--local disguise = playerStatusHolder:getDisguise()
-	local reportDialogue = GuardGenericDialogues["status.disguised"]
+	local reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised"])
+	local reportDialogueTotalDur = talkCtrl.getDialoguesTotalSpeechDuration(reportDialogue)
 
 	faceCtrl:setFace("Angry")
-	talkCtrl:sayRandomSequences(reportDialogue)
-	reportCtrl:reportWithCustomDur(ReportType.INTRUDER_SPOTTED, 2)
+	talkCtrl:saySequences(reportDialogue)
+	reportCtrl:reportWithCustomDur(ReportType.INTRUDER_SPOTTED, 2, reportDialogueTotalDur)
 end
 
 function ReactToDisguisedPlayers.doStop(self: ReactToDisguisedPlayers, agent: Agent): ()

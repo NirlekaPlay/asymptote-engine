@@ -24,7 +24,8 @@ export type ReportControl = typeof(setmetatable({} :: {
 	reportingOn: {
 		reportType: ReportType.ReportType,
 		reportDuration: number,
-		reportTimer: number
+		reportTimer: number,
+		unequipRadioDelay: number
 	}?
 }, ReportControl))
 
@@ -41,7 +42,7 @@ function ReportControl.new(agent: Agent): ReportControl
 end
 
 function ReportControl.isReporting(self: ReportControl): boolean
-	return self.reportingOn ~= nil
+	return self.reportingOn ~= nil and self:isRadioEquipped()
 end
 
 function ReportControl.isRadioEquipped(self: ReportControl): boolean
@@ -57,21 +58,23 @@ function ReportControl.reportOn(
 	self.reportingOn = {
 		reportType = reportType,
 		reportDuration = reportDur,
-		reportTimer = 0
+		reportTimer = 0,
+		unequipRadioDelay = 0
 	}
 	(self :: any).agent.character.isReporting.Value = true
 	self:equipRadio()
 end
 
 function ReportControl.reportWithCustomDur(
-	self: ReportControl, reportType: ReportType.ReportType, absDur: number
+	self: ReportControl, reportType: ReportType.ReportType, absDur: number, unequipDur: number?
 ): ()
 	self:connectDiedConnection()
 	local reportDur = absDur + 0.5
 	self.reportingOn = {
 		reportType = reportType,
 		reportDuration = reportDur,
-		reportTimer = 0
+		reportTimer = 0,
+		unequipRadioDelay = unequipDur or 0
 	}
 	(self :: any).agent.character.isReporting.Value = true
 	self:equipRadio()
@@ -88,9 +91,17 @@ function ReportControl.update(self: ReportControl, deltaTime: number): ()
 		self.reportingOn.reportTimer += deltaTime
 		if self.reportingOn.reportTimer >= self.reportingOn.reportDuration then
 			Mission.raiseAlertLevel(self.reportingOn.reportType.alertLevelRaiseAmount)
+
+			-- TODO: This feels like a sin but its the only way i can think of
+			-- cuz i want this to work.
+			task.delay(self.reportingOn.unequipRadioDelay, function()
+				if self.agent and self.agent.character then
+					self.agent.character.isReporting.Value = false
+					self:unequipRadio()
+				end
+			end)
+
 			self.reportingOn = nil
-			self.agent.character.isReporting.Value = false
-			self:unequipRadio()
 		end
 	end
 end
@@ -104,8 +115,22 @@ end
 
 function ReportControl.unequipRadio(self: ReportControl): ()
 	if self:isRadioEquipped() then
+		-- this prevents the FBB being unequipped.
+		-- Maybe a flaw on how the FBB is actually being equipped
+		-- but eh ill fix that later. TODO.
+		local shouldNotUnequipAll = false
+		for _, child in self.agent.character:GetChildren() :: {Instance} do
+			if child ~= self.radioTool and child:IsA("Tool") then
+				shouldNotUnequipAll = true
+				break
+			end
+		end
 		self.radioEquipped = false
-		((self :: any).agent.character.Humanoid :: Humanoid):UnequipTools()
+		if shouldNotUnequipAll then
+			self.radioTool.Parent = nil
+		else
+			((self :: any).agent.character.Humanoid :: Humanoid):UnequipTools()
+		end
 	end
 end
 
