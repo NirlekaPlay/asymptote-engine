@@ -107,6 +107,10 @@ function DetectionManagement.getFocusingTarget(self: DetectionManagement)
 	return self.focusingTarget
 end
 
+function DetectionManagement.getEntityHighestEntry(self: DetectionManagement): string
+	
+end
+
 function DetectionManagement.eraseEntityStatusEntry(self: DetectionManagement, entityUuid: string, status: PlayerStatus.PlayerStatus): ()
 	-- what the fuck. why.
 	-- why did i make shit harder for myself.
@@ -340,6 +344,9 @@ end
 function DetectionManagement.update(self: DetectionManagement, deltaTime: number): ()
 	self:updateDetectionPerEntities(deltaTime)
 	self:updateCuriousState(deltaTime)
+	if next(self.detectionLevels) ~= nil then
+		--print(self.detectionLevels)
+	end
 end
 
 function DetectionManagement.updateDetectionPerEntities(self: DetectionManagement, deltaTime: number): ()

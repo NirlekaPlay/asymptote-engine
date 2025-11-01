@@ -66,12 +66,18 @@ function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
 	local focusingTarget = detetectionManager:getFocusingTarget()
 	
 	if focusingTarget then
+		-- Verify detection level is still FULLY DETECTED (1) before setting memory
+		local detLevel = detetectionManager:getDetectionLevel(focusingTarget.entityUuid)
+		if not detLevel or detLevel < 1 then
+			return -- Don't set memory if not fully detected
+		end
+		
 		local status = focusingTarget.status
 		-- "why. WHY. WHYYYY"
 		-- I ask myself to past me.
 		-- But for real, CONSISTENCY IN GETTING, COMPARING, AND STORING PLAYER STATUSES!!!
 		if (status :: any) == PlayerStatusTypes.MINOR_TRESPASSING.name or
-			(status :: any) == PlayerStatusTypes.MAJOR_TRESPASSING.name then
+		   (status :: any) == PlayerStatusTypes.MAJOR_TRESPASSING.name then
 			local entity = EntityManager.getEntityByUuid(focusingTarget.entityUuid)
 			if not entity or entity.name ~= "Player" or entity.isStatic == true then
 				error("The fucking entity is not a valid Player or is nil. Non-players shouldnt even have trespassing statuses!!")

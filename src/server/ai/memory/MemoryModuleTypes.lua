@@ -45,6 +45,7 @@ local MemoryModuleTypes = {
 	CONFRONTING_TRESPASSER = register("confronting_trespasser") :: MemoryModuleType<Player>,
 	SPOTTED_DISGUISED_PLAYER = register("spotted_disguised_player") :: MemoryModuleType<Player>,
 	SPOTTED_TRESPASSER = register("spotted_trespasser") :: MemoryModuleType<Player>,
+	SPOTTED_CRIMINAL = register("spotted_criminal") :: MemoryModuleType<Player>,
 	TRESPASSERS_WARNS = register("trespassers_warns") :: MemoryModuleType<{ [Player]: number }>,
 	REPORTING_ON = register("reporting_on") :: MemoryModuleType<string>,
 	VISISBLE_C4 = register("visible_c4") :: MemoryModuleType< { [string]: true } >,

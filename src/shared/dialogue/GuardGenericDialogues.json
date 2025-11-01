@@ -44,6 +44,13 @@
     ["Control! Someone here has a gun!"],
     ["I see someone with a gun!"]
   ],
+  "status.sus_criminal": [
+    ["Found someones doing sketchy stuff in %s!"],
+    ["Criminal spotted in %s!"],
+    ["Dangerous criminal spotted in %s!"],
+    ["I've found a dangerous guy in %s!"],
+    ["We have a dangerous person in %s!"]
+  ],
   "status.dangerous_item": [
     ["Control! Someone here has a bomb!"],
     ["Oh God!", "Control! Someone's got a bomb!"],

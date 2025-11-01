@@ -18,6 +18,7 @@ local LookAtSuspiciousEntities = require(ServerScriptService.server.ai.behavior.
 local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
 local ReactToDisguisedPlayers = require(ServerScriptService.server.ai.behavior.ReactToDisguisedPlayers)
 local ReportMajorTrespasser = require(ServerScriptService.server.ai.behavior.ReportMajorTrespasser)
+local ReportSuspiciousCriminal = require(ServerScriptService.server.ai.behavior.ReportSuspiciousCriminal)
 local RetreatToCombatNodes = require(ServerScriptService.server.ai.behavior.RetreatToCombatNodes)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
@@ -53,6 +54,7 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.TRESPASSERS_WARNS,
 	MemoryModuleTypes.SPOTTED_TRESPASSER,
 	MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER,
+	MemoryModuleTypes.SPOTTED_CRIMINAL,
 	MemoryModuleTypes.REPORTING_ON,
 	MemoryModuleTypes.PANIC_POSITION,
 	MemoryModuleTypes.HAS_FLED,
@@ -85,6 +87,7 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
+		BehaviorWrapper.new(ReportSuspiciousCriminal.new()),
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
 		BehaviorWrapper.new(ValidateTrespasser.new()),
 		BehaviorWrapper.new(FollowPlayerSink.new())
