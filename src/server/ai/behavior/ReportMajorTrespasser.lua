@@ -56,7 +56,7 @@ function ReportMajorTrespasser.checkExtraStartConditions(self: ReportMajorTrespa
 end
 
 function ReportMajorTrespasser.canStillUse(self: ReportMajorTrespasser, agent: Agent): boolean
-	return true
+	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
 end
 
 function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent): ()

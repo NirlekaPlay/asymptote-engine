@@ -30,7 +30,8 @@ function LookAtSuspiciousEntities.new(): LookAtSuspiciousEntities
 end
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.LOOK_TARGET] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT
 }
 
 function LookAtSuspiciousEntities.getMemoryRequirements(self: LookAtSuspiciousEntities): { [MemoryModuleType<any>]: MemoryStatus }
@@ -42,7 +43,7 @@ function LookAtSuspiciousEntities.checkExtraStartConditions(self: LookAtSuspicio
 end
 
 function LookAtSuspiciousEntities.canStillUse(self: LookAtSuspiciousEntities, agent: Agent): boolean
-	return true
+	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
 end
 
 function LookAtSuspiciousEntities.doStart(self: LookAtSuspiciousEntities, agent: Agent): ()
