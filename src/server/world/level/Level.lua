@@ -94,7 +94,7 @@ function Level.initializeLevel(): ()
 			stack[index] = nil
 			index = index - 1
 
-			if current:IsA("BoolValue") or current:IsA("Configuration") then
+			if (current:IsA("BoolValue") and current.Value) or current:IsA("Configuration") then
 				-- NOTES: This might create problems. Oh well.
 				-- TODO: Oh and by the way MAYBEEEEE the accessories bullshit should be
 				-- on the client side.
