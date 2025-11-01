@@ -142,7 +142,9 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
+	agent:getFaceControl():setFace("Neutral")
 	agent:getNavigation():setToWalkingSpeed()
+	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 	agent:getReportControl():interruptReport()
@@ -152,6 +154,7 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 	local spottedTrespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 	if spottedTrespasser:isPresent() then
 		local trespasserPlayer = spottedTrespasser:get()
+		trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(trespasserPlayer)
 		if not statusHolder or not statusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING) then
 			print(trespasserPlayer.Name, "No longer trespassing (cleaning up in doStop).")
