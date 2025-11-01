@@ -30,7 +30,8 @@ function SetPanicFace.new(): SetPanicFace
 end
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.IS_CURIOUS] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.IS_CURIOUS] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.REGISTERED
 }
 
 function SetPanicFace.getMemoryRequirements(self: SetPanicFace): { [MemoryModuleType<any>]: MemoryStatus }

@@ -10,7 +10,9 @@ local EnterCombatActivity = require(ServerScriptService.server.ai.behavior.Enter
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
 local FollowPlayerSink = require(ServerScriptService.server.ai.behavior.FollowPlayerSink)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
+local KillCaughtOrThreateningPlayers = require(ServerScriptService.server.ai.behavior.KillCaughtOrThreateningPlayers)
 local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
+local KillTargetableEntities = require(ServerScriptService.server.ai.behavior.KillTargetableEntities)
 local LookAndFaceAtTargetSink = require(ServerScriptService.server.ai.behavior.LookAndFaceAtTargetSink)
 local LookAtSuspiciousEntities = require(ServerScriptService.server.ai.behavior.LookAtSuspiciousEntities)
 local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy)
@@ -31,6 +33,7 @@ type Agent = Agent.Agent
 type Brain<T> = Brain.Brain<T>
 
 local MEMORY_TYPES = {
+	MemoryModuleTypes.TARGETABLE_ENTITIES,
 	MemoryModuleTypes.LOOK_TARGET,
 	MemoryModuleTypes.KILL_TARGET,
 	MemoryModuleTypes.FOLLOW_TARGET,
@@ -120,6 +123,8 @@ end
 
 function GuardAi.initFightActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.FIGHT, 1, {
+		BehaviorWrapper.new(KillCaughtOrThreateningPlayers.new()),
+		BehaviorWrapper.new(KillTargetableEntities.new()),
 		BehaviorWrapper.new(KillTarget.new()),
 		BehaviorWrapper.new(RetreatToCombatNodes.new())
 	}, {

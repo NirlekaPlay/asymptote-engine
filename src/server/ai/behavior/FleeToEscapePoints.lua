@@ -84,7 +84,11 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 		end
 		if not entityObj.isStatic and entityObj.name == "Player" then
 			local player = Players:GetPlayerByUserId(tonumber(entityObj.uuid) :: number)
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, player)
+			local targetableEntities = agent:getBrain():getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES)
+				:orElse({})
+
+			targetableEntities[player] = true
+			agent:getBrain():setNullableMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntities)
 		end
 	end
 end
@@ -105,7 +109,11 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 	end
 	if not entityObj.isStatic and entityObj.name == "Player" then
 		local player = Players:GetPlayerByUserId(entityObj.uuid)
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, player)
+		local targetableEntities = agent:getBrain():getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES)
+				:orElse({})
+
+		targetableEntities[player] = true
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntities)
 	end
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, false)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.HAS_FLED, true)
@@ -162,7 +170,12 @@ function FleeToEscapePoints.doUpdate(self: FleeToEscapePoints, agent: Agent, del
 			end
 			if not entityObj.isStatic and entityObj.name == "Player" then
 				local player = Players:GetPlayerByUserId(entityObj.uuid)
-				agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, player)
+				local targetableEntities = agent:getBrain():getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES)
+					:orElse({})
+
+				targetableEntities[player] = true
+
+				agent:getBrain():setNullableMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntities)
 			end
 		end
 	end

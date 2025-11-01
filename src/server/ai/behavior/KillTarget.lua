@@ -126,6 +126,8 @@ function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number):
 		})
 		agent:getGunControl():drop()
 		agent:getBrain():eraseMemory(MemoryModuleTypes.KILL_TARGET)
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_PANICKING, true)
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_INTIMIDATED, true)
 		return
 	end
 

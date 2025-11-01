@@ -2,7 +2,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 
@@ -13,6 +12,7 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 
+local DEBUG_MODE = false
 local BASE_DETECTION_TIME = 1.25
 local QUICK_DETECTION_RANGE = 10
 local QUIK_DETECTION_MULTIPLIER = 3.33
@@ -309,21 +309,27 @@ function DetectionManagement.canAgentDetectThroughDisguise(
 	local currentDisguise = playerStatusHolder:getDisguise() :: string -- impossible if its empty
 	local agentEnforceClass = (self.agent :: any).enforceClass -- it exists shut up.
 	if not agentEnforceClass[currentDisguise] then
+		if DEBUG_MODE then
+			print(`{self.agent:getCharacterName()}: {agentEnforceClass} does not have disguise config for {currentDisguise}`)
+		end
 		return false
 	else
 		local condition = agentEnforceClass[currentDisguise]
 		local currentAlertLevel = Mission.getAlertLevel()
-
+		local alertValue = Mission.getAlertLevelNumericValue(currentAlertLevel)
+		if DEBUG_MODE then
+			print(`{self.agent:getCharacterName()}: Trying to see if it can see through disguise of '{currentDisguise}'.\n Current alert level: {alertValue} which coresponds to '{currentAlertLevel.name}'\nCondition is {condition}`)
+		end
 		-- bother even trying?
 		if condition >= 5 then
+			return true -- Always sees through
+		elseif condition == 4 and alertValue >= 3 then -- SEARCHING or higher
 			return true
-		elseif condition == 1 and currentAlertLevel == AlertLevels.ALERT then
+		elseif condition == 3 and alertValue >= 0 then -- CALM or higher (always)
 			return true
-		elseif condition == 2 and currentAlertLevel == AlertLevels.NORMAL then
+		elseif condition == 2 and alertValue >= 1 then -- NORMAL or higher
 			return true
-		elseif condition == 3 and currentAlertLevel == AlertLevels.CALM then
-			return true
-		elseif condition == 4 and currentAlertLevel == AlertLevels.SEARCHING then
+		elseif condition == 1 and alertValue >= 2 then -- ALERT or higher
 			return true
 		end
 	end

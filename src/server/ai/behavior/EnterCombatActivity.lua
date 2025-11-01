@@ -42,7 +42,7 @@ function EnterCombatActivity.getMemoryRequirements(self: EnterCombatActivity): {
 end
 
 function EnterCombatActivity.checkExtraStartConditions(self: EnterCombatActivity, agent: Agent): boolean
-	return not agent:getReportControl():isReporting()
+	return not agent:getReportControl():isReporting() and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
 end
 
 function EnterCombatActivity.canStillUse(self: EnterCombatActivity, agent: Agent): boolean
