@@ -72,7 +72,13 @@ function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, 
 end
 
 function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent): boolean
-	return agent:getBrain():hasMemoryValue(MemoryModuleTypes.SPOTTED_TRESPASSER)
+	return agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+		:filter(function(player)
+			local detMan = agent:getDetectionManager()
+			local detFocus = detMan:getFocusingTarget()
+			return (detFocus and detFocus.status == PlayerStatusTypes.MINOR_TRESPASSING.name and detMan:getDetectionLevel(detFocus.entityUuid) >= 1) :: boolean
+		end)
+		:isPresent()
 end
 
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
@@ -117,11 +123,9 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
-	-- TODO: Not fucking resetting face if at max escalation
-
-	agent:getFaceControl():setFace("Neutral")
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 	agent:getReportControl():interruptReport()
+	agent:getTalkControl():stopTalking()
 
 	self.warningLevel = 0
 	self.timeSinceLastDialogue = 0

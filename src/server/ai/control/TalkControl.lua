@@ -65,6 +65,17 @@ function TalkControl.isTalking(self: TalkControl): boolean
 	return self.talkThread ~= nil
 end
 
+function TalkControl.stopTalking(self: TalkControl): ()
+	if self.talkThread then
+		task.cancel(self.talkThread)
+		self.talkThread = nil
+	end
+	
+	if self.faceControl then
+		self.faceControl:resetMouthToExpression()
+	end
+end
+
 function TalkControl.say(self: TalkControl, text: string, customSpeechDur: number?): ()
 	self:createTalkThread({{ text = text, customSpeechDur = nil }})
 end

@@ -56,7 +56,14 @@ function ReportMajorTrespasser.checkExtraStartConditions(self: ReportMajorTrespa
 end
 
 function ReportMajorTrespasser.canStillUse(self: ReportMajorTrespasser, agent: Agent): boolean
-	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
+	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
+		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+			:filter(function(player)
+				local detMan = agent:getDetectionManager()
+				local detFocus = detMan:getFocusingTarget()
+				return (detFocus and detFocus.status == PlayerStatusTypes.MAJOR_TRESPASSING.name and detMan:getDetectionLevel(detFocus.entityUuid) >= 1) :: boolean
+			end)
+			:isPresent()
 end
 
 function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent): ()
@@ -81,7 +88,8 @@ function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent
 end
 
 function ReportMajorTrespasser.doStop(self: ReportMajorTrespasser, agent: Agent): ()
-	return
+	agent:getReportControl():interruptReport()
+	agent:getTalkControl():stopTalking()
 end
 
 function ReportMajorTrespasser.doUpdate(self: ReportMajorTrespasser, agent: Agent, deltaTime: number): ()
