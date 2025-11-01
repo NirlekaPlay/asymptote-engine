@@ -52,6 +52,7 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.CONFRONTING_TRESPASSER,
 	MemoryModuleTypes.TRESPASSERS_WARNS,
 	MemoryModuleTypes.SPOTTED_TRESPASSER,
+	MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER,
 	MemoryModuleTypes.REPORTING_ON,
 	MemoryModuleTypes.PANIC_POSITION,
 	MemoryModuleTypes.HAS_FLED,

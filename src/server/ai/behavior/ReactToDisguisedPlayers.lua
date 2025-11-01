@@ -39,7 +39,8 @@ local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_INTIMIDATED] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
-	[MemoryModuleTypes.VISIBLE_ENTITIES] = MemoryStatus.VALUE_PRESENT
+	[MemoryModuleTypes.VISIBLE_ENTITIES] = MemoryStatus.VALUE_PRESENT,
+	[MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER] = MemoryStatus.REGISTERED
 }
 
 function ReactToDisguisedPlayers.getMemoryRequirements(self: ReactToDisguisedPlayers): { [MemoryModuleType<any>]: MemoryStatus }
@@ -61,7 +62,24 @@ function ReactToDisguisedPlayers.checkExtraStartConditions(self: ReactToDisguise
 end
 
 function ReactToDisguisedPlayers.canStillUse(self: ReactToDisguisedPlayers, agent: Agent): boolean
-	return true
+	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
+		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER)
+			:filter(function(player)
+				local detMan = agent:getDetectionManager()
+				local detFocus = detMan:getFocusingTarget()
+				
+				-- Return false if fully detected but NOT disguised
+				-- or non threatening statuses
+				if detFocus and detMan:getDetectionLevel(detFocus.entityUuid) >= 1 then
+					return detFocus.status == PlayerStatusTypes.DISGUISED.name or
+						detFocus.status == PlayerStatusTypes.MINOR_TRESPASSING.name or
+						detFocus.status == PlayerStatusTypes.MINOR_SUSPICIOUS.name
+				end
+				
+				-- If not fully detected, keep checking (return true)
+				return detFocus ~= nil
+			end)
+			:isPresent()
 end
 
 function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: Agent): ()
@@ -71,6 +89,8 @@ function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: A
 		warn("UNDEFINED BEHAVIOR: PLAYER STATUS HOLDER OF", disguisedPlayer, "IS NIL.")
 		return
 	end
+
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER, disguisedPlayer)
 
 	local talkCtrl = agent:getTalkControl()
 	local reportCtrl = agent:getReportControl()
@@ -86,7 +106,9 @@ function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: A
 end
 
 function ReactToDisguisedPlayers.doStop(self: ReactToDisguisedPlayers, agent: Agent): ()
-	return
+	agent:getBrain():eraseMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER)
+	agent:getReportControl():interruptReport()
+	agent:getTalkControl():stopTalking()
 end
 
 function ReactToDisguisedPlayers.doUpdate(self: ReactToDisguisedPlayers, agent: Agent, deltaTime: number): ()

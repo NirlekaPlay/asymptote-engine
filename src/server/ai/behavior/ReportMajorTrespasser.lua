@@ -61,7 +61,14 @@ function ReportMajorTrespasser.canStillUse(self: ReportMajorTrespasser, agent: A
 			:filter(function(player)
 				local detMan = agent:getDetectionManager()
 				local detFocus = detMan:getFocusingTarget()
-				return (detFocus and detFocus.status == PlayerStatusTypes.MAJOR_TRESPASSING.name and detMan:getDetectionLevel(detFocus.entityUuid) >= 1) :: boolean
+				
+				-- Return false if fully detected but NOT major trespassing
+				if detFocus and detMan:getDetectionLevel(detFocus.entityUuid) >= 1 then
+					return detFocus.status == PlayerStatusTypes.MAJOR_TRESPASSING.name
+				end
+				
+				-- If not fully detected, keep checking (return true)
+				return detFocus ~= nil
 			end)
 			:isPresent()
 end

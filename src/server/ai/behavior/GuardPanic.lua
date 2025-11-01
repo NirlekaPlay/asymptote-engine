@@ -170,7 +170,7 @@ end
 --
 
 function GuardPanic.getReactionTime(self: GuardPanic, agent: Agent, deltaTime: number): number
-	return agent:getRandom():NextNumber(0.5, 1)
+	return agent:getRandom():NextNumber(0.3, 0.6)
 end
 
 return GuardPanic
