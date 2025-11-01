@@ -1804,6 +1804,10 @@
 
 --!strict
 
+-- humanoidAnimatePlayEmote.lua
+
+--!strict
+
 local Figure = script.Parent
 local Torso = Figure:WaitForChild("Torso")
 local RightShoulder = Torso:WaitForChild("Right Shoulder")
@@ -2379,7 +2383,12 @@ Humanoid.Swimming:connect(onSwimming)
 -- main program
 
 -- initialize to idle
-playAnimation("idle", 0.1, Humanoid, Enum.AnimationPriority.Idle)
+if isGuarding.Value then
+	playAnimation("guarding", 0.3, Humanoid, Enum.AnimationPriority.Idle)
+else
+	playAnimation("idle", 0.1, Humanoid, Enum.AnimationPriority.Idle)
+end
+
 pose = "Standing"
 
 while Figure.Parent ~= nil do
