@@ -17,7 +17,7 @@ local DEFAULT_FACE_PACK_ASSET_IDS = {
 	MOUTH_CLOSED_NEUTRAL = 9806565498,
 	MOUTH_CLOSED_FROWN = 9806562460,
 	MOUTH_CLOSED_FROWN_2 = 9806560629,
-	-- Lip sync stuff
+	-- Lip sync mouth shapes / variants
 	MOUTH_TEETH_FROWN = 9806566055,
 	MOUTH_OPEN_FROWN = 9806566637,
 	MOUTH_LEFT_TEETH_FROWN = 13736431749,
@@ -27,32 +27,43 @@ local DEFAULT_FACE_PACK_ASSET_IDS = {
 
 local FACE_ALIAS_ASSET_ID = {
 	Neutral = {
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_RIGHT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_LEFT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_NEUTRAL
+		EyeRight = DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_NEUTRAL,
+		EyeLeft  = DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_NEUTRAL,
+		EyebrowRight = DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_RIGHT_NEUTRAL,
+		EyebrowLeft  = DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_LEFT_NEUTRAL,
+		MouthBase = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_NEUTRAL
 	},
 	Shocked = {
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_RAISED,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_RAISED,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYES_SHOCKED,
-		DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_FROWN
+		EyeRight = DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_RAISED,
+		EyeLeft  = DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_RAISED,
+		Eyes = DEFAULT_FACE_PACK_ASSET_IDS.EYES_SHOCKED,
+		EyebrowRight = nil,
+		EyebrowLeft  = nil,
+		MouthBase = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_FROWN
 	},
 	Angry = {
-		DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_LEFT_FURROW,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_RIGHT_FURROW,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_FROWN_2
+		EyebrowLeft = DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_LEFT_FURROW,
+		EyebrowRight = DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_RIGHT_FURROW,
+		EyeLeft = DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_NEUTRAL,
+		EyeRight = DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_NEUTRAL,
+		MouthBase = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_FROWN_2
 	},
 	Unconscious = {
-		DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_LEFT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_RIGHT_NEUTRAL,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_CLOSED,
-		DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_CLOSED,
-		DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_FROWN,
-	}
+		EyebrowLeft = DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_LEFT_NEUTRAL,
+		EyebrowRight = DEFAULT_FACE_PACK_ASSET_IDS.EYEBROW_RIGHT_NEUTRAL,
+		EyeLeft = DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_CLOSED,
+		EyeRight = DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_CLOSED,
+		MouthBase = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_FROWN
+	},
+	None = {}
+}
+
+local LIPSYNC_ASSET_MAP = {
+	["A"] = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_OPEN_FROWN,
+	["E"] = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_TEETH_FROWN,
+	["O"] = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_OPEN_O,
+	["M"] = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_CLOSED_NEUTRAL,
+	["L"] = DEFAULT_FACE_PACK_ASSET_IDS.MOUTH_LEFT_OPEN_FROWN
 }
 
 --[=[
@@ -66,8 +77,8 @@ FaceControl.__index = FaceControl
 
 export type FaceControl = typeof(setmetatable({} :: {
 	head: BasePart,
-	currentFaceAlias: FaceAlias,
-	currentFaceDecals: { Decal }
+	currentFaceAlias: string,
+	decals: { [string]: Decal }, -- keyed by region: "EyeRight", "Mouth", etc
 }, FaceControl))
 
 type FaceAlias = "Neutral"
@@ -76,25 +87,30 @@ type FaceAlias = "Neutral"
 	| "Unconscious"
 	| "None"
 
+type Phoneme = "A"
+	| "E"
+	| "O"
+	| "M"
+	| "L"
+
 function FaceControl.new(character: Model): FaceControl
 	local self = {}
-
 	self.head = character:FindFirstChild("Head") :: BasePart
 	self.currentFaceAlias = "None"
-	self.currentFaceDecals = {}
+	self.decals = {}
 
 	local faceDecals = self.head:FindFirstChild("Face Decals")
 	if not faceDecals then
 		FaceControl.createHdifyFaceDecals(self.head)
-		for _, decal in ipairs(self.head:GetChildren()) do
-			if decal:IsA("Decal") then
-				decal:Destroy()
+		for _, child in ipairs(self.head:GetChildren()) do
+			if child:IsA("Decal") then
+				child:Destroy()
 			end
 		end
-	elseif faceDecals ~= nil then
-		for _, decal in ipairs(faceDecals:GetChildren()) do
-			if decal:IsA("Decal") then
-				decal:Destroy()
+	else
+		for _, child in ipairs(faceDecals:GetChildren()) do
+			if child:IsA("Decal") then
+				child:Destroy()
 			end
 		end
 	end
@@ -102,31 +118,89 @@ function FaceControl.new(character: Model): FaceControl
 	return setmetatable(self, FaceControl)
 end
 
-function FaceControl.setFace(self: FaceControl, faceAlias: FaceAlias): ()
-	local isSame = self.currentFaceAlias == faceAlias -- fuck you typechecker
-	if isSame then return end
-
-	-- TODO: Make a more performant way by replacing the asset ids
-	-- and name them
-	for _, decal in ipairs(self.currentFaceDecals) do
-		decal:Destroy()
+function FaceControl._ensureDecal(self: FaceControl, regionName: string): Decal
+	local dec = self.decals[regionName]
+	if dec and dec.Parent and dec:IsDescendantOf(self.head) then
+		return dec
 	end
-	table.clear(self.currentFaceDecals)
 
-	for _, id in ipairs(FACE_ALIAS_ASSET_ID[faceAlias]) do
-		local newDecal = self:createDecal(id :: number) -- how are you this fucking retarded
-		table.insert(self.currentFaceDecals, newDecal)
+	local faceDecals = self.head:FindFirstChild("Face Decals")
+	assert(faceDecals, "Face Decals container missing on head")
+
+	local newDecal = Instance.new("Decal")
+	newDecal.Name = regionName
+	newDecal.Face = Enum.NormalId.Front
+	newDecal.Parent = faceDecals
+	self.decals[regionName] = newDecal
+	return newDecal
+end
+
+function FaceControl._setRegionTexture(self: FaceControl, regionName: string, assetId: number?)
+	if assetId == nil then
+		-- If nil requested, remove decal if present
+		if self.decals[regionName] then
+			self.decals[regionName]:Destroy()
+			self.decals[regionName] = nil
+		end
+		return
+	end
+
+	local decal = self:_ensureDecal(regionName)
+	decal.TextureContent = Content.fromAssetId(assetId)
+end
+
+function FaceControl.setFace(self: FaceControl, faceAlias: FaceAlias): ()
+	if self.currentFaceAlias == faceAlias then
+		return
+	end
+
+	local aliasMap = FACE_ALIAS_ASSET_ID[faceAlias] or {} :: any
+	for regionName, assetId in pairs(aliasMap) do
+		-- Region name "MouthBase" is stored as "Mouth" in decals for consistency.
+		local decalRegion = (regionName == "MouthBase") and "Mouth" or regionName
+		self:_setRegionTexture(decalRegion, assetId)
+	end
+
+	for prevRegionName, _ in pairs(self.decals) do
+		local aliasKey = (prevRegionName == "Mouth") and "MouthBase" or prevRegionName
+		if aliasMap[aliasKey] == nil then
+			self:_setRegionTexture(prevRegionName, nil)
+		end
 	end
 
 	self.currentFaceAlias = faceAlias
 end
 
+function FaceControl.setMouth(self: FaceControl, assetId: number?): ()
+	self:_setRegionTexture("Mouth", assetId)
+end
+
+function FaceControl.setMouthPhoneme(self: FaceControl, phonemeKey: Phoneme): ()
+	local assetId = LIPSYNC_ASSET_MAP[phonemeKey]
+	if assetId then
+		self:setMouth(assetId)
+	else
+		self:resetMouthToExpression()
+	end
+end
+
+function FaceControl.resetMouthToExpression(self: FaceControl): ()
+	local aliasMap = FACE_ALIAS_ASSET_ID[self.currentFaceAlias :: any] or {} :: any
+	local mouthBase = aliasMap.MouthBase
+	if mouthBase then
+		self:setMouth(mouthBase)
+	else
+		self:setMouth(nil)
+	end
+end
+
 function FaceControl.createDecal(self: FaceControl, assetId: number): Decal
+	local faceDecals = self.head:FindFirstChild("Face Decals")
+	assert(faceDecals, "Face Decals container missing on head")
 	local newDecal = Instance.new("Decal")
 	newDecal.TextureContent = Content.fromAssetId(assetId)
 	newDecal.Face = Enum.NormalId.Front
-	newDecal.Parent = self.head:FindFirstChild("Face Decals") -- use the HDIfy plugin so it can have HD faces
-
+	newDecal.Parent = faceDecals
 	return newDecal
 end
 
@@ -137,7 +211,6 @@ function FaceControl.createHdifyFaceDecals(head: BasePart): BasePart
 	part.Color = head.Color
 	part.Size = Vector3.new(2, 1, 1)
 	part.CFrame = CFrame.new(-7, 4.5, -8.5)
-	--part.Origin = CFrame.new(-7, 0, -8.5)
 	part.PivotOffset = CFrame.new(0, -4.5, 0)
 
 	local mesh = Instance.new("SpecialMesh")

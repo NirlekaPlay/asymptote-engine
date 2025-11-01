@@ -1,8 +1,11 @@
 --!strict
 
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local BubbleChatControl = require(script.Parent.BubbleChatControl)
 
-local WORDS_PER_MINUTE = 140
+local WORDS_PER_MINUTE = 160
 -- TODO: This was taken from ShockedGoal, where this line will be triggered
 -- if the agent was begging for mercy.
 -- Maybe we should call an external method from the Agent to return appropriate
@@ -33,6 +36,7 @@ TalkControl.__index = TalkControl
 export type TalkControl = typeof(setmetatable({} :: {
 	character: Model,
 	bubbleChatControl: BubbleChatControl, -- TODO: This is dumb.
+	faceControl: FaceControl.FaceControl,
 	talkThread: thread?,
 	_diedConnection: RBXScriptConnection?
 }, TalkControl))
@@ -47,10 +51,11 @@ type DialogueSegment = {
 
 type BubbleChatControl = BubbleChatControl.BubbleChatControl
 
-function TalkControl.new(character: Model, bubControl: BubbleChatControl): TalkControl
+function TalkControl.new(character: Model, bubControl: BubbleChatControl, faceControl: FaceControl.FaceControl): TalkControl
 	return setmetatable({
 		character = character,
 		bubbleChatControl = bubControl,
+		faceControl = faceControl,
 		talkThread = nil :: thread?,
 		_diedConnection = nil :: RBXScriptConnection?
 	}, TalkControl)
@@ -105,21 +110,93 @@ function TalkControl.createTalkThread(self: TalkControl, dialogueSegment: Dialog
 	-- performance difference, yet.
 	-- But I'm too lazy to implement the agonizing pain that is server-client communication.
 	self.talkThread = task.spawn(function()
-		for _, segment in pairs(dialogueSegment) do
-			local speechDur = segment.customSpeechDur or
-				TalkControl.getStringSpeechDuration(segment.text)
-
+	for _, segment in pairs(dialogueSegment) do
+			local speechDur = segment.customSpeechDur or TalkControl.getStringSpeechDuration(segment.text)
 			local finalText = segment.text
 			if segment.values and #segment.values >= 1 then
 				finalText = (finalText :: any):format(table.unpack(segment.values))
 			end
+
 			self.bubbleChatControl:displayBubble(finalText)
-			task.wait(speechDur)
+			TalkControl.performLipSync(self.faceControl, finalText, speechDur)
+		end
+
+		if self.faceControl then
+			self.faceControl:resetMouthToExpression()
 		end
 
 		self.talkThread = nil
 	end)
+
 end
+
+--
+
+local PHONEME_MAP = {
+	-- Vowels
+	["a"] = "A", ["e"] = "E", ["i"] = "E", ["o"] = "O", ["u"] = "O",
+	-- Consonants
+	["m"] = "M", ["b"] = "M", ["p"] = "M", -- Bilabial
+	["f"] = "F", ["v"] = "F", -- Labiodental
+	["l"] = "L", ["d"] = "L", ["t"] = "L", ["n"] = "L", -- Alveolar
+	["s"] = "S", ["z"] = "S", -- Sibilants
+	["r"] = "R", ["w"] = "W",
+}
+
+local function textToPhonemes(text: string): {string}
+	local phonemes = {}
+	local lower = text:lower()
+	local i = 1
+	
+	while i <= #lower do
+		local char = lower:sub(i, i)
+		local twoChar = lower:sub(i, i + 1)
+		
+		if PHONEME_MAP[twoChar] then
+			table.insert(phonemes, PHONEME_MAP[twoChar])
+			i += 2
+		elseif PHONEME_MAP[char] then
+			table.insert(phonemes, PHONEME_MAP[char])
+			i += 1
+		elseif char:match("%s") then
+			table.insert(phonemes, "REST")
+			i += 1
+		else
+			i += 1
+		end
+	end
+	
+	return phonemes
+end
+
+local function calculateDuration(text: string): number
+	local wordCount = 0
+	for word in text:gmatch("%S+") do
+		wordCount += 1
+	end
+	return (wordCount / WORDS_PER_MINUTE) * 60
+end
+
+function TalkControl.performLipSync(faceControl: FaceControl.FaceControl, text: string)
+	local phonemes = textToPhonemes(text)
+	if #phonemes == 0 then return end
+	
+	local duration = calculateDuration(text)
+	local stepDuration = duration / #phonemes
+	
+	for _, phoneme in phonemes do
+		if phoneme == "REST" then
+			faceControl:resetMouthToExpression()
+		else
+			faceControl:setMouthPhoneme(phoneme :: any)
+		end
+		task.wait(stepDuration)
+	end
+	
+	faceControl:resetMouthToExpression()
+end
+
+--
 
 function TalkControl.connectOnDiedConnection(self: TalkControl): ()
 	if self._diedConnection then
@@ -138,6 +215,8 @@ function TalkControl.connectOnDiedConnection(self: TalkControl): ()
 		self.bubbleChatControl:displayBubble(indexedDialogue)
 	end)
 end
+
+--
 
 function TalkControl.getDialoguesTotalSpeechDuration(dialogues: {string}): number
 	local totalDur = 0

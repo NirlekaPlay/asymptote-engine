@@ -71,7 +71,7 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.bubbleChatControl = BubbleChatControl.new(character)
 	self.gunControl = GunControl.new(self)
-	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
+	self.talkControl = TalkControl.new(character, self.bubbleChatControl, self.faceControl)
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self)
 	self.random = Random.new(seed or tick())
