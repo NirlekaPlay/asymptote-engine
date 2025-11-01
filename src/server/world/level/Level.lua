@@ -476,7 +476,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				local sound = Instance.new("Sound")
 				sound.Volume = (placeholder:GetAttribute("Volume") :: number?) or 1
 				sound.SoundId = "rbxassetid://" .. tostring((placeholder:GetAttribute("SoundId") :: number?))
-				sound.Looped = (placeholder:GetAttribute("Looped") :: boolean?) or true
+				sound.Looped = (placeholder:GetAttribute("Looped") :: boolean?) or false
 
 				for _, child in placeholder:GetChildren() do
 					child.Parent = sound
