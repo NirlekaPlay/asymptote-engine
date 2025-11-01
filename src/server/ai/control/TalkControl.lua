@@ -80,8 +80,8 @@ function TalkControl.say(self: TalkControl, text: string, customSpeechDur: numbe
 	self:createTalkThread({{ text = text, customSpeechDur = nil }})
 end
 
-function TalkControl.saySequences(self: TalkControl, textArray: {string}): ()
-	self:createTalkThread(self:createDialogueSegmentFromArray(textArray))
+function TalkControl.saySequences(self: TalkControl, textArray: {string}, ...): ()
+	self:createTalkThread(self:createDialogueSegmentFromArray(textArray, ...))
 end
 
 function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}, ...): ()

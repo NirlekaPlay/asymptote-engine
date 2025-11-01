@@ -68,7 +68,7 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), Level.getGuardCombatNodes())
 	if post then
-		agent:getNavigation():setWalkSpeed(30)
+		agent:getNavigation():setToRunningSpeed()
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
 		agent:getNavigation():moveTo(post.cframe.Position)
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)

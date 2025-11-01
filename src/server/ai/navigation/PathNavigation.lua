@@ -5,6 +5,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SimplePath = require(ReplicatedStorage.shared.thirdparty.SimplePath)
 
 local DIST_THRESHOLD = 3
+local RUNNING_SPEED = 30
+local WALKING_SPEED = 16
 
 local PathNavigation = {}
 PathNavigation.__index = PathNavigation
@@ -33,6 +35,14 @@ end
 
 function PathNavigation.getPath(self: PathNavigation): Path
 	return (self.pathfinder :: SimplePath.SimplePathInternal)._path
+end
+
+function PathNavigation.setToRunningSpeed(self: PathNavigation): ()
+	self:setWalkSpeed(RUNNING_SPEED)
+end
+
+function PathNavigation.setToWalkingSpeed(self: PathNavigation): ()
+	self:setWalkSpeed(WALKING_SPEED)
 end
 
 function PathNavigation.generatePath(self: PathNavigation, to: Vector3): (Path?, string?)

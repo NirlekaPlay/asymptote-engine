@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
@@ -17,6 +18,7 @@ local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerSta
 
 local DEFAULT_TRESPASSING_UPDATE_TIME = 3
 local WARNING_INTERVAL = 2 -- seconds between warnings
+local ATTRIBUTE_CONFRONTED_BY = "TrespassingConfrontedBy"
 
 --[=[
 	@class ConfrontTrespasser
@@ -72,47 +74,64 @@ function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, 
 end
 
 function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent): boolean
-	return agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
-		:filter(function(player)
-			local detMan = agent:getDetectionManager()
-			local detFocus = detMan:getFocusingTarget()
-			return (detFocus and detFocus.status == PlayerStatusTypes.MINOR_TRESPASSING.name and detMan:getDetectionLevel(detFocus.entityUuid) >= 1) :: boolean
-		end)
-		:isPresent()
+	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
+		agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+			:filter(function(player)
+				local detMan = agent:getDetectionManager()
+				local detFocus = detMan:getFocusingTarget()
+				
+				-- Return false if fully detected but NOT minor trespassing
+				if detFocus and detMan:getDetectionLevel(detFocus.entityUuid) >= 1 then
+					return detFocus.status == PlayerStatusTypes.MINOR_TRESPASSING.name
+				end
+				
+				-- If not fully detected, keep checking (return true)
+				return detFocus ~= nil
+			end)
+			:isPresent()
 end
 
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
-	print("Confronting trespasser - setting angry face")
 	
 	local brain = agent:getBrain()
 	local talkCntrl = agent:getTalkControl()
 	local spottedTrespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 	local spottedTrespasserPlr = spottedTrespasser:get()
-	local speechDurPercentageGain = 10 -- percent
+	local beingConfrontedBy = spottedTrespasserPlr:GetAttribute(ATTRIBUTE_CONFRONTED_BY) :: string?
+
+	if beingConfrontedBy ~= nil then
+		agent:getFaceControl():setFace("Angry")
+		return
+	else
+		spottedTrespasserPlr:SetAttribute(ATTRIBUTE_CONFRONTED_BY, agent:getUuid())
+	end
 	
 	if spottedTrespasser:isPresent() then
 		brain:setNullableMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, spottedTrespasserPlr)
 	end
 
 	agent:getFaceControl():setFace("Angry")
+	
+	brain:setNullableMemory(MemoryModuleTypes.FOLLOW_TARGET, spottedTrespasserPlr)
 
 	local trespasserAreaName = Cell.getPlayerOccupiedAreaName(spottedTrespasserPlr)
-	local reportDialogue: string
+	local reportDialogue: {{string}}
 	if trespasserAreaName then
-		reportDialogue = `Trespasser in the {trespasserAreaName}.`
+		reportDialogue = GuardGenericDialogues["trespassing.minor.report.area.known"] :: any
 	else
-		reportDialogue = `I've got a trespasser over here.`
+		reportDialogue = GuardGenericDialogues["trespassing.minor.report.area.unknown"] :: any
 	end
+	local choosenDialogue = talkCntrl.randomlyChosoeDialogueSequences(reportDialogue)
 
-	local reportDialogueSpeechDur = talkCntrl.getStringSpeechDuration(reportDialogue) * (1 + (speechDurPercentageGain / 100))
+	local reportDialogueSpeechDur = talkCntrl.getDialoguesTotalSpeechDuration(choosenDialogue)
 	task.spawn(function()
 		task.wait(0.5) -- TODO: report animation shit, this should be refactored!!!
 		if not self:canStillUse(agent) then
 			return
 		end
-		talkCntrl:say(reportDialogue, reportDialogueSpeechDur)
+		talkCntrl:saySequences(choosenDialogue, trespasserAreaName)
 	end)
-	agent:getReportControl():reportOn(ReportType.TRESPASSER_SPOTTED, reportDialogue)
+	agent:getReportControl():reportWithCustomDur(ReportType.TRESPASSER_SPOTTED, 2.5)
 	
 	-- Track speeches
 	-- TODO: Probably use memory instead
@@ -123,9 +142,28 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
+	agent:getNavigation():setToWalkingSpeed()
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 	agent:getReportControl():interruptReport()
 	agent:getTalkControl():stopTalking()
+
+	local brain = agent:getBrain()
+	local spottedTrespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+	if spottedTrespasser:isPresent() then
+		local trespasserPlayer = spottedTrespasser:get()
+		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(trespasserPlayer)
+		if not statusHolder or not statusHolder:hasStatus(PlayerStatusTypes.MINOR_TRESPASSING) then
+			print(trespasserPlayer.Name, "No longer trespassing (cleaning up in doStop).")
+			brain:eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+			trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+			local detectionManager = agent:getDetectionManager()
+			local entity = EntityManager.getEntityByUuid(tostring(trespasserPlayer.UserId))
+			if entity then
+				detectionManager:eraseEntityStatusEntry(entity.uuid, PlayerStatusTypes.MINOR_TRESPASSING)
+			end
+		end
+	end
 
 	self.warningLevel = 0
 	self.timeSinceLastDialogue = 0
@@ -177,6 +215,7 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 		self.trespassingCheckTimeAccum = 0
 		print(trespasserPlayer.Name, "No longer trespassing. Erasing memory.")
 		brain:eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
+		trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 
 		local detectionManager = agent:getDetectionManager()
 		local entity = EntityManager.getEntityByUuid(tostring(trespasserPlayer.UserId))
@@ -189,32 +228,29 @@ end
 function ConfrontTrespasser.escalateWarning(self: ConfrontTrespasser, agent: Agent): ()
 	-- TODO: Add warnings between trespassing encounters
 	local talkCntrl = agent:getTalkControl()
-	local speechDurPercentageGain = 10
 	
 	self.warningLevel += 1
 	
-	local dialogue: string
+	local dialogue: {string}
+	local speechDur: number
 
-	-- TODO: Add support for dialogue segments.
 	if self.warningLevel == 1 then
-		dialogue = "This area is restricted, you need to leave."
+		dialogue = talkCntrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["trespassing.minor.warn.1"] :: any)
 	elseif self.warningLevel == 2 then
-		dialogue = "I'm not gonna warn you again, you need to leave now."
+		dialogue = talkCntrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["trespassing.minor.warn.2"] :: any)
 	elseif self.warningLevel == 3 then
-		dialogue = "Alright! You were warned!"
-		print("TRIGGER ATTACK BEHAVIOR")
-		-- TODO: We need to actually implement a targetting system
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER):get())
+		dialogue = talkCntrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["trespassing.minor.non_cooperative"] :: any)
+		speechDur = talkCntrl.getDialoguesTotalSpeechDuration(dialogue)
+		agent:getReportControl():reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2, speechDur)
 	else
 		-- Already at max warning level, don't say anything more
 		return
 	end
 	
-	local speechDuration = talkCntrl.getStringSpeechDuration(dialogue) * (1 + (speechDurPercentageGain / 100))
-	talkCntrl:say(dialogue, speechDuration)
+	talkCntrl:saySequences(dialogue)
 
 	self.currentlySpeaking = true
-	self.currentSpeechDuration = speechDuration
+	self.currentSpeechDuration = speechDur or talkCntrl.getDialoguesTotalSpeechDuration(dialogue)
 	self.timeSinceLastDialogue = 0
 	
 	print(`Warning level {self.warningLevel}: "{dialogue}"`)
@@ -223,7 +259,7 @@ end
 --
 
 function ConfrontTrespasser.getReactionTime(self: ConfrontTrespasser, agent: Agent, deltaTime: number): number
-	return agent:getRandom():NextInteger(1, 1.5)
+	return agent:getRandom():NextInteger(0.7, 1)
 end
 
 return ConfrontTrespasser
