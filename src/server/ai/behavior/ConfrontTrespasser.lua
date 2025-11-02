@@ -142,7 +142,10 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
-	agent:getFaceControl():setFace("Neutral")
+	if not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) or
+			agent:getBrain():hasMemoryValue(MemoryModuleTypes.KILL_TARGET) then
+		agent:getFaceControl():setFace("Neutral")
+	end
 	agent:getNavigation():setToWalkingSpeed()
 	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
