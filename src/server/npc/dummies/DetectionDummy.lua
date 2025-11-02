@@ -77,6 +77,8 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	self.random = Random.new(seed or tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.JumpHeight = 0
+	humanoid.JumpPower = 0
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
 		self:onDied()
 	end)
