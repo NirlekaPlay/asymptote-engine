@@ -47,7 +47,7 @@ end
 
 function ZoneUtil.getPosOccupiedZoneModel(zonesFolder: Instance, pos: Vector3): Model?
 	for _, zone in pairs(zonesFolder:GetChildren()) do
-		if zone:IsA("Model") and ZoneUtil.isPosInZone(zone, pos) then
+		if zone:IsA("Model") and ZoneUtil.isPosInZone(pos,zone) then
 			return zone
 		end
 	end
