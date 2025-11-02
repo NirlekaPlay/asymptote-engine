@@ -131,7 +131,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 		end
 		talkCntrl:saySequences(choosenDialogue, trespasserAreaName)
 	end)
-	agent:getReportControl():reportWithCustomDur(ReportType.TRESPASSER_SPOTTED, 2.5)
+	agent:getReportControl():reportWithCustomDur(ReportType.TRESPASSER_SPOTTED, 2.5, reportDialogueSpeechDur)
 	
 	-- Track speeches
 	-- TODO: Probably use memory instead
