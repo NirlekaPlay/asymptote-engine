@@ -15,6 +15,7 @@ local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local Level = require(ServerScriptService.server.world.level.Level)
 
+local DEBUG_MODE = false
 local MIN_DISTANCE_TO_ESCAPE_POS = 5
 local DIST_CHECK_UPDATE_INTERVAL = 0.5
 
@@ -65,14 +66,16 @@ function FleeToEscapePoints.canStillUse(self: FleeToEscapePoints, agent: Agent):
 end
 
 function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
-	agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), Level.getGuardCombatNodes())
 	if post then
+		agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 		agent:getNavigation():setToRunningSpeed()
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
 		agent:getNavigation():moveTo(post.cframe.Position)
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
-		Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
+		if DEBUG_MODE then
+			Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
+		end
 	else
 		local panicSourceTargetToKill = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
 		if not panicSourceTargetToKill:isPresent() then
