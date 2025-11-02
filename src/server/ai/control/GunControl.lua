@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -116,7 +116,11 @@ function GunControl.unequipGun(self: GunControl): ()
 end
 
 function GunControl.lookAt(self: GunControl, atPos: Vector3): ()
-	if (self.lastLookPos - atPos).Magnitude > 0.1 then
+	local agentCframe = self.agent:getPrimaryPart().CFrame
+	local currentDir = (self.lastLookPos - agentCframe.LookVector).Unit
+	local targetDir = (atPos - agentCframe.Position).Unit
+	
+	if (self.lastLookPos - atPos).Magnitude > 0.1 or currentDir:Dot(targetDir) < 0.999 then
 		self.fbbControl:lookAt(atPos)
 		self.lastLookPos = atPos
 	end

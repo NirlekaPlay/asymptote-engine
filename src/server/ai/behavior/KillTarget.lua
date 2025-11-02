@@ -73,6 +73,7 @@ function KillTarget.canStillUse(self: KillTarget, agent: Agent): boolean
 end
 
 function KillTarget.doStart(self: KillTarget, agent: Agent): ()
+	agent.character:FindFirstChildOfClass("Humanoid").AutoRotate = false
 	agent:getGunControl():equipGun({
 		roundsInMagazine = 0,
 		magazineRoundsCapacity = 30,
@@ -80,6 +81,7 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 	})
 	agent:getGunControl():reload()
 	agent.character:SetAttribute("HearingRadius", 30)
+	agent.character:SetAttribute("PeriphAngle", 360)
 
 	if not self.selfHumanoidDiedConnection then
 		self.selfHumanoidDiedConnection = agent.character:FindFirstChildOfClass("Humanoid").Died:Once(function()
@@ -92,8 +94,12 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 end
 
 function KillTarget.doStop(self: KillTarget, agent: Agent): ()
+	agent.character:FindFirstChildOfClass("Humanoid").AutoRotate = false
 	self.triggerFingerCooldown = 0.5
-	--agent:getGunControl():unequipGun()
+	if self.targetHumanoidDiedConnection then
+		self.targetHumanoidDiedConnection:Disconnect()
+		self.targetHumanoidDiedConnection = nil
+	end
 end
 
 function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number): ()
