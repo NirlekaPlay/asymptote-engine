@@ -9,6 +9,7 @@ local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
 	@class ValidateTrespasser
@@ -63,21 +64,24 @@ end
 
 function ValidateTrespasser.doStart(self: ValidateTrespasser, agent: Agent): ()
 	local detetectionManager = agent:getDetectionManager()
-	local focusingTarget = detetectionManager:getFocusingTarget()
+	local focusingTarget = detetectionManager:getHighestFullyDetectedEntity()
 	
 	if focusingTarget then
-		-- Verify detection level is still FULLY DETECTED (1) before setting memory
-		local detLevel = detetectionManager:getDetectionLevel(focusingTarget.entityUuid)
-		if not detLevel or detLevel < 1 then
-			return -- Don't set memory if not fully detected
+		local entityObj = EntityManager.getEntityByUuid(focusingTarget.entityUuid)
+		if entityObj.isStatic and entityObj.name ~= "Player" then
+			return
 		end
-		
-		local status = focusingTarget.status
-		-- "why. WHY. WHYYYY"
-		-- I ask myself to past me.
-		-- But for real, CONSISTENCY IN GETTING, COMPARING, AND STORING PLAYER STATUSES!!!
-		if (status :: any) == PlayerStatusTypes.MINOR_TRESPASSING.name or
-		   (status :: any) == PlayerStatusTypes.MAJOR_TRESPASSING.name then
+
+		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder((entityObj :: EntityManager.DynamicEntity).instance :: Player)
+		if not statusHolder then
+			return
+		end
+
+		local detectionProfile = detetectionManager.detectedEntities[focusingTarget.entityUuid]
+		local status = statusHolder:getHighestDetectableStatus(detectionProfile.isVisible or false, detectionProfile.isHeard or false)
+	
+		if status == PlayerStatusTypes.MINOR_TRESPASSING or
+		   status == PlayerStatusTypes.MAJOR_TRESPASSING then
 			local entity = EntityManager.getEntityByUuid(focusingTarget.entityUuid)
 			if not entity or entity.name ~= "Player" or entity.isStatic == true then
 				error("The fucking entity is not a valid Player or is nil. Non-players shouldnt even have trespassing statuses!!")

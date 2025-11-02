@@ -107,16 +107,71 @@ function DetectionManagement.getFocusingTarget(self: DetectionManagement)
 	return self.focusingTarget
 end
 
-function DetectionManagement.getEntityHighestEntry(self: DetectionManagement): string
-	
-end
-
 function DetectionManagement.eraseEntityStatusEntry(self: DetectionManagement, entityUuid: string, status: PlayerStatus.PlayerStatus): ()
 	-- what the fuck. why.
 	-- why did i make shit harder for myself.
 
 	local entry = entityUuid .. ":" .. status.name
 	self.detectionLevels[entry] = nil
+end
+
+function DetectionManagement.getHighestFullyDetectedEntity(self: DetectionManagement): EntityPriority?
+	-- how convoluted can this file be??????
+	-- does the fucking detection system need another FOURTH FUCKING REFACTOR??????
+	-- this shouldve use another fucking function
+	-- but holy shit i dont have enough mental sanity to refactor everything
+	-- i need to get this shit DONE.
+	local highest: EntityPriority? = nil
+
+	for key, level in self.detectionLevels do
+		if level >= 1 then
+			local entityUuid, statusName = string.match(key, "^(.-):(.+)$")
+			if not entityUuid or not statusName then continue end
+
+			local entity = EntityManager.getEntityByUuid(entityUuid)
+			if not entity then continue end
+
+			local priority = 0
+			local speedMultiplier = 1.0
+			if entity.name == "Player" then
+				local ps = PlayerStatusTypes.getStatusFromName(statusName)
+				if ps then
+					priority = ps:getPriorityLevel()
+					speedMultiplier = ps:getDetectionSpeedModifier()
+				end
+			elseif SPEED_MULTIPLIERS[statusName] then
+				speedMultiplier = SPEED_MULTIPLIERS[statusName]
+			end
+
+			-- distance bullshit
+			local distance = 0
+			if entity.isStatic then
+				distance = (entity.position - self.agent:getPrimaryPart().Position).Magnitude
+			elseif entity.name == "Player" then
+				distance = ((entity.instance :: Player).Character.PrimaryPart.Position - self.agent:getPrimaryPart().Position).Magnitude
+			else
+				distance = ((entity.instance :: BasePart).Position - self.agent:getPrimaryPart().Position).Magnitude
+			end
+
+			local candidate: EntityPriority = {
+				entityUuid = entityUuid,
+				status = statusName,
+				priority = priority,
+				distance = distance,
+				speedMultiplier = speedMultiplier
+			}
+
+			if not highest then
+				highest = candidate
+			elseif candidate.priority > highest.priority then
+				highest = candidate
+			elseif candidate.priority == highest.priority and candidate.distance < highest.distance then
+				highest = candidate
+			end
+		end
+	end
+
+	return highest
 end
 
 --[=[

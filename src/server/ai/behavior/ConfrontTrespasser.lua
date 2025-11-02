@@ -78,7 +78,7 @@ function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent):
 		agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 			:filter(function(player)
 				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getFocusingTarget()
+				local detFocus = detMan:getHighestFullyDetectedEntity()
 				
 				-- Return false if fully detected but NOT minor trespassing
 				if detFocus and detMan:getDetectionLevel(detFocus.entityUuid) >= 1 then
