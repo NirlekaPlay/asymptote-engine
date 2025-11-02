@@ -11,7 +11,7 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
-local DEBUG_RAYCAST = true
+local DEBUG_RAYCAST = false
 local DEBUG_RAYCAST_LIFETIME = 1 / 20
 local RAY_PENETRATION_DEPTH = 0.01
 local VISIBILITY_THRESHOLD = 0.3
