@@ -209,8 +209,35 @@ if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PLAYER) the
 	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PLAYER)
 end
 
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.VISION_RAYCAST) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.VISION_RAYCAST)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.BLOCK_VISION_RAYCAST) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.BLOCK_VISION_RAYCAST)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.IGNORE_VISION_RAYCAST) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.IGNORE_VISION_RAYCAST)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PATHFINDING_BLOCKER) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PATHFINDING_BLOCKER)
+end
+
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.BLOCK_VISION_RAYCAST, true)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.IGNORE_VISION_RAYCAST, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
+
+-- pathfinding blocker shouldnt collide with anything.
+for _, v in PhysicsService:GetRegisteredCollisionGroups() do
+	-- roblox didnt correctly type annotated what 
+	if v.name ~= CollisionGroupTypes.PATHFINDING_BLOCKER then
+		PhysicsService:CollisionGroupSetCollidable(v.name :: string, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
+	end
+end
 
 Players.PlayerAdded:Connect(function(player)
 	-- entity reg here:

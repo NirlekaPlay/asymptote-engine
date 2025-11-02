@@ -9,9 +9,11 @@ local Agent = require(ServerScriptService.server.Agent)
 local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
-local DEBUG_RAYCAST = false
+local DEBUG_RAYCAST = true
 local DEBUG_RAYCAST_LIFETIME = 1 / 20
+local RAY_PENETRATION_DEPTH = 0.01
 local VISIBILITY_THRESHOLD = 0.3
 local MAX_ITERATIONS = 10
 local RED = Color3.new(1, 0, 0)
@@ -111,6 +113,7 @@ function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Ag
 		rayParams = RaycastParams.new()
 		rayParams.FilterType = Enum.RaycastFilterType.Exclude
 		rayParams.FilterDescendantsInstances = { agent.character }
+		rayParams.CollisionGroup = CollisionGroupTypes.VISION_RAYCAST
 		self.rayParams = rayParams
 	end
 
@@ -129,6 +132,13 @@ function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Ag
 			return true
 		end
 
+		if rayResult.Instance.CollisionGroup == CollisionGroupTypes.BLOCK_VISION_RAYCAST then
+			if DEBUG_RAYCAST then
+				Debris:AddItem(Draw.line(agentPos, rayResult.Position, RED), DEBUG_RAYCAST_LIFETIME)
+			end
+			return false
+		end
+
 		local hitPart = rayResult.Instance
 		local hitTransparency = hitPart.Transparency
 
@@ -142,7 +152,7 @@ function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Ag
 		if hitTransparency > 0 then
 			remainingTransparency = remainingTransparency * (1 - (hitTransparency * 0.7))
 			
-			origin = rayResult.Position + direction.Unit * 0.1
+			origin = rayResult.Position + direction.Unit * RAY_PENETRATION_DEPTH
 			
 			local newFilter = table.clone(rayParams.FilterDescendantsInstances)
 			table.insert(newFilter, hitPart)
