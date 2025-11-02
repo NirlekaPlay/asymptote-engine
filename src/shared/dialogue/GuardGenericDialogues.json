@@ -44,12 +44,25 @@
     ["Control! Someone here has a gun!"],
     ["I see someone with a gun!"]
   ],
-  "status.sus_criminal": [
+  "status.sus_criminal.area.known": [
     ["Found someones doing sketchy stuff in %s!"],
     ["Criminal spotted in %s!"],
     ["Dangerous criminal spotted in %s!"],
     ["I've found a dangerous guy in %s!"],
-    ["We have a dangerous person in %s!"]
+    ["We have a dangerous person in %s!"],
+    ["Control, got someone acting suspicious in %s."],
+    ["Control, I've got a suspicious guy wandering around %s, looks off."],
+    ["Control, possible criminal activity in %s!"],
+    ["Control, we've got someone in %s doing something sketchy."]
+  ],
+  "status.sus_criminal.area.unknown": [
+    ["Control, I've got someone acting shady 'round here."],
+    ["Uh, we got a shady guy here!"],
+    ["Everyone! We've got a sketchy person here!"],
+    ["Someone's trying to do shady stuff around here! Control!"],
+    ["We've got a possible criminal here!"],
+    ["Control! We've got a dangerous criminal here! Need backup!"],
+    ["Found a dangerous criminal here!"]
   ],
   "status.dangerous_item": [
     ["Control! Someone here has a bomb!"],
@@ -84,6 +97,10 @@
     ["Control! Someone took down %s!"],
     ["Control! %s is down!", "I repeat!", "%s is down!"],
     ["Control! %s is unresponsive!"],
-    ["Control!! %s is dead over here!"]
+    ["Control!! %s is dead over here!"],
+    ["Is that %s?!", "%s is a goner!"],
+    ["I found %s unresponsive! I need backup!"],
+    ["%s is lying on the ground!", "Got no pulse!"],
+    ["Found %s on the floor! I think %s is dead!"]
   ]
 }

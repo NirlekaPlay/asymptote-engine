@@ -48,10 +48,9 @@ end
 
 function ReportSuspiciousCriminal.checkExtraStartConditions(self: ReportSuspiciousCriminal, agent: Agent): boolean
 	local detetectionManager = agent:getDetectionManager()
-	local focusingTarget = detetectionManager:getFocusingTarget()
+	local focusingTarget = detetectionManager:getHighestFullyDetectedEntity()
 	if focusingTarget then
-		local detLevel = detetectionManager:getDetectionLevel(focusingTarget.entityUuid)
-		if not detLevel or detLevel < 1 or focusingTarget.status ~= PlayerStatusTypes.CRIMINAL_SUSPICIOUS.name then
+		if focusingTarget.status ~= PlayerStatusTypes.CRIMINAL_SUSPICIOUS.name then
 			return false
 		end
 		return true
@@ -62,10 +61,11 @@ end
 
 function ReportSuspiciousCriminal.canStillUse(self: ReportSuspiciousCriminal, agent: Agent): boolean
 	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
+		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) and
 		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_CRIMINAL)
 			:filter(function(player)
 				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getFocusingTarget()
+				local detFocus = detMan:getHighestFullyDetectedEntity()
 				
 				-- Only continue if we're still focusing on THE SAME PLAYER
 				-- Don't care what status they have, just that it's still them
@@ -85,18 +85,24 @@ function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent:
 	local talkCtrl = agent:getTalkControl()
 	local faceCtrl = agent:getFaceControl()
 
-	local criminal = ((EntityManager.getEntityByUuid((agent:getDetectionManager():getFocusingTarget() :: any).entityUuid) :: any).instance)
+	local criminal = ((EntityManager.getEntityByUuid((agent:getDetectionManager():getHighestFullyDetectedEntity() :: any).entityUuid) :: any).instance)
 	brain:setNullableMemory(MemoryModuleTypes.SPOTTED_CRIMINAL, criminal)
 	local criminalCurrentArea = Cell.getPlayerOccupiedAreaName(criminal)
-	local reportDialogue = GuardGenericDialogues["status.sus_criminal"]
+	local reportDialogue
+	if criminalCurrentArea then
+		reportDialogue = GuardGenericDialogues["status.sus_criminal.area.known"]
+	else
+		reportDialogue = GuardGenericDialogues["status.sus_criminal.area.unknown"]
+	end
+
+	reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(reportDialogue)
 
 	faceCtrl:setFace("Angry")
-	talkCtrl:sayRandomSequences(reportDialogue, criminalCurrentArea)
-	reportCtrl:reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2)
+	talkCtrl:saySequences(reportDialogue, criminalCurrentArea)
+	reportCtrl:reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2, talkCtrl.getDialoguesTotalSpeechDuration(reportDialogue :: any))
 end
 
 function ReportSuspiciousCriminal.doStop(self: ReportSuspiciousCriminal, agent: Agent): ()
-	warn("STOP")
 	agent:getReportControl():interruptReport()
 	agent:getTalkControl():stopTalking()
 end

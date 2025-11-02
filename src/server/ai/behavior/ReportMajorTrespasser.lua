@@ -57,18 +57,18 @@ end
 
 function ReportMajorTrespasser.canStillUse(self: ReportMajorTrespasser, agent: Agent): boolean
 	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
+		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) and
 		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 			:filter(function(player)
 				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getFocusingTarget()
+				local detFocus = detMan:getHighestFullyDetectedEntity()
 				
 				-- Return false if fully detected but NOT major trespassing
-				if detFocus and detMan:getDetectionLevel(detFocus.entityUuid) >= 1 then
+				if detFocus then
 					return detFocus.status == PlayerStatusTypes.MAJOR_TRESPASSING.name
+				else
+					return false -- ?
 				end
-				
-				-- If not fully detected, keep checking (return true)
-				return detFocus ~= nil
 			end)
 			:isPresent()
 end
@@ -92,6 +92,7 @@ function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent
 	faceCtrl:setFace("Angry")
 	talkCtrl:sayRandomSequences(reportDialogue, trespasserCurrentArea)
 	reportCtrl:reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2.3)
+	agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
 end
 
 function ReportMajorTrespasser.doStop(self: ReportMajorTrespasser, agent: Agent): ()

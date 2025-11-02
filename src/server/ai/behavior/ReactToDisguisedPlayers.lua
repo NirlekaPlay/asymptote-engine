@@ -49,10 +49,9 @@ end
 
 function ReactToDisguisedPlayers.checkExtraStartConditions(self: ReactToDisguisedPlayers, agent: Agent): boolean
 	local detetectionManager = agent:getDetectionManager()
-	local focusingTarget = detetectionManager:getFocusingTarget()
+	local focusingTarget = detetectionManager:getHighestFullyDetectedEntity()
 	if focusingTarget then
-		local detLevel = detetectionManager:getDetectionLevel(focusingTarget.entityUuid)
-		if not detLevel or detLevel < 1 or focusingTarget.status ~= PlayerStatusTypes.DISGUISED.name then
+		if focusingTarget.status ~= PlayerStatusTypes.DISGUISED.name then
 			return false
 		end
 		return true
@@ -63,14 +62,15 @@ end
 
 function ReactToDisguisedPlayers.canStillUse(self: ReactToDisguisedPlayers, agent: Agent): boolean
 	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
+		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) and
 		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER)
 			:filter(function(player)
 				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getFocusingTarget()
+				local detFocus = detMan:getHighestFullyDetectedEntity()
 				
 				-- Return false if fully detected but NOT disguised
 				-- or non threatening statuses
-				if detFocus and detMan:getDetectionLevel(detFocus.entityUuid) >= 1 then
+				if detFocus then
 					return detFocus.status == PlayerStatusTypes.DISGUISED.name or
 						detFocus.status == PlayerStatusTypes.MINOR_TRESPASSING.name or
 						detFocus.status == PlayerStatusTypes.MINOR_SUSPICIOUS.name
@@ -118,24 +118,7 @@ end
 --
 
 function ReactToDisguisedPlayers.getDetectedDisguisedPlayer(self: ReactToDisguisedPlayers, agent: Agent): Player
-	local detetectionManager = agent:getDetectionManager()
-	local focusingTarget = detetectionManager:getFocusingTarget()
-	
-	if focusingTarget then
-		local status = focusingTarget.status
-		-- TODO: Fix inconsistent status getting and setting
-		if status == PlayerStatusTypes.DISGUISED.name then
-			local entity = EntityManager.getEntityByUuid(focusingTarget.entityUuid)
-			if not entity or entity.name ~= "Player" or entity.isStatic == true then
-				error("The fucking entity is not a valid Player or is nil. Non-players shouldnt even have disguised statuses!!")
-			end
-			return entity.instance :: Player
-		end
-	else
-		error("Strange, ReactToDisguisedPlayers:doStart() is called but focusing target is nil.")
-	end
-
-	error("Invalid condition.") -- will this ever get executed anyway?
+	return EntityManager.getEntityByUuid(agent:getDetectionManager():getHighestFullyDetectedEntity().entityUuid).instance
 end
 
 function ReactToDisguisedPlayers.getReactionTime(self: ReactToDisguisedPlayers, agent: Agent, deltaTime: number): number
