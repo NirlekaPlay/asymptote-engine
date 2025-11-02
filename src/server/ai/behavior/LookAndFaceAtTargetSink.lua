@@ -3,6 +3,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
+local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
@@ -25,7 +26,7 @@ end
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent
+type Agent = Agent.Agent & ReporterAgent.ReporterAgent
 
 local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.VISIBLE_ENTITIES] = MemoryStatus.REGISTERED,
@@ -119,9 +120,39 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 	end
 
 	if self.lastKnownTargetPos then
-		agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
-		agent:getLookControl():setLookAtPos(self.lastKnownTargetPos)
+		local agentCframe = agent:getPrimaryPart().CFrame
+		local agentPos = agentCframe.Position
+		--local agentForward = agentCframe.LookVector
+
+		local toTarget = (self.lastKnownTargetPos - agentPos)
+		local distance = toTarget.Magnitude
+		if distance > 0 then
+			local distanceToTarget = (agentPos - self.lastKnownTargetPos).Magnitude
+			--[[
+			local BODY_ROTATION_THRESHOLD_DEGREES = 30
+			toTarget = toTarget.Unit
+
+			local dot = agentForward:Dot(toTarget)
+			local angle = math.acos(math.clamp(dot, -1, 1)) -- radians
+
+			local angleThreshold = math.rad(BODY_ROTATION_THRESHOLD_DEGREES)
+			if angle > angleThreshold then
+				agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
+			end]]
+
+			-- TODO: Should be in a predicate function or something
+			if not agent:getReportControl():isRadioEquipped() then
+				agent:getLookControl():setLookAtPos(self.lastKnownTargetPos)
+			else
+				agent:getLookControl():setLookAtPos(nil)
+			end
+
+			if distanceToTarget > 5.5 then
+				agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
+			end
+		end
 	end
+
 end
 
 return LookAndFaceAtTargetSink
