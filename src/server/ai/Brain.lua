@@ -160,6 +160,16 @@ function Brain.setNullableMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleT
 end
 
 --[=[
+	A simple shorthand for `setNullableMemory(memoryType, memoryValue)`.
+
+	Sets the memory value for the given MemoryModuleType, accepting a value
+	that can be nil.
+]=]
+function Brain.setMemory<T, U>(self: Brain<T>, memoryType: MemoryModuleType<U>, memoryValue: U?): ()
+	self:setNullableMemory(memoryType, memoryValue)
+end
+
+--[=[
 	Sets the memory value for the given MemoryModuleType with a time-to-live (TTL)
 
 	The value is wrapped in an ExpireableValue that automatically expires
