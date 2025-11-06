@@ -13,6 +13,7 @@ local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
@@ -38,7 +39,10 @@ end
 
 local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.REGISTERED,
-	[MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.PANIC_POSITION] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.FOLLOW_TARGET] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.PRIORITIZED_ENTITY] = MemoryStatus.VALUE_PRESENT
 }
 
 local ALARMING_STATUSES: { [ PlayerStatus.PlayerStatus ]: true } = {
@@ -55,50 +59,26 @@ function GuardPanic.getMemoryRequirements(self: GuardPanic): { [MemoryModuleType
 end
 
 function GuardPanic.checkExtraStartConditions(self: GuardPanic, agent: Agent): boolean
-	local detMan = agent:getDetectionManager()
-	local highestFullyDetectedEntity = detMan:getHighestFullyDetectedEntity()
-	if not highestFullyDetectedEntity then
-		return false
-	end
+	return agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
+		:filter(function(priorityEntity)
+			local entityUuid = priorityEntity:getUuid()
+			local forStatus = priorityEntity:getStatus()
+			local entityObj = EntityManager.getEntityByUuid(entityUuid)
 
-	local uuid = highestFullyDetectedEntity.entityUuid
-	local keyStatus = highestFullyDetectedEntity.status
-	local entityObj = EntityManager.getEntityByUuid(uuid)
-
-	if entityObj and not entityObj.isStatic and entityObj.name == "Player" then
-		local statusObj = PlayerStatusTypes.getStatusFromName(keyStatus)
-		if statusObj and ALARMING_STATUSES[statusObj] then
-			local player = entityObj.instance :: Player
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID, uuid)
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_POSITION, player.Character.PrimaryPart.Position)
-			return true
-		end
-	else
-		if entityObj and ALARMING_ENTITY_NAMES[entityObj.name] then
-			local entityPos: Vector3
-			if entityObj.isStatic then
-				entityPos = entityObj.position
+			if EntityUtils.isPlayer(entityObj) then
+				local statusObj = PlayerStatusTypes.getStatusFromName(forStatus)
+				if statusObj and ALARMING_STATUSES[statusObj] then
+					return true
+				end
 			else
-				local entityInst = entityObj.instance
-				if entityInst:IsA("Model") then
-					entityPos = entityInst.PrimaryPart.Position
-				elseif entityInst:IsA("BasePart") then
-					entityPos = entityInst.Position
+				if entityObj and ALARMING_ENTITY_NAMES[entityObj.name] then
+					return true
 				end
 			end
 
-			if not entityPos then
-				warn(uuid, "Does not have a valid way to get position")
-				return false
-			end
-
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID, uuid)
-			agent:getBrain():setNullableMemory(MemoryModuleTypes.PANIC_POSITION, entityPos)
-			return true
-		end
-	end
-
-	return false
+			return false
+		end)
+		:isPresent()
 end
 
 function GuardPanic.canStillUse(self: GuardPanic, agent: Agent): boolean
@@ -106,14 +86,18 @@ function GuardPanic.canStillUse(self: GuardPanic, agent: Agent): boolean
 end
 
 function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_PANICKING, true)
-	agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
-	agent:getBodyRotationControl():setRotateTowards(nil)
+	local brain = agent:getBrain()
 	local talkCtrl = agent:getTalkControl()
 	local reportCtrl = agent:getReportControl()
+	local panicSource = brain:getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get()
+	local entity = EntityManager.getEntityByUuid(panicSource:getUuid())
 
-	local panicSource = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
-	local entity = EntityManager.getEntityByUuid(panicSource:get())
+	brain:setMemory(MemoryModuleTypes.IS_PANICKING, true)
+	brain:eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
+	brain:setMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID, panicSource:getUuid())
+	brain:setMemory(MemoryModuleTypes.PANIC_POSITION, EntityUtils.getPos(entity))
+	agent:getBodyRotationControl():setRotateTowards(nil)
+
 	local reportDialogueSeg: {string}
 	local reportType: ReportType.ReportType
 	local reportDur: number
@@ -123,13 +107,9 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 		reportDur = 2.37
 		reportType = ReportType.DANGEROUS_ITEM_SPOTTED
 		reportDialogueSeg = GuardGenericDialogues["entity.c4"] :: any
-	elseif entity.name == "Player" and not entity.isStatic and entity.instance:IsA("Player") then
-		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(entity.instance)
-		if not playerStatusHolder then
-			warn("PLAYER_STATUS_HOLDER_NIL", entity.instance)
-			return
-		end
-
+	elseif EntityUtils.isPlayer(entity) then
+		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(EntityUtils.getPlayerOrThrow(entity))
+	
 		-- TODO: This is redundant as shit
 		local highestStatus = playerStatusHolder:getHighestPriorityStatus()
 		if highestStatus == PlayerStatusTypes.ARMED then
@@ -168,8 +148,8 @@ end
 
 --
 
---[[function GuardPanic.getReactionTime(self: GuardPanic, agent: Agent, deltaTime: number): number
+function GuardPanic.getReactionTime(self: GuardPanic, agent: Agent, deltaTime: number): number
 	return agent:getRandom():NextNumber(0.3, 0.6)
-end]]
+end
 
 return GuardPanic

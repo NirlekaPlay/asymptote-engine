@@ -2,6 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
+local PrioritizedEntity = require(ServerScriptService.server.ai.memory.PrioritizedEntity)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 
 --[=[
@@ -32,7 +33,7 @@ local MemoryModuleTypes = {
 	TARGET_POST = register("target_post") :: MemoryModuleType<Node.Node>,
 	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{Node.Node}>,
 	PATROL_STATE = register("patrol_state") :: MemoryModuleType<PatrolState.PatrolState>,
-	PRIORITIZED_ENTITY = register("prioritized_entity") :: MemoryModuleType<string>,
+	PRIORITIZED_ENTITY = register("prioritized_entity") :: MemoryModuleType<PrioritizedEntity.PrioritizedEntity>,
 	POST_VACATE_COOLDOWN = register("post_vacate_cooldown") :: MemoryModuleType<number>,
 	IS_COMBAT_MODE = register("is_combat_mode") :: MemoryModuleType<boolean>,
 	IS_CURIOUS = register("is_curious") :: MemoryModuleType<boolean>,

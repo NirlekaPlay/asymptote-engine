@@ -6,6 +6,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local PrioritizedEntity = require(ServerScriptService.server.ai.memory.PrioritizedEntity)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
@@ -61,9 +62,11 @@ function ValidatePrioritizedEntity.doUpdate(self: ValidatePrioritizedEntity, age
 	if fullyDetectedEntity then
 		local isValid = ValidatePrioritizedEntity.isEntityValid(fullyDetectedEntity.entityUuid)
 		local isInvestigating = agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_INVESTIGATING)
-
 		if isValid and not isInvestigating then
-			agent:getBrain():setMemory(MemoryModuleTypes.PRIORITIZED_ENTITY, fullyDetectedEntity.entityUuid)
+			agent:getBrain():setMemory(MemoryModuleTypes.PRIORITIZED_ENTITY, PrioritizedEntity.new(
+				fullyDetectedEntity.entityUuid,
+				fullyDetectedEntity.status
+			))
 		end
 	else
 		agent:getBrain():eraseMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
@@ -85,9 +88,9 @@ function ValidatePrioritizedEntity.isEntityValid(entityUuid: string): boolean
 		end
 
 		return true
+	else
+		return true
 	end
-
-	return false
 end
 
 return ValidatePrioritizedEntity
