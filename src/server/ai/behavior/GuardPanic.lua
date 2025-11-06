@@ -14,7 +14,6 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
-local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 --[=[
 	@class GuardPanic
@@ -108,15 +107,15 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 		reportType = ReportType.DANGEROUS_ITEM_SPOTTED
 		reportDialogueSeg = GuardGenericDialogues["entity.c4"] :: any
 	elseif EntityUtils.isPlayer(entity) then
-		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(EntityUtils.getPlayerOrThrow(entity))
-	
-		-- TODO: This is redundant as shit
-		local highestStatus = playerStatusHolder:getHighestPriorityStatus()
-		if highestStatus == PlayerStatusTypes.ARMED then
+		-- Avoid retrieving from the player status holder directly,
+		-- we need to know what the NPC SAW instead of the current status
+		-- the Player has in this frame. This is also to avoid other race issues.
+		local status = PlayerStatusTypes.getStatusFromName(panicSource:getStatus())
+		if status == PlayerStatusTypes.ARMED then
 			reportDur = 3
 			reportType = ReportType.ARMED_PERSON
 			reportDialogueSeg = GuardGenericDialogues["status.armed"] :: any
-		elseif highestStatus == PlayerStatusTypes.DANGEROUS_ITEM then
+		elseif status == PlayerStatusTypes.DANGEROUS_ITEM then
 			reportDur = 2.3
 			reportType = ReportType.PERSON_WITH_DANGEROUS_ITEM
 			reportDialogueSeg = GuardGenericDialogues["status.dangerous_item"] :: any
