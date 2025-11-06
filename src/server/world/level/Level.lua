@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
@@ -24,7 +24,7 @@ local timeAccum = 0
 local levelFolder: Folder?
 local cellsConfig: { [string]: CellConfig.Config }?
 local cellsList: { Model } = {}
-local guardCombatNodes: { GuardPost.GuardPost } = {}
+local guardCombatNodes: { Node.Node } = {}
 
 --[=[
 	@class Level
@@ -496,7 +496,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				placeholder.CanQuery = false
 				placeholder.CanTouch = false
 				placeholder.AudioCanCollide = false
-				table.insert(guardCombatNodes, GuardPost.fromPart(placeholder))
+				table.insert(guardCombatNodes, Node.fromPart(placeholder))
 				return true
 			end
 
@@ -510,7 +510,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 	end
 end
 
-function Level.getGuardCombatNodes(): { GuardPost.GuardPost }
+function Level.getGuardCombatNodes(): { Node.Node }
 	return guardCombatNodes
 end
 

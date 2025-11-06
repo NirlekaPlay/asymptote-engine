@@ -11,7 +11,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local Level = require(ServerScriptService.server.world.level.Level)
 
@@ -194,10 +194,10 @@ function FleeToEscapePoints.chooseEscapePoint(
 	self: FleeToEscapePoints,
 	agent: Agent,
 	panicSourcePos: Vector3,
-	escapePoints: {GuardPost.GuardPost}
-): GuardPost.GuardPost?
+	escapePoints: {Node.Node}
+): Node.Node?
 	local bestScore = -math.huge
-	local choosenEscapePoint: GuardPost.GuardPost? = nil
+	local choosenEscapePoint: Node.Node? = nil
 
 	for _, post in escapePoints do
 		local path = agent:getNavigation():generatePath(post.cframe.Position)

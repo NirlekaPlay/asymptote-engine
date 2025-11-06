@@ -1,7 +1,7 @@
 --!nonstrict
 
 local Agent = require("../../Agent")
-local GuardPost = require("../navigation/GuardPost")
+local Node = require("../navigation/Node")
 local Goal = require("./Goal")
 
 local MIN_TIME_TO_PATROL_AGAIN = 1 -- seconds
@@ -14,24 +14,24 @@ RandomPostGoal.__index = RandomPostGoal
 export type RandomPostGoal = typeof(setmetatable({} :: {
 	agent: Agent.Agent,
 	state: "UNEMPLOYED" | "WALKING" | "STAYING" | "RESUMING",
-	targetPost: GuardPost?,
-	previousPost: GuardPost?,
+	targetPost: Node?,
+	previousPost: Node?,
 	timeToReleasePost: number,
 	resumeDelayRemaining: number,
-	posts: { GuardPost },
+	posts: { Node },
 	isAtTargetPost: boolean,
 	pathToPost: Path?,
 	diedConnection: RBXScriptConnection?
 }, RandomPostGoal)) & Goal.Goal
 
-type GuardPost = GuardPost.GuardPost
+type Node = Node.Node
 
-function RandomPostGoal.new(agent, posts: { GuardPost }): RandomPostGoal
+function RandomPostGoal.new(agent, posts: { Node }): RandomPostGoal
 	return setmetatable({
 		flags = { "MOVING", "SHOCKED"},
 		agent = agent,
 		state = "UNEMPLOYED",
-		targetPost = nil :: GuardPost?,
+		targetPost = nil :: Node?,
 		isAtTargetPost = false,
 		timeToReleasePost = 0,
 		posts = posts,
@@ -149,7 +149,7 @@ function RandomPostGoal.update(self: RandomPostGoal, deltaTime: number): ()
 	end
 end
 
-function RandomPostGoal.moveToPost(self: RandomPostGoal, post: GuardPost): ()
+function RandomPostGoal.moveToPost(self: RandomPostGoal, post: Node): ()
 	post:occupy()
 	self.isAtTargetPost = false
 	if self.previousPost then
@@ -161,7 +161,7 @@ function RandomPostGoal.moveToPost(self: RandomPostGoal, post: GuardPost): ()
 	self.pathToPost = self.agent:getNavigation():getPath()
 end
 
-function RandomPostGoal.getRandomUnoccupiedPost(self: RandomPostGoal): GuardPost?
+function RandomPostGoal.getRandomUnoccupiedPost(self: RandomPostGoal): Node?
 	local unoccupied = {}
 
 	for _, post in ipairs(self.posts) do

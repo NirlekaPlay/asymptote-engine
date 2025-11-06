@@ -22,6 +22,7 @@ local ReportSuspiciousCriminal = require(ServerScriptService.server.ai.behavior.
 local RetreatToCombatNodes = require(ServerScriptService.server.ai.behavior.RetreatToCombatNodes)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
+local ValidatePrioritizedEntity = require(ServerScriptService.server.ai.behavior.ValidatePrioritizedEntity)
 local ValidateTrespasser = require(ServerScriptService.server.ai.behavior.ValidateTrespasser)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
@@ -39,6 +40,8 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.KILL_TARGET,
 	MemoryModuleTypes.FOLLOW_TARGET,
 	MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID,
+	MemoryModuleTypes.PRIORITIZED_ENTITY,
+	MemoryModuleTypes.IS_INVESTIGATING,
 	MemoryModuleTypes.FLEE_TO_POSITION,
 	MemoryModuleTypes.IS_COMBAT_MODE,
 	MemoryModuleTypes.IS_CURIOUS,
@@ -83,6 +86,7 @@ end
 function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 	brain:addActivity(Activity.CORE, 2, {
 		BehaviorWrapper.new(EnterCombatActivity.new()),
+		BehaviorWrapper.new(ValidatePrioritizedEntity.new()),
 		BehaviorWrapper.new(SetIsCuriousMemory.new()),
 		BehaviorWrapper.new(LookAtSuspiciousEntities.new()),
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),

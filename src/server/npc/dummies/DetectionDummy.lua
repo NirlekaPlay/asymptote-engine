@@ -15,7 +15,7 @@ local ReportControl = require(ServerScriptService.server.ai.control.ReportContro
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
@@ -48,7 +48,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
 	--
-	designatedPosts: { GuardPost.GuardPost },
+	designatedPosts: { Node.Node },
 	enforceClass: { [string]: number }
 }, DummyAgent))
 
@@ -85,7 +85,7 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 
 	self.uuid = HttpService:GenerateGUID(false)
 	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
-	self.designatedPosts = {} :: { GuardPost.GuardPost }
+	self.designatedPosts = {} :: { Node.Node }
 	self.enforceClass = {}
 
 	for _, part in ipairs(character:GetDescendants()) do
@@ -135,7 +135,7 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	return self
 end
 
-function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { GuardPost.GuardPost }): DummyAgent
+function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { Node.Node }): DummyAgent
 	self.designatedPosts = posts
 	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, posts)
 	return self

@@ -9,7 +9,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
@@ -22,8 +22,8 @@ local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local guards: { [Model]: Guard.Guard } = {}
-local nodeGroups: { [string]: { GuardPost.GuardPost } } = {}
-local allNodes: { [BasePart]: GuardPost.GuardPost } = {}
+local nodeGroups: { [string]: { Node.Node } } = {}
+local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
 
 local SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME = true
@@ -36,12 +36,12 @@ local function setupGuard(guardChar: Model): ()
 		-- can be.)
 		print(((guardChar :: any) :: Model):GetFullName())
 	end
-	local designatedPosts: { GuardPost.GuardPost }
+	local designatedPosts: { Node.Node }
 
 	if guardChar:GetAttribute("CanSeeThroughDisguises") then
-		designatedPosts = advancedGuardPosts
+		designatedPosts = advancedNodes
 	else
-		designatedPosts = basicGuardPosts
+		designatedPosts = basicNodes
 	end
 
 	guards[guardChar] = Guard.new(guardChar, designatedPosts)
@@ -68,7 +68,7 @@ local function onMapTaggedGuard(guardChar: Model): ()
 	setupGuard(guardChar)
 end
 
-local function getNodes(char: Model): { GuardPost.GuardPost }
+local function getNodes(char: Model): { Node.Node }
 	local nodesName = char:GetAttribute("Nodes") :: string
 	if not nodeGroups[nodesName] then
 		nodeGroups[nodesName] = {}
@@ -97,7 +97,7 @@ local function getNodes(char: Model): { GuardPost.GuardPost }
 					current.CanQuery = false
 					current.CanTouch = false
 					current.AudioCanCollide = false
-					newNode = GuardPost.fromPart(current, false)
+					newNode = Node.fromPart(current, false)
 					allNodes[current] = newNode
 				end
 				nodeGroups[nodesName][nodesCount] = newNode

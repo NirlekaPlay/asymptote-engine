@@ -2,7 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 
 --[=[
 	@class MemoryModuleTypes
@@ -28,15 +28,17 @@ local MemoryModuleTypes = {
 	KILL_TARGET = register("kill_target") :: MemoryModuleType<Player>,
 	FOLLOW_TARGET = register("follow_target") :: MemoryModuleType<Player>,
 	PANIC_SOURCE_ENTITY_UUID = register("panic_source_entity_uuid"):: MemoryModuleType<string>,
-	CURRENT_POST = register("current_post") :: MemoryModuleType<GuardPost.GuardPost>,
-	TARGET_POST = register("target_post") :: MemoryModuleType<GuardPost.GuardPost>,
-	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{GuardPost.GuardPost}>,
+	CURRENT_POST = register("current_post") :: MemoryModuleType<Node.Node>,
+	TARGET_POST = register("target_post") :: MemoryModuleType<Node.Node>,
+	DESIGNATED_POSTS = register("designated_posts") :: MemoryModuleType<{Node.Node}>,
 	PATROL_STATE = register("patrol_state") :: MemoryModuleType<PatrolState.PatrolState>,
+	PRIORITIZED_ENTITY = register("prioritized_entity") :: MemoryModuleType<string>,
 	POST_VACATE_COOLDOWN = register("post_vacate_cooldown") :: MemoryModuleType<number>,
 	IS_COMBAT_MODE = register("is_combat_mode") :: MemoryModuleType<boolean>,
 	IS_CURIOUS = register("is_curious") :: MemoryModuleType<boolean>,
 	IS_PANICKING = register("is_panicking") :: MemoryModuleType<boolean>,
 	IS_FLEEING = register("is_fleeing") :: MemoryModuleType<boolean>,
+	IS_INVESTIGATING = register("is_investigating") :: MemoryModuleType<boolean>,
 	IS_INTIMIDATED = register("is_intimidated") :: MemoryModuleType<boolean>,
 	HAS_FLED = register("has_fled") :: MemoryModuleType<true>,
 	HAS_RETREATED = register("has_retreated") :: MemoryModuleType<true>,

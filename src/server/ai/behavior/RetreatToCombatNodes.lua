@@ -6,7 +6,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local Level = require(ServerScriptService.server.world.level.Level)
 
 --[=[
@@ -17,7 +17,7 @@ RetreatToCombatNodes.__index = RetreatToCombatNodes
 RetreatToCombatNodes.ClassName = "RetreatToCombatNodes"
 
 export type RetreatToCombatNodes = typeof(setmetatable({} :: {
-	choosenNode: GuardPost.GuardPost?,
+	choosenNode: Node.Node?,
 	currentComputationThread: thread?,
 	humanoidDiedConnection: RBXScriptConnection?
 }, RetreatToCombatNodes))
@@ -30,7 +30,7 @@ function RetreatToCombatNodes.new(): RetreatToCombatNodes
 	return setmetatable({
 		minDuration = nil :: number?,
 		maxDuration = nil :: number?,
-		choosenNode = nil :: GuardPost.GuardPost?,
+		choosenNode = nil :: Node.Node?,
 		currentComputationThread = nil :: thread?,
 		humanoidDiedConnection = nil :: RBXScriptConnection?
 	}, RetreatToCombatNodes)
@@ -88,14 +88,14 @@ function RetreatToCombatNodes.doUpdate(self: RetreatToCombatNodes, agent: Agent,
 
 			brain:setNullableMemory(MemoryModuleTypes.HAS_RETREATED, true)
 			brain:eraseMemory(MemoryModuleTypes.LOOK_TARGET)
-			rot:setRotateToDirection((self.choosenNode :: GuardPost.GuardPost).cframe.LookVector)
+			rot:setRotateToDirection((self.choosenNode :: Node.Node).cframe.LookVector)
 		end
 	end
 end
 
 --
 
-function RetreatToCombatNodes.connectDiedConnection(self: RetreatToCombatNodes, agent: Agent, occupiedNode: GuardPost.GuardPost?): ()
+function RetreatToCombatNodes.connectDiedConnection(self: RetreatToCombatNodes, agent: Agent, occupiedNode: Node.Node?): ()
 	if self.humanoidDiedConnection then
 		self.humanoidDiedConnection:Disconnect()
 		self.humanoidDiedConnection = nil
@@ -118,12 +118,12 @@ function RetreatToCombatNodes.connectDiedConnection(self: RetreatToCombatNodes, 
 	end
 end
 
-function RetreatToCombatNodes.retreatToNode(self: RetreatToCombatNodes, node: GuardPost.GuardPost, agent: Agent): ()
+function RetreatToCombatNodes.retreatToNode(self: RetreatToCombatNodes, node: Node.Node, agent: Agent): ()
 	node:occupy()
 	agent:getNavigation():moveTo(node.cframe.Position)
 end
 
-function RetreatToCombatNodes.getNearestUnoccupiedCombatNode(self: RetreatToCombatNodes, agent: Agent): GuardPost.GuardPost?
+function RetreatToCombatNodes.getNearestUnoccupiedCombatNode(self: RetreatToCombatNodes, agent: Agent): Node.Node?
 	local combatNodes = Level.getGuardCombatNodes()
 	local nearestNode = nil
 	local nearestDistance = math.huge  -- start with infinity

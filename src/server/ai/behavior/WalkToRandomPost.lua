@@ -6,7 +6,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 
 local REACH_THRESHOLD = 3
 
@@ -23,7 +23,7 @@ WalkToRandomPost.ClassName = "WalkToRandomPost"
 export type WalkToRandomPost = typeof(setmetatable({} :: {
 	diedConnection: RBXScriptConnection?,
 	destroyedConnection: RBXScriptConnection?,
-	previousPost: GuardPost?,
+	previousPost: Node?,
 	isAtTargetPost: boolean,
 	pathToPost: Path?,
 	timeToReleasePost: number
@@ -31,7 +31,7 @@ export type WalkToRandomPost = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type GuardPost = GuardPost.GuardPost
+type Node = Node.Node
 type Agent = Agent.Agent
 
 function WalkToRandomPost.new(): WalkToRandomPost
@@ -40,7 +40,7 @@ function WalkToRandomPost.new(): WalkToRandomPost
 		maxDuration = nil :: number?,
 		--
 		diedConnection = nil :: RBXScriptConnection?,
-		previousPost = nil :: GuardPost.GuardPost?,
+		previousPost = nil :: Node.Node?,
 		isAtTargetPost = false,
 		pathToPos = nil :: Path?,
 		timeToReleasePost = 0
@@ -173,7 +173,7 @@ end
 
 --
 
-function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post: GuardPost): ()
+function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post: Node): ()
 	local rootPart = agent.character:FindFirstChild("HumanoidRootPart")
 	if not (rootPart and rootPart:IsA("BasePart")) then
 		warn("WalkToRandomPost: Missing HumanoidRootPart for", agent.character)
@@ -209,7 +209,7 @@ function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post:
 	self.pathToPost = agent:getNavigation():getPath()
 end
 
-function WalkToRandomPost.getRandomUnoccupiedPost(self: WalkToRandomPost, agent: Agent): GuardPost?
+function WalkToRandomPost.getRandomUnoccupiedPost(self: WalkToRandomPost, agent: Agent): Node?
 	local unoccupied = {}
 	local count = 0
 
