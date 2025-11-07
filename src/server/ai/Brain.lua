@@ -22,7 +22,7 @@ type self<T> = {
 	activeActivities: { [Activity]: true },
 	activityRequirements: { [Activity]: { [MemoryModuleType<any>]: MemoryStatus } },
 	activityMemoriesToEraseWhenStopped: { [Activity]: { [MemoryModuleType<any>]: true } },
-	availableBehaviorsByPriority: { [number]: { [Activity]: { [BehaviorControl<T>]: true } } },
+	availableBehaviorsByPriority: { [number]: { [Activity]: { BehaviorControl<T> } } },
 	coreActivities: { [Activity]: true }
 }
 
@@ -306,9 +306,7 @@ function Brain.addActivityAndRemoveMemoriesWhenStopped<T>(
 			behaviorsByActivity[activity] = {}
 		end
 
-		local behaviorSet = behaviorsByActivity[activity]
-
-		behaviorSet[behaviorControl] = true
+		table.insert(behaviorsByActivity[activity], behaviorControl)
 	end
 end
 
@@ -339,7 +337,7 @@ function Brain.getRunningBehaviors<T>(self: Brain<T>): { BehaviorControl<T> }
 
 	for _, activity in pairs(self.availableBehaviorsByPriority) do
 		for _, behaviorControls in pairs(activity) do
-			for behaviorControl in pairs(behaviorControls) do
+			for _, behaviorControl in behaviorControls do
 				if behaviorControl:getStatus() ~= BehaviorControl.Status.RUNNING then
 					continue
 				end
@@ -383,13 +381,22 @@ end
 function Brain.startEachNonRunningBehavior<T>(self: Brain<T>, deltaTime: number): ()
 	local currentTime = tick()
 
-	for priority, activities in pairs(self.availableBehaviorsByPriority) do
+	-- Sort priorities to ensure deterministic execution order
+	local priorities: {number} = {}
+	for priority in pairs(self.availableBehaviorsByPriority) do
+		table.insert(priorities, priority)
+	end
+	table.sort(priorities)
+
+	for _, priority in ipairs(priorities) do
+		local activities = self.availableBehaviorsByPriority[priority]
+		
 		for activity, behaviorControls in pairs(activities) do
 			if not self.activeActivities[activity] then
 				continue
 			end
 
-			for behaviorControl in pairs(behaviorControls) do
+			for _, behaviorControl in ipairs(behaviorControls) do
 				if behaviorControl:getStatus() ~= BehaviorControl.Status.STOPPED then
 					continue
 				end
