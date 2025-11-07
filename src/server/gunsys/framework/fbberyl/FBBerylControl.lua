@@ -29,15 +29,15 @@ local STATES = {
 }
 
 local DAMAGE_PER_LIMBS = {
-	["Left Arm"] = 20,
-	["Right Arm"] = 20,
-	["Left Leg"] = 15,
-	["Right Leg"] = 15,
-	["Torso"] = 35,
-	["HumanoidRootPart"] = 35,
-	["UpperTorso"] = 45,
-	["LowerTorso"] = 25,
-	["Head"] = 50,
+	["Left Arm"] = 5,
+	["Right Arm"] = 5,
+	["Left Leg"] = 10,
+	["Right Leg"] = 10,
+	["Torso"] = 15,
+	["HumanoidRootPart"] = 15,
+	["UpperTorso"] = 15,
+	["LowerTorso"] = 15,
+	["Head"] = 20,
 }
 
 local SOUND_IDS = {
