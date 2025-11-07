@@ -23,7 +23,6 @@ local RetreatToCombatNodes = require(ServerScriptService.server.ai.behavior.Retr
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local ValidatePrioritizedEntity = require(ServerScriptService.server.ai.behavior.ValidatePrioritizedEntity)
-local ValidateTrespasser = require(ServerScriptService.server.ai.behavior.ValidateTrespasser)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
@@ -92,8 +91,8 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
 		BehaviorWrapper.new(ReportSuspiciousCriminal.new()),
+		BehaviorWrapper.new(ConfrontTrespasser.new()),
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
-		BehaviorWrapper.new(ValidateTrespasser.new()),
 		BehaviorWrapper.new(FollowPlayerSink.new())
 	})
 end
@@ -125,7 +124,7 @@ function GuardAi.initConfrontActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(ReportMajorTrespasser.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
-		[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.VALUE_PRESENT,
+		[MemoryModuleTypes.CONFRONTING_TRESPASSER] = MemoryStatus.VALUE_PRESENT
 	})
 end
 

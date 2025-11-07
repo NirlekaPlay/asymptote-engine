@@ -16,14 +16,29 @@
   "trespassing.minor.warn.1": [
     ["Hey!", "You can't be in here!"],
     ["You there!", "This is a restricted area."],
-    ["Hey, you're not allowed to be here."]
+    ["Hey, you're not allowed to be here."],
+    ["Hey, you're not allowed to be here.", "Go on, skedaddle."]
   ],
   "trespassing.minor.warn.2": [
-    ["This area is restricted.", "You need to leave."],
-    ["I'm not gonna warn you again", "You need to leave."]
+    ["I'm telling you buddy.", "You need to leave."],
+    ["I'm not gonna warn you again", "You need to leave."],
+    ["I said you need to leave!", "You're not supposed to be here!"],
+    ["I'm telling you pal.", "You need to leave.", "And I mean right now."]
+  ],
+  "trespassing.minor.warn.2.second_encounter": [
+    ["I'm not gonna warn you again!", "You need to leave!"],
+    ["Like I said!", "You need to leave!", "Get out!"],
+    ["I swear to God, you're not supposed to be here!", "You need to leave NOW!"]
   ],
   "trespassing.minor.warn.3": [
     ["Alright! You were warned!"]
+  ],
+  "trespassing.minor.second_encounter": [
+    ["You again?!", "Hey!"],
+    ["Not you again!", "Hey, you!"],
+    ["You're testing my patience, aren't you?!"],
+    ["Back for round two?!", "Or three?!"],
+    ["Seriously?! You again?!", "You thought I forogot about you?!"]
   ],
   "trespassing.minor.non_cooperative": [
     ["Non-cooperative intruder, possibly armed."],
