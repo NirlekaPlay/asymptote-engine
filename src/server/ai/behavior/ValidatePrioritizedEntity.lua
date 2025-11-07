@@ -46,18 +46,10 @@ function ValidatePrioritizedEntity.checkExtraStartConditions(self: ValidatePrior
 end
 
 function ValidatePrioritizedEntity.canStillUse(self: ValidatePrioritizedEntity, agent: Agent): boolean
-	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
+	return false
 end
 
 function ValidatePrioritizedEntity.doStart(self: ValidatePrioritizedEntity, agent: Agent): ()
-	return
-end
-
-function ValidatePrioritizedEntity.doStop(self: ValidatePrioritizedEntity, agent: Agent): ()
-	agent:getBrain():eraseMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
-end
-
-function ValidatePrioritizedEntity.doUpdate(self: ValidatePrioritizedEntity, agent: Agent, deltaTime: number): ()
 	local fullyDetectedEntity = agent:getDetectionManager():getHighestFullyDetectedEntity()
 	if fullyDetectedEntity then
 		local isValid = ValidatePrioritizedEntity.isEntityValid(fullyDetectedEntity.entityUuid)
@@ -71,6 +63,14 @@ function ValidatePrioritizedEntity.doUpdate(self: ValidatePrioritizedEntity, age
 	else
 		agent:getBrain():eraseMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
 	end
+end
+
+function ValidatePrioritizedEntity.doStop(self: ValidatePrioritizedEntity, agent: Agent): ()
+	return
+end
+
+function ValidatePrioritizedEntity.doUpdate(self: ValidatePrioritizedEntity, agent: Agent, deltaTime: number): ()
+	return
 end
 
 --

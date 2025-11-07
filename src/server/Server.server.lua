@@ -18,7 +18,7 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
-local Guard = require(ServerScriptService.server.npc.guard.Guard)
+--local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local guards: { [Model]: Guard.Guard } = {}
@@ -166,7 +166,18 @@ CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, onMapT
 
 Level.initializeLevel()
 
-RunService.PostSimulation:Connect(function(deltaTime)
+-- to prevent race condition bullshit
+local playersToRemove: { [number]: true } = {}
+
+local function update(deltaTime: number): ()
+	if next(playersToRemove) ~= nil then
+		for userId in playersToRemove do
+			--warn("REMOVING " .. userId)
+			EntityManager.Entities[tostring(userId)] = nil
+		end
+
+		table.clear(playersToRemove)
+	end
 	Level.update(deltaTime)
 
 	-- this frame, is there any listening clients?
@@ -199,7 +210,30 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	SuspicionManagement.flushBatchToClients()
 
 	BulletSimulation.update(deltaTime)
-end)
+end
+
+RunService.PostSimulation:Connect(update)
+
+--[[local UPDATES_PER_SEC = 20
+local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
+local timeAccum = 0
+local lastUpdateTime = os.clock()
+
+task.spawn(function()
+	while true do
+		local deltaTime = os.clock() - lastUpdateTime
+		timeAccum += deltaTime
+
+		while timeAccum >= UPDATE_INTERVAL do
+			update(UPDATE_INTERVAL)
+			timeAccum -= UPDATE_INTERVAL
+		end
+
+		lastUpdateTime = os.clock()
+
+		task.wait()
+	end
+end)]]
 
 if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER) then
 	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
@@ -265,7 +299,7 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
 	-- entity reg here:
-	EntityManager.Entities[tostring(player.UserId)] = nil
+	playersToRemove[player.UserId] = true
 	--
 	if playerConnections[player] then
 		playerConnections[player]:Disconnect()
