@@ -7,6 +7,7 @@ local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 
 local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
@@ -93,38 +94,16 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 			return
 		end
 
-		local entityLookPos: Vector3
-
-		-- Jesus tapdancing Christ
-		-- Borderline insane entity type checking taken from VisibleEntitiesSensor.
-		-- Nico what have you done.
-		if entityObj.instance:IsA("BasePart") then
-			entityLookPos = entityObj.instance.Position
-		elseif entityObj.instance:IsA("Model") then
-			entityLookPos = (entityObj.instance.PrimaryPart :: Part).Position
-		end
-
-		if entityObj.name == "Player" then
-			if not entityObj.instance then return end
-			if not entityObj.instance:IsA("Player") then return end
-			if not entityObj.instance.Character then return end
-			if not entityObj.instance.Character:IsA("Model") then return end
-			if not entityObj.instance.Character.PrimaryPart then return end
-
-			entityLookPos = entityObj.instance.Character.PrimaryPart.Position
-		end
-
-		if entityLookPos then
-			self.lastKnownTargetPos = entityLookPos
-		end
+		self.lastKnownTargetPos = EntityUtils.getPos(entityObj)
 	end
 
 	if self.lastKnownTargetPos then
-		local agentCframe = agent:getPrimaryPart().CFrame
-		local agentPos = agentCframe.Position
-		--local agentForward = agentCframe.LookVector
+		local agentCFrame = agent:getPrimaryPart().CFrame
+		local agentPos = agentCFrame.Position
+		local agentForward = agentCFrame.LookVector
+		local toTarget = self.lastKnownTargetPos - agentPos
+		local isBehind = toTarget:Dot(agentForward) < 0
 
-		local toTarget = (self.lastKnownTargetPos - agentPos)
 		local distance = toTarget.Magnitude
 		if distance > 0 then
 			local distanceToTarget = (agentPos - self.lastKnownTargetPos).Magnitude
@@ -147,7 +126,7 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 				agent:getLookControl():setLookAtPos(nil)
 			end
 
-			if distanceToTarget > 5.5 then
+			if (distanceToTarget > 5.5) or isBehind then
 				agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
 			end
 		end
