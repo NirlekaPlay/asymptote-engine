@@ -11,7 +11,8 @@ local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
-local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 
 --[=[
@@ -39,7 +40,8 @@ local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_INTIMIDATED] = MemoryStatus.VALUE_ABSENT,
-	[MemoryModuleTypes.SPOTTED_TRESPASSER] = MemoryStatus.VALUE_PRESENT
+	[MemoryModuleTypes.PRIORITIZED_ENTITY] = MemoryStatus.VALUE_PRESENT,
+	[MemoryModuleTypes.TARGETABLE_ENTITIES] = MemoryStatus.REGISTERED
 }
 
 function ReportMajorTrespasser.getMemoryRequirements(self: ReportMajorTrespasser): { [MemoryModuleType<any>]: MemoryStatus }
@@ -47,10 +49,11 @@ function ReportMajorTrespasser.getMemoryRequirements(self: ReportMajorTrespasser
 end
 
 function ReportMajorTrespasser.checkExtraStartConditions(self: ReportMajorTrespasser, agent: Agent): boolean
-	return agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
-		:filter(function(player)
-			local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
-			return playerStatusHolder and playerStatusHolder:hasStatus(PlayerStatusTypes.MAJOR_TRESPASSING)
+	return agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
+		:filter(function(priorityEntity)
+			local forStatus = PlayerStatusTypes.getStatusFromName(priorityEntity:getStatus())
+
+			return forStatus == PlayerStatusTypes.MAJOR_TRESPASSING
 		end)
 		:isPresent()
 end
@@ -58,41 +61,44 @@ end
 function ReportMajorTrespasser.canStillUse(self: ReportMajorTrespasser, agent: Agent): boolean
 	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
 		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) and
-		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
-			:filter(function(player)
-				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getHighestFullyDetectedEntity()
-				
-				-- Return false if fully detected but NOT major trespassing
-				if detFocus then
-					return detFocus.status == PlayerStatusTypes.MAJOR_TRESPASSING.name
-				else
-					return false -- ?
-				end
-			end)
-			:isPresent()
+		self:checkExtraStartConditions(agent)
 end
 
 function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent): ()
 	local brain = agent:getBrain()
-	local reportCtrl = agent:getReportControl()
-	local talkCtrl = agent:getTalkControl()
-	local faceCtrl = agent:getFaceControl()
+	local reportControl = agent:getReportControl()
+	local talkControl = agent:getTalkControl()
+	local faceControl = agent:getFaceControl()
 
-	local trespasser = brain:getMemory(MemoryModuleTypes.SPOTTED_TRESPASSER):get()
-	local trespasserCurrentArea = Cell.getPlayerOccupiedAreaName(trespasser)
+	local detectedTrespasser = brain:getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get()
+	local trespasserUuid = detectedTrespasser:getUuid()
+	local trespasserEntity = EntityManager.getEntityByUuid(trespasserUuid)
+	local trespasserPlayer = EntityUtils.getPlayerOrThrow(trespasserEntity)
+
+	faceControl:setFace("Angry")
+
+	local trespasserAreaName = Cell.getPlayerOccupiedAreaName(trespasserPlayer)
 	local reportDialogue
-
-	if trespasserCurrentArea then
+	if trespasserAreaName then
 		reportDialogue = GuardGenericDialogues["trespassing.major.report.area.known"]
 	else
 		reportDialogue = GuardGenericDialogues["trespassing.major.report.area.unknown"]
 	end
 
-	faceCtrl:setFace("Angry")
-	talkCtrl:sayRandomSequences(reportDialogue, trespasserCurrentArea)
-	reportCtrl:reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2.3)
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.KILL_TARGET, trespasser)
+	local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+	local reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
+	talkControl:saySequencesWithDelay(choosenDialogue, 0.5, trespasserAreaName)
+	local reportRegisterDur = 3
+	local delayBeforeRadioUnequip = math.max(0, reportDialogueSpeechDur - reportRegisterDur) + 1
+	reportControl:reportWithCustomDur(
+		ReportType.CRIMINAL_SPOTTED,
+		reportRegisterDur,
+		delayBeforeRadioUnequip
+	)
+
+	local targetableEntitiesMemory = brain:getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES):orElse({})
+	targetableEntitiesMemory[trespasserPlayer] = true
+	brain:setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntitiesMemory)
 end
 
 function ReportMajorTrespasser.doStop(self: ReportMajorTrespasser, agent: Agent): ()

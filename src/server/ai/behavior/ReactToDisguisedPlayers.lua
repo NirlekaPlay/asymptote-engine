@@ -12,7 +12,7 @@ local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
-local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 
 --[=[
 	@class ReactToDisguisedPlayers
@@ -39,8 +39,7 @@ local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_INTIMIDATED] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
-	[MemoryModuleTypes.VISIBLE_ENTITIES] = MemoryStatus.VALUE_PRESENT,
-	[MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.TARGETABLE_ENTITIES] = MemoryStatus.REGISTERED
 }
 
 function ReactToDisguisedPlayers.getMemoryRequirements(self: ReactToDisguisedPlayers): { [MemoryModuleType<any>]: MemoryStatus }
@@ -48,65 +47,41 @@ function ReactToDisguisedPlayers.getMemoryRequirements(self: ReactToDisguisedPla
 end
 
 function ReactToDisguisedPlayers.checkExtraStartConditions(self: ReactToDisguisedPlayers, agent: Agent): boolean
-	local detetectionManager = agent:getDetectionManager()
-	local focusingTarget = detetectionManager:getHighestFullyDetectedEntity()
-	if focusingTarget then
-		if focusingTarget.status ~= PlayerStatusTypes.DISGUISED.name then
-			return false
-		end
-		return true
-	end
+	return agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
+		:filter(function(priorityEntity)
+			local forStatus = PlayerStatusTypes.getStatusFromName(priorityEntity:getStatus())
 
-	return false
+			return forStatus == PlayerStatusTypes.DISGUISED
+		end)
+		:isPresent()
 end
 
 function ReactToDisguisedPlayers.canStillUse(self: ReactToDisguisedPlayers, agent: Agent): boolean
 	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
 		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) and
-		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER)
-			:filter(function(player)
-				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getHighestFullyDetectedEntity()
-				
-				-- Return false if fully detected but NOT disguised
-				-- or non threatening statuses
-				if detFocus then
-					return detFocus.status == PlayerStatusTypes.DISGUISED.name or
-						detFocus.status == PlayerStatusTypes.MINOR_TRESPASSING.name or
-						detFocus.status == PlayerStatusTypes.MINOR_SUSPICIOUS.name
-				end
-				
-				-- If not fully detected, keep checking (return true)
-				return detFocus ~= nil
-			end)
-			:isPresent()
+		self:checkExtraStartConditions(agent)
 end
 
 function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: Agent): ()
-	local disguisedPlayer = self:getDetectedDisguisedPlayer(agent)
-	local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(disguisedPlayer)
-	if not playerStatusHolder then
-		warn("UNDEFINED BEHAVIOR: PLAYER STATUS HOLDER OF", disguisedPlayer, "IS NIL.")
-		return
-	end
-
-	agent:getBrain():setNullableMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER, disguisedPlayer)
-
 	local talkCtrl = agent:getTalkControl()
 	local reportCtrl = agent:getReportControl()
 	local faceCtrl = agent:getFaceControl()
 
-	--local disguise = playerStatusHolder:getDisguise()
 	local reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised"])
 	local reportDialogueTotalDur = talkCtrl.getDialoguesTotalSpeechDuration(reportDialogue)
 
 	faceCtrl:setFace("Angry")
-	talkCtrl:saySequences(reportDialogue)
+	talkCtrl:saySequencesWithDelay(reportDialogue, 0.5)
 	reportCtrl:reportWithCustomDur(ReportType.INTRUDER_SPOTTED, 2, reportDialogueTotalDur)
+
+	local disguisedUuid = agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get():getUuid()
+	local disguisedPlayer = EntityUtils.getPlayerOrThrow(EntityManager.getEntityByUuid(disguisedUuid))
+	local targetableEntitiesMemory = agent:getBrain():getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES):orElse({})
+	targetableEntitiesMemory[disguisedPlayer] = true
+	agent:getBrain():setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntitiesMemory)
 end
 
 function ReactToDisguisedPlayers.doStop(self: ReactToDisguisedPlayers, agent: Agent): ()
-	agent:getBrain():eraseMemory(MemoryModuleTypes.SPOTTED_DISGUISED_PLAYER)
 	agent:getReportControl():interruptReport()
 	agent:getTalkControl():stopTalking()
 end
@@ -116,10 +91,6 @@ function ReactToDisguisedPlayers.doUpdate(self: ReactToDisguisedPlayers, agent: 
 end
 
 --
-
-function ReactToDisguisedPlayers.getDetectedDisguisedPlayer(self: ReactToDisguisedPlayers, agent: Agent): Player
-	return EntityManager.getEntityByUuid(agent:getDetectionManager():getHighestFullyDetectedEntity().entityUuid).instance
-end
 
 function ReactToDisguisedPlayers.getReactionTime(self: ReactToDisguisedPlayers, agent: Agent, deltaTime: number): number
 	return agent:getRandom():NextNumber(0.5, 0.7)

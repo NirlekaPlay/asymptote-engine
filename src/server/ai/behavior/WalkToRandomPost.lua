@@ -48,10 +48,12 @@ function WalkToRandomPost.new(): WalkToRandomPost
 end
 
 local MEMORY_REQUIREMENTS = {
+	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_CURIOUS] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.DESIGNATED_POSTS] = MemoryStatus.VALUE_PRESENT,
-	[MemoryModuleTypes.TARGET_POST] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.TARGET_POST] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.PRIORITIZED_ENTITY] = MemoryStatus.VALUE_ABSENT
 }
 
 local MIN_RANDOM_WAIT_TIME = 5
@@ -73,7 +75,7 @@ function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boo
 		or brain:checkMemory(MemoryModuleTypes.IS_COMBAT_MODE, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.IS_CURIOUS, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, MemoryStatus.VALUE_PRESENT)
-		or brain:checkMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, MemoryStatus.VALUE_PRESENT)
+		or brain:checkMemory(MemoryModuleTypes.PRIORITIZED_ENTITY, MemoryStatus.VALUE_PRESENT)
 	)
 end
 

@@ -91,6 +91,7 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(LookAndFaceAtTargetSink.new()),
 		BehaviorWrapper.new(GuardPanic.new()),
 		BehaviorWrapper.new(ReportSuspiciousCriminal.new()),
+		BehaviorWrapper.new(ReportMajorTrespasser.new()),
 		BehaviorWrapper.new(ConfrontTrespasser.new()),
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
 		BehaviorWrapper.new(FollowPlayerSink.new())

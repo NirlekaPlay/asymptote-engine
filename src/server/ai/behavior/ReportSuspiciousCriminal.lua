@@ -12,6 +12,7 @@ local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 
 --[=[
@@ -39,7 +40,8 @@ local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_INTIMIDATED] = MemoryStatus.VALUE_ABSENT,
-	[MemoryModuleTypes.SPOTTED_CRIMINAL] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.PRIORITIZED_ENTITY] = MemoryStatus.VALUE_PRESENT,
+	[MemoryModuleTypes.TARGETABLE_ENTITIES] = MemoryStatus.REGISTERED
 }
 
 function ReportSuspiciousCriminal.getMemoryRequirements(self: ReportSuspiciousCriminal): { [MemoryModuleType<any>]: MemoryStatus }
@@ -47,36 +49,18 @@ function ReportSuspiciousCriminal.getMemoryRequirements(self: ReportSuspiciousCr
 end
 
 function ReportSuspiciousCriminal.checkExtraStartConditions(self: ReportSuspiciousCriminal, agent: Agent): boolean
-	local detetectionManager = agent:getDetectionManager()
-	local focusingTarget = detetectionManager:getHighestFullyDetectedEntity()
-	if focusingTarget then
-		if focusingTarget.status ~= PlayerStatusTypes.CRIMINAL_SUSPICIOUS.name then
-			return false
-		end
-		return true
-	end
-
-	return false
+	return agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
+		:filter(function(priorityEntity)
+			local forStatus = PlayerStatusTypes.getStatusFromName(priorityEntity:getStatus())
+			return forStatus == PlayerStatusTypes.CRIMINAL_SUSPICIOUS
+		end)
+		:isPresent()
 end
 
 function ReportSuspiciousCriminal.canStillUse(self: ReportSuspiciousCriminal, agent: Agent): boolean
 	return not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) and
 		not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING) and
-		agent:getBrain():getMemory(MemoryModuleTypes.SPOTTED_CRIMINAL)
-			:filter(function(player)
-				local detMan = agent:getDetectionManager()
-				local detFocus = detMan:getHighestFullyDetectedEntity()
-				
-				-- Only continue if we're still focusing on THE SAME PLAYER
-				-- Don't care what status they have, just that it's still them
-				if not detFocus then
-					return false
-				end
-				
-				local playerUuid = tostring(player.UserId)
-				return detFocus.entityUuid == playerUuid
-			end)
-			:isPresent()
+		self:checkExtraStartConditions(agent)
 end
 
 function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent: Agent): ()
@@ -85,9 +69,11 @@ function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent:
 	local talkCtrl = agent:getTalkControl()
 	local faceCtrl = agent:getFaceControl()
 
-	local criminal = ((EntityManager.getEntityByUuid((agent:getDetectionManager():getHighestFullyDetectedEntity() :: any).entityUuid) :: any).instance)
-	brain:setNullableMemory(MemoryModuleTypes.SPOTTED_CRIMINAL, criminal)
-	local criminalCurrentArea = Cell.getPlayerOccupiedAreaName(criminal)
+	local criminal = brain:getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get()
+	local criminalUuid = criminal:getUuid()
+	local criminalEntity = EntityManager.getEntityByUuid(criminalUuid)
+	local criminalPlayer = EntityUtils.getPlayerOrThrow(criminalEntity)
+	local criminalCurrentArea = Cell.getPlayerOccupiedAreaName(criminalPlayer)
 	local reportDialogue
 	if criminalCurrentArea then
 		reportDialogue = GuardGenericDialogues["status.sus_criminal.area.known"]
@@ -100,6 +86,10 @@ function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent:
 	faceCtrl:setFace("Angry")
 	talkCtrl:saySequences(reportDialogue, criminalCurrentArea)
 	reportCtrl:reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2, talkCtrl.getDialoguesTotalSpeechDuration(reportDialogue :: any))
+
+	local targetableEntitiesMemory = brain:getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES):orElse({})
+	targetableEntitiesMemory[criminalPlayer] = true
+	brain:setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntitiesMemory)
 end
 
 function ReportSuspiciousCriminal.doStop(self: ReportSuspiciousCriminal, agent: Agent): ()
@@ -112,7 +102,7 @@ function ReportSuspiciousCriminal.doUpdate(self: ReportSuspiciousCriminal, agent
 end
 
 function ReportSuspiciousCriminal.getReactionTime(self: ReportSuspiciousCriminal, agent: Agent, deltaTime: number): number
-	return agent:getRandom():NextInteger(0.7, 1)
+	return agent:getRandom():NextInteger(1, 1.5)
 end
 
 return ReportSuspiciousCriminal

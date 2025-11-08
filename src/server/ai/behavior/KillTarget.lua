@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -31,8 +31,8 @@ function KillTarget.new(): KillTarget
 		minDuration = math.huge,
 		maxDuration = math.huge,
 		triggerFingerCooldown = 0.5,
-		targetHumanoidDiedConnection = nil,
-		selfHumanoidDiedConnection = nil
+		targetHumanoidDiedConnection = nil :: RBXScriptConnection?,
+		selfHumanoidDiedConnection = nil :: RBXScriptConnection?
 	}, KillTarget)
 end
 

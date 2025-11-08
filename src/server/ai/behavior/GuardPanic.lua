@@ -37,6 +37,7 @@ function GuardPanic.new(): GuardPanic
 end
 
 local MEMORY_REQUIREMENTS = {
+	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT,
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.PANIC_POSITION] = MemoryStatus.REGISTERED,
@@ -97,7 +98,7 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 	brain:setMemory(MemoryModuleTypes.PANIC_POSITION, EntityUtils.getPos(entity))
 	agent:getBodyRotationControl():setRotateTowards(nil)
 
-	local reportDialogueSeg: {string}
+	local reportDialogueSeg
 	local reportType: ReportType.ReportType
 	local reportDur: number
 
@@ -105,20 +106,23 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 	if entity.name == "C4" then
 		reportDur = 2.37
 		reportType = ReportType.DANGEROUS_ITEM_SPOTTED
-		reportDialogueSeg = GuardGenericDialogues["entity.c4"] :: any
+		reportDialogueSeg = GuardGenericDialogues["entity.c4"]
 	elseif EntityUtils.isPlayer(entity) then
 		-- Avoid retrieving from the player status holder directly,
 		-- we need to know what the NPC SAW instead of the current status
 		-- the Player has in this frame. This is also to avoid other race issues.
 		local status = PlayerStatusTypes.getStatusFromName(panicSource:getStatus())
 		if status == PlayerStatusTypes.ARMED then
-			reportDur = 3
+			reportDur = 2.5
 			reportType = ReportType.ARMED_PERSON
-			reportDialogueSeg = GuardGenericDialogues["status.armed"] :: any
+			reportDialogueSeg = GuardGenericDialogues["status.armed"]
+			local targetableEntitiesMemory = brain:getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES):orElse({})
+			targetableEntitiesMemory[EntityUtils.getPlayerOrThrow(entity)] = true
+			brain:setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntitiesMemory)
 		elseif status == PlayerStatusTypes.DANGEROUS_ITEM then
 			reportDur = 2.3
 			reportType = ReportType.PERSON_WITH_DANGEROUS_ITEM
-			reportDialogueSeg = GuardGenericDialogues["status.dangerous_item"] :: any
+			reportDialogueSeg = GuardGenericDialogues["status.dangerous_item"]
 		else
 			error("INVALID_CONDITION_1")
 		end
@@ -126,13 +130,7 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 		error("INVALID_CONDITION_2")
 	end
 	agent:getDetectionManager():blockAllDetection()
-	task.spawn(function()
-		task.wait(0.5) -- TODO: report animation shit, this should be refactored!!!
-		if not (agent and agent:isAlive()) then
-			return
-		end
-		talkCtrl:sayRandomSequences(reportDialogueSeg :: any)
-	end)
+	talkCtrl:sayRandomSequences(reportDialogueSeg, 0.5)
 	reportCtrl:reportWithCustomDur(reportType, reportDur)
 end
 
