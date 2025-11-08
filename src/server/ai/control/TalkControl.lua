@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local BubbleChatControl = require(script.Parent.BubbleChatControl)
 
+local EPSILON = 0.01
 local WORDS_PER_MINUTE = 160
 -- TODO: This was taken from ShockedGoal, where this line will be triggered
 -- if the agent was begging for mercy.
@@ -84,6 +85,10 @@ function TalkControl.saySequences(self: TalkControl, textArray: {string}, ...): 
 	self:createTalkThread(self:createDialogueSegmentFromArray(textArray, ...))
 end
 
+function TalkControl.saySequencesWithDelay(self: TalkControl, textArray: {string}, delayInSecs: number, ...): ()
+	self:createTalkThread(self:createDialogueSegmentFromArray(textArray, ...), delayInSecs)
+end
+
 function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}, ...): ()
 	local selectedDialogue = TalkControl.randomlyChosoeDialogueSequences(randomDialoguesArray)
 	if selectedDialogue then
@@ -111,34 +116,39 @@ function TalkControl.createDialogueSegmentFromArray(self: TalkControl, textArray
 	return dialogueSegment
 end
 
-function TalkControl.createTalkThread(self: TalkControl, dialogueSegment: DialogueSegment): ()
+function TalkControl.createTalkThread(self: TalkControl, dialogueSegment: DialogueSegment, delayInSecs: number?): ()
 	self:connectOnDiedConnection()
 	if self.talkThread then
 		task.cancel(self.talkThread)
 	end
 
+	local f = function()
+			for _, segment in pairs(dialogueSegment) do
+				local speechDur = segment.customSpeechDur or TalkControl.getStringSpeechDuration(segment.text)
+				local finalText = segment.text
+				if segment.values and #segment.values >= 1 then
+					finalText = (finalText :: any):format(table.unpack(segment.values))
+				end
+
+				self.bubbleChatControl:displayBubble(finalText)
+				TalkControl.performLipSync(self.faceControl, finalText, speechDur)
+			end
+
+			if self.faceControl then
+				self.faceControl:resetMouthToExpression()
+			end
+
+			self.talkThread = nil
+		end
+
 	-- NOTES: This should be on client-side, but I haven't seen any signifficant
 	-- performance difference, yet.
 	-- But I'm too lazy to implement the agonizing pain that is server-client communication.
-	self.talkThread = task.spawn(function()
-	for _, segment in pairs(dialogueSegment) do
-			local speechDur = segment.customSpeechDur or TalkControl.getStringSpeechDuration(segment.text)
-			local finalText = segment.text
-			if segment.values and #segment.values >= 1 then
-				finalText = (finalText :: any):format(table.unpack(segment.values))
-			end
-
-			self.bubbleChatControl:displayBubble(finalText)
-			TalkControl.performLipSync(self.faceControl, finalText, speechDur)
-		end
-
-		if self.faceControl then
-			self.faceControl:resetMouthToExpression()
-		end
-
-		self.talkThread = nil
-	end)
-
+	if delayInSecs and delayInSecs > EPSILON then
+		self.talkThread = task.delay(delayInSecs, f)
+	else
+		self.talkThread = task.spawn(f)
+	end
 end
 
 --
