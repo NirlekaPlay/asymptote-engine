@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -31,7 +31,7 @@ function BehaviorWrapper.new(behavior: Behavior): BehaviorWrapper
 		behavior = behavior,
 		minDuration = behavior.minDuration or 60,
 		maxDuration = behavior.maxDuration or 60,
-		reactionTimer = nil,
+		reactionTimer = nil :: number?,
 		endTimesStamp = 0,
 		name = behavior.ClassName or "UntitledBehavior"
 	}, BehaviorWrapper)
@@ -52,7 +52,6 @@ function BehaviorWrapper.tryStart(self: BehaviorWrapper, agent: Agent, currentTi
 		if self.behavior.getReactionTime then
 			requiredReaction = self.behavior:getReactionTime(agent, deltaTime) or 0
 		end
-
 
 		if requiredReaction <= 0 then
 			self.status = BehaviorControl.Status.RUNNING
