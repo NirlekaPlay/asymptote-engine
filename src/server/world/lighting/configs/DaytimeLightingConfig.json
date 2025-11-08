@@ -1,0 +1,53 @@
+{
+  "Lighting": {
+    "$properties": {
+      "Ambient": [0, 0, 0],
+      "Brightness": 3.06,
+      "ClockTime": 12.1,
+      "ColorShift_Bottom": [0, 0, 0],
+      "ColorShift_Top": [0, 0, 0],
+      "EnvironmentDiffuseScale": 1,
+      "EnvironmentSpecularScale": 1,
+      "ExposureCompensation": 0,
+      "GlobalShadows": true,
+      "LightingStyle": "Enum.LightingStyle.Realistic",
+      "OutdoorAmbient": [139, 113, 75],
+      "PrioritizeLightingQuality": true,
+      "ShadowSoftness": 0.31
+    }
+  },
+  "Atmosphere": {
+    "$properties": {
+      "Color": [0, 0, 0],
+      "Decay": [0, 0, 0],
+      "Density": 0.629,
+      "Glare": 0,
+      "Haze": 0,
+      "Offset": 0
+    }
+  },
+  "Sky": {
+    "$properties": {
+      "CelestialBodiesShown": true,
+      "MoonAngularSize": 11,
+      "MoonTextureId": "rbxasset://sky/moon.jpg",
+      "SkyboxBk": "rbxassetid://600830446",
+      "SkyboxDn": "rbxassetid://600831635",
+      "SkyboxFt": "rbxassetid://600832720",
+      "SkyboxLf": "rbxassetid://600886090",
+      "SkyboxOrientation": [0, 0, 0],
+      "SkyboxRt": "rbxassetid://600833862",
+      "SkyboxUp": "rbxassetid://600835177",
+      "StarCount": 3000,
+      "SunAngularSize": 21,
+      "SunTextureId": "rbxasset://sky/sun.jpg"
+    }
+  },
+  "SunRaysEffect": {
+    "$properties": {
+      "Name": "SunRays",
+      "Intensity": 0.01,
+      "Spread": 0.1
+    }
+  }
+}

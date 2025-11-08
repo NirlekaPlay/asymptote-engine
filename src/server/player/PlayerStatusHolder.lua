@@ -12,6 +12,7 @@ PlayerStatusHolder.__index = PlayerStatusHolder
 
 export type PlayerStatusHolder = typeof(setmetatable({} :: {
 	player: Player,
+	currentDisguise: string,
 	currentStatusesMap: { [PlayerStatus]: true }
 }, PlayerStatusHolder))
 
@@ -22,6 +23,14 @@ function PlayerStatusHolder.new(player: Player): PlayerStatusHolder
 		player = player,
 		currentStatusesMap = {}
 	}, PlayerStatusHolder)
+end
+
+function PlayerStatusHolder.setDisguise(self: PlayerStatusHolder, disguiseId: string): ()
+	self.currentDisguise = disguiseId
+end
+
+function PlayerStatusHolder.getDisguise(self: PlayerStatusHolder): string
+	return self.currentDisguise
 end
 
 function PlayerStatusHolder.addStatus(self: PlayerStatusHolder, statusType: PlayerStatus): ()

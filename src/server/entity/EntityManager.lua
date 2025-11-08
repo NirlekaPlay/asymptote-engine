@@ -55,4 +55,8 @@ function EntityManager.getEntityByUuid(entityUuid: string): StaticEntity | Dynam
 	return EntityManager.Entities[entityUuid]
 end
 
+function EntityManager.hasEntity(entityUuid: string): boolean
+	return EntityManager.Entities[entityUuid] ~= nil
+end
+
 return EntityManager

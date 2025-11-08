@@ -48,7 +48,7 @@ export type ServerBulletObject = {
 	rng: Random,
 	raycastParams: RaycastParams,
 	size: Vector3,
-	damageCallback: (humanoid: Humanoid, limb: BasePart) -> Humanoid
+	damageCallback: (humanoid: Humanoid?, limb: BasePart) -> Humanoid
 }
 
 function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayload.BulletTracer, fromChar: Model, damageCallback: (humanoid: Humanoid, limb: BasePart) -> ()): ()
@@ -126,7 +126,8 @@ function BulletSimulation.stepBullets(deltaTime: number): ()
 			local destroyBullet = false
 			local humanoid = instHit.Parent:FindFirstChildOfClass("Humanoid")
 
-			if humanoid then
+			-- TODO: This shit should be handled externally.
+			if humanoid or instHit:GetAttribute("PropDamage") == true then
 				bulletObj.damageCallback(humanoid, instHit)
 			end
 

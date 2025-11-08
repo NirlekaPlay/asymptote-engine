@@ -11,10 +11,11 @@ local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
+local ReportControl = require(ServerScriptService.server.ai.control.ReportControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
@@ -33,7 +34,7 @@ DummyAgent.__index = DummyAgent
 export type DummyAgent = typeof(setmetatable({} :: {
 	uuid: string,
 	characterName: string,
-	character: Model,
+	character: Model & { Humanoid: Humanoid },
 	alive: boolean,
 	brain: Brain.Brain<any>,
 	bodyRotationControl: BodyRotationControl.BodyRotationControl,
@@ -42,22 +43,25 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	talkControl: TalkControl.TalkControl,
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
+	reportControl: ReportControl.ReportControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
 	--
-	designatedPosts: { GuardPost.GuardPost }
+	designatedPosts: { Node.Node },
+	enforceClass: { [string]: number }
 }, DummyAgent))
 
-function DummyAgent.new(character: Model): DummyAgent
+function DummyAgent.new(character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
+	self.characterName = charName or ""
 	self.alive = true
 	self.pathNavigation = PathNavigation.new(character, {
 		AgentRadius = 2,
 		AgentHeight = 2,
-		AgentCanJump = true,
+		AgentCanJump = false,
 		WaypointSpacing = 1
 	})
 	self.detectionManager = DetectionManagement.new(self)
@@ -67,24 +71,49 @@ function DummyAgent.new(character: Model): DummyAgent
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.bubbleChatControl = BubbleChatControl.new(character)
 	self.gunControl = GunControl.new(self)
-	self.talkControl = TalkControl.new(character, self.bubbleChatControl)
+	self.talkControl = TalkControl.new(character, self.bubbleChatControl, self.faceControl)
 	self.ragdollControl = RagdollControl.new(character)
-	self.random = Random.new(tick())
+	self.reportControl = ReportControl.new(self)
+	self.random = Random.new(seed or tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.JumpHeight = 0
+	humanoid.JumpPower = 0
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
 		self:onDied()
 	end)
 
 	self.uuid = HttpService:GenerateGUID(false)
 	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
-	self.designatedPosts = {} :: { GuardPost.GuardPost }
+	self.designatedPosts = {} :: { Node.Node }
+	self.enforceClass = {}
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
 			part.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
 		end
 	end
+
+	-- TODO: Legacy. Fix the Animate script.
+	local isPathfindingBoolValue = Instance.new("BoolValue")
+	isPathfindingBoolValue.Name = "isPathfinding"
+	isPathfindingBoolValue.Value = false
+	isPathfindingBoolValue.Parent = character
+
+	local isRunning = Instance.new("BoolValue")
+	isRunning.Name = "isRunning"
+	isRunning.Value = false
+	isRunning.Parent = character
+
+	local isGuarding = Instance.new("BoolValue")
+	isGuarding.Name = "isGuarding"
+	isGuarding.Value = false
+	isGuarding.Parent = character
+
+	local isReporting = Instance.new("BoolValue")
+	isReporting.Name = "isReporting"
+	isReporting.Value = false
+	isReporting.Parent = character
 
 	local descendantAddedConnection = character.DescendantAdded:Connect(function(inst)
 		-- make the Agent not collide with players
@@ -106,9 +135,14 @@ function DummyAgent.new(character: Model): DummyAgent
 	return self
 end
 
-function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { GuardPost.GuardPost }): DummyAgent
+function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { Node.Node }): DummyAgent
 	self.designatedPosts = posts
 	self.brain:setNullableMemory(MemoryModuleTypes.DESIGNATED_POSTS, posts)
+	return self
+end
+
+function DummyAgent.setEnforceClass(self: DummyAgent, enforceClass: { [string]: number }): DummyAgent
+	self.enforceClass = enforceClass
 	return self
 end
 
@@ -146,6 +180,20 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	self.brain:update(deltaTime)
 	self.lookControl:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
+	self.reportControl:update(deltaTime)
+
+	-- TODO: Legacy walking animation code.
+	if self.pathNavigation.pathfinder.Status == "Active" then
+		self.character.isPathfinding.Value = true
+		if self.character.Humanoid.WalkSpeed >= 18 then
+			self.character.isRunning.Value = true
+		else
+			self.character.isRunning.Value = false
+		end
+	else
+		self.character.isPathfinding.Value = false
+		self.character.isRunning.Value = false
+	end
 end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean
@@ -206,6 +254,10 @@ end
 
 function DummyAgent.getTalkControl(self: DummyAgent): TalkControl.TalkControl
 	return self.talkControl
+end
+
+function DummyAgent.getReportControl(self: DummyAgent): ReportControl.ReportControl
+	return self.reportControl
 end
 
 function DummyAgent.getPrimaryPart(self: DummyAgent): BasePart

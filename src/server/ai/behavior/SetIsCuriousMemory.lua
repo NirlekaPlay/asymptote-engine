@@ -31,7 +31,8 @@ function SetIsCuriousMemory.new(): SetIsCuriousMemory
 end
 
 local MEMORY_REQUIREMENTS = {
-	[MemoryModuleTypes.IS_CURIOUS] = MemoryStatus.REGISTERED
+	[MemoryModuleTypes.IS_CURIOUS] = MemoryStatus.REGISTERED,
+	[MemoryModuleTypes.IS_COMBAT_MODE] = MemoryStatus.VALUE_ABSENT
 }
 
 function SetIsCuriousMemory.getMemoryRequirements(self: SetIsCuriousMemory): { [MemoryModuleType<any>]: MemoryStatus }
@@ -43,7 +44,7 @@ function SetIsCuriousMemory.checkExtraStartConditions(self: SetIsCuriousMemory, 
 end
 
 function SetIsCuriousMemory.canStillUse(self: SetIsCuriousMemory, agent: Agent): boolean
-	return self:checkExtraStartConditions(agent)
+	return self:checkExtraStartConditions(agent) and not agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
 end
 
 function SetIsCuriousMemory.doStart(self: SetIsCuriousMemory, agent: Agent): ()

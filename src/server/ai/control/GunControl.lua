@@ -1,4 +1,4 @@
---!nonstrict
+--!strict
 
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -38,21 +38,7 @@ export type GunControl = typeof(setmetatable({} :: {
 }, GunControl))
 
 type Fbb = {
-	tool: Tool,
-	settingsFolder: {
-		bchambered: NumberValue,
-		bspeed: NumberValue,
-		inmag: NumberValue,
-		magleft: NumberValue,
-		maxmagcapacity: NumberValue,
-		maxwpenetration: NumberValue,
-		mode: StringValue,
-		speed: NumberValue
-	},
-	remoteFire: BindableEvent,
-	remoteReload: BindableEvent,
-	remoteUnequip: BindableEvent,
-	remoteLookAt: BindableEvent
+	tool: Tool
 }
 
 export type GunConfg = {
@@ -130,7 +116,11 @@ function GunControl.unequipGun(self: GunControl): ()
 end
 
 function GunControl.lookAt(self: GunControl, atPos: Vector3): ()
-	if (self.lastLookPos - atPos).Magnitude > 0.1 then
+	local agentCframe = self.agent:getPrimaryPart().CFrame
+	local currentDir = (self.lastLookPos - agentCframe.LookVector).Unit
+	local targetDir = (atPos - agentCframe.Position).Unit
+	
+	if (self.lastLookPos - atPos).Magnitude > 0.1 or currentDir:Dot(targetDir) < 0.999 then
 		self.fbbControl:lookAt(atPos)
 		self.lastLookPos = atPos
 	end
@@ -193,20 +183,8 @@ function GunControl.getFbb(toChar: Model): Fbb
 	local fbb = ServerStorage:FindFirstChild("FBB") :: Tool
 	local clonedFbb = fbb:Clone()
 
-	local settingsFolder = clonedFbb:FindFirstChild("settings") :: Folder
-	local settingsFolderTable = {} :: any
-
-	for _, instance in ipairs(settingsFolder:GetChildren()) do
-		settingsFolderTable[instance.Name] = instance
-	end
-
 	local newFbbObject: Fbb = {
-		tool = clonedFbb,
-		settingsFolder = settingsFolderTable,
-		remoteFire = clonedFbb:FindFirstChild("fire") :: BindableEvent,
-		remoteUnequip = clonedFbb:FindFirstChild("unequip") :: BindableEvent,
-		remoteReload = clonedFbb:FindFirstChild("reload") :: BindableEvent,
-		remoteLookAt = clonedFbb:FindFirstChild("lookat") :: BindableEvent
+		tool = clonedFbb
 	}
 
 	return newFbbObject

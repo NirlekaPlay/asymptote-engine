@@ -9,21 +9,21 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local Commands = require(ServerScriptService.server.commands.registry.Commands)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
-local Level = require(ServerScriptService.server.level.Level)
+local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
-local Guard = require(ServerScriptService.server.npc.guard.Guard)
+--local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 local guards: { [Model]: Guard.Guard } = {}
-local basicGuardPosts: { GuardPost.GuardPost } = {}
-local advancedGuardPosts: { GuardPost.GuardPost } = {}
+local nodeGroups: { [string]: { Node.Node } } = {}
+local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
 
 local SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME = true
@@ -36,12 +36,12 @@ local function setupGuard(guardChar: Model): ()
 		-- can be.)
 		print(((guardChar :: any) :: Model):GetFullName())
 	end
-	local designatedPosts: { GuardPost.GuardPost }
+	local designatedPosts: { Node.Node }
 
 	if guardChar:GetAttribute("CanSeeThroughDisguises") then
-		designatedPosts = advancedGuardPosts
+		designatedPosts = advancedNodes
 	else
-		designatedPosts = basicGuardPosts
+		designatedPosts = basicNodes
 	end
 
 	guards[guardChar] = Guard.new(guardChar, designatedPosts)
@@ -68,10 +68,72 @@ local function onMapTaggedGuard(guardChar: Model): ()
 	setupGuard(guardChar)
 end
 
+local function getNodes(char: Model): { Node.Node }
+	local nodesName = char:GetAttribute("Nodes") :: string
+	if not nodeGroups[nodesName] then
+		nodeGroups[nodesName] = {}
+		local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodesName, true) :: Folder
+
+		local nodesCount = 0
+		local stack = { nodesFolder }
+		local index = 1
+		local seenParts = {}
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index -= 1
+
+			if current:IsA("BasePart") and current.Name == "Node" and not seenParts[current] then
+				nodesCount += 1
+				local newNode
+				-- to prevent duplicated nodes
+				if allNodes[current] then
+					newNode = allNodes[current]
+				else
+					current.Anchored = true
+					current.Transparency = 1
+					current.CanCollide = false
+					current.CanQuery = false
+					current.CanTouch = false
+					current.AudioCanCollide = false
+					newNode = Node.fromPart(current, false)
+					allNodes[current] = newNode
+				end
+				nodeGroups[nodesName][nodesCount] = newNode
+				seenParts[current] = true
+			elseif current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index += 1
+					stack[index] = children[i]
+				end
+			end
+		end
+	end
+
+	return nodeGroups[nodesName]
+end
+
 local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
-	local newDummy = DetectionDummy.new(dummyChar)
-		:setDesignatedPosts(basicGuardPosts)
+	local nodes = getNodes(dummyChar)
+	local newDummy = DetectionDummy.new(dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
+		:setDesignatedPosts(nodes)
+
+	local enforceClassName = dummyChar:GetAttribute("EnforceClass") :: string?
+	if dummyChar:GetAttribute("EnforceClass") then
+		if not (require)((workspace :: any).Level.MissionSetup).EnforceClass then
+			warn("EnforceClass must ATLEAST be an empty table.")
+		else
+			local enforceClass = (require)((workspace :: any).Level.MissionSetup).EnforceClass[enforceClassName]
+			if not enforceClass then
+				warn(`Enforce class {enforceClassName} doesnt exist in MissionSetup.`)
+			elseif next(enforceClass) ~= nil then
+				newDummy:setEnforceClass(enforceClass)
+			end
+		end
+	end
 
 	guards[dummyChar] = newDummy
 end
@@ -94,20 +156,6 @@ local function onMapTaggedDummies(dummyChar: Model): ()
 	setupDummy(dummyChar)
 end
 
-CollectionManager.mapTaggedInstances(CollectionTagTypes.GUARD_POST, function(post: BasePart)
-	if not post:IsDescendantOf(workspace) then
-		return
-	end
-
-	local newGuardPost = GuardPost.fromPart(post, false)
-	
-	if (post.Parent :: Instance).Name == "advanced" then
-		table.insert(advancedGuardPosts, newGuardPost)
-	else
-		table.insert(basicGuardPosts, newGuardPost)
-	end
-end)
-
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
@@ -118,7 +166,18 @@ CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, onMapT
 
 Level.initializeLevel()
 
-RunService.PostSimulation:Connect(function(deltaTime)
+-- to prevent race condition bullshit
+local playersToRemove: { [number]: true } = {}
+
+local function update(deltaTime: number): ()
+	if next(playersToRemove) ~= nil then
+		for userId in playersToRemove do
+			--warn("REMOVING " .. userId)
+			EntityManager.Entities[tostring(userId)] = nil
+		end
+
+		table.clear(playersToRemove)
+	end
 	Level.update(deltaTime)
 
 	-- this frame, is there any listening clients?
@@ -151,13 +210,68 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	SuspicionManagement.flushBatchToClients()
 
 	BulletSimulation.update(deltaTime)
-end)
+end
+
+RunService.PostSimulation:Connect(update)
+
+--[[local UPDATES_PER_SEC = 20
+local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
+local timeAccum = 0
+local lastUpdateTime = os.clock()
+
+task.spawn(function()
+	while true do
+		local deltaTime = os.clock() - lastUpdateTime
+		timeAccum += deltaTime
+
+		while timeAccum >= UPDATE_INTERVAL do
+			update(UPDATE_INTERVAL)
+			timeAccum -= UPDATE_INTERVAL
+		end
+
+		lastUpdateTime = os.clock()
+
+		task.wait()
+	end
+end)]]
 
 if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER) then
 	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
 end
 
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PLAYER) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PLAYER)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.VISION_RAYCAST) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.VISION_RAYCAST)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.BLOCK_VISION_RAYCAST) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.BLOCK_VISION_RAYCAST)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.IGNORE_VISION_RAYCAST) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.IGNORE_VISION_RAYCAST)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PATHFINDING_BLOCKER) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PATHFINDING_BLOCKER)
+end
+
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.BLOCK_VISION_RAYCAST, true)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.IGNORE_VISION_RAYCAST, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
+
+-- pathfinding blocker shouldnt collide with anything.
+for _, v in PhysicsService:GetRegisteredCollisionGroups() do
+	-- roblox didnt correctly type annotated what 
+	if v.name ~= CollisionGroupTypes.PATHFINDING_BLOCKER then
+		PhysicsService:CollisionGroupSetCollidable(v.name :: string, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
+	end
+end
 
 Players.PlayerAdded:Connect(function(player)
 	-- entity reg here:
@@ -185,7 +299,7 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
 	-- entity reg here:
-	EntityManager.Entities[tostring(player.UserId)] = nil
+	playersToRemove[player.UserId] = true
 	--
 	if playerConnections[player] then
 		playerConnections[player]:Disconnect()

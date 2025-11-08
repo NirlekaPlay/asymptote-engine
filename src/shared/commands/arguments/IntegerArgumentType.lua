@@ -39,10 +39,10 @@ end
 	`min` and `max` range.
 ]=]
 function IntegerArgumentType.integer(min: number?, max: number?): IntegerArgumentType
-	if min then
-		return IntegerArgumentType.new(min, DEFAULT_MAX_INT)
-	elseif min and max then
+	if min and max then
 		return IntegerArgumentType.new(min, max)
+	elseif min then
+		return IntegerArgumentType.new(min, DEFAULT_MAX_INT)
 	else
 		return IntegerArgumentType.new(DEFAULT_MIN_INT, DEFAULT_MAX_INT)
 	end
@@ -64,7 +64,7 @@ function IntegerArgumentType.parse(self: IntegerArgumentType, input: string): (n
 	elseif num < self.minimum then
 		error(`Integer too low, below defined {self.minimum} minimum limit, got {num}`)
 	elseif num > self.maximum then
-		error(`Integer too big, above defined {self.minimum} maximum limit, got {num}`)
+		error(`Integer too big, above defined {self.maximum} maximum limit, got {num}`)
 	end
 
 	local len = tostring(str):len()

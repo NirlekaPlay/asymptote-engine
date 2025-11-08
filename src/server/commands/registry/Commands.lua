@@ -9,7 +9,9 @@ local ForceFieldCommand = require(ServerScriptService.server.commands.ForceField
 local GiveCommand = require(ServerScriptService.server.commands.GiveCommand)
 local HelpCommand = require(ServerScriptService.server.commands.HelpCommand)
 local HighlightCommand = require(ServerScriptService.server.commands.HighlightCommand)
+local InsertAssetCommand = require(ServerScriptService.server.commands.InsertAssetCommand)
 local KillCommand = require(ServerScriptService.server.commands.KillCommand)
+local LightingCommand = require(ServerScriptService.server.commands.LightingCommand)
 local QuoteOfTheDayCommand = require(ServerScriptService.server.commands.QuoteOfTheDayCommand)
 local RestartServerCommand = require(ServerScriptService.server.commands.RestartServerCommand)
 local SummonCommand = require(ServerScriptService.server.commands.SummonCommand)
@@ -46,6 +48,8 @@ function Commands.register()
 	HelpCommand.register(dispatcher)
 	QuoteOfTheDayCommand.register(dispatcher)
 	CellCommand.register(dispatcher)
+	LightingCommand.register(dispatcher)
+	InsertAssetCommand.register(dispatcher)
 end
 
 function Commands.getDispatcher(): CommandDispatcher

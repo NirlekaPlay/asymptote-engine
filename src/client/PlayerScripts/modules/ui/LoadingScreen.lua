@@ -23,7 +23,10 @@ local LOADING_SCREEN_BACKGROUND_IDS = {
 	{ name = "Hub Room", id = 93100734007160 },
 	{ name = "The Founder's Eye", id = 119595682823582 },
 	{ name = "She's Dead", id = 129935296812180 },
-	{ name = "A Tester's Favorite Item", id = 112033098640768 }
+	{ name = "A Tester's Favorite Item", id = 112033098640768 },
+	{ name = "Mr. Fox's Fiery Rehearsal Session", id = 94507925788952},
+	{ name = "Darkness and Light", id = 98157055540963 },
+	{ name = "Falling Stairs of God", id = 78883576372525 }
 }
 local TWEEN_INFO_FADE = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
 local lastArrivedBackgroundId: number? = nil

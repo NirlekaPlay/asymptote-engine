@@ -15,7 +15,7 @@ local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local ReportControl = require(ServerScriptService.server.ai.control.ReportControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
-local GuardPost = require(ServerScriptService.server.ai.navigation.GuardPost)
+local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
@@ -42,11 +42,11 @@ export type Guard = typeof(setmetatable({} :: {
 	reportControl: ReportControl.ReportControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	suspicionManager: SuspicionManagement.SuspicionManagement,
-	designatedPosts: { GuardPost.GuardPost },
+	designatedPosts: { Node.Node },
 	random: Random
 }, Guard))
 
-function Guard.new(character: Model, designatedPosts: { GuardPost.GuardPost }): Guard
+function Guard.new(character: Model, designatedPosts: { Node.Node }): Guard
 	local self = setmetatable({}, Guard)
 
 	self.character = character

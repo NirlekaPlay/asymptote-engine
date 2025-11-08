@@ -1,9 +1,10 @@
---!nonstrict
+--!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
+local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
@@ -23,15 +24,15 @@ export type KillTarget = typeof(setmetatable({} :: {
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent & ArmedAgent.ArmedAgent
+type Agent = Agent.Agent & ArmedAgent.ArmedAgent & ReporterAgent.ReporterAgent
 
 function KillTarget.new(): KillTarget
 	return setmetatable({
 		minDuration = math.huge,
 		maxDuration = math.huge,
 		triggerFingerCooldown = 0.5,
-		targetHumanoidDiedConnection = nil,
-		selfHumanoidDiedConnection = nil
+		targetHumanoidDiedConnection = nil :: RBXScriptConnection?,
+		selfHumanoidDiedConnection = nil :: RBXScriptConnection?
 	}, KillTarget)
 end
 
@@ -44,7 +45,7 @@ function KillTarget.getMemoryRequirements(self: KillTarget): { [MemoryModuleType
 end
 
 function KillTarget.checkExtraStartConditions(self: KillTarget, agent: Agent): boolean
-	return true
+	return not agent:getReportControl():isReporting()
 end
 
 function KillTarget.canStillUse(self: KillTarget, agent: Agent): boolean
@@ -72,6 +73,7 @@ function KillTarget.canStillUse(self: KillTarget, agent: Agent): boolean
 end
 
 function KillTarget.doStart(self: KillTarget, agent: Agent): ()
+	agent.character:FindFirstChildOfClass("Humanoid").AutoRotate = false
 	agent:getGunControl():equipGun({
 		roundsInMagazine = 0,
 		magazineRoundsCapacity = 30,
@@ -79,6 +81,7 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 	})
 	agent:getGunControl():reload()
 	agent.character:SetAttribute("HearingRadius", 30)
+	agent.character:SetAttribute("PeriphAngle", 360)
 
 	if not self.selfHumanoidDiedConnection then
 		self.selfHumanoidDiedConnection = agent.character:FindFirstChildOfClass("Humanoid").Died:Once(function()
@@ -91,8 +94,12 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 end
 
 function KillTarget.doStop(self: KillTarget, agent: Agent): ()
+	agent.character:FindFirstChildOfClass("Humanoid").AutoRotate = false
 	self.triggerFingerCooldown = 0.5
-	--agent:getGunControl():unequipGun()
+	if self.targetHumanoidDiedConnection then
+		self.targetHumanoidDiedConnection:Disconnect()
+		self.targetHumanoidDiedConnection = nil
+	end
 end
 
 function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number): ()
@@ -125,6 +132,8 @@ function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number):
 		})
 		agent:getGunControl():drop()
 		agent:getBrain():eraseMemory(MemoryModuleTypes.KILL_TARGET)
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_PANICKING, true)
+		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_INTIMIDATED, true)
 		return
 	end
 

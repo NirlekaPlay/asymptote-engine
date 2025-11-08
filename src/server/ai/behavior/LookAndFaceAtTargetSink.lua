@@ -3,9 +3,11 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Agent = require(ServerScriptService.server.Agent)
+local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 
 local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
@@ -25,7 +27,7 @@ end
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
 type MemoryStatus = MemoryStatus.MemoryStatus
-type Agent = Agent.Agent
+type Agent = Agent.Agent & ReporterAgent.ReporterAgent
 
 local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.VISIBLE_ENTITIES] = MemoryStatus.REGISTERED,
@@ -92,36 +94,44 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 			return
 		end
 
-		local entityLookPos: Vector3
-
-		-- Jesus tapdancing Christ
-		-- Borderline insane entity type checking taken from VisibleEntitiesSensor.
-		-- Nico what have you done.
-		if entityObj.instance:IsA("BasePart") then
-			entityLookPos = entityObj.instance.Position
-		elseif entityObj.instance:IsA("Model") then
-			entityLookPos = (entityObj.instance.PrimaryPart :: Part).Position
-		end
-
-		if entityObj.name == "Player" then
-			if not entityObj.instance then return end
-			if not entityObj.instance:IsA("Player") then return end
-			if not entityObj.instance.Character then return end
-			if not entityObj.instance.Character:IsA("Model") then return end
-			if not entityObj.instance.Character.PrimaryPart then return end
-
-			entityLookPos = entityObj.instance.Character.PrimaryPart.Position
-		end
-
-		if entityLookPos then
-			self.lastKnownTargetPos = entityLookPos
-		end
+		self.lastKnownTargetPos = EntityUtils.getPos(entityObj)
 	end
 
 	if self.lastKnownTargetPos then
-		agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
-		agent:getLookControl():setLookAtPos(self.lastKnownTargetPos)
+		local agentCFrame = agent:getPrimaryPart().CFrame
+		local agentPos = agentCFrame.Position
+		local agentForward = agentCFrame.LookVector
+		local toTarget = self.lastKnownTargetPos - agentPos
+		local isBehind = toTarget:Dot(agentForward) < 0
+
+		local distance = toTarget.Magnitude
+		if distance > 0 then
+			local distanceToTarget = (agentPos - self.lastKnownTargetPos).Magnitude
+			--[[
+			local BODY_ROTATION_THRESHOLD_DEGREES = 30
+			toTarget = toTarget.Unit
+
+			local dot = agentForward:Dot(toTarget)
+			local angle = math.acos(math.clamp(dot, -1, 1)) -- radians
+
+			local angleThreshold = math.rad(BODY_ROTATION_THRESHOLD_DEGREES)
+			if angle > angleThreshold then
+				agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
+			end]]
+
+			-- TODO: Should be in a predicate function or something
+			if not agent:getReportControl():isRadioEquipped() then
+				agent:getLookControl():setLookAtPos(self.lastKnownTargetPos)
+			else
+				agent:getLookControl():setLookAtPos(nil)
+			end
+
+			if (distanceToTarget > 5.5) or isBehind then
+				agent:getBodyRotationControl():setRotateTowards(self.lastKnownTargetPos)
+			end
+		end
 	end
+
 end
 
 return LookAndFaceAtTargetSink

@@ -24,6 +24,15 @@ function Mission.getAlertLevel(): AlertLevels.AlertLevel
 	return ALERT_LEVELS[discreteLevel]
 end
 
+function Mission.getAlertLevelNumericValue(alertLevel: AlertLevels.AlertLevel)
+	for value, level in pairs(ALERT_LEVELS) do
+		if level == alertLevel then
+			return value
+		end
+	end
+	return 0
+end
+
 function Mission.raiseAlertLevel(amount: number): ()
 	Mission.missionAlertLevel = math.clamp(Mission.missionAlertLevel + amount, 0, MAX_ALERT_LEVEL)
 	Mission.syncAlertLevelToClients()

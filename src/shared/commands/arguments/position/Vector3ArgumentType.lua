@@ -33,7 +33,7 @@ function Vector3ArgumentType.vec3(): Vector3ArgumentType
 	return setmetatable({}, Vector3ArgumentType) :: Vector3ArgumentType
 end
 
-function Vector3ArgumentType.resolveAndGetVec3<S>(context: CommandContext.CommandContext<S>, name: string, source: S): Vector3
+function Vector3ArgumentType.resolveAndGetVec3<S>(context: CommandContext.CommandContext<S>, name: string, source: any): Vector3
 	return Vector3ArgumentType.resolveVec3(Vector3ArgumentType.getVec3(context, name), source)
 end
 
