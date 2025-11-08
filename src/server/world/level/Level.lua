@@ -118,6 +118,43 @@ local OUTFITS = {
 	["PsdPlainColourable"] = { 4893820412, 4893808612 },
 	["PsdPlain"] = { 4893814518, 4893808612 }
 } :: { [string]: { number } }
+
+local function generateSeededHairColorRGB(seed: number)
+	math.randomseed(seed) -- what?
+
+	local hue = math.random() * (60 / 360)
+	local saturation = math.random() * 0.5 + 0.2
+	local value = math.random() * 0.7 + 0.1
+
+	local i = math.floor(hue * 6)
+	local f = hue * 6 - i
+	local p = value * (1 - saturation)
+	local q = value * (1 - f * saturation)
+	local t = value * (1 - (1 - f) * saturation)
+
+	local r_float, g_float, b_float
+	
+	if i % 6 == 0 then
+		r_float, g_float, b_float = value, t, p
+	elseif i % 6 == 1 then
+		r_float, g_float, b_float = q, value, p
+	elseif i % 6 == 2 then
+		r_float, g_float, b_float = p, value, t
+	elseif i % 6 == 3 then
+		r_float, g_float, b_float = p, q, value
+	elseif i % 6 == 4 then
+		r_float, g_float, b_float = t, p, value
+	else -- i % 6 == 5
+		r_float, g_float, b_float = value, p, q
+	end
+
+	local r = math.floor(r_float * 255)
+	local g = math.floor(g_float * 255)
+	local b = math.floor(b_float * 255)
+	
+	return Color3.fromRGB(r, g, b)
+end
+
 function Level.initializeNpc(inst: Instance): ()
 	-- TODO: SOMEONE FUCKING FIX THIS BULLSHIT THANK YOU
 	-- whats worse is this shit is initialized in Server sever script so theres no way to access it
@@ -185,6 +222,11 @@ function Level.initializeNpc(inst: Instance): ()
 	local characterRigClone = RIG_TO_CLONE:Clone()
 	if charName then
 		characterRigClone.Name = charName
+	end
+
+	local charAppSeed = tonumber(inst:GetAttribute("CharAppSeed") :: (string | number)?) or tick()
+	if charAppSeed then
+		-- char shit.
 	end
 
 	local outfitName = inst:GetAttribute("Outfit") :: string?
