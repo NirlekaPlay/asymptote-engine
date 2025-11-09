@@ -1,13 +1,10 @@
-# Bugs
-If you believe to have found a bug in any of our games using the Engine that is related to the Engine itself, please open a [GitHub issue](https://github.com/NirlekaPlay/asymptote-engine/issues/new). It helps if you also include the engine version where the bug happened.
+# Conventions
 
-## Contributing
-
-### Naming Conventions
+## Naming Conventions
 
 Our project primarily follows Java naming conventions as a foundation for consistency across code and assets.
 
-#### Directories
+### Directories
 
 Directory names should use all lowercase letters.
 **Example:** `server`, `client`, `alertlevel`
@@ -26,9 +23,9 @@ Directory names should use all lowercase letters.
 * Other Roblox files, such as GUIs, should use **UpperCamelCase**.
   **Example:** `DetectionGui.rbxmx`
 
-### Scripting Naming Conventions: Nirleka's Rant
+## Scripting Conventions: Nirleka's Rant
 
-#### Classes, Interfaces, and Types
+### Classes, Interfaces, and Types
 
 Classes, interfaces, and types should use **UpperCamelCase.**
 Use whole words and must avoid acronyms and abbreviations.
@@ -48,7 +45,7 @@ export type Sensor<T> = {
 }
 ```
 
-#### Functions and Methods
+### Functions and Methods
 
 Functions and methods should be verbs and use **lowerCamelCase.**
 
@@ -64,7 +61,7 @@ function Brain.setMemoryInternal<T, U>(self: Brain<T>, memoryType: MemoryModuleT
 end
 ```
 
-#### Variables
+### Variables
 
 Variables should be descriptive, and use **lowerCamelCase.**
 
@@ -138,7 +135,7 @@ This also won't leave the type checker to slap in you in the face when trying to
 
 Now you might be saying *"But nir!1! What if I need to change the variable's type-"* **NO.** Variables should store only ONE type. ***ONE.*** What circumstances where variable need to change multiple types of data???? Thats just stupid! This applies to tables as well! Do not have a goddamn table which stores multiple types of data!
 
-#### Comments
+### Comments
 
 Comments are either tools for developers to tell other developers what a piece of code does, or a way for a developer to vent.
 
@@ -166,7 +163,7 @@ past-life version of yourself thought `0.73` was a perfectly reasonable value fo
 
 For example:
 
-```lua hl_lines="3"
+```lua hl_lines="4"
 function DeanHaunt.spawnBehindPlayerIfPossible(rootPart: BasePart): ()
 	-- ...
 
