@@ -11,8 +11,10 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -134,6 +136,8 @@ local function createCircularProgressBar()
 	return bar
 end
 
+local promptParts: { [BasePart]: true } = {}
+
 local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInputType, gui: ScreenGui): () -> ()
 	local tweensForButtonHoldBegin: { Tween } = {}
 	local tweensForButtonHoldEnd: { Tween } = {}
@@ -151,24 +155,21 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local isOmniDir = promptParentAttatchment:GetAttribute("OmniDir")
 
 	local promptPart
-	if not isOmniDir then
-		promptPart = Instance.new("Part")
-		promptPart.Anchored = true
-		promptPart.CanCollide = false
-		promptPart.CanTouch = false
-		promptPart.CanQuery = false
-		promptPart.CastShadow = false
-		promptPart.Transparency = 1
-		promptPart.CFrame = promptParentAttatchment.WorldCFrame
-		promptPart.Parent = prompt.Parent.Parent
+	promptPart = Instance.new("Part")
+	promptPart.Anchored = true
+	promptPart.CanCollide = false
+	promptPart.CanTouch = false
+	promptPart.CanQuery = false
+	promptPart.CastShadow = false
+	promptPart.Transparency = 1
+	promptPart.CFrame = promptParentAttatchment.WorldCFrame
+	promptPart.Parent = prompt.Parent.Parent
+
+	if isOmniDir then
+		promptParts[promptPart] = true
 	end
 
-	local promptUI
-	if isOmniDir then 
-		promptUI = Instance.new("BillboardGui")
-	else
-		promptUI = Instance.new("SurfaceGui")
-	end
+	local promptUI = Instance.new("SurfaceGui")
 	promptUI.Name = "Prompt"
 	promptUI.AlwaysOnTop = true
 
@@ -478,31 +479,31 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		objectText.AutoLocalize = prompt.AutoLocalize
 		objectText.RootLocalizationTable = prompt.RootLocalizationTable
 
-		if isOmniDir and promptUI:IsA("BillboardGui") then
+		--[[if isOmniDir and promptUI:IsA("BillboardGui") then
 			promptUI.Size = UDim2.fromOffset(promptWidth, promptHeight)
 			promptUI.SizeOffset =
 				Vector2.new(prompt.UIOffset.X / promptUI.Size.Width.Offset, prompt.UIOffset.Y / promptUI.Size.Height.Offset)
-		else
-			local pixelsPerStud = 45
+		else]]
+		local pixelsPerStud = 45
 
-			-- Convert pixels to studs
-			promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
-			local partWidth = promptWidth / pixelsPerStud
-			local partHeight = promptHeight / pixelsPerStud
-			promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
-		end
+		-- Convert pixels to studs
+		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
+		local partWidth = promptWidth / pixelsPerStud
+		local partHeight = promptHeight / pixelsPerStud
+		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
+		--end
 	end
 
 	local changedConnection = prompt.Changed:Connect(updateUIFromPrompt)
 	updateUIFromPrompt()
 
-	if isOmniDir then 
+	--[[if isOmniDir then 
 		promptUI.Adornee = prompt.Parent
 		promptUI.Parent = gui
-	else
+	else]]
 		promptUI.Adornee = promptPart
 		promptUI.Parent = gui
-	end
+	--end
 
 	for _, tween in ipairs(tweensForFadeIn) do
 		tween:Play()
@@ -528,9 +529,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		task.wait(0.2)
 
 		promptUI.Parent = nil
-		if not isOmniDir then
-			promptPart.Parent = nil
-		end
+		promptPart.Parent = nil
 	end
 
 	return cleanup
@@ -552,4 +551,54 @@ local function onLoad(): ()
 	end)
 end
 
+--
+
+local CFRAME_FLIP_ROT = CFrame.Angles(0, math.rad(180), 0)
+
+local function isPromptPartValid(part: BasePart): boolean
+	if not part then
+		return false
+	end
+
+	if part.Parent == nil or not part:IsDescendantOf(workspace) then
+		return false
+	end
+
+	return true
+end
+
+local function removeInvalidPromptParts(): ()
+	local partsToRemove: { [BasePart]: true } = {}
+
+	-- I don't know anymore.
+	for promptPart in promptParts do
+		if not isPromptPartValid(promptPart) then
+			partsToRemove[promptPart] = true
+		end
+	end
+
+	for promptPart in partsToRemove do
+		promptParts[promptPart] = nil
+	end
+end
+
+local function updatePartPromptsCframe(): ()
+	if next(promptParts) == nil then
+		return
+	end
+
+	local cameraCFrame = Camera.CFrame
+
+	for promptPart in promptParts do
+		promptPart.CFrame = (cameraCFrame.Rotation * CFRAME_FLIP_ROT) + promptPart.Position
+	end
+end
+
+local function update(): ()
+	removeInvalidPromptParts()
+	updatePartPromptsCframe()
+end
+
 onLoad()
+
+RunService.RenderStepped:Connect(update)
