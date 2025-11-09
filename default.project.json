@@ -35,6 +35,32 @@
     "TextChatService": {
       "$properties": {
         "CreateDefaultCommands": false
+      },
+      "BubbleChatConfiguration": {
+        "$className": "BubbleChatConfiguration",
+        "$properties": {
+          "BackgroundColor3": {
+            "Color3": [0.004, 0.037037037, 0.0333333333]
+          },
+          "BackgroundTransparency": 0.3,
+          "FontFace": {
+            "family": "rbxasset://fonts/families/Zekton.json",
+            "weight": "Regular",
+            "style": "Normal"
+          },
+          "TextSize": 17,
+          "TextColor3": {
+            "Color3": [1, 1, 1]
+          }
+        },
+        "UICorner": {
+          "$className": "UICorner",
+          "$properties": {
+            "CornerRadius": {
+              "UDim": [0, 10]
+            }
+          }
+        }
       }
     }
   }
