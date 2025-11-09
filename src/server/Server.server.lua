@@ -259,11 +259,20 @@ if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PATHFINDING
 	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PATHFINDING_BLOCKER)
 end
 
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.BULLET) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.BULLET)
+end
+
+if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PLAYER_COLLIDER) then
+	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PLAYER_COLLIDER)
+end
+
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.BLOCK_VISION_RAYCAST, true)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.IGNORE_VISION_RAYCAST, false)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
+PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.BULLET, CollisionGroupTypes.PLAYER_COLLIDER, false)
 
 -- pathfinding blocker shouldnt collide with anything.
 for _, v in PhysicsService:GetRegisteredCollisionGroups() do
