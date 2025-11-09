@@ -18,6 +18,8 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
+local CollisionGroupBuilder = require(ServerScriptService.server.physics.collision.CollisionGroupBuilder)
+local CollisionGroupRegistry = require(ServerScriptService.server.physics.collision.CollisionGroupRegistry)
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
@@ -235,37 +237,7 @@ task.spawn(function()
 	end
 end)]]
 
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PLAYER) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PLAYER)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.VISION_RAYCAST) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.VISION_RAYCAST)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.BLOCK_VISION_RAYCAST) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.BLOCK_VISION_RAYCAST)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.IGNORE_VISION_RAYCAST) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.IGNORE_VISION_RAYCAST)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PATHFINDING_BLOCKER) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PATHFINDING_BLOCKER)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.BULLET) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.BULLET)
-end
-
-if not PhysicsService:IsCollisionGroupRegistered(CollisionGroupTypes.PLAYER_COLLIDER) then
-	PhysicsService:RegisterCollisionGroup(CollisionGroupTypes.PLAYER_COLLIDER)
-end
+CollisionGroupRegistry.registerCollisionGroupsFromDict(CollisionGroupTypes :: any)
 
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
@@ -274,13 +246,9 @@ PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, C
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
 PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.BULLET, CollisionGroupTypes.PLAYER_COLLIDER, false)
 
--- pathfinding blocker shouldnt collide with anything.
-for _, v in PhysicsService:GetRegisteredCollisionGroups() do
-	-- roblox didnt correctly type annotated what 
-	if v.name ~= CollisionGroupTypes.PATHFINDING_BLOCKER then
-		PhysicsService:CollisionGroupSetCollidable(v.name :: string, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
-	end
-end
+CollisionGroupBuilder.new(CollisionGroupTypes.PATHFINDING_BLOCKER)
+	:notCollideWithAnything()
+	:register()
 
 Players.PlayerAdded:Connect(function(player)
 	-- entity reg here:
