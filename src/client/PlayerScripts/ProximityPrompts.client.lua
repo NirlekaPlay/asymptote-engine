@@ -148,6 +148,9 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local tweenInfoOutHalfSecond = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tweenInfoFast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tweenInfoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+	local tweenInfoExpoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
+
+	local tweensForButtonHoldBeginTransparency = 0.5
 
 	local promptParentAttatchment = prompt.Parent :: Attachment
 
@@ -199,15 +202,15 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local inputFrameScaler = Instance.new("UIScale")
 	inputFrameScaler.Parent = resizeableInputFrame
 
-	local inputFrameScaleFactor = inputType == Enum.ProximityPromptInputType.Touch and 1.6 or 1.33
+	local inputFrameScaleFactor = inputType == Enum.ProximityPromptInputType.Touch and 1.6 or 0.8
 	table.insert(
 		tweensForButtonHoldBegin,
 		TweenService:Create(inputFrameScaler, tweenInfoFast, { Scale = inputFrameScaleFactor })
 	)
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(inputFrameScaler, tweenInfoFast, { Scale = 1 }))
 
-	local actionTextFontSize = 19
-	local objectTextFontSize = 14
+	local actionTextFontSize = 27
+	local objectTextFontSize = 13
 
 	local actionText = Instance.new("TextLabel")
 	actionText.Name = "ActionText"
@@ -219,7 +222,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	actionText.TextColor3 = Color3.new(1, 1, 1)
 	actionText.TextXAlignment = Enum.TextXAlignment.Left
 	actionText.Parent = frame
-	table.insert(tweensForButtonHoldBegin, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 1 }))
+	table.insert(tweensForButtonHoldBegin, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = tweensForButtonHoldBeginTransparency }))
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
 	table.insert(tweensForFadeOut, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
@@ -235,14 +238,14 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	objectText.TextXAlignment = Enum.TextXAlignment.Left
 	objectText.Parent = frame
 
-	table.insert(tweensForButtonHoldBegin, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 1 }))
+	table.insert(tweensForButtonHoldBegin, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = tweensForButtonHoldBeginTransparency }))
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
 	table.insert(tweensForFadeOut, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
 
 	table.insert(
 		tweensForButtonHoldBegin,
-		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(0.5, 1), BackgroundTransparency = 1 })
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = tweensForButtonHoldBeginTransparency })
 	)
 	table.insert(
 		tweensForButtonHoldEnd,
@@ -250,7 +253,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	)
 	table.insert(
 		tweensForFadeOut,
-		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(0.5, 1), BackgroundTransparency = 1 })
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = 1 })
 	)
 	table.insert(
 		tweensForFadeIn,
@@ -259,7 +262,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 
 	local roundFrame = Instance.new("Frame")
 	roundFrame.Name = "RoundFrame"
-	roundFrame.Size = UDim2.fromOffset(48, 48)
+	roundFrame.Size = UDim2.fromOffset(35, 35)
 
 	roundFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	roundFrame.Position = UDim2.fromScale(0.5, 0.5)
@@ -267,7 +270,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	roundFrame.Parent = resizeableInputFrame
 
 	local roundedFrameCorner = Instance.new("UICorner")
-	roundedFrameCorner.CornerRadius = UDim.new(0.5, 0)
+	roundedFrameCorner.CornerRadius = UDim.new(0.15, 0)
 	roundedFrameCorner.Parent = roundFrame
 
 	table.insert(tweensForFadeOut, TweenService:Create(roundFrame, tweenInfoQuick, { BackgroundTransparency = 1 }))
@@ -411,7 +414,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		)
 		table.insert(
 			tweensForButtonHoldEnd,
-			TweenService:Create(circleBar.Progress, tweenInfoOutHalfSecond, { Value = 0 })
+			TweenService:Create(circleBar.Progress, tweenInfoExpoQuick, { Value = 0 })
 		)
 	end
 
@@ -453,15 +456,16 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		local objectTextSize =
 			TextService:GetTextSize(prompt.ObjectText, objectTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
 		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
-		local promptHeight = 72
-		local promptWidth = 72
-		local textPaddingLeft = 72
+		local promptHeight = 60
+		local promptWidth = 60
+		local textPaddingLeft = 62
+		local textPaddingRight = 5
 
 		if
 			(prompt.ActionText ~= nil and prompt.ActionText ~= "")
 			or (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
 		then
-			promptWidth = maxTextWidth + textPaddingLeft + 24
+			promptWidth = maxTextWidth + textPaddingLeft + textPaddingRight
 		end
 
 		local actionTextYOffset = 0
