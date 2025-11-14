@@ -127,6 +127,8 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		local part0 = inst:FindFirstChild("Part0") :: BasePart
 		local handle = inst:FindFirstChild("Handle") :: BasePart
 
+		base.CanCollide = false
+
 		part0.Anchored = false
 		handle.Anchored = false
 
@@ -143,16 +145,37 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		frontProxPrompt.Triggered:Connect(function(player)
 			print("Prox prompt front triggered")
 			newDoor:onPromptTriggered(Door.Sides.FRONT)
+			if newDoor.state == Door.States.OPENING then
+				part0.CanCollide = false
+				handle.CanCollide = false
+			else
+				part0.CanCollide = true
+				handle.CanCollide = true
+			end
 		end)
 
 		backProxPrompt.Triggered:Connect(function(player)
 			print("Prox prompt back triggered")
 			newDoor:onPromptTriggered(Door.Sides.BACK)
+			if newDoor.state == Door.States.OPENING then
+				part0.CanCollide = false
+				handle.CanCollide = false
+			else
+				part0.CanCollide = true
+				handle.CanCollide = true
+			end
 		end)
 
 		middleProxPrompt.Triggered:Connect(function(player)
 			print("Prox prompt middle triggered")
 			newDoor:onPromptTriggered(Door.Sides.MIDDLE)
+			if newDoor.state == Door.States.OPENING then
+				part0.CanCollide = false
+				handle.CanCollide = false
+			else
+				part0.CanCollide = true
+				handle.CanCollide = true
+			end
 		end)
 	end
 end)
