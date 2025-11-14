@@ -6,6 +6,9 @@
       "shared": {
         "$path": "src/shared",
         "$ignoreUnknownInstances": true
+      },
+      "Packages": {
+        "$path": "Packages"
       }
     },
     "ServerScriptService": {
