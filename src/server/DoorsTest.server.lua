@@ -37,6 +37,14 @@ local function traverse(
 	end
 end
 
+local function weld(part0: BasePart, part1: BasePart): WeldConstraint
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = part0
+	weld.Part1 = part1
+	weld.Parent = part1
+	return weld
+end
+
 --
 
 local ROOT = (workspace :: any).Level or (workspace :: any).DebugMission
@@ -64,6 +72,7 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		local negativeLookVec = -lookVec
 
 		local sizeZ = baseSize.Z
+		local sizeX = baseSize.X
 
 		Draw.direction(basePos, positiveLookVec, BLUE)
 		Draw.direction(basePos, negativeLookVec, RED)
@@ -91,15 +100,42 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		local middleAttatchment = Instance.new("Attachment")
 		middleAttatchment:SetAttribute("OmniDir", true)
-		frontAttatchment.Parent = base
+		middleAttatchment.Parent = base
 
 		local middleProxPrompt = Instance.new("ProximityPrompt")
 		middleProxPrompt.Style = Enum.ProximityPromptStyle.Custom
 		middleProxPrompt.Parent = middleAttatchment
 
+		local hingeAttatchment = Instance.new("Attachment")
+		hingeAttatchment.Name = "Hinge"
+		hingeAttatchment.Position = Vector3.new(sizeX / 2, 0, 0)
+		hingeAttatchment.Parent = base
+
+		local hingePart = Instance.new("Part")
+		hingePart.Name = "HingePart"
+		hingePart.Position = hingeAttatchment.WorldPosition
+		hingePart.Size = Vector3.one
+		hingePart.Transparency = 1
+		hingePart.CanCollide = false
+		hingePart.CanQuery = false
+		hingePart.AudioCanCollide = false
+		hingePart.Anchored = true
+		hingePart.Parent = inst
+
+		-- TODO: This is too hardcoded on Part0 and Handle
+
+		local part0 = inst:FindFirstChild("Part0") :: BasePart
+		local handle = inst:FindFirstChild("Handle") :: BasePart
+
+		part0.Anchored = false
+		handle.Anchored = false
+
+		weld(part0, hingePart)
+		weld(handle, hingePart)
+
 		-- Setup
 
-		local newDoor = Door.new()
+		local newDoor = Door.new(hingePart)
 		doors[newDoor] = true
 
 		-- Connections
