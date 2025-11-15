@@ -145,7 +145,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	local tweensForFadeIn: { Tween } = {}
 	local tweenInfoInFullDuration =
 		TweenInfo.new(prompt.HoldDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-	local tweenInfoOutHalfSecond = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	--local tweenInfoOutHalfSecond = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tweenInfoFast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tweenInfoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local tweenInfoExpoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
@@ -262,7 +262,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 
 	local roundFrame = Instance.new("Frame")
 	roundFrame.Name = "RoundFrame"
-	roundFrame.Size = UDim2.fromOffset(35, 35)
+	roundFrame.Size = UDim2.fromOffset(45, 45)
 
 	roundFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	roundFrame.Position = UDim2.fromScale(0.5, 0.5)
@@ -468,12 +468,26 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 			promptWidth = maxTextWidth + textPaddingLeft + textPaddingRight
 		end
 
+		local isObjectTextPresent = (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
+
+		-- If object text is present, calculate the Y offset (9) for objectText
 		local actionTextYOffset = 0
-		if prompt.ObjectText ~= nil and prompt.ObjectText ~= "" then
+		if isObjectTextPresent then
 			actionTextYOffset = 9
 		end
+		
 		objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
-		actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, -10)
+		
+		local actionTextYPosition = -10 -- Default position for actionText when both are displayed
+		
+		if not isObjectTextPresent then
+			-- Calculate the offset needed to vertically center the text label
+			-- Container center (30) - half of the actionText label's calculated height
+			actionTextYPosition = 10 - (actionTextSize.Y / 2)
+		end
+		
+		-- The resulting Y position must be a UDim2 offset, not scale (0)
+		actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYPosition)
 
 		actionText.Text = prompt.ActionText
 		objectText.Text = prompt.ObjectText
@@ -549,9 +563,26 @@ local function onLoad(): ()
 
 		local cleanupFunction = createPrompt(prompt, inputType, gui)
 
-		prompt.PromptHidden:Wait()
+		local hiddenConn: RBXScriptConnection
+		local changedConn: RBXScriptConnection
+		changedConn = prompt.Changed:Connect(function()
+			if prompt.MaxActivationDistance <= 0 or not prompt.Enabled then
+				cleanupFunction()
+				if hiddenConn then
+					hiddenConn:Disconnect()
+					hiddenConn = nil
+				end
 
-		cleanupFunction()
+				if changedConn then
+					changedConn:Disconnect()
+					changedConn = nil
+				end
+			end
+		end)
+
+		hiddenConn = prompt.PromptHidden:Once(function()
+			cleanupFunction()
+		end)
 	end)
 end
 
