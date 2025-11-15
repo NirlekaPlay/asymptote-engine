@@ -79,6 +79,19 @@
     ["Control! We've got a dangerous criminal here! Need backup!"],
     ["Found a dangerous criminal here!"]
   ],
+  "status.sus_minor.reaction": [
+    ["Hey-hey! Quit it!", "Why are you poking that?!", "Seriously, knock it off."],
+    ["You again?", "Why are you fiddling with that?", "Stop doing the thing!", "You're stressing me out."],
+    ["What-why are you... tapping that?", "Is this supposed to mean something?", "Look, quit whatever this is."],
+    ["Hold on-", "What's that supposed to be?", "Stop touching that!"],
+    ["Wait, wait, wait-", "What the hell are you doing with your hands?", "Stop immediately."],
+    ["Can you NOT?", "I don't get what you're trying to achieve.", "Just stop before I call Envvy."],
+    ["You better cut that out.", "I'm warning you-", "Stop before this becomes paperwork."]
+  ],
+  "status.sus_minor.report": [
+    ["Uh, Control? Someone's acting weird here."],
+    ["This guy's acting weird. Might keep an eye on 'em."]
+  ],
   "status.dangerous_item": [
     ["Control! Someone here has a bomb!"],
     ["Oh God!", "Control! Someone's got a bomb!"],

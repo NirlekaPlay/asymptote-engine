@@ -19,6 +19,7 @@ local PleaForMercy = require(ServerScriptService.server.ai.behavior.PleaForMercy
 local ReactToDisguisedPlayers = require(ServerScriptService.server.ai.behavior.ReactToDisguisedPlayers)
 local ReportMajorTrespasser = require(ServerScriptService.server.ai.behavior.ReportMajorTrespasser)
 local ReportSuspiciousCriminal = require(ServerScriptService.server.ai.behavior.ReportSuspiciousCriminal)
+local ReportSuspiciousPlayer = require(ServerScriptService.server.ai.behavior.ReportSuspiciousPlayer)
 local RetreatToCombatNodes = require(ServerScriptService.server.ai.behavior.RetreatToCombatNodes)
 local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsCuriousMemory)
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
@@ -95,6 +96,7 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(ReportMajorTrespasser.new()),
 		BehaviorWrapper.new(ConfrontTrespasser.new()),
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
+		BehaviorWrapper.new(ReportSuspiciousPlayer.new()),
 		BehaviorWrapper.new(FollowPlayerSink.new())
 	})
 end
