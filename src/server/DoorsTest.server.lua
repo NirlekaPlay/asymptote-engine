@@ -144,6 +144,7 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		-- TODO: This is too hardcoded on Part0 and Handle
 
 		base.CanCollide = false
+		base.CanQuery = false
 
 		part0.Anchored = false
 		handle.Anchored = false
@@ -157,50 +158,35 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			front = frontProxPrompt,
 			back = backProxPrompt,
 			middle = middleProxPrompt
-		}, PROMPT_ACTIVATION_DIST)
+		}, PROMPT_ACTIVATION_DIST, { handle, part0 })
 		doors[newDoor] = true
 
 		-- Connections
 
 		frontProxPrompt.Triggered:Connect(function(player)
-			print("Prox prompt front triggered")
 			newDoor:onPromptTriggered(Door.Sides.FRONT)
 			if newDoor.state == Door.States.OPENING then
 				soundOpen:Play()
-				part0.CanCollide = false
-				handle.CanCollide = false
 			else
 				soundClose:Play()
-				part0.CanCollide = true
-				handle.CanCollide = true
 			end
 		end)
 
 		backProxPrompt.Triggered:Connect(function(player)
-			print("Prox prompt back triggered")
 			newDoor:onPromptTriggered(Door.Sides.BACK)
 			if newDoor.state == Door.States.OPENING then
 				soundOpen:Play()
-				part0.CanCollide = false
-				handle.CanCollide = false
 			else
 				soundClose:Play()
-				part0.CanCollide = true
-				handle.CanCollide = true
 			end
 		end)
 
 		middleProxPrompt.Triggered:Connect(function(player)
-			print("Prox prompt middle triggered")
 			newDoor:onPromptTriggered(Door.Sides.MIDDLE)
 			if newDoor.state == Door.States.OPENING then
 				soundOpen:Play()
-				part0.CanCollide = false
-				handle.CanCollide = false
 			else
 				soundClose:Play()
-				part0.CanCollide = true
-				handle.CanCollide = true
 			end
 		end)
 	end

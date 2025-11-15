@@ -28,6 +28,7 @@ export type Door = typeof(setmetatable({} :: {
 	endCFrame: CFrame,
 	prompts: DoorPrompts,
 	promptsActivationDist: number,
+	doorParts: {BasePart}
 }, Door))
 
 export type DoorState = number
@@ -48,7 +49,9 @@ local TARGET_DEGREES = {
 	CLOSED = 0
 }
 
-function Door.new(hingePart: BasePart, prompts: DoorPrompts, promptsActivationDist: number): Door
+local DEFAULT_PROMPTS_ACTIVATION_DIST = 5
+
+function Door.new(hingePart: BasePart, prompts: DoorPrompts, promptsActivationDist: number?, doorParts: {BasePart}?): Door
 	local self = setmetatable({
 		state = Door.States.CLOSED,
 		targetDegree = 0,
@@ -58,7 +61,8 @@ function Door.new(hingePart: BasePart, prompts: DoorPrompts, promptsActivationDi
 		endCFrame = hingePart.CFrame,
 		openingSide = Door.Sides.MIDDLE,
 		prompts = prompts,
-		promptsActivationDist = promptsActivationDist
+		promptsActivationDist = promptsActivationDist or DEFAULT_PROMPTS_ACTIVATION_DIST,
+		doorParts = doorParts or {}
 	}, Door)
 
 	prompts.front.ActionText = "Open"
@@ -127,6 +131,8 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 		elseif promptSide == Door.Sides.BACK then
 			self.prompts.back.Enabled = false
 		end
+
+		self:setDoorPartsCollision(false)
 	else -- Closing
 		self.state = Door.States.CLOSING
 		
@@ -134,6 +140,8 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 		self.prompts.front.Enabled = false
 		self.prompts.back.Enabled = false
 		self.prompts.middle.Enabled = false
+
+		self:setDoorPartsCollision(false)
 	end
 end
 
@@ -168,7 +176,7 @@ function Door.update(self: Door, deltaTime: number): ()
 				self.prompts.front.ActionText = "Close"
 				self.prompts.back.ActionText = "Close"
 				self.prompts.middle.ActionText = "Close"
-				
+				self:setDoorPartsCollision(true)
 			else
 				self.state = Door.States.CLOSED
 				
@@ -180,8 +188,19 @@ function Door.update(self: Door, deltaTime: number): ()
 				self.prompts.front.ActionText = "Open"
 				self.prompts.back.ActionText = "Open"
 				self.openingSide = Door.Sides.MIDDLE
+				self:setDoorPartsCollision(true)
 			end
 		end
+	end
+end
+
+function Door.setDoorPartsCollision(self: Door, canCollide: boolean): ()
+	if next(self.doorParts) == nil then
+		return
+	end
+
+	for _, part in self.doorParts do
+		part.CanCollide = canCollide
 	end
 end
 
