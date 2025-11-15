@@ -2,6 +2,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local LIGHT_TRUE = BrickColor.new("Slime green")
@@ -184,6 +186,16 @@ function CardReader.createFromModel(model: Model): CardReader
 	-- TODO: These may cause a memory leak. Fix this thank you.
 	proxPrompt.Triggered:Connect(function(player)
 		newReader:onPromptTriggered(player)
+	end)
+
+	proxPrompt.PromptButtonHoldBegan:Connect(function(player)
+		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		playerStatusHolder:addStatus(PlayerStatusTypes.MINOR_SUSPICIOUS)
+	end)
+
+	proxPrompt.PromptButtonHoldEnded:Connect(function(player)
+		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		playerStatusHolder:removeStatus(PlayerStatusTypes.MINOR_SUSPICIOUS)
 	end)
 
 	GlobalStatesHolder.getStateChangedConnection(triggerVariable):Connect(function(v)
