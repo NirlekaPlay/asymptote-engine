@@ -1,5 +1,6 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
@@ -15,18 +16,21 @@ CardReader.__index = CardReader
 export type CardReader = typeof(setmetatable({} :: {
 	lightLevelParts: { BasePart},
 	validCards: { [string]: true },
-	triggerVariableName: string
+	triggerVariableName: string,
+	acceptSound: Sound
 }, CardReader))
 
 function CardReader.new(
 	validCards: { [string]: true },
 	triggerVariableName: string,
-	lightLevelParts: { BasePart}
+	lightLevelParts: { BasePart},
+	acceptSound: Sound
 ): CardReader
 	return setmetatable({
 		validCards = validCards,
 		triggerVariableName = triggerVariableName,
-		lightLevelParts = lightLevelParts
+		lightLevelParts = lightLevelParts,
+		acceptSound = acceptSound
 	}, CardReader)
 end
 
@@ -39,6 +43,7 @@ function CardReader.onPromptTriggered(self: CardReader, player: Player): ()
 		local cardInst = player.Backpack:FindFirstChild(cardName) or (player.Character :: Model):FindFirstChild(cardName)
 		if cardInst and cardInst:IsA("Tool") then
 			GlobalStatesHolder.setState(self.triggerVariableName, true)
+			self.acceptSound:Play()
 			break
 		end
 	end
@@ -167,7 +172,14 @@ function CardReader.createFromModel(model: Model): CardReader
 		end
 	end
 
-	local newReader = CardReader.new(validCards, triggerVariable, lightParts)
+	-- Sound
+
+	local acceptSound = ReplicatedStorage.shared.assets.sounds.keycard_accept:Clone()
+	acceptSound.Parent = part0
+
+	-- Setup
+
+	local newReader = CardReader.new(validCards, triggerVariable, lightParts, acceptSound)
 
 	-- TODO: These may cause a memory leak. Fix this thank you.
 	proxPrompt.Triggered:Connect(function(player)

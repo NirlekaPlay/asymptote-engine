@@ -86,9 +86,11 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		local soundOpen = ReplicatedStorage.shared.assets.sounds.props.door_generic_open:Clone()
 		local soundClose = ReplicatedStorage.shared.assets.sounds.props.door_generic_close_2:Clone()
+		local soundUnlock = ReplicatedStorage.shared.assets.sounds.gear_shift:Clone()
 
 		soundOpen.Parent = base
 		soundClose.Parent = base
+		soundUnlock.Parent = base
 
 		if DEBUG_DIR then
 			Draw.direction(basePos, positiveLookVec, BLUE)
@@ -214,6 +216,7 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
 				if v then
 					newDoor:unlockBothSides()
+					soundUnlock:Play()
 				end
 			end)
 		end
