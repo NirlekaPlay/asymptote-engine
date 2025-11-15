@@ -24,12 +24,21 @@ export type Door = typeof(setmetatable({} :: {
 	turningTimeAccum: number,
 	hingePart: BasePart,
 	startCFrame: CFrame,
+	openingSide: DoorSides,
 	endCFrame: CFrame,
+	prompts: DoorPrompts,
+	promptsActivationDist: number,
 }, Door))
 
 export type DoorState = number
 
 export type DoorSides = number
+
+export type DoorPrompts = {
+	front: ProximityPrompt,
+	back: ProximityPrompt,
+	middle: ProximityPrompt
+}
 
 local TURNING_TIME = 0.3
 
@@ -39,16 +48,25 @@ local TARGET_DEGREES = {
 	CLOSED = 0
 }
 
-function Door.new(hingePart: BasePart): Door
-	return setmetatable({
+function Door.new(hingePart: BasePart, prompts: DoorPrompts, promptsActivationDist: number): Door
+	local self = setmetatable({
 		state = Door.States.CLOSED,
 		targetDegree = 0,
 		turningTimeAccum = 0,
 		hingePart = hingePart,
-		-- Initialize CFrames to prevent errors
 		startCFrame = hingePart.CFrame,
-		endCFrame = hingePart.CFrame
+		endCFrame = hingePart.CFrame,
+		openingSide = Door.Sides.MIDDLE,
+		prompts = prompts,
+		promptsActivationDist = promptsActivationDist
 	}, Door)
+
+	prompts.front.ActionText = "Open"
+	prompts.back.ActionText = "Open"
+	prompts.middle.ActionText = "Close"
+	prompts.middle.Enabled = false
+
+	return self
 end
 
 function Door.isOpen(self: Door): boolean
@@ -64,7 +82,6 @@ function Door.isTurning(self: Door): boolean
 		self.state == Door.States.OPENING
 end
 
--- Revised function to capture the starting CFrame and set the target CFrame
 function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 	if self:isTurning() then
 		return
@@ -72,7 +89,6 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 
 	local newTargetDegree: number
 
-	-- Determine the target rotation degree
 	if promptSide == Door.Sides.FRONT then
 		newTargetDegree = self:isClosed() and TARGET_DEGREES.OPEN_FRONT or TARGET_DEGREES.CLOSED
 	elseif promptSide == Door.Sides.BACK then
@@ -81,59 +97,89 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 		newTargetDegree = TARGET_DEGREES.CLOSED
 	end
 
-	-- If the door is already at the target degree, do nothing (e.g., trying to close a closed door)
 	if newTargetDegree == self.targetDegree then
-		-- Optional: Add a check if the current hingePart.CFrame matches the target degree before returning.
 		return
 	end
 
-	-- Set up for the transition
 	self.targetDegree = newTargetDegree
-	self.turningTimeAccum = 0 -- Reset accumulator for the new animation
-	self.startCFrame = self.hingePart.CFrame -- **Crucial:** Capture the starting CFrame
-	
-	-- Calculate the final target CFrame
+	self.turningTimeAccum = 0
+	self.startCFrame = self.hingePart.CFrame
+
 	local targetRadians = math.rad(self.targetDegree)
 	
-	-- The end CFrame preserves the Part's original Position but applies the new rotation
 	local currentPosition = self.hingePart.CFrame.Position
 	self.endCFrame = CFrame.new(currentPosition) * CFrame.Angles(0, targetRadians, 0)
 	
-	-- Set the new state
 	if self.targetDegree == TARGET_DEGREES.OPEN_BACK or
 		self.targetDegree == TARGET_DEGREES.OPEN_FRONT
 	then
 		self.state = Door.States.OPENING
-	else
+		
+		-- Track the side used to open, only if FRONT or BACK was used.
+		if promptSide == Door.Sides.FRONT or promptSide == Door.Sides.BACK then
+			self.openingSide = promptSide
+		else
+			self.openingSide = Door.Sides.MIDDLE
+		end
+		
+		if promptSide == Door.Sides.FRONT then
+			self.prompts.front.Enabled = false
+		elseif promptSide == Door.Sides.BACK then
+			self.prompts.back.Enabled = false
+		end
+	else -- Closing
 		self.state = Door.States.CLOSING
+		
+		-- Temporarily disable all prompts during the closing animation to prevent interruption.
+		self.prompts.front.Enabled = false
+		self.prompts.back.Enabled = false
+		self.prompts.middle.Enabled = false
 	end
 end
 
--- Revised function for CFrame interpolation
 function Door.update(self: Door, deltaTime: number): ()
 	if self:isTurning() then
 		self.turningTimeAccum += deltaTime
 		
-		-- Calculate the interpolation factor (alpha), clamped between 0 and 1
 		local alpha = math.clamp(self.turningTimeAccum / TURNING_TIME, 0, 1)
 
-		-- Interpolate the CFrame using the stored start and end CFrames
 		self.hingePart.CFrame = self.startCFrame:Lerp(self.endCFrame, alpha)
 		
-		-- Check for completion
 		if self.turningTimeAccum >= TURNING_TIME then
 			self.turningTimeAccum = 0
 			
-			-- **Crucial:** Snap the CFrame to the exact end position to eliminate floating point errors
 			self.hingePart.CFrame = self.endCFrame
-			
-			-- Transition to the final state
+
 			if self.state == Door.States.OPENING then
 				self.state = Door.States.OPEN
-				print("Open")
+				
+				-- Door is now OPEN.
+				
+				if self.openingSide == Door.Sides.FRONT then
+					self.prompts.back.Enabled = true  -- Opposite side is enabled for closing
+					self.prompts.front.Enabled = false -- Opening side remains disabled
+				elseif self.openingSide == Door.Sides.BACK then
+					self.prompts.front.Enabled = true  -- Opposite side is enabled for closing
+					self.prompts.back.Enabled = false -- Opening side remains disabled
+				end
+
+				self.prompts.middle.Enabled = true
+
+				self.prompts.front.ActionText = "Close"
+				self.prompts.back.ActionText = "Close"
+				self.prompts.middle.ActionText = "Close"
+				
 			else
 				self.state = Door.States.CLOSED
-				print("Closed")
+				
+				-- Door is now CLOSED.
+				self.prompts.front.Enabled = true
+				self.prompts.back.Enabled = true
+				self.prompts.middle.Enabled = false
+				
+				self.prompts.front.ActionText = "Open"
+				self.prompts.back.ActionText = "Open"
+				self.openingSide = Door.Sides.MIDDLE
 			end
 		end
 	end

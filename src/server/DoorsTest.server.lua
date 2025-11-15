@@ -50,8 +50,10 @@ end
 local ROOT = (workspace :: any).Level or (workspace :: any).DebugMission
 local PROPS_FOLDER = ROOT.Props :: Folder
 
+local DEBUG_DIR = false
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
+local PROMPT_ACTIVATION_DIST = 5
 
 local doors: { [Door.Door]: true } = {}
 
@@ -66,36 +68,42 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 	if base and base:IsA("BasePart") then
 		local baseCFrame = base.CFrame
 		local basePos = baseCFrame.Position
-		local baseSize = base.Size
 		local lookVec = baseCFrame.LookVector
 		local positiveLookVec = lookVec
 		local negativeLookVec = -lookVec
 
-		local sizeZ = baseSize.Z
-		local sizeX = baseSize.X
+		local part0 = inst:FindFirstChild("Part0") :: BasePart
+		local handle = inst:FindFirstChild("Handle") :: BasePart
 
-		Draw.direction(basePos, positiveLookVec, BLUE)
-		Draw.direction(basePos, negativeLookVec, RED)
+		local doorSizeZ = part0.Size.Z
+		local doorSizeX = part0.Size.X
+
+		if DEBUG_DIR then
+			Draw.direction(basePos, positiveLookVec, BLUE)
+			Draw.direction(basePos, negativeLookVec, RED)
+		end
 
 		-- Setup
 
 		local frontAttatchment = Instance.new("Attachment")
 		frontAttatchment.Name = "Front"
-		frontAttatchment.Position = Vector3.new(0, 0, -sizeZ / 2)
-		frontAttatchment.Parent = base
+		frontAttatchment.Position = Vector3.new(0, 0, -doorSizeZ / 2)
+		frontAttatchment.Parent = part0
 
 		local frontProxPrompt = Instance.new("ProximityPrompt")
 		frontProxPrompt.Style = Enum.ProximityPromptStyle.Custom
+		frontProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		frontProxPrompt.Parent = frontAttatchment
 	
 		local backAttatchment = Instance.new("Attachment")
 		backAttatchment.Name = "Back"
-		backAttatchment.Position = Vector3.new(0, 0, sizeZ / 2)
+		backAttatchment.Position = Vector3.new(0, 0, doorSizeZ / 2)
 		backAttatchment.Orientation = Vector3.new(0, 180, 0)
-		backAttatchment.Parent = base
+		backAttatchment.Parent = part0
 
 		local backProxPrompt = Instance.new("ProximityPrompt")
 		backProxPrompt.Style = Enum.ProximityPromptStyle.Custom
+		backProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		backProxPrompt.Parent = backAttatchment
 
 		local middleAttatchment = Instance.new("Attachment")
@@ -104,11 +112,12 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		local middleProxPrompt = Instance.new("ProximityPrompt")
 		middleProxPrompt.Style = Enum.ProximityPromptStyle.Custom
+		middleProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		middleProxPrompt.Parent = middleAttatchment
 
 		local hingeAttatchment = Instance.new("Attachment")
 		hingeAttatchment.Name = "Hinge"
-		hingeAttatchment.Position = Vector3.new(sizeX / 2, 0, 0)
+		hingeAttatchment.Position = Vector3.new(doorSizeX / 2, 0, 0)
 		hingeAttatchment.Parent = base
 
 		local hingePart = Instance.new("Part")
@@ -124,9 +133,6 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		-- TODO: This is too hardcoded on Part0 and Handle
 
-		local part0 = inst:FindFirstChild("Part0") :: BasePart
-		local handle = inst:FindFirstChild("Handle") :: BasePart
-
 		base.CanCollide = false
 
 		part0.Anchored = false
@@ -137,7 +143,11 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		-- Setup
 
-		local newDoor = Door.new(hingePart)
+		local newDoor = Door.new(hingePart, {
+			front = frontProxPrompt,
+			back = backProxPrompt,
+			middle = middleProxPrompt
+		}, PROMPT_ACTIVATION_DIST)
 		doors[newDoor] = true
 
 		-- Connections
