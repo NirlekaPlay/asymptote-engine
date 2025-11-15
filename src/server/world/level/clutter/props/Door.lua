@@ -74,9 +74,9 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 
 	-- Determine the target rotation degree
 	if promptSide == Door.Sides.FRONT then
-		newTargetDegree = self:isClosed() and TARGET_DEGREES.OPEN_BACK or TARGET_DEGREES.CLOSED
+		newTargetDegree = self:isClosed() and TARGET_DEGREES.OPEN_FRONT or TARGET_DEGREES.CLOSED
 	elseif promptSide == Door.Sides.BACK then
-		newTargetDegree = self:isOpen() and TARGET_DEGREES.OPEN_FRONT or TARGET_DEGREES.CLOSED
+		newTargetDegree = self:isClosed() and TARGET_DEGREES.OPEN_BACK or TARGET_DEGREES.CLOSED
 	else
 		newTargetDegree = TARGET_DEGREES.CLOSED
 	end
