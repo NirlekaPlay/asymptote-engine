@@ -12,9 +12,11 @@ local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
+local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local LightingNames = require(ServerScriptService.server.world.lighting.LightingNames)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
+local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
 local HIDE_CELLS = true
 local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5
 local UPDATES_PER_SEC = 20
@@ -94,7 +96,7 @@ function Level.initializeLevel(): ()
 			stack[index] = nil
 			index = index - 1
 
-			if (current:IsA("BoolValue") and current.Value) or current:IsA("Configuration") then
+			if (current:IsA("BoolValue") and not (INITIALIZE_NPCS_ONLY_WHEN_ENABLED and not current.Value)) or current:IsA("Configuration") then
 				-- NOTES: This might create problems. Oh well.
 				-- TODO: Oh and by the way MAYBEEEEE the accessories bullshit should be
 				-- on the client side.
@@ -367,7 +369,8 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
 			if passed and prop then
 				for attName, v in pairs(placeholder:GetAttributes()) do
-					prop:SetAttribute(attName, v)
+					prop:SetAttribute(attName, v);
+					(prop :: any).Base:SetAttribute(attName, v)
 				end
 			end
 			
@@ -544,6 +547,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if placeholder.Name == "PlayerCollider" then
 				Level.initializePlayerCollider(placeholder)
+				return true
+			end
+
+			if placeholder.Name == "CardReader" and passed then
+				CardReader.createFromModel(prop)
 				return true
 			end
 

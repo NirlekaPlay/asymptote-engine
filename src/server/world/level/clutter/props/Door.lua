@@ -1,5 +1,8 @@
 --!strict
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
+
 --[=[
 	@class Door
 ]=]
@@ -28,7 +31,13 @@ export type Door = typeof(setmetatable({} :: {
 	endCFrame: CFrame,
 	prompts: DoorPrompts,
 	promptsActivationDist: number,
-	doorParts: {BasePart}
+	doorParts: {BasePart},
+	lockFront: boolean,
+	lockBack: boolean,
+	settingLockFront: boolean,
+	settingLockBack: boolean,
+	autoLock: boolean,
+	unlockVariable: string?
 }, Door))
 
 export type DoorState = number
@@ -51,7 +60,16 @@ local TARGET_DEGREES = {
 
 local DEFAULT_PROMPTS_ACTIVATION_DIST = 5
 
-function Door.new(hingePart: BasePart, prompts: DoorPrompts, promptsActivationDist: number?, doorParts: {BasePart}?): Door
+function Door.new(
+	hingePart: BasePart,
+	prompts: DoorPrompts,
+	promptsActivationDist: number?,
+	doorParts: {BasePart}?,
+	lockFront: boolean?,
+	lockBack: boolean?,
+	autoLock: boolean?,
+	unlockVariable: string?
+): Door
 	local self = setmetatable({
 		state = Door.States.CLOSED,
 		targetDegree = 0,
@@ -62,7 +80,13 @@ function Door.new(hingePart: BasePart, prompts: DoorPrompts, promptsActivationDi
 		openingSide = Door.Sides.MIDDLE,
 		prompts = prompts,
 		promptsActivationDist = promptsActivationDist or DEFAULT_PROMPTS_ACTIVATION_DIST,
-		doorParts = doorParts or {}
+		doorParts = doorParts or {},
+		lockFront = lockFront or false,
+		lockBack = lockBack or false,
+		settingLockFront = lockFront or false,
+		settingLockBack = lockBack or false,
+		autoLock = autoLock or false,
+		unlockVariable = unlockVariable
 	}, Door)
 
 	prompts.front.ActionText = "Open"
@@ -86,6 +110,11 @@ function Door.isTurning(self: Door): boolean
 		self.state == Door.States.OPENING
 end
 
+function Door.unlockBothSides(self: Door): ()
+	self.lockFront = false
+	self.lockBack = false
+end
+
 function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 	if self:isTurning() then
 		return
@@ -93,13 +122,33 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 
 	local newTargetDegree: number
 
+	-- Determine the intended action: OPEN or CLOSE
 	if promptSide == Door.Sides.FRONT then
 		newTargetDegree = self:isClosed() and TARGET_DEGREES.OPEN_FRONT or TARGET_DEGREES.CLOSED
 	elseif promptSide == Door.Sides.BACK then
 		newTargetDegree = self:isClosed() and TARGET_DEGREES.OPEN_BACK or TARGET_DEGREES.CLOSED
+	elseif promptSide == Door.Sides.MIDDLE then
+		newTargetDegree = TARGET_DEGREES.CLOSED
 	else
 		newTargetDegree = TARGET_DEGREES.CLOSED
 	end
+
+	-- The middle prompt should only be used for closing, so if the target is OPEN, return immediately.
+	if promptSide == Door.Sides.MIDDLE and newTargetDegree ~= TARGET_DEGREES.CLOSED then
+		return
+	end
+	
+	-- Check locks ONLY if the door is currently CLOSED and the target is OPENING (i.e., this is an OPEN attempt)
+	if self:isClosed() and newTargetDegree ~= TARGET_DEGREES.CLOSED then
+		if (promptSide == Door.Sides.FRONT and self.lockFront) or
+			(promptSide == Door.Sides.BACK and self.lockBack) then
+			return
+		end
+	end
+
+	-- What the fuck?
+	self.lockFront = false
+	self.lockBack = false
 
 	if newTargetDegree == self.targetDegree then
 		return
@@ -126,6 +175,17 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 			self.openingSide = Door.Sides.MIDDLE
 		end
 		
+		-- Set the appropriate lock settings for autolock upon closing
+		if promptSide == Door.Sides.FRONT then
+			-- Opened from FRONT, so upon closing, the BACK side should be locked (if autolock is on)
+			self.lockFront = false
+			self.lockBack = true
+		elseif promptSide == Door.Sides.BACK then
+			-- Opened from BACK, so upon closing, the FRONT side should be locked (if autolock is on)
+			self.lockFront = true
+			self.lockBack = false
+		end
+		
 		if promptSide == Door.Sides.FRONT then
 			self.prompts.front.Enabled = false
 		elseif promptSide == Door.Sides.BACK then
@@ -142,6 +202,11 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 		self.prompts.middle.Enabled = false
 
 		self:setDoorPartsCollision(false)
+	end
+
+	-- Remote unlock
+	if self.unlockVariable and GlobalStatesHolder.hasState(self.unlockVariable) then
+		GlobalStatesHolder.setState(self.unlockVariable, self.state == Door.States.OPENING and true or false)
 	end
 end
 
@@ -181,6 +246,15 @@ function Door.update(self: Door, deltaTime: number): ()
 				self.state = Door.States.CLOSED
 				
 				-- Door is now CLOSED.
+				
+				-- AutoLock Logic.
+				if self.autoLock then
+					-- self.settingLockFront/Back was set during the opening phase to reflect the
+					-- desired locked state upon closing.
+					self.lockFront = self.settingLockFront
+					self.lockBack = self.settingLockBack
+				end
+				
 				self.prompts.front.Enabled = true
 				self.prompts.back.Enabled = true
 				self.prompts.middle.Enabled = false

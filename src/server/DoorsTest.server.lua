@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Door = require(ServerScriptService.server.world.level.clutter.props.Door)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
 local FUNC_TRAVERSE_FOLDERS = function(inst: Instance): boolean
@@ -64,12 +65,13 @@ local doors: { [Door.Door]: true } = {}
 task.wait(2)
 
 traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
-	if not inst:IsA("Model") or not startsWith(inst.Name, "Door") then
+	if not inst:IsA("Model") or not startsWith(inst.Name, "DoorMetal") then
 		return
 	end
 
 	local base = inst:FindFirstChild("Base")
 	if base and base:IsA("BasePart") then
+		print(inst)
 		local baseCFrame = base.CFrame
 		local basePos = baseCFrame.Position
 		local lookVec = baseCFrame.LookVector
@@ -154,11 +156,26 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		-- Setup
 
-		local newDoor = Door.new(hingePart, {
-			front = frontProxPrompt,
-			back = backProxPrompt,
-			middle = middleProxPrompt
-		}, PROMPT_ACTIVATION_DIST, { handle, part0 })
+		local lockFront = base:GetAttribute("LockFront") :: boolean?
+		local lockBack = base:GetAttribute("LockBack") :: boolean?
+		local autoLock = base:GetAttribute("AutoLock") :: boolean?
+		local remoteUnlock = base:GetAttribute("RemoteUnlock") :: string?
+
+		local newDoor = Door.new(
+			hingePart, {
+				front = frontProxPrompt,
+				back = backProxPrompt,
+				middle = middleProxPrompt
+			}, PROMPT_ACTIVATION_DIST,
+			{
+				handle,
+				part0
+			},
+			lockFront,
+			lockBack,
+			autoLock,
+			remoteUnlock
+		)
 		doors[newDoor] = true
 
 		-- Connections
@@ -189,6 +206,17 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 				soundClose:Play()
 			end
 		end)
+
+		if remoteUnlock then
+			if not GlobalStatesHolder.hasState(remoteUnlock) then
+				GlobalStatesHolder.setState(remoteUnlock, false)
+			end
+			GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
+				if v then
+					newDoor:unlockBothSides()
+				end
+			end)
+		end
 	end
 end)
 
