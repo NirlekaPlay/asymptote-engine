@@ -45,6 +45,10 @@ local function weld(part0: BasePart, part1: BasePart): WeldConstraint
 	return weld
 end
 
+function startsWith(mainString: string, startString: string)
+	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
+end
+
 --
 
 local ROOT = (workspace :: any).Level or (workspace :: any).DebugMission
@@ -60,7 +64,7 @@ local doors: { [Door.Door]: true } = {}
 task.wait(2)
 
 traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
-	if not inst:IsA("Model") or not inst.Name:find("Door") then
+	if not inst:IsA("Model") or not startsWith(inst.Name, "Door") then
 		return
 	end
 
