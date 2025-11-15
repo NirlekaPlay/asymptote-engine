@@ -78,6 +78,12 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		local doorSizeZ = part0.Size.Z
 		local doorSizeX = part0.Size.X
 
+		local soundOpen = ReplicatedStorage.shared.assets.sounds.props.door_generic_open:Clone()
+		local soundClose = ReplicatedStorage.shared.assets.sounds.props.door_generic_close_2:Clone()
+
+		soundOpen.Parent = base
+		soundClose.Parent = base
+
 		if DEBUG_DIR then
 			Draw.direction(basePos, positiveLookVec, BLUE)
 			Draw.direction(basePos, negativeLookVec, RED)
@@ -156,9 +162,11 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			print("Prox prompt front triggered")
 			newDoor:onPromptTriggered(Door.Sides.FRONT)
 			if newDoor.state == Door.States.OPENING then
+				soundOpen:Play()
 				part0.CanCollide = false
 				handle.CanCollide = false
 			else
+				soundClose:Play()
 				part0.CanCollide = true
 				handle.CanCollide = true
 			end
@@ -168,9 +176,11 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			print("Prox prompt back triggered")
 			newDoor:onPromptTriggered(Door.Sides.BACK)
 			if newDoor.state == Door.States.OPENING then
+				soundOpen:Play()
 				part0.CanCollide = false
 				handle.CanCollide = false
 			else
+				soundClose:Play()
 				part0.CanCollide = true
 				handle.CanCollide = true
 			end
@@ -180,9 +190,11 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			print("Prox prompt middle triggered")
 			newDoor:onPromptTriggered(Door.Sides.MIDDLE)
 			if newDoor.state == Door.States.OPENING then
+				soundOpen:Play()
 				part0.CanCollide = false
 				handle.CanCollide = false
 			else
+				soundClose:Play()
 				part0.CanCollide = true
 				handle.CanCollide = true
 			end
