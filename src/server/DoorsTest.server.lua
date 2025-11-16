@@ -100,9 +100,11 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		-- Setup
 
+		local attatchmentAddDist = 0.3
+
 		local frontAttatchment = Instance.new("Attachment")
 		frontAttatchment.Name = "Front"
-		frontAttatchment.Position = Vector3.new(0, 0, -doorSizeZ / 2)
+		frontAttatchment.Position = Vector3.new(0, 0, (-doorSizeZ / 2) + -attatchmentAddDist)
 		frontAttatchment.Parent = part0
 
 		local frontProxPrompt = Instance.new("ProximityPrompt")
@@ -112,7 +114,7 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 	
 		local backAttatchment = Instance.new("Attachment")
 		backAttatchment.Name = "Back"
-		backAttatchment.Position = Vector3.new(0, 0, doorSizeZ / 2)
+		backAttatchment.Position = Vector3.new(0, 0, (doorSizeZ / 2) + attatchmentAddDist)
 		backAttatchment.Orientation = Vector3.new(0, 180, 0)
 		backAttatchment.Parent = part0
 
@@ -127,7 +129,7 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 		local middleProxPrompt = Instance.new("ProximityPrompt")
 		middleProxPrompt.Style = Enum.ProximityPromptStyle.Custom
-		middleProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
+		middleProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST + (frontAttatchment.WorldPosition - backAttatchment.WorldPosition).Magnitude / 2 
 		middleProxPrompt.Parent = middleAttatchment
 
 		local hingeAttatchment = Instance.new("Attachment")
