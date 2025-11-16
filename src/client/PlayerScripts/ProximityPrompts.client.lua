@@ -127,7 +127,7 @@ local function createCircularProgressBar()
 	local progress = Instance.new("NumberValue")
 	progress.Name = "Progress"
 	progress.Parent = bar
-	progress.Changed:Connect(function(value)
+	progress.Changed:Connect(function(value) -- TODO: Possible memory leak?
 		local angle = math.clamp(value * 360, 0, 360)
 		gradient1.Rotation = math.clamp(angle, 180, 360)
 		gradient2.Rotation = math.clamp(angle, 0, 180)
@@ -159,6 +159,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 
 	local promptPart
 	promptPart = Instance.new("Part")
+	promptPart.Name = "PromptPart"
 	promptPart.Anchored = true
 	promptPart.CanCollide = false
 	promptPart.CanTouch = false
@@ -166,7 +167,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	promptPart.CastShadow = false
 	promptPart.Transparency = 1
 	promptPart.CFrame = promptParentAttatchment.WorldCFrame
-	promptPart.Parent = prompt.Parent.Parent
+	promptPart.Parent = workspace
 
 	if isOmniDir then
 		promptParts[promptPart] = true
@@ -209,8 +210,8 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	)
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(inputFrameScaler, tweenInfoFast, { Scale = 1 }))
 
-	local actionTextFontSize = 27
-	local objectTextFontSize = 13
+	local actionTextFontSize = 32
+	local objectTextFontSize = 15
 
 	local actionText = Instance.new("TextLabel")
 	actionText.Name = "ActionText"
@@ -260,21 +261,42 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 0.2 })
 	)
 
-	local roundFrame = Instance.new("Frame")
-	roundFrame.Name = "RoundFrame"
-	roundFrame.Size = UDim2.fromOffset(45, 45)
+	if prompt.HoldDuration > 0 then
+		local roundFrame = Instance.new("Frame")
+		roundFrame.Name = "RoundFrame"
+		roundFrame.Size = UDim2.fromOffset(45, 45)
 
-	roundFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-	roundFrame.Position = UDim2.fromScale(0.5, 0.5)
-	roundFrame.BackgroundTransparency = 1
-	roundFrame.Parent = resizeableInputFrame
+		roundFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		roundFrame.Position = UDim2.fromScale(0.5, 0.5)
+		roundFrame.BackgroundTransparency = 1
+		roundFrame.Parent = resizeableInputFrame
 
-	local roundedFrameCorner = Instance.new("UICorner")
-	roundedFrameCorner.CornerRadius = UDim.new(0.15, 0)
-	roundedFrameCorner.Parent = roundFrame
+		local roundedFrameCorner = Instance.new("UICorner")
+		roundedFrameCorner.CornerRadius = UDim.new(0.15, 0)
+		roundedFrameCorner.Parent = roundFrame
 
-	table.insert(tweensForFadeOut, TweenService:Create(roundFrame, tweenInfoQuick, { BackgroundTransparency = 1 }))
-	table.insert(tweensForFadeIn, TweenService:Create(roundFrame, tweenInfoQuick, { BackgroundTransparency = 0.5 }))
+		table.insert(tweensForFadeOut, TweenService:Create(roundFrame, tweenInfoQuick, { BackgroundTransparency = 1 }))
+		table.insert(tweensForFadeIn, TweenService:Create(roundFrame, tweenInfoQuick, { BackgroundTransparency = 0.5 }))
+	end
+
+	--
+
+	local roundFrameFront = Instance.new("Frame")
+	roundFrameFront.Name = "RoundFrameFront"
+	roundFrameFront.Size = prompt.HoldDuration > 0 and UDim2.fromOffset(40, 40) or UDim2.fromOffset(45, 45)
+
+	roundFrameFront.AnchorPoint = Vector2.new(0.5, 0.5)
+	roundFrameFront.Position = UDim2.fromScale(0.5, 0.5)
+	roundFrameFront.BackgroundTransparency = 0
+	roundFrameFront.BackgroundColor3 = Color3.new(1, 1, 1)
+	roundFrameFront.Parent = resizeableInputFrame
+
+	local roundFrameFrontCorner = Instance.new("UICorner")
+	roundFrameFrontCorner.CornerRadius = UDim.new(0.15, 0)
+	roundFrameFrontCorner.Parent = roundFrameFront
+
+	table.insert(tweensForFadeOut, TweenService:Create(roundFrameFront, tweenInfoQuick, { BackgroundTransparency = 1 }))
+	table.insert(tweensForFadeIn, TweenService:Create(roundFrameFront, tweenInfoQuick, { BackgroundTransparency = 0 }))
 
 	if inputType == Enum.ProximityPromptInputType.Gamepad then
 		if GamepadButtonImage[prompt.GamepadKeyCode] then
@@ -304,7 +326,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		table.insert(tweensForFadeOut, TweenService:Create(buttonImage, tweenInfoQuick, { ImageTransparency = 1 }))
 		table.insert(tweensForFadeIn, TweenService:Create(buttonImage, tweenInfoQuick, { ImageTransparency = 0 }))
 	else
-		local buttonImage = Instance.new("ImageLabel")
+		--[[local buttonImage = Instance.new("ImageLabel")
 		buttonImage.Name = "ButtonImage"
 		buttonImage.BackgroundTransparency = 1
 		buttonImage.ImageTransparency = 1
@@ -314,7 +336,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		buttonImage.Image = "rbxasset://textures/ui/Controls/key_single.png"
 		buttonImage.Parent = resizeableInputFrame
 		table.insert(tweensForFadeOut, TweenService:Create(buttonImage, tweenInfoQuick, { ImageTransparency = 1 }))
-		table.insert(tweensForFadeIn, TweenService:Create(buttonImage, tweenInfoQuick, { ImageTransparency = 0 }))
+		table.insert(tweensForFadeIn, TweenService:Create(buttonImage, tweenInfoQuick, { ImageTransparency = 0 }))]]
 
 		local buttonTextString = UserInputService:GetStringForKeyCode(prompt.KeyboardKeyCode)
 
@@ -347,14 +369,14 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 			buttonText.Name = "ButtonText"
 			buttonText.Position = UDim2.fromOffset(0, -1)
 			buttonText.Size = UDim2.fromScale(1, 1)
-			buttonText.Font = Enum.Font.GothamMedium
-			buttonText.TextSize = 14
+			buttonText.FontFace = Font.fromName("Zekton")
+			buttonText.TextSize = 30
 			if string.len(buttonTextString :: string) > 2 then
 				buttonText.TextSize = 12
 			end
 			buttonText.BackgroundTransparency = 1
 			buttonText.TextTransparency = 1
-			buttonText.TextColor3 = Color3.new(1, 1, 1)
+			buttonText.TextColor3 = Color3.new(0, 0, 0)
 			buttonText.TextXAlignment = Enum.TextXAlignment.Center
 			buttonText.Text = buttonTextString
 			buttonText.Parent = resizeableInputFrame
@@ -473,7 +495,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		-- If object text is present, calculate the Y offset (9) for objectText
 		local actionTextYOffset = 0
 		if isObjectTextPresent then
-			actionTextYOffset = 9
+			actionTextYOffset = 12
 		end
 		
 		objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
@@ -482,8 +504,8 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 		
 		if not isObjectTextPresent then
 			-- Calculate the offset needed to vertically center the text label
-			-- Container center (30) - half of the actionText label's calculated height
-			actionTextYPosition = 10 - (actionTextSize.Y / 2)
+			-- Container center (15) - half of the actionText label's calculated height
+			actionTextYPosition = 15 - (actionTextSize.Y / 2)
 		end
 		
 		-- The resulting Y position must be a UDim2 offset, not scale (0)
@@ -502,7 +524,7 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 			promptUI.SizeOffset =
 				Vector2.new(prompt.UIOffset.X / promptUI.Size.Width.Offset, prompt.UIOffset.Y / promptUI.Size.Height.Offset)
 		else]]
-		local pixelsPerStud = 45
+		local pixelsPerStud = 55
 
 		-- Convert pixels to studs
 		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
@@ -636,4 +658,4 @@ end
 
 onLoad()
 
-RunService.RenderStepped:Connect(update)
+RunService.PreRender:Connect(update)
