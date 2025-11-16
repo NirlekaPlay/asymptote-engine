@@ -120,6 +120,7 @@ nav:
   - Home: index.md
   - Tutorials:
     - Disguises: tutorials/disguises.md
+    - Doors: tutorials/doors.md
     - Setting up your NPCs: tutorials/npcs.md
   - Level:
     - Level Setup: level/level-setup.md

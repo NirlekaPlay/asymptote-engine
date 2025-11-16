@@ -42,7 +42,7 @@ have parts you want to recolor with `Part0` `Part1` `Part2` etc.
 Attributes can be `Color3`, `BrickColor` and `string`. If you wan't string, you need to set them up
 in `MissionSetup` and have a field named `Colors` which contains your colors.
 
-::: warning
+!!! warning
 
     If there's a gap in your attributes, like `Color0` `Color4` the engine will not
     proccess `Color4` and only proccess `Color0`.
