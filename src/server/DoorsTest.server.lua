@@ -56,6 +56,7 @@ local ROOT = (workspace :: any).Level or (workspace :: any).DebugMission
 local PROPS_FOLDER = ROOT.Props :: Folder
 
 local DEBUG_DIR = false
+local DEBUG_SIDES_TRIGGER = true
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local PROMPT_ACTIVATION_DIST = 5
@@ -183,6 +184,9 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		-- Connections
 
 		frontProxPrompt.Triggered:Connect(function(player)
+			if DEBUG_SIDES_TRIGGER then
+				print("Proximity prompt", "Front", "triggered for", inst)
+			end
 			newDoor:onPromptTriggered(Door.Sides.FRONT)
 			if newDoor.state == Door.States.OPENING then
 				soundOpen:Play()
@@ -192,6 +196,9 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		end)
 
 		backProxPrompt.Triggered:Connect(function(player)
+			if DEBUG_SIDES_TRIGGER then
+				print("Proximity prompt", "Back", "triggered for", inst)
+			end
 			newDoor:onPromptTriggered(Door.Sides.BACK)
 			if newDoor.state == Door.States.OPENING then
 				soundOpen:Play()
@@ -201,6 +208,9 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		end)
 
 		middleProxPrompt.Triggered:Connect(function(player)
+			if DEBUG_SIDES_TRIGGER then
+				print("Proximity prompt", "Middle", "triggered for", inst)
+			end
 			newDoor:onPromptTriggered(Door.Sides.MIDDLE)
 			if newDoor.state == Door.States.OPENING then
 				soundOpen:Play()
