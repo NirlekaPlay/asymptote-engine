@@ -1,6 +1,8 @@
 --!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
+local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
+local DoorPromptComponent = require(ServerScriptService.server.world.level.clutter.props.DoorPromptComponent)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 --[=[
@@ -25,12 +27,9 @@ export type Door = typeof(setmetatable({} :: {
 	state: DoorState,
 	targetDegree: number,
 	turningTimeAccum: number,
-	hingePart: BasePart,
-	startCFrame: CFrame,
+	promptComponent: DoorPromptComponent.DoorPromptComponent,
+	hingeComponent: DoorHingeComponent.DoorHingeComponent,
 	openingSide: DoorSides,
-	endCFrame: CFrame,
-	prompts: DoorPrompts,
-	promptsActivationDist: number,
 	doorParts: {BasePart},
 	lockFront: boolean,
 	lockBack: boolean,
@@ -45,9 +44,9 @@ export type DoorState = number
 export type DoorSides = number
 
 export type DoorPrompts = {
-	front: ProximityPrompt,
-	back: ProximityPrompt,
-	middle: ProximityPrompt
+	front: {ProximityPrompt},
+	back: {ProximityPrompt},
+	middle: {ProximityPrompt}
 }
 
 local TURNING_TIME = 0.3
@@ -58,12 +57,11 @@ local TARGET_DEGREES = {
 	CLOSED = 0
 }
 
-local DEFAULT_PROMPTS_ACTIVATION_DIST = 5
-
 function Door.new(
 	hingePart: BasePart,
 	prompts: DoorPrompts,
-	promptsActivationDist: number?,
+	promptComponent: DoorPromptComponent.DoorPromptComponent,
+	hingeComponent: DoorHingeComponent.DoorHingeComponent,
 	doorParts: {BasePart}?,
 	lockFront: boolean?,
 	lockBack: boolean?,
@@ -74,12 +72,9 @@ function Door.new(
 		state = Door.States.CLOSED,
 		targetDegree = 0,
 		turningTimeAccum = 0,
-		hingePart = hingePart,
-		startCFrame = hingePart.CFrame,
-		endCFrame = hingePart.CFrame,
+		promptComponent = promptComponent,
+		hingeComponent = hingeComponent,
 		openingSide = Door.Sides.MIDDLE,
-		prompts = prompts,
-		promptsActivationDist = promptsActivationDist or DEFAULT_PROMPTS_ACTIVATION_DIST,
 		doorParts = doorParts or {},
 		lockFront = lockFront or false,
 		lockBack = lockBack or false,
@@ -88,11 +83,6 @@ function Door.new(
 		autoLock = autoLock or false,
 		unlockVariable = unlockVariable
 	}, Door)
-
-	prompts.front.ActionText = "Open"
-	prompts.back.ActionText = "Open"
-	prompts.middle.ActionText = "Close"
-	prompts.middle.Enabled = false
 
 	return self
 end
@@ -156,12 +146,7 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 
 	self.targetDegree = newTargetDegree
 	self.turningTimeAccum = 0
-	self.startCFrame = self.hingePart.CFrame
-
-	local targetRadians = math.rad(self.targetDegree)
-	
-	local currentPosition = self.hingePart.CFrame.Position
-	self.endCFrame = CFrame.new(currentPosition) * CFrame.Angles(0, targetRadians, 0)
+	(self.hingeComponent :: DoorHingeComponent.DoorHingeComponent):turnToDegrees(self.targetDegree)
 	
 	if self.targetDegree == TARGET_DEGREES.OPEN_BACK or
 		self.targetDegree == TARGET_DEGREES.OPEN_FRONT
@@ -185,22 +170,10 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 			self.lockFront = true
 			self.lockBack = false
 		end
-		
-		if promptSide == Door.Sides.FRONT then
-			self.prompts.front.Enabled = false
-		elseif promptSide == Door.Sides.BACK then
-			self.prompts.back.Enabled = false
-		end
 
 		self:setDoorPartsCollision(false)
 	else -- Closing
 		self.state = Door.States.CLOSING
-		
-		-- Temporarily disable all prompts during the closing animation to prevent interruption.
-		self.prompts.front.Enabled = false
-		self.prompts.back.Enabled = false
-		self.prompts.middle.Enabled = false
-
 		self:setDoorPartsCollision(false)
 	end
 
@@ -208,39 +181,27 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 	if self.unlockVariable and GlobalStatesHolder.hasState(self.unlockVariable) then
 		GlobalStatesHolder.setState(self.unlockVariable, self.state == Door.States.OPENING and true or false)
 	end
+
+	-- Prompts
+	(self.promptComponent :: DoorPromptComponent.DoorPromptComponent):updateForState(self.state, self.openingSide)
 end
 
 function Door.update(self: Door, deltaTime: number): ()
 	if self:isTurning() then
-		self.turningTimeAccum += deltaTime
+		self.turningTimeAccum += deltaTime;
 		
-		local alpha = math.clamp(self.turningTimeAccum / TURNING_TIME, 0, 1)
-
-		self.hingePart.CFrame = self.startCFrame:Lerp(self.endCFrame, alpha)
+		(self.hingeComponent :: DoorHingeComponent.DoorHingeComponent):update(TURNING_TIME, deltaTime)
 		
 		if self.turningTimeAccum >= TURNING_TIME then
 			self.turningTimeAccum = 0
-			
-			self.hingePart.CFrame = self.endCFrame
 
 			if self.state == Door.States.OPENING then
-				self.state = Door.States.OPEN
+				self.state = Door.States.OPEN;
 				
 				-- Door is now OPEN.
 				
-				if self.openingSide == Door.Sides.FRONT then
-					self.prompts.back.Enabled = true  -- Opposite side is enabled for closing
-					self.prompts.front.Enabled = false -- Opening side remains disabled
-				elseif self.openingSide == Door.Sides.BACK then
-					self.prompts.front.Enabled = true  -- Opposite side is enabled for closing
-					self.prompts.back.Enabled = false -- Opening side remains disabled
-				end
-
-				self.prompts.middle.Enabled = true
-
-				self.prompts.front.ActionText = "Close"
-				self.prompts.back.ActionText = "Close"
-				self.prompts.middle.ActionText = "Close"
+				-- Prompts
+				(self.promptComponent :: DoorPromptComponent.DoorPromptComponent):updateForState(self.state, self.openingSide)
 				self:setDoorPartsCollision(true)
 			else
 				self.state = Door.States.CLOSED
@@ -255,12 +216,8 @@ function Door.update(self: Door, deltaTime: number): ()
 					self.lockBack = self.settingLockBack
 				end
 				
-				self.prompts.front.Enabled = true
-				self.prompts.back.Enabled = true
-				self.prompts.middle.Enabled = false
-				
-				self.prompts.front.ActionText = "Open"
-				self.prompts.back.ActionText = "Open"
+				-- Prompts
+				(self.promptComponent :: DoorPromptComponent.DoorPromptComponent):updateForState(self.state, self.openingSide)
 				self.openingSide = Door.Sides.MIDDLE
 				self:setDoorPartsCollision(true)
 			end

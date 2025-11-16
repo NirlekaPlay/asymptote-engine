@@ -372,6 +372,8 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					prop:SetAttribute(attName, v);
 					(prop :: any).Base:SetAttribute(attName, v)
 				end
+
+				prop.Base.Size = placeholder.Size
 			end
 			
 			if placeholder.Name == "SpawnLocation" then
