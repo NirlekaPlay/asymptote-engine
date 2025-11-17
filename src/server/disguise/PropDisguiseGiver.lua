@@ -39,11 +39,15 @@ function PropDisguiseGiver.new(model: Model, disguiseId: string, disguiseName: s
 end
 
 function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
-	local primaryPart = self.model:FindFirstChild("Base")
-	if not primaryPart or not primaryPart:IsA("BasePart") then return end
+	local primaryPart = self.model:FindFirstChild("Base") or self.model.PrimaryPart
+	if not primaryPart then
+		warn(`Failed to set disguise trigger: `, self.model, ` does not have a 'Base' or Primary part.`)
+		return
+	end
 
 	local triggerAttachment = primaryPart:FindFirstChild("Trigger")
 	if not (triggerAttachment and triggerAttachment:IsA("Attachment")) then
+		warn(`Failed to set disguise trigger: `, self.model, ` does not have a 'Trigger' attatchment.'`)
 		return
 	end
 
