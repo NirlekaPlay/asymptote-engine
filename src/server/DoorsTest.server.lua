@@ -63,13 +63,17 @@ local DEBUG_SIDES_TRIGGER = false
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local PROMPT_ACTIVATION_DIST = 5
+local RESERVED_DOOR_PARTS_NAMES = {
+	["Part0"] = true,
+	["Base"] = true
+}
 
 local doors: { [Door.Door]: true } = {}
 
 task.wait(2)
 
 traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
-	if not inst:IsA("Model") or not startsWith(inst.Name, "DoorMetal") then
+	if not inst:IsA("Model") or not startsWith(inst.Name, "Door") then
 		return
 	end
 
@@ -87,7 +91,19 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		local isDoubleDoor = base:GetAttribute("DoubleDoor") :: boolean?
 
 		local part0 = inst:FindFirstChild("Part0") :: BasePart
-		local handle = inst:FindFirstChild("Handle") :: BasePart
+		local nonMainDoorParts: {BasePart} = {}
+
+		for _, part in inst:GetChildren() do
+			if not part:IsA("BasePart") then
+				continue
+			end
+
+			if RESERVED_DOOR_PARTS_NAMES[part.Name] then
+				continue
+			end
+
+			table.insert(nonMainDoorParts, part)
+		end
 
 		local doorSizeZ = part0.Size.Z
 
@@ -152,13 +168,20 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		base.CanQuery = false
 
 		part0.Anchored = false
-		handle.Anchored = false
+		for _, part in nonMainDoorParts do
+			part.Anchored = false
+		end
 
 		table.insert(doorParts, part0)
-		table.insert(doorParts, handle)
-
+		for _, part in nonMainDoorParts do
+			table.insert(doorParts, part)
+		end
+		
 		local part0_OrigCF = part0.CFrame
-		local handle_OrigCF = handle.CFrame
+		local nonDoorParts_OrigCF = {} :: { [BasePart]: CFrame }
+		for _, part in nonMainDoorParts do
+			nonDoorParts_OrigCF[part] = part.CFrame
+		end
 		local prompts = {} :: DoorPromptComponent.SingleDoorPrompts | DoorPromptComponent.DoubleDoorPrompts
 		local attatchmentAddDist = 0.3
 
@@ -167,12 +190,16 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			part1.Name = "Part1"
 			part1.Parent = inst
 
-			local handle1 = handle:Clone()
-			handle1.Name = "Handle1"
-			handle1.Parent = inst
+			-- Istg all of these for loops are unoptimized as shit
+			local nonDoorPartsClones: { [BasePart]: BasePart } = {} -- k: original; v: clone
+			for _, part in nonMainDoorParts do
+				local clone = part:Clone()
+				clone.Parent = part.Parent
+				table.insert(doorParts, clone)
+				nonDoorPartsClones[part] = clone
+			end
 
 			table.insert(doorParts, part1)
-			table.insert(doorParts, handle1)
 
 			local quarterBaseSizeX = base.Size.X / 4
 			local rotation180 = CFrame.Angles(0, math.rad(180), 0)
@@ -181,13 +208,18 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 			
 			local rightDoorOffset = CFrame.new(-quarterBaseSizeX, 0, 0)
 
-			-- 2. Get the handle's CFrame *relative to the door panel*
-			local handleRelativeCF = part0_OrigCF:ToObjectSpace(handle_OrigCF)
+			-- 2. Get the door part's CFrame *relative to the door panel*
+			local nonDoorPartsRelativeCF: { [BasePart]: CFrame } = {}
+			for _, part in nonMainDoorParts do
+				nonDoorPartsRelativeCF[part] = part0_OrigCF:ToObjectSpace(nonDoorParts_OrigCF[part])
+			end
 
 			-- 3. Position the LEFT door (part0 and handle)
 			local leftDoorCF = base.CFrame * leftDoorOffset
 			part0.CFrame = leftDoorCF
-			handle.CFrame = leftDoorCF * handleRelativeCF
+			for _, part in nonMainDoorParts do
+				part.CFrame = leftDoorCF * nonDoorPartsRelativeCF[part]
+			end
 
 			-- 4. Position the RIGHT door (part1 and handle1)
 			-- This CFrame correctly positions and rotates the door panel.
@@ -196,20 +228,22 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 
 			-- 5. Create the mirrored CFrame for the RIGHT handle (handle1)
 			
-			-- Get the handle's original relative position and rotation
-			local relPos = handleRelativeCF.Position
-			local rx, ry, rz = handleRelativeCF:ToOrientation()
+			for orig, clone in nonDoorPartsClones do
+				-- Get the handle's original relative position and rotation
+				local relCF = nonDoorPartsRelativeCF[orig]
+				local relPos = relCF.Position
+				local rx, ry, rz = relCF:ToOrientation()
 
-			-- We use the SAME relative position (relPos.X, not -relPos.X).
-			-- We mirror the rotation of the handle by negating the
-			-- Y-axis (yaw) and Z-axis (roll) rotation.
-			local mirroredHandleRelativeCF = CFrame.new(relPos.X, relPos.Y, relPos.Z) * CFrame.Angles(rx, -ry, -rz)
-			
-			handle1.CFrame = rightDoorCF * mirroredHandleRelativeCF
+				-- We use the SAME relative position (relPos.X, not -relPos.X).
+				-- We mirror the rotation of the handle by negating the
+				-- Y-axis (yaw) and Z-axis (roll) rotation.
+				local mirroredHandleRelativeCF = CFrame.new(relPos.X, relPos.Y, relPos.Z) * CFrame.Angles(rx, -ry, -rz)
+				
+				clone.CFrame = rightDoorCF * mirroredHandleRelativeCF
+				weld(clone, hingePart2)
+			end
 
 			weld(part1, hingePart2)
-			weld(handle1, hingePart2)
-
 			-- Attatchments
 
 			----
@@ -268,7 +302,9 @@ traverse(PROPS_FOLDER, FUNC_TRAVERSE_FOLDERS, function(inst)
 		end
 
 		weld(part0, hingePart)
-		weld(handle, hingePart)
+		for _, part in nonMainDoorParts do
+			weld(part, hingePart)
+		end
 
 		-- Attatchments
 		local frontAttatchment = Instance.new("Attachment")
