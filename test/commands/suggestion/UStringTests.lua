@@ -1,7 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UString = require(ReplicatedStorage.shared.suggestion.UString)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
 
 local UStringTests = {}
 
