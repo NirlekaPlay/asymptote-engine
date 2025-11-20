@@ -51,7 +51,10 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 		return
 	end
 
+	-- TODO: Make a Proximity Prompt builder or some shit.
 	triggerAttachment:SetAttribute("OmniDir", false)
+	triggerAttachment:SetAttribute("PrimaryHoldClientShowCondition", "!HasDisguise")
+	triggerAttachment:SetAttribute("PrimaryHoldConditionFailTitle", "ui.prompt.already_disguised")
 
 	local proximityPrompt = triggerAttachment:FindFirstChildOfClass("ProximityPrompt") :: ProximityPrompt
 	if not proximityPrompt then

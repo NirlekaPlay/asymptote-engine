@@ -70,9 +70,12 @@ function CardReader.createFromModel(model: Model): CardReader
 	local base = (model :: any).Base :: BasePart
 	local part0 = (model :: any).Part0 :: BasePart
 
+	local triggerVariable = base:GetAttribute("TriggerVariable") :: string
+
 	-- Proximity prompt
 
 	local triggerAttachment = Instance.new("Attachment")
+	triggerAttachment:SetAttribute("PrimaryHoldClientShowCondition", `!{triggerVariable}`)
 	triggerAttachment.Name = "Trigger"
 	triggerAttachment.Parent = part0
 
@@ -85,10 +88,9 @@ function CardReader.createFromModel(model: Model): CardReader
 	proxPrompt.Style = Enum.ProximityPromptStyle.Custom
 	proxPrompt.HoldDuration = 0.5
 	proxPrompt.Parent = triggerAttachment
+	proxPrompt.MaxActivationDistance = 4
 
 	-- Global states
-
-	local triggerVariable = base:GetAttribute("TriggerVariable") :: string
 	if not GlobalStatesHolder.hasState(triggerVariable) then
 		GlobalStatesHolder.setState(triggerVariable, false)
 	end
