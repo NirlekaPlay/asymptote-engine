@@ -2,6 +2,7 @@
 
 local globalStates: { [string]: any } = {}
 local stateSignals: { [string]: BindableEvent } = {}
+local statesChangedSignal: BindableEvent = Instance.new("BindableEvent")
 
 local GlobalStatesHolder = {}
 
@@ -10,7 +11,8 @@ function GlobalStatesHolder.setState<T>(stateName: string, stateValue: T): ()
 
 	if prevValue ~= stateValue :: any then
 		globalStates[stateName] = stateValue
-			if stateSignals[stateName] then
+		statesChangedSignal:Fire(stateName, stateValue)
+		if stateSignals[stateName] then
 			stateSignals[stateName]:Fire(stateValue)
 		end
 	end
@@ -18,6 +20,10 @@ end
 
 function GlobalStatesHolder.getState(stateName: string): any
 	return globalStates[stateName]
+end
+
+function GlobalStatesHolder.getAllStatesReference(): typeof(globalStates)
+	return globalStates
 end
 
 function GlobalStatesHolder.hasState(stateName: string): boolean
@@ -34,6 +40,10 @@ function GlobalStatesHolder.getStateChangedConnection(stateName: string): RBXScr
 	end
 
 	return stateSignals[stateName].Event
+end
+
+function GlobalStatesHolder.getStatesChangedConnection(): RBXScriptSignal<string, any>
+	return statesChangedSignal.Event
 end
 
 return GlobalStatesHolder

@@ -29,5 +29,9 @@ return {
 	BrainDebugDump = RE("BrainDebugDump") :: RE<{BrainDebugPayload.BrainDump}>,
 	SubscribeDebugDump = RE("SubscribeDebugDump") :: RE<string, boolean>,
 	--
-	ClientBoundChatMessage = RE("ClientBoundChatMessage") :: RE<ClientBoundChatMessagePayload.ClientBoundChatMessagePayload>
+	ClientBoundChatMessage = RE("ClientBoundChatMessage") :: RE<ClientBoundChatMessagePayload.ClientBoundChatMessagePayload>,
+	--
+	ServerBoundGlobalStatesReplicateRequest = RE("ClientBoundChatMessage") :: RE<>,
+	ClientBoundReplicateIndividualGlobalStates = RE("ClientBoundReplicateGlobalStates") :: RE<string, any>,
+	ClientBoundReplicateAllGlobalStates = RE("ClientBoundReplicateAllGlobalStates") :: RE<{[string]:any}>
 }
