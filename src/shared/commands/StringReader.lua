@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ImmutableStringReader = require(ReplicatedStorage.shared.commands.ImmutableStringReader)
-local UString = require(ReplicatedStorage.shared.suggestion.UString)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
 
 --[=[
 	@class StringReader
