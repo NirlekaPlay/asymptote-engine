@@ -11,7 +11,14 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterPlayer = game:GetService("StarterPlayer")
+local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
+local LocalStatesHolder = require(StarterPlayer.StarterPlayerScripts.client.modules.states.LocalStatesHolder)
+local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")
@@ -575,22 +582,274 @@ local function createPrompt(prompt: ProximityPrompt, inputType: Enum.ProximityPr
 	return cleanup
 end
 
+local function createNonInteractivePrompt(prompt: ProximityPrompt, message: string, gui: ScreenGui): ()
+	local tweensForFadeOut: { Tween } = {}
+	local tweensForFadeIn: { Tween } = {}
+	local tweenInfoFast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local promptParentAttatchment = prompt.Parent :: Attachment
+
+	-- To know if the ProximityPrompt can be the normal one or the flat one.
+	local isOmniDir = promptParentAttatchment:GetAttribute("OmniDir")
+
+	local promptPart
+	promptPart = Instance.new("Part")
+	promptPart.Name = "PromptPart"
+	promptPart.Anchored = true
+	promptPart.CanCollide = false
+	promptPart.CanTouch = false
+	promptPart.CanQuery = false
+	promptPart.CastShadow = false
+	promptPart.Transparency = 1
+	promptPart.CFrame = promptParentAttatchment.WorldCFrame
+	promptPart.Parent = workspace
+
+	if isOmniDir then
+		promptParts[promptPart] = true
+	end
+
+	local promptUI = Instance.new("SurfaceGui")
+	promptUI.Name = "Prompt"
+	promptUI.AlwaysOnTop = true
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundTransparency = 1
+	frame.BackgroundColor3 = Color3.new(0.07, 0.07, 0.07)
+	frame.Parent = promptUI
+
+	local roundedCorner = Instance.new("UICorner")
+	roundedCorner.Parent = frame
+
+	local actionTextFontSize = 15
+	local objectTextFontSize = 15
+
+	local actionText = Instance.new("TextLabel")
+	actionText.Name = "ActionText"
+	actionText.Position = UDim2.fromScale(0.5, 0.5)
+	actionText.AnchorPoint = Vector2.new(0.5, 0.5)
+	actionText.Size = UDim2.fromScale(1, 1)
+	actionText.FontFace = Font.fromName("Zekton")
+	actionText.TextSize = actionTextFontSize
+	actionText.BackgroundTransparency = 1
+	actionText.TextTransparency = 1
+	actionText.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+	actionText.TextXAlignment = Enum.TextXAlignment.Center
+	actionText.Parent = frame
+	table.insert(tweensForFadeOut, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 1 }))
+	table.insert(tweensForFadeIn, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
+
+	--[[local objectText = Instance.new("TextLabel")
+	objectText.Name = "ObjectText"
+	objectText.Size = UDim2.fromScale(1, 1)
+	objectText.FontFace = Font.fromName("Zekton")
+	objectText.TextSize = objectTextFontSize
+	objectText.BackgroundTransparency = 1
+	objectText.TextTransparency = 1
+	objectText.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+	objectText.TextXAlignment = Enum.TextXAlignment.Left
+	objectText.Parent = frame
+	table.insert(tweensForFadeOut, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 1 }))
+	table.insert(tweensForFadeIn, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))]]
+
+	table.insert(
+		tweensForFadeOut,
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = 1 })
+	)
+	table.insert(
+		tweensForFadeIn,
+		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 0.2 })
+	)
+
+	--
+
+	local function updateUIFromPrompt()
+		-- TODO: Use AutomaticSize instead of GetTextSize when that feature becomes available
+		local actionTextSize =
+			TextService:GetTextSize(message, actionTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
+		local objectTextSize =
+			TextService:GetTextSize(prompt.ObjectText, objectTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
+		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
+		local promptHeight = 60
+		local promptWidth = 60
+		local textPaddingLeft = 10
+		local textPaddingRight = 10
+
+		if
+			(message ~= nil and prompt.ActionText ~= "")
+			or (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
+		then
+			promptWidth = maxTextWidth + textPaddingLeft + textPaddingRight
+		end
+
+		local isObjectTextPresent = (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
+
+		-- If object text is present, calculate the Y offset (9) for objectText
+		local actionTextYOffset = 0
+		if isObjectTextPresent then
+			actionTextYOffset = 12
+		end
+		
+		--objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
+		
+		
+		-- The resulting Y position must be a UDim2 offset, not scale (0)
+		--actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYPosition)
+
+		actionText.Text = message
+		--objectText.Text = prompt.ObjectText
+		actionText.AutoLocalize = prompt.AutoLocalize
+		actionText.RootLocalizationTable = prompt.RootLocalizationTable
+
+		--objectText.AutoLocalize = prompt.AutoLocalize
+		--objectText.RootLocalizationTable = prompt.RootLocalizationTable
+
+		local pixelsPerStud = 55
+
+		-- Convert pixels to studs
+		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
+		local partWidth = promptWidth / pixelsPerStud
+		local partHeight = promptHeight / pixelsPerStud
+		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
+	end
+
+	local changedConnection = prompt.Changed:Connect(updateUIFromPrompt)
+	updateUIFromPrompt()
+
+	promptUI.Adornee = promptPart
+	promptUI.Parent = gui
+
+	for _, tween in tweensForFadeIn do
+		tween:Play()
+	end
+
+	local function cleanup()
+		if changedConnection then
+			changedConnection:Disconnect()
+		end
+
+		for _, tween in tweensForFadeOut do
+			tween:Play()
+		end
+
+		task.wait(0.2)
+
+		promptUI.Parent = nil
+		promptPart.Parent = nil
+	end
+
+	return cleanup
+end
+
+local function flat(t1: {[any]:any}, t2: {[any]:any}): {[any]:any}
+	local newTable: {[any]:any} = {}
+
+	for key, value in pairs(t1) do
+		newTable[key] = value
+	end
+
+	for key, value in pairs(t2) do
+		newTable[key] = value
+	end
+
+	return newTable
+end
+
+local function parseCondition(str: string): any
+	return ExpressionParser.parseAndEvalute(str, ExpressionContext.new(
+		flat(
+			LocalStatesHolder.getAllStates(),
+			ReplicatedGlobalStates.getAllStates()
+		)
+	))
+end
+
 local function onLoad(): ()
 	ProximityPromptService.PromptShown:Connect(function(prompt, inputType)
 		if prompt.Style == Enum.ProximityPromptStyle.Default then
 			return
 		end
 
+		local promptAtt = prompt.Parent :: Attachment?
+		if not promptAtt or not promptAtt:IsA("Attachment") then
+			warn(`{prompt:GetFullName()}: Is not parented to an Attachment.`)
+			return
+		end
+
+		local clientCondition = promptAtt:GetAttribute("PrimaryHoldClientShowCondition") :: string?
+		local failTitle: string?
+		if clientCondition then
+			local success = parseCondition(clientCondition)
+			print(`{prompt:GetFullName()}: Has show condition. Evaluated. Result:`, success)
+			if not success then
+				local failMsg = promptAtt:GetAttribute("PrimaryHoldConditionFailTitle") :: string?
+				print("FOUND FAIL MESSAGE:", failMsg)
+				if not failMsg then
+					return
+				end
+
+				failTitle = ClientLanguage.getOrDefault(failMsg, failMsg)
+
+				print("NOT SHOWN")
+				print("FAIL TITLE:", failTitle)
+			end
+		end
+
 		local gui = getScreenGui()
 
-		local cleanupFunction = createPrompt(prompt, inputType, gui)
+		-- TODO: Abritary Proximity Prompt bypass bullshit by locally disabling them
+		-- but that ALSO disables the distance and LoS checks, so we gotta do that shit
+		-- manually tooo????? oh fuck.
+
+		-- If you still dont get the problem, the Proximity Prompt is still enabled.
+		-- Even though its supposed to be not interactive.
+
+		-- ~~But I think I'm onto something here.. what IF. Instead of going insane and
+		-- painstakingly implement a check every frame on every proximity prompt if they should
+		-- be shown, why not just locally disable the proximity prompt if invalid, ~~
+
+		-- I lost track.
+		local cleanupFunction = failTitle and createNonInteractivePrompt(prompt, failTitle, gui) or
+			createPrompt(prompt, inputType, gui)
 
 		local hiddenConn: RBXScriptConnection
 		local changedConn: RBXScriptConnection
-		changedConn = prompt.Changed:Connect(function()
-			if prompt.MaxActivationDistance <= 0 or not prompt.Enabled then
+		local statesChangedConn: RBXScriptConnection
+		local replicatedGlobalStatesChangedConn: RBXScriptConnection
+
+		local function onShitChanged()
+			print("Proximity prompt: Something changed. Evaluating stuff...")
+			-- TODO: Someone fix this convoluted bullshit with something sane
+			-- and pleasing to the eyes, thank you.
+
+			-- God I hate this shit. So many variables, so many connections, so many ways
+			-- states, stuff, edge cases, everything, can change. And we need to fucking
+			-- cover allat.
+			local shouldInvalidate = false
+			local shouldNotShowPromptAnyway = prompt.MaxActivationDistance <= 0 or not prompt.Enabled
+			local makeNonInteractive = false
+			if shouldNotShowPromptAnyway then
+				shouldInvalidate = true
+			else
+				-- If the states are now invalid, it should hide the interactive prompt
+				-- and switch to the non interactive one.
+				if clientCondition then
+					local success = parseCondition(clientCondition)
+					print("Client condition found. Condition result:", success)
+					if not success then
+						shouldInvalidate = true
+						local failMsg = promptAtt:GetAttribute("PrimaryHoldConditionFailTitle") :: string?
+						print("INVALIDATED: FOUND ERROR MESSAGE:", failMsg)
+						if failMsg then
+							makeNonInteractive = true
+							failTitle = ClientLanguage.getOrDefault(failMsg, failMsg)
+						end
+					end
+				end
+			end
+			if shouldInvalidate then
 				cleanupFunction()
-				if hiddenConn then
+				if (makeNonInteractive == false) and hiddenConn then
+					print("Hidden connection disconnected")
 					hiddenConn:Disconnect()
 					hiddenConn = nil
 				end
@@ -599,10 +858,47 @@ local function onLoad(): ()
 					changedConn:Disconnect()
 					changedConn = nil
 				end
+
+				if statesChangedConn then
+					statesChangedConn:Disconnect()
+					statesChangedConn = nil
+				end
+
+				if replicatedGlobalStatesChangedConn then
+					replicatedGlobalStatesChangedConn:Disconnect()
+					replicatedGlobalStatesChangedConn = nil
+				end
+
+				if makeNonInteractive and failTitle then
+					-- 1. Create the non-interactive UI
+					cleanupFunction = createNonInteractivePrompt(prompt, failTitle, gui)
+
+					-- 2. Establish the ONE-TIME cleanup mechanism for this new UI
+					if hiddenConn then
+						hiddenConn:Disconnect()
+					end
+					
+					hiddenConn = prompt.PromptHidden:Once(function()
+						cleanupFunction() -- Destroys the non-interactive UI
+						
+						-- Since the prompt is now hidden, all change listeners related 
+						-- to this *showing* state should also be disconnected to avoid running
+						-- the evaluation logic while the prompt is invisible/off-screen.
+						if changedConn then changedConn:Disconnect(); changedConn = nil end
+						if statesChangedConn then statesChangedConn:Disconnect(); statesChangedConn = nil end
+						if replicatedGlobalStatesChangedConn then replicatedGlobalStatesChangedConn:Disconnect(); replicatedGlobalStatesChangedConn = nil end
+					end)
+				end
 			end
-		end)
+		end
+
+		changedConn = prompt.Changed:Connect(onShitChanged)
+
+		statesChangedConn = LocalStatesHolder.getStatesChangedConnection():Connect(onShitChanged)
+		replicatedGlobalStatesChangedConn = ReplicatedGlobalStates.getStatesChangedConnection():Connect(onShitChanged)
 
 		hiddenConn = prompt.PromptHidden:Once(function()
+			--print("Prompt hidden")
 			cleanupFunction()
 		end)
 	end)
