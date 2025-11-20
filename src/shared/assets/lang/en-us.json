@@ -1,0 +1,8 @@
+{
+  "ui.prompt.open": "Open",
+  "ui.prompt.close": "Close",
+  "ui.prompt.locked": "Locked",
+  "ui.prompt.unlock": "Unlock",
+  "ui.prompt.disguise": "Disguise",
+  "ui.prompt.already_disguised": "You're already disguised"
+}
