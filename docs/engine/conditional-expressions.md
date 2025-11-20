@@ -54,6 +54,7 @@ Conditional expressions adopts a C-Style and Java syntax.
 
 ## Booleans
 Your standard booleans. You know 'em. You love 'em.
+
  * `true`
  * `false`
 
@@ -64,7 +65,6 @@ Meaning expressions such as `A == B` and `A==B` does the same thing.
 ## Context and scope
 If your expression contains variables, then the engine's evaluator will evalute those variables
 based on the current enviremount.
-
-If the expression is run on the **server**, variables will reference the *global states*.
-If the expression is run on the **client**, variables will reference the *replicated global states*
+* If the expression is run on the **server**, variables will reference the *global states*.
+* If the expression is run on the **client**, variables will reference the *replicated global states*
 and its *local or client states.*
