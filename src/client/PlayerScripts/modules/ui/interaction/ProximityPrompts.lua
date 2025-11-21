@@ -25,6 +25,8 @@ local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camer
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+local ProximityPrompts = {}
+
 local GamepadButtonImage = {
 	[Enum.KeyCode.ButtonX] = "rbxasset://textures/ui/Controls/xboxX.png",
 	[Enum.KeyCode.ButtonY] = "rbxasset://textures/ui/Controls/xboxY.png",
@@ -763,147 +765,6 @@ local function parseCondition(str: string): any
 	))
 end
 
-local function onLoad(): ()
-	ProximityPromptService.PromptShown:Connect(function(prompt, inputType)
-		if prompt.Style == Enum.ProximityPromptStyle.Default then
-			return
-		end
-
-		local promptAtt = prompt.Parent :: Attachment?
-		if not promptAtt or not promptAtt:IsA("Attachment") then
-			warn(`{prompt:GetFullName()}: Is not parented to an Attachment.`)
-			return
-		end
-
-		local clientCondition = promptAtt:GetAttribute("PrimaryHoldClientShowCondition") :: string?
-		local failTitle: string?
-		if clientCondition then
-			local success = parseCondition(clientCondition)
-			print(`{prompt:GetFullName()}: Has show condition. Evaluated. Result:`, success)
-			if not success then
-				local failMsg = promptAtt:GetAttribute("PrimaryHoldConditionFailTitle") :: string?
-				print("FOUND FAIL MESSAGE:", failMsg)
-				if not failMsg then
-					return
-				end
-
-				failTitle = ClientLanguage.getOrDefault(failMsg, failMsg)
-
-				print("NOT SHOWN")
-				print("FAIL TITLE:", failTitle)
-			end
-		end
-
-		local gui = getScreenGui()
-
-		-- TODO: Abritary Proximity Prompt bypass bullshit by locally disabling them
-		-- but that ALSO disables the distance and LoS checks, so we gotta do that shit
-		-- manually tooo????? oh fuck.
-
-		-- If you still dont get the problem, the Proximity Prompt is still enabled.
-		-- Even though its supposed to be not interactive.
-
-		-- ~~But I think I'm onto something here.. what IF. Instead of going insane and
-		-- painstakingly implement a check every frame on every proximity prompt if they should
-		-- be shown, why not just locally disable the proximity prompt if invalid, ~~
-
-		-- I lost track.
-		local cleanupFunction = failTitle and createNonInteractivePrompt(prompt, failTitle, gui) or
-			createPrompt(prompt, inputType, gui)
-
-		local hiddenConn: RBXScriptConnection
-		local changedConn: RBXScriptConnection
-		local statesChangedConn: RBXScriptConnection
-		local replicatedGlobalStatesChangedConn: RBXScriptConnection
-
-		local function onShitChanged()
-			print("Proximity prompt: Something changed. Evaluating stuff...")
-			-- TODO: Someone fix this convoluted bullshit with something sane
-			-- and pleasing to the eyes, thank you.
-
-			-- God I hate this shit. So many variables, so many connections, so many ways
-			-- states, stuff, edge cases, everything, can change. And we need to fucking
-			-- cover allat.
-			local shouldInvalidate = false
-			local shouldNotShowPromptAnyway = prompt.MaxActivationDistance <= 0 or not prompt.Enabled
-			local makeNonInteractive = false
-			if shouldNotShowPromptAnyway then
-				shouldInvalidate = true
-			else
-				-- If the states are now invalid, it should hide the interactive prompt
-				-- and switch to the non interactive one.
-				if clientCondition then
-					local success = parseCondition(clientCondition)
-					print("Client condition found. Condition result:", success)
-					if not success then
-						shouldInvalidate = true
-						local failMsg = promptAtt:GetAttribute("PrimaryHoldConditionFailTitle") :: string?
-						print("INVALIDATED: FOUND ERROR MESSAGE:", failMsg)
-						if failMsg then
-							makeNonInteractive = true
-							failTitle = ClientLanguage.getOrDefault(failMsg, failMsg)
-						end
-					end
-				end
-			end
-			if shouldInvalidate then
-				cleanupFunction()
-				if (makeNonInteractive == false) and hiddenConn then
-					print("Hidden connection disconnected")
-					hiddenConn:Disconnect()
-					hiddenConn = nil
-				end
-
-				if changedConn then
-					changedConn:Disconnect()
-					changedConn = nil
-				end
-
-				if statesChangedConn then
-					statesChangedConn:Disconnect()
-					statesChangedConn = nil
-				end
-
-				if replicatedGlobalStatesChangedConn then
-					replicatedGlobalStatesChangedConn:Disconnect()
-					replicatedGlobalStatesChangedConn = nil
-				end
-
-				if makeNonInteractive and failTitle then
-					-- 1. Create the non-interactive UI
-					cleanupFunction = createNonInteractivePrompt(prompt, failTitle, gui)
-
-					-- 2. Establish the ONE-TIME cleanup mechanism for this new UI
-					if hiddenConn then
-						hiddenConn:Disconnect()
-					end
-					
-					hiddenConn = prompt.PromptHidden:Once(function()
-						cleanupFunction() -- Destroys the non-interactive UI
-						
-						-- Since the prompt is now hidden, all change listeners related 
-						-- to this *showing* state should also be disconnected to avoid running
-						-- the evaluation logic while the prompt is invisible/off-screen.
-						if changedConn then changedConn:Disconnect(); changedConn = nil end
-						if statesChangedConn then statesChangedConn:Disconnect(); statesChangedConn = nil end
-						if replicatedGlobalStatesChangedConn then replicatedGlobalStatesChangedConn:Disconnect(); replicatedGlobalStatesChangedConn = nil end
-					end)
-				end
-			end
-		end
-
-		changedConn = prompt.Changed:Connect(onShitChanged)
-
-		statesChangedConn = LocalStatesHolder.getStatesChangedConnection():Connect(onShitChanged)
-		replicatedGlobalStatesChangedConn = ReplicatedGlobalStates.getStatesChangedConnection():Connect(onShitChanged)
-
-		hiddenConn = prompt.PromptHidden:Once(function()
-			--print("Prompt hidden")
-			cleanupFunction()
-		end)
-	end)
-end
-
 --
 
 local CFRAME_FLIP_ROT = CFrame.Angles(0, math.rad(180), 0)
@@ -947,11 +808,149 @@ local function updatePartPromptsCframe(): ()
 	end
 end
 
-local function update(): ()
+function ProximityPrompts.update(): ()
 	removeInvalidPromptParts()
 	updatePartPromptsCframe()
 end
 
---onLoad()
+function ProximityPrompts.onPromptShown(intPrompt, inputType: Enum.ProximityPromptInputType): ()
+	local prompt = intPrompt:getProximityPrompt()
+	if prompt.Style == Enum.ProximityPromptStyle.Default then
+		return
+	end
 
---RunService.PreRender:Connect(update)
+	local promptAtt = prompt.Parent :: Attachment?
+	if not promptAtt or not promptAtt:IsA("Attachment") then
+		warn(`{prompt:GetFullName()}: Is not parented to an Attachment.`)
+		return
+	end
+
+	local clientCondition = promptAtt:GetAttribute("PrimaryHoldClientShowCondition") :: string?
+	local failTitle: string?
+	if clientCondition then
+		local success = parseCondition(clientCondition)
+		print(`{prompt:GetFullName()}: Has show condition. Evaluated. Result:`, success)
+		if not success then
+			local failMsg = promptAtt:GetAttribute("PrimaryHoldConditionFailTitle") :: string?
+			print("FOUND FAIL MESSAGE:", failMsg)
+			if not failMsg then
+				return
+			end
+
+			failTitle = ClientLanguage.getOrDefault(failMsg, failMsg)
+
+			print("NOT SHOWN")
+			print("FAIL TITLE:", failTitle)
+		end
+	end
+
+	local gui = getScreenGui()
+
+	-- TODO: Abritary Proximity Prompt bypass bullshit by locally disabling them
+	-- but that ALSO disables the distance and LoS checks, so we gotta do that shit
+	-- manually tooo????? oh fuck.
+
+	-- If you still dont get the problem, the Proximity Prompt is still enabled.
+	-- Even though its supposed to be not interactive.
+
+	-- ~~But I think I'm onto something here.. what IF. Instead of going insane and
+	-- painstakingly implement a check every frame on every proximity prompt if they should
+	-- be shown, why not just locally disable the proximity prompt if invalid, ~~
+
+	-- I lost track.
+	local cleanupFunction = failTitle and createNonInteractivePrompt(prompt, failTitle, gui) or
+		createPrompt(prompt, inputType, gui)
+
+	local hiddenConn: RBXScriptConnection
+	local changedConn: RBXScriptConnection
+	local statesChangedConn: RBXScriptConnection
+	local replicatedGlobalStatesChangedConn: RBXScriptConnection
+
+	local function onShitChanged()
+		print("Proximity prompt: Something changed. Evaluating stuff...")
+		-- TODO: Someone fix this convoluted bullshit with something sane
+		-- and pleasing to the eyes, thank you.
+
+		-- God I hate this shit. So many variables, so many connections, so many ways
+		-- states, stuff, edge cases, everything, can change. And we need to fucking
+		-- cover allat.
+		local shouldInvalidate = false
+		local shouldNotShowPromptAnyway = prompt.Enabled --prompt.MaxActivationDistance <= 0 or not
+		local makeNonInteractive = false
+		if shouldNotShowPromptAnyway then
+			shouldInvalidate = true
+		else
+			-- If the states are now invalid, it should hide the interactive prompt
+			-- and switch to the non interactive one.
+			if clientCondition then
+				local success = parseCondition(clientCondition)
+				print("Client condition found. Condition result:", success)
+				if not success then
+					shouldInvalidate = true
+					local failMsg = promptAtt:GetAttribute("PrimaryHoldConditionFailTitle") :: string?
+					print("INVALIDATED: FOUND ERROR MESSAGE:", failMsg)
+					if failMsg then
+						makeNonInteractive = true
+						failTitle = ClientLanguage.getOrDefault(failMsg, failMsg)
+					end
+				end
+			end
+		end
+		if shouldInvalidate then
+			cleanupFunction()
+			if (makeNonInteractive == false) and hiddenConn then
+				print("Hidden connection disconnected")
+				hiddenConn:Disconnect()
+				hiddenConn = nil
+			end
+
+			if changedConn then
+				changedConn:Disconnect()
+				changedConn = nil
+			end
+
+			if statesChangedConn then
+				statesChangedConn:Disconnect()
+				statesChangedConn = nil
+			end
+
+			if replicatedGlobalStatesChangedConn then
+				replicatedGlobalStatesChangedConn:Disconnect()
+				replicatedGlobalStatesChangedConn = nil
+			end
+
+			if makeNonInteractive and failTitle then
+				-- 1. Create the non-interactive UI
+				cleanupFunction = createNonInteractivePrompt(prompt, failTitle, gui)
+
+				-- 2. Establish the ONE-TIME cleanup mechanism for this new UI
+				if hiddenConn then
+					hiddenConn:Disconnect()
+				end
+				
+				hiddenConn = intPrompt.WrappedPromptHidden:Once(function()
+					cleanupFunction() -- Destroys the non-interactive UI
+					
+					-- Since the prompt is now hidden, all change listeners related 
+					-- to this *showing* state should also be disconnected to avoid running
+					-- the evaluation logic while the prompt is invisible/off-screen.
+					if changedConn then changedConn:Disconnect(); changedConn = nil end
+					if statesChangedConn then statesChangedConn:Disconnect(); statesChangedConn = nil end
+					if replicatedGlobalStatesChangedConn then replicatedGlobalStatesChangedConn:Disconnect(); replicatedGlobalStatesChangedConn = nil end
+				end)
+			end
+		end
+	end
+
+	changedConn = prompt.Changed:Connect(onShitChanged)
+
+	statesChangedConn = LocalStatesHolder.getStatesChangedConnection():Connect(onShitChanged)
+	replicatedGlobalStatesChangedConn = ReplicatedGlobalStates.getStatesChangedConnection():Connect(onShitChanged)
+
+	hiddenConn = intPrompt.WrappedPromptHidden:Once(function()
+		--print("Prompt hidden")
+		cleanupFunction()
+	end)
+end
+
+return ProximityPrompts
