@@ -6,10 +6,13 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
+local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local LocalStatesHolder = require(StarterPlayer.StarterPlayerScripts.client.modules.states.LocalStatesHolder)
 local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
+local InteractionPrompt = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.InteractionPrompt)
+local InteractionPromptConfiguration = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.InteractionPromptConfiguration)
+local InteractionPromptRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.InteractionPromptRenderer)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
-local Signal = require(ReplicatedStorage.shared.thirdparty.Signal)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
@@ -20,7 +23,7 @@ local worldInteractionPrompts: { [InteractionPrompt]: true } = {}
 local registeredProximityPrompts: { [ProximityPrompt]: true } = {}
 local currentPrompt: InteractionPrompt? = nil
 
-local DEBUG_PROMPTS = true
+local DEBUG_PROMPTS = false
 local DEBUG_OCCLUSION_RAYS = false
 local DEBUG_OCCLUSION_RAYS_LIFETIME = 0.1
 local INF = math.huge
@@ -29,24 +32,12 @@ local BLUE = Color3.new(0, 0, 1)
 local GREEN = Color3.new(0, 1, 0)
 
 local ATTRIBUTES = {
-	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition"
+	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition",
+	PRIMARY_HOLD_CONDITION_FAIL_SUBTITLE = "PrimaryHoldConditionFailTitle" -- don't ask.
 }
 
-export type InteractionPrompt = {
-	configuration: InteractionPromptConfiguration,
-	proxPrompt: ProximityPrompt,
-	attachment: Attachment,
-	getProximityPrompt: (self: InteractionPrompt) -> ProximityPrompt,
-	getAttachment: (self: InteractionPrompt) -> Attachment,
-	destroy: (self: InteractionPrompt) -> (),
-	--
-	WrappedPromptHidden: Signal.Signal<>
-}
-
-export type InteractionPromptConfiguration = {
-	activationDistance: number,
-	omniDirectional: boolean
-}
+type InteractionPrompt = InteractionPrompt.InteractionPrompt
+type InteractionPromptConfiguration = InteractionPromptConfiguration.InteractionPromptConfiguration
 
 --[=[
 	Returns BaseParts that are obscuring a target. Unlike `Camera:GetPartsObscuringTarget()`,
@@ -137,39 +128,21 @@ local function setupInteractionPromptFromProxPrompt(
 	proxPrompt.MaxActivationDistance = 0
 	proxPrompt.RequiresLineOfSight = false
 
-	local newInteractionPrompt: InteractionPrompt = {
-		configuration = {
-			activationDistance = originalMaxActivationDistance,
-			omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or true
-		},
-		proxPrompt = proxPrompt,
-		attachment = proxPrompt.Parent,
-		getProximityPrompt = function(self: InteractionPrompt): ProximityPrompt
-			return proxPrompt
-		end,
-		getAttachment = function(self: InteractionPrompt): Attachment
-			return proxPrompt.Parent :: Attachment
-		end,
-		destroy = function(self: InteractionPrompt)
-			-- Clean up when prompt is destroyed
-			worldInteractionPrompts[self] = nil
-			registeredProximityPrompts[proxPrompt] = nil
-			if currentPrompt == self then
-				currentPrompt = nil
-			end
-			(self.WrappedPromptHidden :: any):Destroy()
-		end,
-		--
-		WrappedPromptHidden = Signal.new() :: any
+	local config: InteractionPromptConfiguration = {
+		activationDistance = originalMaxActivationDistance,
+		omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or true
 	}
+
+	local newInteractionPrompt: InteractionPrompt = InteractionPrompt.new(
+		proxPrompt,
+		config,
+		proxPrompt.Parent :: Attachment
+	)
 
 	worldInteractionPrompts[newInteractionPrompt] = true
 	registeredProximityPrompts[proxPrompt] = true
-	
-	-- Clean up if the ProximityPrompt is destroyed
-	proxPrompt.Destroying:Once(function()
-		newInteractionPrompt:destroy()
-	end)
+
+	-- TODO: Cleanup stuff when destroyed, parented to nil, invalid ancestry, etc.
 
 	if DEBUG_PROMPTS then
 		debugPartsPerPrompt[newInteractionPrompt] = Draw.point(newInteractionPrompt:getAttachment().WorldPosition)
@@ -180,7 +153,7 @@ end
 	Shows and makes the prompt interactible.
 ]=]
 local function showAndEnablePrompt(prompt: InteractionPrompt): ()
-	prompt:getProximityPrompt().MaxActivationDistance = prompt.configuration.activationDistance
+	prompt:showInteractable(Enum.ProximityPromptInputType.Keyboard)
 	if DEBUG_PROMPTS then
 		setDebugPointColor(debugPartsPerPrompt[prompt], GREEN)
 	end
@@ -189,8 +162,8 @@ end
 --[=[
 	Shows a prompt that can not be interacted, with a text message showing why.
 ]=]
-local function showNonInteractivePrompt(prompt: InteractionPrompt): ()
-	prompt:getProximityPrompt().MaxActivationDistance = 0
+local function showNonInteractivePrompt(prompt: InteractionPrompt, failMsg: string): ()
+	prompt:showNonInteractable(failMsg)
 	if DEBUG_PROMPTS then
 		setDebugPointColor(debugPartsPerPrompt[prompt], BLUE)
 	end
@@ -200,10 +173,17 @@ end
 	Hides and makes the prompt not interactible.
 ]=]
 local function hideAndDisablePrompt(prompt: InteractionPrompt): ()
-	prompt:getProximityPrompt().MaxActivationDistance = 0
+	prompt:hide()
 	if DEBUG_PROMPTS then
 		setDebugPointColor(debugPartsPerPrompt[prompt], RED)
 	end
+end
+
+local function getConditionFailMessage(prompt: InteractionPrompt): string
+	local attachment = prompt:getAttachment()
+	local failMsgAtt = attachment:GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CONDITION_FAIL_SUBTITLE) :: string?
+
+	return failMsgAtt and ClientLanguage.getOrDefault(failMsgAtt, failMsgAtt) or "NO_FAIL_SUBTITLE"
 end
 
 --
@@ -313,7 +293,7 @@ local function update(deltaTime: number): ()
 			if canShow then
 				showAndEnablePrompt(nearestPrompt)
 			else
-				showNonInteractivePrompt(nearestPrompt)
+				showNonInteractivePrompt(nearestPrompt, getConditionFailMessage(nearestPrompt))
 			end
 		else
 			if currentPrompt then
@@ -328,9 +308,11 @@ local function update(deltaTime: number): ()
 		-- may cause performance issues.
 		local canShow = evaluatePromptShowCondition(currentPrompt)
 		if not canShow then
-			showNonInteractivePrompt(currentPrompt)
+			showNonInteractivePrompt(currentPrompt, getConditionFailMessage(currentPrompt))
 		end
 	end
+
+	InteractionPromptRenderer.update()
 end
 
 ProximityPromptService.PromptShown:Connect(setupInteractionPromptFromProxPrompt)
