@@ -1,11 +1,17 @@
 --!strict
 
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterPlayer = game:GetService("StarterPlayer")
+local LocalStatesHolder = require(StarterPlayer.StarterPlayerScripts.client.modules.states.LocalStatesHolder)
+local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Signal = require(ReplicatedStorage.shared.thirdparty.Signal)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -14,10 +20,17 @@ local worldInteractionPrompts: { [InteractionPrompt]: true } = {}
 local registeredProximityPrompts: { [ProximityPrompt]: true } = {}
 local currentPrompt: InteractionPrompt? = nil
 
+local DEBUG_PROMPTS = true
+local DEBUG_OCCLUSION_RAYS = false
+local DEBUG_OCCLUSION_RAYS_LIFETIME = 0.1
 local INF = math.huge
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local GREEN = Color3.new(0, 1, 0)
+
+local ATTRIBUTES = {
+	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition"
+}
 
 export type InteractionPrompt = {
 	configuration: InteractionPromptConfiguration,
@@ -50,6 +63,17 @@ local function getPartsObscuringTarget(camera: Camera, castPoints: {Vector3}, ig
 	for _, point in ipairs(castPoints) do
 		local direction = (point - camera.CFrame.Position)
 		local result = workspace:Raycast(camera.CFrame.Position, direction, raycastParams)
+
+		if DEBUG_OCCLUSION_RAYS then
+			local debugRay: BasePart
+			if result then
+				debugRay = Draw.line(camera.CFrame.Position, result.Position, GREEN)
+			else
+				debugRay = Draw.raycast(camera.CFrame.Position, direction, RED)
+			end
+
+			Debris:AddItem(debugRay, DEBUG_OCCLUSION_RAYS_LIFETIME)
+		end
 		
 		if result and not checkedParts[result.Instance] then
 			table.insert(obscuringParts, result.Instance)
@@ -58,6 +82,23 @@ local function getPartsObscuringTarget(camera: Camera, castPoints: {Vector3}, ig
 	end
 	
 	return obscuringParts
+end
+
+--[=[
+	Returns a new flattened table with values from `t1` and `t2`.
+]=]
+local function flat(t1: {[any]:any}, t2: {[any]:any}): {[any]:any}
+	local newTable: {[any]:any} = {}
+
+	for key, value in pairs(t1) do
+		newTable[key] = value
+	end
+
+	for key, value in pairs(t2) do
+		newTable[key] = value
+	end
+
+	return newTable
 end
 
 --
@@ -116,10 +157,10 @@ local function setupInteractionPromptFromProxPrompt(
 			if currentPrompt == self then
 				currentPrompt = nil
 			end
-			self.WrappedPromptHidden:Destroy()
+			(self.WrappedPromptHidden :: any):Destroy()
 		end,
 		--
-		WrappedPromptHidden = Signal.new()
+		WrappedPromptHidden = Signal.new() :: any
 	}
 
 	worldInteractionPrompts[newInteractionPrompt] = true
@@ -130,7 +171,9 @@ local function setupInteractionPromptFromProxPrompt(
 		newInteractionPrompt:destroy()
 	end)
 
-	debugPartsPerPrompt[newInteractionPrompt] = Draw.point(newInteractionPrompt:getAttachment().WorldPosition)
+	if DEBUG_PROMPTS then
+		debugPartsPerPrompt[newInteractionPrompt] = Draw.point(newInteractionPrompt:getAttachment().WorldPosition)
+	end
 end
 
 --[=[
@@ -138,6 +181,19 @@ end
 ]=]
 local function showAndEnablePrompt(prompt: InteractionPrompt): ()
 	prompt:getProximityPrompt().MaxActivationDistance = prompt.configuration.activationDistance
+	if DEBUG_PROMPTS then
+		setDebugPointColor(debugPartsPerPrompt[prompt], GREEN)
+	end
+end
+
+--[=[
+	Shows a prompt that can not be interacted, with a text message showing why.
+]=]
+local function showNonInteractivePrompt(prompt: InteractionPrompt): ()
+	prompt:getProximityPrompt().MaxActivationDistance = 0
+	if DEBUG_PROMPTS then
+		setDebugPointColor(debugPartsPerPrompt[prompt], BLUE)
+	end
 end
 
 --[=[
@@ -145,6 +201,32 @@ end
 ]=]
 local function hideAndDisablePrompt(prompt: InteractionPrompt): ()
 	prompt:getProximityPrompt().MaxActivationDistance = 0
+	if DEBUG_PROMPTS then
+		setDebugPointColor(debugPartsPerPrompt[prompt], RED)
+	end
+end
+
+--
+
+local function parseCondition(str: string): any
+	-- TODO: Idk if parsing and evaluation is expensive, and also I don't seem to be getting
+	-- any performance problems on my device, but on low-end devices, this might be a problem.
+	-- But oh well, keep moving forward. We're past paralysis by analysis.
+	return ExpressionParser.parseAndEvalute(str, ExpressionContext.new(
+		flat(
+			LocalStatesHolder.getAllStates(),
+			ReplicatedGlobalStates.getAllStates()
+		)
+	))
+end
+
+local function evaluatePromptShowCondition(prompt: InteractionPrompt): any
+	local conditionAtt = prompt:getAttachment():GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CLIENT_CONDITION) :: string?
+	if not conditionAtt or type(conditionAtt) ~= "string" then
+		return true -- It doesn't have a condition, so let it show anyway
+	end
+
+	return parseCondition(conditionAtt)
 end
 
 local function update(deltaTime: number): ()
@@ -173,7 +255,7 @@ local function update(deltaTime: number): ()
 		end
 		
 		local promptPos = promptAttachment.WorldPosition
-		local promptParentPart = promptAttachment.Parent :: BasePart
+		--local promptParentPart = promptAttachment.Parent :: BasePart
 		local distToLocalPlayerChar = localPlayer:DistanceFromCharacter(promptPos)
 
 		if distToLocalPlayerChar > interactionPrompt.configuration.activationDistance then
@@ -199,8 +281,11 @@ local function update(deltaTime: number): ()
 			continue
 		end
 
+		-- NOTES: Removed the prompt's parent part from the ignore list.
+		-- I don't know if this will fuck things up, bho, but I haven't seen any issues so far.
+		-- It also fixes the promblem with proximity prompts showing on the other side of the door.
 		local obstructingParts = getPartsObscuringTarget(
-			camera, {camera.CFrame.Position, promptPos}, {promptParentPart, localPlayer.Character :: Model}
+			camera, {camera.CFrame.Position, promptPos}, {localPlayer.Character :: Model}
 		)
 
 		if next(obstructingParts) ~= nil then
@@ -220,18 +305,30 @@ local function update(deltaTime: number): ()
 		if nearestPrompt then
 			if currentPrompt then
 				hideAndDisablePrompt(currentPrompt)
-				setDebugPointColor(debugPartsPerPrompt[currentPrompt], RED)
 			end
 
 			currentPrompt = nearestPrompt
-			showAndEnablePrompt(nearestPrompt)
-			setDebugPointColor(debugPartsPerPrompt[nearestPrompt], GREEN)
+			
+			local canShow = evaluatePromptShowCondition(nearestPrompt)
+			if canShow then
+				showAndEnablePrompt(nearestPrompt)
+			else
+				showNonInteractivePrompt(nearestPrompt)
+			end
 		else
 			if currentPrompt then
 				hideAndDisablePrompt(currentPrompt)
-				setDebugPointColor(debugPartsPerPrompt[currentPrompt], RED)
 				currentPrompt = nil
 			end
+		end
+	end
+
+	if currentPrompt then
+		-- TODO: This might get evaluated twice from the previous checks,
+		-- may cause performance issues.
+		local canShow = evaluatePromptShowCondition(currentPrompt)
+		if not canShow then
+			showNonInteractivePrompt(currentPrompt)
 		end
 	end
 end
