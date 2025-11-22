@@ -201,6 +201,11 @@ function CardReader.createFromModel(model: Model): CardReader
 	end)
 
 	GlobalStatesHolder.getStateChangedConnection(triggerVariable):Connect(function(v)
+		if v then
+			proxPrompt.Enabled = false
+		else
+			proxPrompt.Enabled = true
+		end
 		newReader:onTriggerVariableChanged(v)
 	end)
 
