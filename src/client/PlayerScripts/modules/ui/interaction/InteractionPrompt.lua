@@ -103,6 +103,8 @@ function InteractionPrompt.showNonInteractable(self: InteractionPrompt, failMsg:
 	self.activeCleanUpFunc = InteractionPromptRenderer.createNonInteractivePrompt(
 		self:getProximityPrompt(), failMsg, InteractionPromptRenderer.getScreenGui()
 	)
+
+	self:disableInteraction()
 end
 
 function InteractionPrompt.hide(self: InteractionPrompt): ()
