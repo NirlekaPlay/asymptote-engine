@@ -75,6 +75,35 @@ local function getPartsObscuringTarget(camera: Camera, castPoints: {Vector3}, ig
 	return obscuringParts
 end
 
+local function isWorldPosInPartBounds(pos: Vector3, part: BasePart): boolean
+	local relativePos = part.CFrame:PointToObjectSpace(pos)
+
+	local halfSize = part.Size / 2
+	
+	return math.abs(relativePos.X) <= halfSize.X
+		and math.abs(relativePos.Y) <= halfSize.Y
+		and math.abs(relativePos.Z) <= halfSize.Z
+end
+
+local function traverseAncestryUntil(root: Instance, predicate: (Instance) -> boolean): Instance?
+	local current = root
+	
+	while current do
+		if predicate(current) then
+			return current
+		end
+		current = current.Parent
+	end
+	
+	return nil
+end
+
+local function getParentModelOrDefault(root: Instance, default: Instance): Instance
+	return traverseAncestryUntil(root, function(inst)
+		return inst:IsA("Model")
+	end) or default
+end
+
 --[=[
 	Returns a new flattened table with values from `t1` and `t2`.
 ]=]
@@ -235,7 +264,7 @@ local function update(deltaTime: number): ()
 		end
 		
 		local promptPos = promptAttachment.WorldPosition
-		--local promptParentPart = promptAttachment.Parent :: BasePart
+		local promptParentPart = promptAttachment.Parent :: BasePart
 		local distToLocalPlayerChar = localPlayer:DistanceFromCharacter(promptPos)
 
 		if distToLocalPlayerChar > interactionPrompt.configuration.activationDistance then
@@ -261,11 +290,18 @@ local function update(deltaTime: number): ()
 			continue
 		end
 
+		local ignoreList: { Instance } = { localPlayer.Character :: Model }
+
+		-- TODO: Performance fuck up. Run every frame.
+		if isWorldPosInPartBounds(promptAttachment.WorldPosition, promptParentPart) then
+			table.insert(ignoreList, getParentModelOrDefault(promptParentPart, promptParentPart))
+		end
+
 		-- NOTES: Removed the prompt's parent part from the ignore list.
 		-- I don't know if this will fuck things up, bho, but I haven't seen any issues so far.
 		-- It also fixes the promblem with proximity prompts showing on the other side of the door.
 		local obstructingParts = getPartsObscuringTarget(
-			camera, {camera.CFrame.Position, promptPos}, {localPlayer.Character :: Model}
+			camera, {camera.CFrame.Position, promptPos}, ignoreList
 		)
 
 		if next(obstructingParts) ~= nil then
