@@ -4,33 +4,71 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local StarterPlayer = game:GetService("StarterPlayer")
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Signal = require(ReplicatedStorage.shared.thirdparty.Signal)
-local ProximityPrompts = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.ProximityPrompts)
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 local worldInteractionPrompts: { [InteractionPrompt]: true } = {}
+local registeredProximityPrompts: { [ProximityPrompt]: true } = {}
 local currentPrompt: InteractionPrompt? = nil
-local PromptShown = Signal.new() :: Signal.Signal<InteractionPrompt>
-local PromptHidden = Signal.new() :: Signal.Signal<InteractionPrompt>
 
 local INF = math.huge
+local RED = Color3.new(1, 0, 0)
+local BLUE = Color3.new(0, 0, 1)
+local GREEN = Color3.new(0, 1, 0)
 
 export type InteractionPrompt = {
 	configuration: InteractionPromptConfiguration,
 	proxPrompt: ProximityPrompt,
-	attatchment: Attachment,
+	attachment: Attachment,
 	getProximityPrompt: (self: InteractionPrompt) -> ProximityPrompt,
-	getAttatchment: (self: InteractionPrompt) -> Attachment,
+	getAttachment: (self: InteractionPrompt) -> Attachment,
+	destroy: (self: InteractionPrompt) -> (),
 	--
 	WrappedPromptHidden: Signal.Signal<>
 }
 
 export type InteractionPromptConfiguration = {
-	activationDistance: number
+	activationDistance: number,
+	omniDirectional: boolean
 }
+
+--[=[
+	Returns BaseParts that are obscuring a target. Unlike `Camera:GetPartsObscuringTarget()`,
+	this gives us more control on what part that obscures and what does not.
+]=]
+local function getPartsObscuringTarget(camera: Camera, castPoints: {Vector3}, ignoreList: {Instance}): {BasePart}
+	local obscuringParts: {BasePart} = {}
+	local checkedParts: { [BasePart]: boolean } = {}
+	
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = ignoreList or {}
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	for _, point in ipairs(castPoints) do
+		local direction = (point - camera.CFrame.Position)
+		local result = workspace:Raycast(camera.CFrame.Position, direction, raycastParams)
+		
+		if result and not checkedParts[result.Instance] then
+			table.insert(obscuringParts, result.Instance)
+			checkedParts[result.Instance] = true
+		end
+	end
+	
+	return obscuringParts
+end
+
+--
+
+local debugPartsPerPrompt: { [InteractionPrompt]: BasePart } = {}
+
+local function setDebugPointColor(debugPart: BasePart, color: Color3): ()
+	local adornment = debugPart:FindFirstChildOfClass("SphereHandleAdornment") :: SphereHandleAdornment
+	debugPart.Color = color
+	adornment.Color3 = color
+end
 
 --[=[
 	This is for registering prompts only, so we do not have to manually traverse
@@ -40,40 +78,78 @@ local function setupInteractionPromptFromProxPrompt(
 	proxPrompt: ProximityPrompt, inputType: Enum.ProximityPromptInputType
 ): ()
 
+	if registeredProximityPrompts[proxPrompt] then
+		return
+	end
+
 	if proxPrompt.Style ~= Enum.ProximityPromptStyle.Custom then
 		return
 	end
 
 	if not proxPrompt.Parent or not proxPrompt.Parent:IsA("Attachment") then
-		warn(`Proximity prompt '{proxPrompt:GetFullName()}' is not parented to an attatchment.`)
+		warn(`Proximity prompt '{proxPrompt:GetFullName()}' is not parented to an attachment.`)
 		return
 	end
 
+	local originalMaxActivationDistance = proxPrompt.MaxActivationDistance
+	
 	proxPrompt.MaxActivationDistance = 0
 	proxPrompt.RequiresLineOfSight = false
 
 	local newInteractionPrompt: InteractionPrompt = {
 		configuration = {
-			activationDistance = 3
+			activationDistance = originalMaxActivationDistance,
+			omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or true
 		},
 		proxPrompt = proxPrompt,
-		attatchment = proxPrompt.Parent,
+		attachment = proxPrompt.Parent,
 		getProximityPrompt = function(self: InteractionPrompt): ProximityPrompt
 			return proxPrompt
 		end,
-		getAttatchment = function(self: InteractionPrompt): Attachment
+		getAttachment = function(self: InteractionPrompt): Attachment
 			return proxPrompt.Parent :: Attachment
+		end,
+		destroy = function(self: InteractionPrompt)
+			-- Clean up when prompt is destroyed
+			worldInteractionPrompts[self] = nil
+			registeredProximityPrompts[proxPrompt] = nil
+			if currentPrompt == self then
+				currentPrompt = nil
+			end
+			self.WrappedPromptHidden:Destroy()
 		end,
 		--
 		WrappedPromptHidden = Signal.new()
 	}
 
 	worldInteractionPrompts[newInteractionPrompt] = true
+	registeredProximityPrompts[proxPrompt] = true
+	
+	-- Clean up if the ProximityPrompt is destroyed
+	proxPrompt.Destroying:Once(function()
+		newInteractionPrompt:destroy()
+	end)
+
+	debugPartsPerPrompt[newInteractionPrompt] = Draw.point(newInteractionPrompt:getAttachment().WorldPosition)
+end
+
+--[=[
+	Shows and makes the prompt interactible.
+]=]
+local function showAndEnablePrompt(prompt: InteractionPrompt): ()
+	prompt:getProximityPrompt().MaxActivationDistance = prompt.configuration.activationDistance
+end
+
+--[=[
+	Hides and makes the prompt not interactible.
+]=]
+local function hideAndDisablePrompt(prompt: InteractionPrompt): ()
+	prompt:getProximityPrompt().MaxActivationDistance = 0
 end
 
 local function update(deltaTime: number): ()
 	-- TODO: Handle multiple prompts of different exclusivity types
-	if not localPlayer.Character then
+	if not localPlayer.Character or not localPlayer.Character.PrimaryPart then
 		return
 	end
 
@@ -84,30 +160,47 @@ local function update(deltaTime: number): ()
 	local nearestDistance = INF
 
 	for interactionPrompt in worldInteractionPrompts do
-		if not interactionPrompt:getProximityPrompt().Enabled then
+		local proxPrompt = interactionPrompt:getProximityPrompt()
+		
+		if not proxPrompt or not proxPrompt.Parent or not proxPrompt.Enabled then
 			continue
 		end
 
-		local promptAttatchment = interactionPrompt:getAttatchment()
-		local promptPos = promptAttatchment.WorldPosition
-		local promptParentPart = promptAttatchment.Parent :: BasePart
+		local promptAttachment = interactionPrompt:getAttachment()
+		
+		if not promptAttachment or not promptAttachment.Parent then
+			continue
+		end
+		
+		local promptPos = promptAttachment.WorldPosition
+		local promptParentPart = promptAttachment.Parent :: BasePart
 		local distToLocalPlayerChar = localPlayer:DistanceFromCharacter(promptPos)
 
-		--print("Distance:", distToLocalPlayerChar)
 		if distToLocalPlayerChar > interactionPrompt.configuration.activationDistance then
-			--print("Not close")
 			continue
+		end
+
+		if not interactionPrompt.configuration.omniDirectional then
+			local characterHead = (localPlayer.Character :: Model).PrimaryPart :: BasePart
+			local attachmentCFrame = promptAttachment.WorldCFrame
+			local attachmentLookVector = attachmentCFrame.LookVector
+			local vectorToPlayer = (characterHead.Position - attachmentCFrame.Position).Unit
+			
+			local dotProduct = attachmentLookVector:Dot(vectorToPlayer)
+			
+			if dotProduct < 0 then
+				continue
+			end
 		end
 
 		local viewport3dPos, onScreen = camera:WorldToViewportPoint(promptPos)
 
 		if not onScreen then
-			--print("Not on screen")
 			continue
 		end
 
-		local obstructingParts = camera:GetPartsObscuringTarget(
-			{camera.CFrame.Position, promptPos},{promptParentPart, localPlayer.Character :: Model}
+		local obstructingParts = getPartsObscuringTarget(
+			camera, {camera.CFrame.Position, promptPos}, {promptParentPart, localPlayer.Character :: Model}
 		)
 
 		if next(obstructingParts) ~= nil then
@@ -123,40 +216,26 @@ local function update(deltaTime: number): ()
 		end
 	end
 
-	if nearestPrompt and currentPrompt ~= nearestPrompt then
-		if currentPrompt then
-			currentPrompt:getProximityPrompt().MaxActivationDistance = 0
-			currentPrompt.WrappedPromptHidden:Fire()
-			PromptHidden:Fire(currentPrompt)
-		end
-		currentPrompt = nearestPrompt
-		-- TODO: Idk if this game will be cross platform,
-		-- but make sure to handle the input type correctly.
+	if currentPrompt ~= nearestPrompt then
+		if nearestPrompt then
+			if currentPrompt then
+				hideAndDisablePrompt(currentPrompt)
+				setDebugPointColor(debugPartsPerPrompt[currentPrompt], RED)
+			end
 
-		-- TODO: Seperate method to handle shown events
-		nearestPrompt:getProximityPrompt().MaxActivationDistance = nearestPrompt.configuration.activationDistance
-		ProximityPrompts.onPromptShown(nearestPrompt, Enum.ProximityPromptInputType.Keyboard)
-		PromptShown:Fire(nearestPrompt)
-	elseif nearestPrompt == nil then
-		if currentPrompt then
-			currentPrompt:getProximityPrompt().MaxActivationDistance = 0
-			currentPrompt.WrappedPromptHidden:Fire()
-			PromptHidden:Fire(currentPrompt)
+			currentPrompt = nearestPrompt
+			showAndEnablePrompt(nearestPrompt)
+			setDebugPointColor(debugPartsPerPrompt[nearestPrompt], GREEN)
+		else
+			if currentPrompt then
+				hideAndDisablePrompt(currentPrompt)
+				setDebugPointColor(debugPartsPerPrompt[currentPrompt], RED)
+				currentPrompt = nil
+			end
 		end
-		currentPrompt = nil
 	end
-
-	ProximityPrompts.update()
 end
 
 ProximityPromptService.PromptShown:Connect(setupInteractionPromptFromProxPrompt)
 
 RunService.PreRender:Connect(update)
-
-PromptShown:Connect(function(prompt)
-	print("Prompt shown:", prompt)
-end)
-
-PromptHidden:Connect(function(prompt)
-	print("Prompt hidden:", prompt)
-end)
