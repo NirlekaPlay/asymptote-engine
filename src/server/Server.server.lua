@@ -1,6 +1,5 @@
 --!strict
 
-local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -18,8 +17,7 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
-local CollisionGroupBuilder = require(ServerScriptService.server.physics.collision.CollisionGroupBuilder)
-local CollisionGroupRegistry = require(ServerScriptService.server.physics.collision.CollisionGroupRegistry)
+local CollisionGroupManager = require(ServerScriptService.server.physics.collision.CollisionGroupManager)
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
@@ -237,18 +235,7 @@ task.spawn(function()
 	end
 end)]]
 
-CollisionGroupRegistry.registerCollisionGroupsFromDict(CollisionGroupTypes :: any)
-
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.BLOCK_VISION_RAYCAST, true)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.IGNORE_VISION_RAYCAST, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.BULLET, CollisionGroupTypes.PLAYER_COLLIDER, false)
-
-CollisionGroupBuilder.new(CollisionGroupTypes.PATHFINDING_BLOCKER)
-	:notCollideWithAnything()
-	:register()
+CollisionGroupManager.register()
 
 Players.PlayerAdded:Connect(function(player)
 	-- entity reg here:
