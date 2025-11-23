@@ -1,19 +1,23 @@
 --!strict
 
 local InsertService = game:GetService("InsertService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
+local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
+local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
+local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local LightingNames = require(ServerScriptService.server.world.lighting.LightingNames)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
@@ -24,10 +28,18 @@ local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
 
-local levelFolder: Folder?
+local levelFolder: Folder
 local cellsConfig: { [string]: CellConfig.Config }?
 local cellsList: { Model } = {}
+local propsInLevelSet: { [Prop.Prop]: true } = {}
+local instancesParentedToNpcConfigs: { [Instance]: { [Instance]: true }} = {}
 local guardCombatNodes: { Node.Node } = {}
+local levelIsRestarting = false
+local destroyNpcsCallback: () -> ()
+
+function startsWith(mainString: string, startString: string)
+	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
+end
 
 --[=[
 	@class Level
@@ -35,7 +47,7 @@ local guardCombatNodes: { Node.Node } = {}
 local Level = {}
 
 function Level.initializeLevel(): ()
-	levelFolder = workspace:FindFirstChild("Level") :: Folder?
+	levelFolder = workspace:FindFirstChild("Level") :: Folder
 	if not levelFolder or not levelFolder:IsA("Folder") then
 		warn("Unable to initialize Level: Level not found in Workspace or is not a Folder.")
 		return
@@ -122,42 +134,6 @@ local OUTFITS = {
 	["PsdPlain"] = { 4893814518, 4893808612 }
 } :: { [string]: { number } }
 
-local function generateSeededHairColorRGB(seed: number)
-	math.randomseed(seed) -- what?
-
-	local hue = math.random() * (60 / 360)
-	local saturation = math.random() * 0.5 + 0.2
-	local value = math.random() * 0.7 + 0.1
-
-	local i = math.floor(hue * 6)
-	local f = hue * 6 - i
-	local p = value * (1 - saturation)
-	local q = value * (1 - f * saturation)
-	local t = value * (1 - (1 - f) * saturation)
-
-	local r_float, g_float, b_float
-	
-	if i % 6 == 0 then
-		r_float, g_float, b_float = value, t, p
-	elseif i % 6 == 1 then
-		r_float, g_float, b_float = q, value, p
-	elseif i % 6 == 2 then
-		r_float, g_float, b_float = p, value, t
-	elseif i % 6 == 3 then
-		r_float, g_float, b_float = p, q, value
-	elseif i % 6 == 4 then
-		r_float, g_float, b_float = t, p, value
-	else -- i % 6 == 5
-		r_float, g_float, b_float = value, p, q
-	end
-
-	local r = math.floor(r_float * 255)
-	local g = math.floor(g_float * 255)
-	local b = math.floor(b_float * 255)
-	
-	return Color3.fromRGB(r, g, b)
-end
-
 function Level.initializeNpc(inst: Instance): ()
 	-- TODO: SOMEONE FUCKING FIX THIS BULLSHIT THANK YOU
 	-- whats worse is this shit is initialized in Server sever script so theres no way to access it
@@ -176,11 +152,11 @@ function Level.initializeNpc(inst: Instance): ()
 		return
 	end
 	local charName = inst:GetAttribute("CharName") :: string?
-	print(charName, "nodes of", '"' .. nodes ..'"')
+
 	local seed =( inst:GetAttribute("Seed") or tick() ) :: number
 	local rng = Random.new(seed)
 
-	local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodes, true)
+	local nodesFolder = ((workspace :: any).Level.Nodes :: Folder):FindFirstChild(nodes, true)
 	if not nodesFolder then
 		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Node group '{nodes}' not found!`)
 		return
@@ -223,9 +199,7 @@ function Level.initializeNpc(inst: Instance): ()
 	local nodeCframe = selectedRandomNode.CFrame
 
 	local characterRigClone = RIG_TO_CLONE:Clone()
-	if charName then
-		characterRigClone.Name = charName
-	end
+	characterRigClone.Name = inst.Name
 
 	local charAppSeed = tonumber(inst:GetAttribute("CharAppSeed") :: (string | number)?) or tick()
 	if charAppSeed then
@@ -325,8 +299,24 @@ function Level.initializeNpc(inst: Instance): ()
 		end
 	end
 
-	for _, child in inst:GetChildren() do
-		child.Parent = characterRigClone
+	if instancesParentedToNpcConfigs[inst] then
+		for child in instancesParentedToNpcConfigs[inst] do
+			local childClone = child:Clone()
+			childClone.Parent = characterRigClone
+		end
+	else
+		for _, child in inst:GetChildren() do
+			if not instancesParentedToNpcConfigs[inst] then
+				instancesParentedToNpcConfigs[inst] = {}
+			end
+
+			instancesParentedToNpcConfigs[inst][child] = true
+
+			child.Parent = nil
+
+			local childClone = child:Clone()
+			childClone.Parent = characterRigClone
+		end
 	end
 
 	local offsetPosition = nodeCframe.Position
@@ -374,7 +364,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					(prop :: any).Base:SetAttribute(attName, v)
 				end
 
-				prop.Base.Size = placeholder.Size
+				(prop :: any).Base.Size = placeholder.Size
 			end
 			
 			if placeholder.Name == "SpawnLocation" then
@@ -515,7 +505,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "SoundSource" then
-				SoundSource.createFromPlaceholder(placeholder)
+				propsInLevelSet[SoundSource.createFromPlaceholder(placeholder)] = true
 				return true
 			end
 
@@ -539,9 +529,18 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if startsWith(placeholder.Name, "Door") and passed and prop then
+				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop)] = true
+				return true
+			end
+
 			return false
 		end)
 	end
+end
+
+function Level.isRestarting(): boolean
+	return levelIsRestarting
 end
 
 function Level.getGuardCombatNodes(): { Node.Node }
@@ -553,13 +552,6 @@ function Level.initializeCells(cellsFolder: Folder): ()
 		if not cellModel:IsA("Model") then
 			continue
 		end
-
-		--[[local cellName = cellModel.Name
-		local cellConfig = Level.getCellConfig(cellName)
-		local cframe, size = cellModel:GetBoundingBox()
-		local areaName = cellModel:GetAttribute("AreaName") :: string?
-		local bounds = { CFrame = cframe, Size = size, AreaName = areaName }
-		Cell.addCell(cellName, bounds, cellConfig)]]
 
 		if HIDE_CELLS then
 			Level.hideCell(cellModel)
@@ -601,7 +593,69 @@ function Level.showCell(cellModel: Model): ()
 	end
 end
 
+function Level.restartLevel(): ()
+	if Level.isRestarting() then
+		return
+	end
+
+	levelIsRestarting = true
+
+	task.wait()
+
+	for prop in propsInLevelSet do
+		prop:onLevelRestart()
+	end
+
+	Mission.resetAlertLevel()
+
+	for _, player in Players:GetPlayers() do
+		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		if statusHolder then
+			statusHolder:clearAllStatuses()
+		end
+		player:LoadCharacter()
+	end
+
+	if destroyNpcsCallback then
+		destroyNpcsCallback()
+	end
+
+	local npcsFolder = levelFolder:FindFirstChild("Bots") or levelFolder:FindFirstChild("Npcs")
+	if npcsFolder then
+		local stack = {npcsFolder}
+		local index = 1
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index = index - 1
+
+			if (current:IsA("BoolValue") and not (INITIALIZE_NPCS_ONLY_WHEN_ENABLED and not current.Value)) or current:IsA("Configuration") then
+				task.spawn(Level.initializeNpc, current)
+			end
+
+			if current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
+			end
+		end
+	end
+
+	task.wait(1)
+
+	levelIsRestarting = false
+end
+
+function Level.setDestroyNpcsCallback(f: () -> ()): ()
+	destroyNpcsCallback = f
+end
+
 function Level.update(deltaTime: number): ()
+	Level.onSimulationStepped(deltaTime)
+
 	timeAccum += deltaTime
 
 	while timeAccum >= UPDATE_INTERVAL do
@@ -610,8 +664,18 @@ function Level.update(deltaTime: number): ()
 	end
 end
 
+function Level.onSimulationStepped(deltaTime: number): ()
+	Level.updateProps(deltaTime)
+end
+
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
+end
+
+function Level.updateProps(deltaTime: number): ()
+	for prop in propsInLevelSet do
+		prop:update(deltaTime)
+	end
 end
 
 function Level.updateCells(): ()

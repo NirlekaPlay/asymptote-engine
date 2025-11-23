@@ -3,6 +3,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
 local DoorPromptComponent = require(ServerScriptService.server.world.level.clutter.props.DoorPromptComponent)
+local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 --[=[
@@ -23,7 +24,7 @@ local Door = {
 }
 Door.__index = Door
 
-export type Door = typeof(setmetatable({} :: {
+export type Door = Prop.Prop & typeof(setmetatable({} :: {
 	state: DoorState,
 	targetDegree: number,
 	turningTimeAccum: number,
@@ -84,7 +85,7 @@ function Door.new(
 		unlockVariable = unlockVariable
 	}, Door)
 
-	return self
+	return self :: Door
 end
 
 function Door.isOpen(self: Door): boolean
@@ -232,6 +233,26 @@ function Door.setDoorPartsCollision(self: Door, canCollide: boolean): ()
 
 	for _, part in self.doorParts do
 		part.CanCollide = canCollide
+	end
+end
+
+function Door.onLevelRestart(self: Door): ()
+	self.state = Door.States.CLOSED
+	self.targetDegree = TARGET_DEGREES.CLOSED
+	self.turningTimeAccum = 0
+	self.openingSide = Door.Sides.MIDDLE;
+	
+	(self.hingeComponent :: DoorHingeComponent.DoorHingeComponent):setDegrees(TARGET_DEGREES.CLOSED)
+
+	self.lockFront = self.settingLockFront
+	self.lockBack = self.settingLockBack
+	
+	self:setDoorPartsCollision(true);
+	
+	(self.promptComponent :: DoorPromptComponent.DoorPromptComponent):updateForState(self.state, self.openingSide)
+	
+	if self.unlockVariable and GlobalStatesHolder.hasState(self.unlockVariable) then
+		GlobalStatesHolder.setState(self.unlockVariable, false)
 	end
 end
 

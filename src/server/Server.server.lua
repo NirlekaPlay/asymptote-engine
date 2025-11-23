@@ -21,7 +21,7 @@ local CollisionGroupManager = require(ServerScriptService.server.physics.collisi
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
-local guards: { [Model]: Guard.Guard } = {}
+local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
@@ -156,6 +156,20 @@ local function onMapTaggedDummies(dummyChar: Model): ()
 	setupDummy(dummyChar)
 end
 
+local function clearAndDestroyAllNpcs(): ()
+	for char, npc in guards do
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Health = 0
+		end
+
+		--print("Destroying", char)
+		char:Destroy()
+	end
+
+	table.clear(guards)
+end
+
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
@@ -164,6 +178,7 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, onMapTaggedGu
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
 
+Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
 Level.initializeLevel()
 
 -- to prevent race condition bullshit
@@ -178,6 +193,11 @@ local function update(deltaTime: number): ()
 
 		table.clear(playersToRemove)
 	end
+
+	if Level.isRestarting() then
+		return
+	end
+
 	Level.update(deltaTime)
 
 	-- this frame, is there any listening clients?

@@ -104,4 +104,8 @@ function SoundSource.onLevelRestart(): ()
 	-- so no need to disconnect any connections for now.
 end
 
+function SoundSource.update(deltaTime: number): ()
+	return
+end
+
 return SoundSource
