@@ -13,6 +13,7 @@ local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfi
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
+local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local LightingNames = require(ServerScriptService.server.world.lighting.LightingNames)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
@@ -514,26 +515,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "SoundSource" then
-				placeholder.Transparency = 1
-				placeholder.CanCollide = false
-				placeholder.CanQuery = false
-				placeholder.CanTouch = false
-				placeholder.AudioCanCollide = false
-
-				local sound = Instance.new("Sound")
-				sound.Volume = (placeholder:GetAttribute("Volume") :: number?) or 1
-				sound.SoundId = "rbxassetid://" .. tostring((placeholder:GetAttribute("SoundId") :: number?))
-				sound.Looped = (placeholder:GetAttribute("Looped") :: boolean?) or false
-
-				for _, child in placeholder:GetChildren() do
-					child.Parent = sound
-					if child:IsA("BaseScript") then
-						child.Enabled = true
-					end
-				end
-
-				sound.Parent = placeholder
-				sound:Play()
+				SoundSource.createFromPlaceholder(placeholder)
 				return true
 			end
 
