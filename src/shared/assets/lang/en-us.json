@@ -4,5 +4,7 @@
   "ui.prompt.locked": "Locked",
   "ui.prompt.unlock": "Unlock",
   "ui.prompt.disguise": "Disguise",
-  "ui.prompt.already_disguised": "You're already disguised"
+  "ui.prompt.already_disguised": "You're already disguised",
+  "ui.prompt.ammo_full": "Your ammo is full",
+  "ui.prompt.has_fbb": "You already have an FB Beryl"
 }
