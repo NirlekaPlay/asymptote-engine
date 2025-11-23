@@ -15,6 +15,7 @@ local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerSta
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
+local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
@@ -531,6 +532,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if startsWith(placeholder.Name, "Door") and passed and prop then
 				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop)] = true
+				return true
+			end
+
+			if placeholder.Name == "ItemSpawn" then
+				ItemSpawn.createFromPlaceholder(placeholder)
 				return true
 			end
 
