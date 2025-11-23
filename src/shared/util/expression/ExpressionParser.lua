@@ -82,7 +82,11 @@ function Parser.parseAndEvalute(input: string, context: ExpressionContext.Expres
 	return Parser.evaluate(Parser.fromString(input):parse(), context)
 end
 
-function Parser.evaluate(node: ASTNode, context: ExpressionContext.ExpressionContext): any
+function Parser.evaluate(node: ASTNode?, context: ExpressionContext.ExpressionContext): any
+	if not node then
+		return nil
+	end
+	
 	if node.kind == "Literal" then
 		return node.value
 		
@@ -130,7 +134,49 @@ function Parser.evaluate(node: ASTNode, context: ExpressionContext.ExpressionCon
 	error("Unknown AST node kind: " .. tostring(node.kind))
 end
 
-function Parser.parse(self: Parser): ASTNode
+function Parser.getVariablesSet(node: ASTNode?): { [string]: true }
+	if not node then
+		return {}
+	end
+
+	local variables: { [string]: true } = {}
+	
+	local function traverse(n: ASTNode)
+		if n.kind == "Variable" then
+			variables[n.name] = true
+			
+		elseif n.kind == "Unary" then
+			traverse(n.operand)
+			
+		elseif n.kind == "Binary" then
+			traverse(n.left)
+			traverse(n.right)
+			
+		elseif n.kind == "Ternary" then
+			traverse(n.condition)
+			traverse(n.trueExpression)
+			traverse(n.falseExpression)
+			
+		elseif n.kind == "StringInterpolation" then
+			for _, part in ipairs(n.parts) do
+				traverse(part)
+			end
+			
+		-- Literal nodes do not contain variables, so they do nothing
+		-- elseif n.kind == "Literal" then ...
+		end
+	end
+	
+	traverse(node)
+	
+	return variables
+end
+
+function Parser.parse(self: Parser): ASTNode?
+	if self.reader:isEmpty() then
+		return nil
+	end
+
 	local result = self:parseExpression(0)
 	
 	self.reader:skipWhitespace()
