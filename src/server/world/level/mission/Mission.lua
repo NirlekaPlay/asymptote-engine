@@ -54,6 +54,8 @@ function Mission.syncAlertLevelToClients(): ()
 end
 
 function Mission.resetAlertLevel(): ()
+	Mission.missionAlertLevel = 0
+	Mission.syncAlertLevelToClients()
 	GlobalStatesHolder.setState(GLOBAL_STATE_STR, 0)
 	GlobalStatesHolder.setState(ALARM_RAISED_STATRE_STR, false)
 end
