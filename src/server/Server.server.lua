@@ -20,6 +20,7 @@ local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionD
 local CollisionGroupManager = require(ServerScriptService.server.physics.collision.CollisionGroupManager)
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
@@ -169,6 +170,8 @@ local function clearAndDestroyAllNpcs(): ()
 
 	table.clear(guards)
 end
+
+GlobalStatesHolder.setState("IsStudio", RunService:IsStudio())
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
