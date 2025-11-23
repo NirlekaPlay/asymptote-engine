@@ -8,12 +8,22 @@ local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 	@class ItemSpawn
 ]=]
 local ItemSpawn = {}
+ItemSpawn.__index = ItemSpawn
 
 export type ItemSpawn = Prop.Prop & typeof(setmetatable({} :: {
-}, ItemSpawn))
+	itemTool: Tool,
+	currentlySpawnedItem: Tool?,
+	currentSpawnedItemParentChangedConn: RBXScriptConnection?,
+	spawnCFrame: CFrame
+}, ItemSpawn)) 
 
-function ItemSpawn.new(): ItemSpawn
-	return setmetatable({}, ItemSpawn) :: ItemSpawn
+function ItemSpawn.new(itemTool: Tool, spawnCFrame: CFrame): ItemSpawn
+	return setmetatable({
+		itemTool = itemTool,
+		currentlySpawnedItem = nil,
+		currentSpawnedItemParentChangedConn = nil,
+		spawnCFrame = spawnCFrame
+	}, ItemSpawn) :: ItemSpawn
 end
 
 function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?): ItemSpawn
@@ -30,14 +40,31 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?): 
 	placeholder.CanTouch = false
 	placeholder.AudioCanCollide = false
 
-	local newItemSpawn = ItemSpawn.new()
+	local newItemSpawn = ItemSpawn.new(itemTool, placeholder.CFrame)
+	newItemSpawn:spawnItem()
+	return newItemSpawn
+end
 
-	local itemToolClone = itemTool:Clone()
-	itemToolClone:PivotTo(placeholder.CFrame)
+function ItemSpawn.spawnItem(self: ItemSpawn): ()
+	if self.currentlySpawnedItem then
+		return
+	end
+
+	local itemToolClone = self.itemTool:Clone() :: Tool
+	itemToolClone:PivotTo(self.spawnCFrame)
 
 	itemToolClone.Parent = workspace
 
-	return newItemSpawn
+	self.currentSpawnedItemParentChangedConn = itemToolClone.AncestryChanged:Connect(function()
+		if itemToolClone.Parent ~= workspace then
+			if self.currentSpawnedItemParentChangedConn then
+				self.currentSpawnedItemParentChangedConn:Disconnect()
+				self.currentSpawnedItemParentChangedConn = nil
+			end
+
+			self.currentlySpawnedItem = nil
+		end
+	end)
 end
 
 function ItemSpawn.update(self: ItemSpawn, deltaTime: number): ()
@@ -45,7 +72,7 @@ function ItemSpawn.update(self: ItemSpawn, deltaTime: number): ()
 end
 
 function ItemSpawn.onLevelRestart(self: ItemSpawn): ()
-	
+	self:spawnItem()
 end
 
 return ItemSpawn
