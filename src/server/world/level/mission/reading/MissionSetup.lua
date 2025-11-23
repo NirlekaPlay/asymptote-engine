@@ -18,7 +18,8 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	cells: { [string]: CellConfig.Config },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
-	lightingSettings: LightingSettings
+	lightingSettings: LightingSettings,
+	colors: { [string]: Color3 }
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -28,14 +29,16 @@ function MissionSetup.new(
 	cells: { [string]: CellConfig.Config },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
-	lightingSettings: LightingSettings
+	lightingSettings: LightingSettings,
+	colors: { [string]: Color3 }
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
 		cells = cells,
 		disguiseConfigs = disguiseConfigs,
 		enforceClasses = enforceClasses,
-		lightingSettings = lightingSettings
+		lightingSettings = lightingSettings,
+		colors = colors
 	}, MissionSetup)
 end
 
@@ -72,6 +75,15 @@ end
 
 function MissionSetup.getLightingSettings(self: MissionSetup): LightingSettings
 	return self.lightingSettings
+end
+
+function MissionSetup.getColor(self: MissionSetup, colorName: string): Color3
+	local color = self.colors[colorName]
+	if not color then
+		error(`Attempt to fetch non-existent color '{colorName}'`)
+	end
+
+	return color
 end
 
 return MissionSetup
