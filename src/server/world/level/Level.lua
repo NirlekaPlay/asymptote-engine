@@ -614,8 +614,6 @@ function Level.restartLevel(): ()
 
 	task.wait()
 
-	persistentInstMan:destroyAll()
-
 	for prop in propsInLevelSet do
 		prop:onLevelRestart()
 	end
@@ -633,6 +631,8 @@ function Level.restartLevel(): ()
 	if destroyNpcsCallback then
 		destroyNpcsCallback()
 	end
+
+	persistentInstMan:destroyAll()
 
 	local npcsFolder = levelFolder:FindFirstChild("Bots") or levelFolder:FindFirstChild("Npcs")
 	if npcsFolder then
