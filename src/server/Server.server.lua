@@ -119,7 +119,7 @@ end
 local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
 	local nodes = getNodes(dummyChar)
-	local newDummy = DetectionDummy.new(dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
+	local newDummy = DetectionDummy.new(Level, dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
 		:setDesignatedPosts(nodes)
 
 	local enforceClassName = dummyChar:GetAttribute("EnforceClass") :: string?

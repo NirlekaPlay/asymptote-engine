@@ -1,11 +1,11 @@
 --!strict
 
-local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TalkControl = require(script.Parent.TalkControl)
 local ReportType = require(ReplicatedStorage.shared.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 
 local RADIO_TOOL = ReplicatedStorage.shared.assets.items.NpcRadioNonFunc
@@ -18,6 +18,7 @@ ReportControl.__index = ReportControl
 
 export type ReportControl = typeof(setmetatable({} :: {
 	agent: Agent,
+	serverLevelRef: ServerLevel.ServerLevel,
 	radioTool: typeof(RADIO_TOOL),
 	radioEquipped: boolean,
 	agentDiedConnection: RBXScriptConnection?,
@@ -31,10 +32,14 @@ export type ReportControl = typeof(setmetatable({} :: {
 
 type Agent = Agent.Agent
 
-function ReportControl.new(agent: Agent): ReportControl
+function ReportControl.new(agent: Agent, serverLevel: ServerLevel.ServerLevel): ReportControl
+	local radioTool = RADIO_TOOL:Clone()
+	serverLevel:getPersistentInstanceManager():register(radioTool)
+	serverLevel:getPersistentInstanceManager():registerInstances(radioTool:GetChildren())
 	return setmetatable({
 		agent = agent,
-		radioTool = RADIO_TOOL:Clone(),
+		serverLevelRef = serverLevel,
+		radioTool = radioTool,
 		radioEquipped = false,
 		reportingOn = nil :: any,
 		agentDiedConnection = nil :: RBXScriptConnection?
@@ -155,7 +160,7 @@ function ReportControl.dropRadio(self: ReportControl): ()
 	dir *= math.random(MIN_DROP_PUSH, MAX_DROP_PUSH)
 	hanlde:ApplyImpulse(dir)
 
-	Debris:AddItem(hanlde, RADIO_DROPPED_LIFETIME)
+	self.serverLevelRef:getPersistentInstanceManager():scheduleDestroy(hanlde, RADIO_DROPPED_LIFETIME)
 end
 
 --

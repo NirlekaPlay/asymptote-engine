@@ -18,6 +18,7 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
@@ -52,7 +53,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	enforceClass: { [string]: number }
 }, DummyAgent))
 
-function DummyAgent.new(character: Model, charName: string?, seed: number?): DummyAgent
+function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
@@ -70,10 +71,10 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	self.faceControl:setFace("Neutral")
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.bubbleChatControl = BubbleChatControl.new(character)
-	self.gunControl = GunControl.new(self)
+	self.gunControl = GunControl.new(self, serverLevel)
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl, self.faceControl)
 	self.ragdollControl = RagdollControl.new(character)
-	self.reportControl = ReportControl.new(self)
+	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -131,6 +132,8 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 		end
 		descendantAddedConnection:Disconnect()
 	end)
+
+	serverLevel:getPersistentInstanceManager():register(character)
 
 	return self
 end

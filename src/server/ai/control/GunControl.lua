@@ -10,6 +10,7 @@ local BodyRotationControl = require(script.Parent.BodyRotationControl)
 local Agent = require(ServerScriptService.server.Agent)
 local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 local FBBerylControl = require(ServerScriptService.server.gunsys.framework.fbberyl.FBBerylControl)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 
 local MIN_SPREAD_ANGLE = 10
 local MAX_SPREAD_ANGLE = 25
@@ -69,8 +70,10 @@ local function applySpread(direction: Vector3, angle: number): Vector3
 	return (spreadRotation * direction).Unit
 end
 
-function GunControl.new(agent: Agent.Agent): GunControl
+function GunControl.new(agent: Agent.Agent, serverLevel: ServerLevel.ServerLevel): GunControl
 	local fbb = GunControl.getFbb(agent.character)
+	serverLevel:getPersistentInstanceManager():register(fbb.tool)
+	serverLevel:getPersistentInstanceManager():registerInstances(fbb.tool:GetChildren())
 	return setmetatable({
 		agent = agent,
 		equipped = false,

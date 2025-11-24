@@ -12,6 +12,7 @@ local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
@@ -37,6 +38,7 @@ local instancesParentedToNpcConfigs: { [Instance]: { [Instance]: true }} = {}
 local guardCombatNodes: { Node.Node } = {}
 local levelIsRestarting = false
 local destroyNpcsCallback: () -> ()
+local persistentInstMan = PersistentInstanceManager.new()
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -549,6 +551,10 @@ function Level.isRestarting(): boolean
 	return levelIsRestarting
 end
 
+function Level.getPersistentInstanceManager(_): PersistentInstanceManager.PersistentInstanceManager
+	return persistentInstMan
+end
+
 function Level.getGuardCombatNodes(): { Node.Node }
 	return guardCombatNodes
 end
@@ -607,6 +613,8 @@ function Level.restartLevel(): ()
 	levelIsRestarting = true
 
 	task.wait()
+
+	persistentInstMan:destroyAll()
 
 	for prop in propsInLevelSet do
 		prop:onLevelRestart()
@@ -671,6 +679,7 @@ function Level.update(deltaTime: number): ()
 end
 
 function Level.onSimulationStepped(deltaTime: number): ()
+	persistentInstMan:update(deltaTime)
 	Level.updateProps(deltaTime)
 end
 
