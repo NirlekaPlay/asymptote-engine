@@ -18,7 +18,7 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	cells: { [string]: CellConfig.Config },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
-	lightingSettings: LightingSettings,
+	lightingSettings: LightingSettings?,
 	colors: { [string]: Color3 }
 }, MissionSetup))
 
@@ -29,7 +29,7 @@ function MissionSetup.new(
 	cells: { [string]: CellConfig.Config },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
-	lightingSettings: LightingSettings,
+	lightingSettings: LightingSettings?,
 	colors: { [string]: Color3 }
 ): MissionSetup
 	return setmetatable({
@@ -73,8 +73,16 @@ function MissionSetup.getEnforceClass(self: MissionSetup, profileName: string): 
 	return enforceClass
 end
 
+function MissionSetup.hasLightingSettings(self: MissionSetup): boolean
+	return self.lightingSettings ~= nil
+end
+
 function MissionSetup.getLightingSettings(self: MissionSetup): LightingSettings
-	return self.lightingSettings
+	if self.lightingSettings == nil then
+		error(`Attempt to fetch unset LightingSettings`)
+	else
+		return self.lightingSettings
+	end
 end
 
 function MissionSetup.getColor(self: MissionSetup, colorName: string): Color3
