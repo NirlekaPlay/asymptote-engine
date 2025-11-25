@@ -76,7 +76,8 @@ function Level.initializeLevel(): ()
 
 	levelInstancesAccessor = LevelInstancesAccessor.new(
 		missionSetupObj,
-		cellsFolder and cellsFolder:GetChildren() :: { Model} or {}
+		cellsFolder and cellsFolder:GetChildren() :: { Model} or {},
+		levelFolder:FindFirstChild("Nodes") :: Folder?
 	)
 
 	cellManager = CellManager.new(levelInstancesAccessor)
@@ -157,7 +158,13 @@ function Level.initializeNpc(inst: Instance): ()
 	local seed =( inst:GetAttribute("Seed") or tick() ) :: number
 	local rng = Random.new(seed)
 
-	local nodesFolder = ((workspace :: any).Level.Nodes :: Folder):FindFirstChild(nodes, true)
+	local nodesFolder
+	if not levelInstancesAccessor:getNodesFolder() then
+		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Cannot initialise node group as 'Nodes' folder is not set!`)
+		return
+	else
+		nodesFolder = (levelInstancesAccessor:getNodesFolder() :: Folder):FindFirstChild(nodes, true)
+	end
 	if not nodesFolder then
 		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Node group '{nodes}' not found!`)
 		return

@@ -73,7 +73,7 @@ local function getNodes(char: Model): { Node.Node }
 	local nodesName = char:GetAttribute("Nodes") :: string
 	if not nodeGroups[nodesName] then
 		nodeGroups[nodesName] = {}
-		local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodesName, true) :: Folder
+		local nodesFolder = Level:getServerLevelInstancesAccessor():getNodesFolder():FindFirstChild(nodesName, true) :: Folder
 
 		local nodesCount = 0
 		local stack = { nodesFolder }

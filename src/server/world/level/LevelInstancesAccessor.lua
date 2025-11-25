@@ -11,16 +11,19 @@ LevelInstancesAccessor.__index = LevelInstancesAccessor
 
 export type LevelInstancesAccessor = typeof(setmetatable({} :: {
 	missionSetup: MissionSetup.MissionSetup,
-	cellModels: { Model }
+	cellModels: { Model },
+	nodesFolder: Folder?
 }, LevelInstancesAccessor))
 
 function LevelInstancesAccessor.new(
 	missionSetup: MissionSetup.MissionSetup,
-	cellModels: { Model }
+	cellModels: { Model },
+	nodesFolder: Folder?
 ): LevelInstancesAccessor
 	return setmetatable({
 		missionSetup = missionSetup,
-		cellModels = cellModels
+		cellModels = cellModels,
+		nodesFolder = nodesFolder
 	}, LevelInstancesAccessor)
 end
 
@@ -30,6 +33,10 @@ end
 
 function LevelInstancesAccessor.getCellModels(self: LevelInstancesAccessor): { Model }
 	return self.cellModels
+end
+
+function LevelInstancesAccessor.getNodesFolder(self: LevelInstancesAccessor): Folder?
+	return self.nodesFolder
 end
 
 return LevelInstancesAccessor
