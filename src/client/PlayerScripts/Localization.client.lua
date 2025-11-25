@@ -1,9 +1,15 @@
 
 local Players = game:GetService("Players")
 local LocalizationService = game:GetService("LocalizationService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local LocalPlayer = Players.LocalPlayer
+
+TypedRemotes.ClientBoundLocalizationAppend.OnClientEvent:Connect(function(dict)
+	ClientLanguage.appendFromDict(dict)
+end)
 
 local success, translator = pcall(function()
 	return LocalizationService:GetTranslatorForPlayerAsync(LocalPlayer)

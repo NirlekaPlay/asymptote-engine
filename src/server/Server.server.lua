@@ -7,6 +7,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
@@ -257,6 +258,11 @@ end)]]
 CollisionGroupManager.register()
 
 Players.PlayerAdded:Connect(function(player)
+	-- Localization:
+	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
+	if localizedStrings and next(localizedStrings) ~= nil then
+		TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
+	end
 	-- entity reg here:
 	EntityManager.newDynamic("Player", player, tostring(player.UserId))
 	--
