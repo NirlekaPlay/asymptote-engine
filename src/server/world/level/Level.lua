@@ -8,11 +8,11 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
-local Cell = require(ServerScriptService.server.world.level.cell.Cell)
-local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
 local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
+local CellManager = require(ServerScriptService.server.world.level.cell.CellManager)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
@@ -20,7 +20,7 @@ local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.I
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
-local LightingNames = require(ServerScriptService.server.world.lighting.LightingNames)
+local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
@@ -31,7 +31,6 @@ local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
 
 local levelFolder: Folder
-local cellsConfig: { [string]: CellConfig.Config }?
 local cellsList: { Model } = {}
 local propsInLevelSet: { [Prop.Prop]: true } = {}
 local instancesParentedToNpcConfigs: { [Instance]: { [Instance]: true }} = {}
@@ -39,6 +38,8 @@ local guardCombatNodes: { Node.Node } = {}
 local levelIsRestarting = false
 local destroyNpcsCallback: () -> ()
 local persistentInstMan = PersistentInstanceManager.new()
+local cellManager: CellManager.CellManager
+local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -50,34 +51,20 @@ end
 local Level = {}
 
 function Level.initializeLevel(): ()
-	levelFolder = workspace:FindFirstChild("Level") :: Folder
+	levelFolder = (workspace:FindFirstChild("Level") or workspace:FindFirstChild("DebugMission")) :: Folder
 	if not levelFolder or not levelFolder:IsA("Folder") then
-		warn("Unable to initialize Level: Level not found in Workspace or is not a Folder.")
+		warn("Unable to initialize Level: Level or DebugMission not found in Workspace or is not a Folder.")
 		return
 	end
+
+	local missionSetupObj
 
 	local missionSetupModule = levelFolder:FindFirstChild("MissionSetup") :: ModuleScript?
 	if not missionSetupModule or not missionSetupModule:IsA("ModuleScript") then
 		error("Unable to initialize Mission: MissionSetup module not found in Level folder or is not a ModuleScript.")
 	else
-		cellsConfig = (require :: any)(missionSetupModule).Cells
-	end
-
-	-- TODO: Should probably parse it first THEN create a mission object with getter methods
-	-- or something.
-	if (require :: any)(missionSetupModule).CustomDisguises == nil then
-		error("CustomDisguises is nil in MissionSetup. Must atleast be an empty table.")
-	end
-
-	if (require :: any)(missionSetupModule).LightingSettings ~= nil then
-		local lightingPresetName = (require :: any)(missionSetupModule).LightingSettings
-		local lightingPreset = (LightingNames :: any)[lightingPresetName]
-		if not lightingPreset then
-			warn(`'{lightingPresetName}' is not a valid lighting preset name.`)
-			return
-		end
-
-		LightingSetter.readConfig(lightingPreset)
+		-- TODO: Use an actual centralized reader.
+		missionSetupObj = MissionSetupReaderV1.parse(missionSetupModule)
 	end
 
 	local cellsFolder = levelFolder:FindFirstChild("Cells")
@@ -85,6 +72,17 @@ function Level.initializeLevel(): ()
 		warn("Unable to initialize Cells: Cells folder not found in Level folder or is not a Folder.")
 	else
 		Level.initializeCells(cellsFolder)
+	end
+
+	levelInstancesAccessor = LevelInstancesAccessor.new(
+		missionSetupObj,
+		cellsFolder and cellsFolder:GetChildren() :: { Model} or {}
+	)
+
+	cellManager = CellManager.new(levelInstancesAccessor)
+
+	if missionSetupObj:hasLightingSettings() then
+		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
 	end
 
 	local propsFolder = levelFolder:FindFirstChild("Props")
@@ -573,12 +571,16 @@ function Level.initializeCells(cellsFolder: Folder): ()
 	end
 end
 
-function Level.getCellConfig(cellName: string): CellConfig.Config?
-	return cellsConfig and cellsConfig[cellName] or nil
+function Level.getServerLevelInstancesAccessor(_): LevelInstancesAccessor.LevelInstancesAccessor
+	return levelInstancesAccessor
 end
 
 function Level.getCellModels(): {Model}
 	return cellsList
+end
+
+function Level.getCellManager(_): CellManager.CellManager
+	return cellManager
 end
 
 function Level.hideCell(cellModel: Model): ()
@@ -694,7 +696,7 @@ function Level.updateProps(deltaTime: number): ()
 end
 
 function Level.updateCells(): ()
-	Cell.update()
+	cellManager:update()
 end
 
 return Level

@@ -13,7 +13,6 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
-local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 
 --[=[
 	@class ReportMajorTrespasser
@@ -77,7 +76,7 @@ function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent
 
 	faceControl:setFace("Angry")
 
-	local trespasserAreaName = Cell.getPlayerOccupiedAreaName(trespasserPlayer)
+	local trespasserAreaName = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(trespasserPlayer)
 	local reportDialogue
 	if trespasserAreaName then
 		reportDialogue = GuardGenericDialogues["trespassing.major.report.area.known"]

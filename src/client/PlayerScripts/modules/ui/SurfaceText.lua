@@ -2,6 +2,7 @@
 
 local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
+local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
 local DEFAULT_ALWAYS_ON_TOP = true
@@ -65,10 +66,8 @@ function SurfaceText.getScreenGui(): ScreenGui
 	return surfaceTextScreenGui
 end
 
-function SurfaceText.getLocalizedString(keyStr: string): string?
-	-- TODO: Fix this bullshit.
-	local missionSetupModule = (require)((workspace :: any).Level.MissionSetup)
-	return missionSetupModule.CustomStrings[keyStr]
+function SurfaceText.getLocalizedString(keyStr: string): string
+	return ClientLanguage.getOrDefault(keyStr, keyStr)
 end
 
 function SurfaceText.getAttributeOrDefault<T>(inst: Instance, attribute: string, default: T): T

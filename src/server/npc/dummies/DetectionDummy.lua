@@ -50,7 +50,8 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	detectionManager: DetectionManagement.DetectionManagement,
 	--
 	designatedPosts: { Node.Node },
-	enforceClass: { [string]: number }
+	enforceClass: { [string]: number },
+	serverLevel: ServerLevel.ServerLevel
 }, DummyAgent))
 
 function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
@@ -88,6 +89,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
 	self.designatedPosts = {} :: { Node.Node }
 	self.enforceClass = {}
+	self.serverLevel = serverLevel
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
@@ -221,6 +223,10 @@ end
 
 function DummyAgent.getFaceControl(self: DummyAgent): FaceControl.FaceControl
 	return self.faceControl
+end
+
+function DummyAgent.getServerLevel(self: DummyAgent): ServerLevel.ServerLevel
+	return self.serverLevel
 end
 
 function DummyAgent.getGunControl(self: DummyAgent): GunControl.GunControl
