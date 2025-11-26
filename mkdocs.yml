@@ -118,6 +118,8 @@ plugins:
 
 nav:
   - Home: index.md
+  - AI:
+    - How Entity AI Works: articles/ai/ai.md
   - Tutorials:
     - Disguises: tutorials/disguises.md
     - Doors: tutorials/doors.md
