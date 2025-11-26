@@ -25,5 +25,4 @@ behavior checks if the NPC's `FOLLOW_TARGET` memory is populated. If it is, then
 entity, if it is empty, then it will simply stop.
 
 ## Activities
-Activities are simply a way to group behaviors. Such as `WORK`, `PANIC`, and `CORE`. And only run under
-specific conditions, such as whether certain memories are populated, not populated, or simply registered.
+Activities are simply a way to group behaviors and their order of execution. Such as `WORK`, `PANIC`, and `CORE`. And only run under specific conditions, such as whether certain memories are populated, not populated, or simply registered.
