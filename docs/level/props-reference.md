@@ -16,8 +16,8 @@ This is also what guards use when attempting to flee.
 Sound source are sources of sounds. Wow no shit.
 
 ### Attributes
- * `Active` (string) This is a *conditional* that determines when the sound will play.
- This is currently unused. The sound will play once the level starts.
+ * `Active` (string) This is an [*expression*](../engine/conditional-expressions.md) that determines when the sound will play.
+ If this returns a *falsy value* (`nil` / `false`), the sound will not play or stop if it's already playing.
  * `Looped` (boolean) This sets if the sound loops or not. Mindblowing.
  * `SoundId` (number | string) No shit you will need this, this is the asset id of the sound
  you want to play.
