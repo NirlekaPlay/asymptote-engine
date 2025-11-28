@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
+local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
 local ClientBoundChatMessagePayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundChatMessagePayload)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
@@ -35,5 +36,7 @@ return {
 	ClientBoundReplicateIndividualGlobalStates = RE("ClientBoundReplicateGlobalStates") :: RE<string, any>,
 	ClientBoundReplicateAllGlobalStates = RE("ClientBoundReplicateAllGlobalStates") :: RE<{[string]:any}>,
 	--
-	ClientBoundLocalizationAppend = RE("ClientBoundLocalizationAppend") :: RE<{[string]:string}>
+	ClientBoundLocalizationAppend = RE("ClientBoundLocalizationAppend") :: RE<{[string]:string}>,
+	--
+	ClientBoundCharacterAppearances = RE("ClientBoundCharacterAppearance") :: RE<{CharacterAppearancePayload.CharacterAppearancePayload}>
 }

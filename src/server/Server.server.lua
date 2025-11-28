@@ -258,6 +258,7 @@ end)]]
 CollisionGroupManager.register()
 
 Players.PlayerAdded:Connect(function(player)
+	Level.onPlayerJoined(player)
 	-- Localization:
 	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
 	if localizedStrings and next(localizedStrings) ~= nil then

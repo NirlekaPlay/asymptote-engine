@@ -5,6 +5,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
@@ -40,6 +43,7 @@ local destroyNpcsCallback: () -> ()
 local persistentInstMan = PersistentInstanceManager.new()
 local cellManager: CellManager.CellManager
 local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
+local charsAppearancePayloads: { [Model]: CharacterAppearancePayload.CharacterAppearancePayload } = {}
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -231,32 +235,23 @@ function Level.initializeNpc(inst: Instance): ()
 	if not skinColor then
 		skinColor = BrickColor.new("Pastel brown")
 	end
-	if skinColor then
-		-- Hmm.. racism.
-		local bodyColorsInst = characterRigClone:FindFirstChild("Body Colors")
-		if not bodyColorsInst then
-			warn("Body Colors instance not found in character rig clone!")
-			return
-		end
 
-		-- no sane person will ever do this.
-		if typeof(skinColor) == "BrickColor" then
-			bodyColorsInst.HeadColor = skinColor
-			bodyColorsInst.LeftArmColor = skinColor
-			bodyColorsInst.RightArmColor = skinColor
-			bodyColorsInst.LeftLegColor = skinColor
-			bodyColorsInst.RightLegColor = skinColor
-			bodyColorsInst.TorsoColor = skinColor
+	local skinColor3: Color3
 
-		elseif typeof(skinColor) == "Color3" then
-			bodyColorsInst.HeadColor3 = skinColor
-			bodyColorsInst.LeftArmColor3 = skinColor
-			bodyColorsInst.RightArmColor3 = skinColor
-			bodyColorsInst.LeftLegColor3 = skinColor
-			bodyColorsInst.RightLegColor3 = skinColor
-			bodyColorsInst.TorsoColor3 = skinColor
-		end
+	if typeof(skinColor) == "BrickColor" then
+		skinColor3 = skinColor.Color
+	else
+		skinColor3 = skinColor :: Color3
 	end
+	
+	local bodyColors: BodyColorType.BodyColorType = {
+		HeadColor = skinColor3,
+		LeftArmColor = skinColor3,
+		RightArmColor = skinColor3,
+		LeftLegColor = skinColor3,
+		RightLegColor = skinColor3,
+		TorsoColor = skinColor3
+	}
 
 	local upperBodyColor = inst:GetAttribute("UpperBodyColor") :: (Color3 | BrickColor)?
 	if upperBodyColor then
@@ -268,16 +263,17 @@ function Level.initializeNpc(inst: Instance): ()
 			return
 		end
 
-		if typeof(upperBodyColor) == "BrickColor" then
-			bodyColorsInst.LeftArmColor = upperBodyColor
-			bodyColorsInst.RightArmColor = upperBodyColor
-			bodyColorsInst.TorsoColor = upperBodyColor
+		local upperBodyColor3: Color3
 
+		if typeof(upperBodyColor) == "BrickColor" then
+			upperBodyColor3 = upperBodyColor.Color
 		elseif typeof(upperBodyColor) == "Color3" then
-			bodyColorsInst.LeftArmColor3 = upperBodyColor
-			bodyColorsInst.RightArmColor3 = upperBodyColor
-			bodyColorsInst.TorsoColor3 = upperBodyColor
+			upperBodyColor3 = upperBodyColor
 		end
+
+		bodyColors.LeftArmColor = upperBodyColor3
+		bodyColors.RightArmColor = upperBodyColor3
+		bodyColors.TorsoColor = upperBodyColor3
 	end
 
 	-- TODO: For accessories, maybe just parent the accesorries to the instance
@@ -338,6 +334,31 @@ function Level.initializeNpc(inst: Instance): ()
 		characterRigClone:SetAttribute("EnforceClass", inst:GetAttribute("EnforceClass"))
 	end
 	characterRigClone:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName) -- this aint a dummy no more
+
+	local payload: CharacterAppearancePayload.CharacterAppearancePayload = {
+		character = characterRigClone,
+		bodyColors = bodyColors
+	}
+
+	charsAppearancePayloads[characterRigClone] = payload
+
+	TypedRemotes.ClientBoundCharacterAppearances:FireAllClients({payload})
+
+	characterRigClone.Destroying:Once(function()
+		charsAppearancePayloads[characterRigClone] = nil
+	end)
+end
+
+function Level.onPlayerJoined(player: Player): ()
+	if next(charsAppearancePayloads) ~= nil then
+		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
+		local i = 0
+		for char, payload in charsAppearancePayloads do
+			i = 1
+			charAppearancesPayloads[i] = payload
+		end
+		TypedRemotes.ClientBoundCharacterAppearances:FireClient(player, charAppearancesPayloads)
+	end
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
