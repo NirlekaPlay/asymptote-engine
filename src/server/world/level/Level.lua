@@ -59,7 +59,10 @@ end
 local Level = {}
 
 function Level.initializeLevel(): ()
-	levelFolder = (workspace:FindFirstChild("Level") or workspace:FindFirstChild("DebugMission")) :: Folder
+	levelFolder = workspace:FindFirstChild("Level") :: Folder
+	if not levelFolder or next(levelFolder:GetChildren()) == nil then
+		levelFolder = workspace:FindFirstChild("DebugMission") :: Folder
+	end
 	if not levelFolder or not levelFolder:IsA("Folder") then
 		warn("Unable to initialize Level: Level or DebugMission not found in Workspace or is not a Folder.")
 		return
