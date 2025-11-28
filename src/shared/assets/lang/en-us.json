@@ -7,5 +7,8 @@
   "ui.prompt.already_disguised": "You're already disguised",
   "ui.prompt.ammo_full": "Your ammo is full",
   "ui.prompt.has_fbb": "You already have an FB Beryl",
-  "ui.prompt.inventory_no_fbb": "You don't have an FB Beryl"
+  "ui.prompt.inventory_no_fbb": "You don't have an FB Beryl",
+  "ui.objectives.stealth": "Stealth",
+  "ui.objectives.mission": "Mission",
+  "ui.objectives.loud": "Loud"
 }

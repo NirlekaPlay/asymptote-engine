@@ -389,6 +389,8 @@ function Level.onPlayerJoined(player: Player): ()
 		end
 		TypedRemotes.ClientBoundCharacterAppearances:FireClient(player, charAppearancesPayloads)
 	end
+
+	objectiveManager:sendCurrentObjectivesToPlayer(player)
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
@@ -743,9 +745,12 @@ function Level.onSimulationStepped(deltaTime: number): ()
 	Level.updateProps(deltaTime)
 end
 
+-- its a reference so I guess we dont need to change anything????
+local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()) 
+
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
-	print(objectiveManager:getDisplayedObjectives(ExpressionContext.new(GlobalStatesHolder.getAllStatesReference())))
+	objectiveManager:update(context)
 end
 
 function Level.updateProps(deltaTime: number): ()

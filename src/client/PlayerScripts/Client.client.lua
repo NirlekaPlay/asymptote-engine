@@ -1,3 +1,4 @@
+--!strict
 
 local Players = game:GetService("Players")
 local LocalizationService = game:GetService("LocalizationService")
@@ -6,6 +7,8 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local LocalPlayer = Players.LocalPlayer
+
+-- Localization:
 
 TypedRemotes.ClientBoundLocalizationAppend.OnClientEvent:Connect(function(dict)
 	ClientLanguage.appendFromDict(dict)
@@ -27,3 +30,6 @@ end
 print("The user's current locale is: " .. userLocaleId)
 
 ClientLanguage.load()
+
+-- So that languages can be loaded properly before anything uses it
+local Objectives = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.objectives.Objectives)
