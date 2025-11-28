@@ -140,6 +140,23 @@ local OUTFITS = {
 	["PsdPlain"] = { 4893814518, 4893808612 }
 } :: { [string]: { number } }
 
+local function applyBodyColors(bodyColorsInst: BodyColors, bodyColors: BodyColorType.BodyColorType): ()
+	-- ROBLOX FIX YOUR SHIT
+	-- I SWEAR TO GOD THE LIMB COLORS ARE NOT SET
+	-- AND YES THE ACTUAL COLOR PROPERTIES OF THE BODY COLORS INSTANCE ARE SET CORRECTLY
+	-- BUT NOOOO THE FUCKING LIMB COLORS ARE NOT UPDATED, ONLY IF I FUCKING MANUALLY CHANGE
+	-- A COLOR PROPERTY OF THE BODY COLORS INSTANCE FROM THE EDITOR **THEN** THE LIMB COLORS
+	-- CHANGES. BUT EVEN WITH THAT BULLSHIT THE HEAD COLOR IS STILL FUCKING GRAY
+	-- EVEN THOUGH THE COLOR PROPERTY OF THE HEAD IS SET.
+	-- WHAT IN THE RETARDED ASS FUCK IS THIS?!??!?!?!
+	bodyColorsInst.HeadColor3 = bodyColors.HeadColor
+	bodyColorsInst.LeftArmColor3 = bodyColors.LeftArmColor
+	bodyColorsInst.RightArmColor3 = bodyColors.RightArmColor
+	bodyColorsInst.LeftLegColor3 = bodyColors.LeftLegColor
+	bodyColorsInst.RightLegColor3 = bodyColors.RightLegColor
+	bodyColorsInst.TorsoColor3 = bodyColors.TorsoColor
+end
+
 function Level.initializeNpc(inst: Instance): ()
 	-- TODO: SOMEONE FUCKING FIX THIS BULLSHIT THANK YOU
 	-- whats worse is this shit is initialized in Server sever script so theres no way to access it
@@ -326,6 +343,8 @@ function Level.initializeNpc(inst: Instance): ()
 	local offsetPosition = nodeCframe.Position
 	characterRigClone:PivotTo(CFrame.new(offsetPosition, offsetPosition + nodeCframe.LookVector))
 
+	-- Works on the fucking server what the fuck.
+	applyBodyColors(characterRigClone:FindFirstChildOfClass("BodyColors"), bodyColors)
 	characterRigClone.Parent = workspace
 	characterRigClone:SetAttribute("Seed", seed)
 	characterRigClone:SetAttribute("Nodes", nodes)
