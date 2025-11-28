@@ -8,6 +8,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
@@ -24,6 +25,8 @@ local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
+local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
@@ -44,6 +47,7 @@ local persistentInstMan = PersistentInstanceManager.new()
 local cellManager: CellManager.CellManager
 local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
 local charsAppearancePayloads: { [Model]: CharacterAppearancePayload.CharacterAppearancePayload } = {}
+local objectiveManager: ObjectiveManager.ObjectiveManager = ObjectiveManager.new()
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -131,6 +135,10 @@ function Level.initializeLevel(): ()
 			end
 		end
 	end
+
+	-- Objectives
+
+	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
 end
 
 -- TODO: THIS SHIT TOO.
@@ -734,6 +742,7 @@ end
 
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
+	print(objectiveManager:getDisplayedObjectives(ExpressionContext.new(GlobalStatesHolder.getAllStatesReference())))
 end
 
 function Level.updateProps(deltaTime: number): ()

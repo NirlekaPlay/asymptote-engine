@@ -23,6 +23,7 @@ function MissionSetupReaderV1.parse(missionSetupModule: ModuleScript): MissionSe
 		lightingSettingsObj = fetch
 	end
 	local colors = required["Colors"] or {}
+	local objectives = required["Objectives"] or {}
 
 	local newMissionSetup = MissionSetup.new(
 		localizedStrings,
@@ -30,7 +31,8 @@ function MissionSetupReaderV1.parse(missionSetupModule: ModuleScript): MissionSe
 		disguiseConfigs,
 		enforceClasses,
 		lightingSettingsObj,
-		colors
+		colors,
+		objectives
 	)
 
 	return newMissionSetup

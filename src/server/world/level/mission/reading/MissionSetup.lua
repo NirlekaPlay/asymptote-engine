@@ -19,7 +19,8 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
 	lightingSettings: LightingSettings?,
-	colors: { [string]: Color3 }
+	colors: { [string]: Color3 },
+	objectives: any -- TODO: FOR NOW
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -30,7 +31,8 @@ function MissionSetup.new(
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
 	lightingSettings: LightingSettings?,
-	colors: { [string]: Color3 }
+	colors: { [string]: Color3 },
+	objectives: any
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
@@ -38,7 +40,8 @@ function MissionSetup.new(
 		disguiseConfigs = disguiseConfigs,
 		enforceClasses = enforceClasses,
 		lightingSettings = lightingSettings,
-		colors = colors
+		colors = colors,
+		objectives = objectives
 	}, MissionSetup)
 end
 
@@ -92,6 +95,10 @@ function MissionSetup.getColor(self: MissionSetup, colorName: string): Color3
 	end
 
 	return color
+end
+
+function MissionSetup.getObjectives(self: MissionSetup): any
+	return self.objectives
 end
 
 return MissionSetup
