@@ -20,6 +20,15 @@
       "StarterPlayerScripts": {
         "client": {
           "$path": "src/client/PlayerScripts"
+        },
+        "PlayerScriptsLoader": {
+          "$className": "LocalScript"
+        },
+        "RbxCharacterSounds": {
+          "$className": "LocalScript"
+        },
+        "PlayerModule": {
+          "$className": "ModuleScript"
         }
       }
     },
