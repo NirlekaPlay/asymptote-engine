@@ -3,6 +3,7 @@
 local globalStates: { [string]: any } = {}
 local stateSignals: { [string]: BindableEvent } = {}
 local statesChangedSignal: BindableEvent = Instance.new("BindableEvent")
+local registeredStatesInitValues: { [string]: any } = {}
 
 local GlobalStatesHolder = {}
 
@@ -14,6 +15,9 @@ function GlobalStatesHolder.setState<T>(stateName: string, stateValue: T): ()
 		statesChangedSignal:Fire(stateName, stateValue)
 		if stateSignals[stateName] then
 			stateSignals[stateName]:Fire(stateValue)
+		end
+		if not registeredStatesInitValues[stateName] then
+			registeredStatesInitValues[stateName] = stateValue
 		end
 	end
 end
@@ -44,6 +48,22 @@ end
 
 function GlobalStatesHolder.getStatesChangedConnection(): RBXScriptSignal<string, any>
 	return statesChangedSignal.Event
+end
+
+function GlobalStatesHolder.resetAllStates(predicate: (stateName: string) -> boolean): ()
+	for stateName, stateValue in globalStates do
+		if predicate(stateName) then
+			globalStates[stateName] = nil
+			continue
+		end
+
+		-- TODO: Maybe use the method instead to fire listeners?
+		-- TODO: Maybe don't set it to the first value at all
+		-- and let the ones who set it dynamically handle it.
+		if registeredStatesInitValues[stateName] then
+			globalStates[stateName] = registeredStatesInitValues[stateName]
+		end
+	end
 end
 
 return GlobalStatesHolder

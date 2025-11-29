@@ -20,7 +20,8 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
 	lightingSettings: LightingSettings?,
 	colors: { [string]: Color3 },
-	objectives: any -- TODO: FOR NOW
+	objectives: any, -- TODO: FOR NOW
+	globalsExpressionStrs: { [string]: string }
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -32,7 +33,8 @@ function MissionSetup.new(
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
 	lightingSettings: LightingSettings?,
 	colors: { [string]: Color3 },
-	objectives: any
+	objectives: any,
+	globalsExpressionStrs: { [string]: string }
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
@@ -41,7 +43,8 @@ function MissionSetup.new(
 		enforceClasses = enforceClasses,
 		lightingSettings = lightingSettings,
 		colors = colors,
-		objectives = objectives
+		objectives = objectives,
+		globalsExpressionStrs = globalsExpressionStrs
 	}, MissionSetup)
 end
 

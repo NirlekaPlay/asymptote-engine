@@ -9,6 +9,7 @@ local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payl
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
@@ -23,6 +24,7 @@ local DoorCreator = require(ServerScriptService.server.world.level.clutter.props
 local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
+local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
 local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
@@ -39,6 +41,7 @@ local timeAccum = 0
 local levelFolder: Folder
 local cellsList: { Model } = {}
 local propsInLevelSet: { [Prop.Prop]: true } = {}
+local propsInLevelSetThrottledUpdate: { [Prop.Prop]: true } = {}
 local instancesParentedToNpcConfigs: { [Instance]: { [Instance]: true }} = {}
 local guardCombatNodes: { Node.Node } = {}
 local levelIsRestarting = false
@@ -95,6 +98,16 @@ function Level.initializeLevel(): ()
 
 	if missionSetupObj:hasLightingSettings() then
 		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
+	end
+
+	-- Global variables
+
+	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference())
+
+	if next(missionSetupObj.globalsExpressionStrs) ~= nil then -- SHOULD BE A METHOD!! TOO LAZY TO IMPLEMENT
+		for varName, varExpr in missionSetupObj.globalsExpressionStrs do
+			GlobalStatesHolder.setState(varName, ExpressionParser.parseAndEvalute(varExpr, context)) -- TODO: SHOULD BE UPDATED WHEN STUFF CHANGES
+		end
 	end
 
 	local propsFolder = levelFolder:FindFirstChild("Props")
@@ -600,6 +613,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "TriggerZone" then
+				propsInLevelSetThrottledUpdate[TriggerZone.createFromPlaceholder(placeholder, nil, Level)] = true
+				return true
+			end
+
 			return false
 		end)
 	end
@@ -676,6 +694,17 @@ function Level.restartLevel(): ()
 
 	task.wait()
 
+	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
+	GlobalStatesHolder.resetAllStates(function(stateName)
+		return registeredGlobals[stateName] ~= nil
+	end)
+
+	if next(registeredGlobals) ~= nil then
+		for varName, varExpr in levelInstancesAccessor:getMissionSetup().globalsExpressionStrs do
+			GlobalStatesHolder.setState(varName, ExpressionParser.parseAndEvalute(varExpr, Level:getExpressionContext()))
+		end
+	end
+
 	for prop in propsInLevelSet do
 		prop:onLevelRestart()
 	end
@@ -750,12 +779,19 @@ local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()
 
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
+	for prop in propsInLevelSetThrottledUpdate do
+		prop:update(deltaTime, Level)
+	end
 	objectiveManager:update(context)
+end
+
+function Level.getExpressionContext(_): ExpressionContext.ExpressionContext
+	return context
 end
 
 function Level.updateProps(deltaTime: number): ()
 	for prop in propsInLevelSet do
-		prop:update(deltaTime)
+		prop:update(deltaTime, Level)
 	end
 end
 
