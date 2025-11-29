@@ -2,6 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 
 --[=[
@@ -14,19 +15,21 @@ export type ItemSpawn = Prop.Prop & typeof(setmetatable({} :: {
 	itemTool: Tool,
 	currentlySpawnedItem: Tool?,
 	currentSpawnedItemParentChangedConn: RBXScriptConnection?,
-	spawnCFrame: CFrame
+	spawnCFrame: CFrame,
+	serverLevel: ServerLevel.ServerLevel
 }, ItemSpawn)) 
 
-function ItemSpawn.new(itemTool: Tool, spawnCFrame: CFrame): ItemSpawn
+function ItemSpawn.new(itemTool: Tool, spawnCFrame: CFrame, serverLevel: ServerLevel.ServerLevel): ItemSpawn
 	return setmetatable({
 		itemTool = itemTool,
 		currentlySpawnedItem = nil,
 		currentSpawnedItemParentChangedConn = nil,
-		spawnCFrame = spawnCFrame
+		spawnCFrame = spawnCFrame,
+		serverLevel = serverLevel
 	}, ItemSpawn) :: ItemSpawn
 end
 
-function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?): ItemSpawn
+function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?, serverLevel: ServerLevel.ServerLevel): ItemSpawn
 	local itemName = placeholder:GetAttribute("Item") :: string
 	local itemTool = (ServerStorage :: any).Tools:FindFirstChild(itemName) :: Tool?
 	if not itemTool then
@@ -42,7 +45,7 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?): 
 
 	local bottomFaceCFrame = placeholder.CFrame * CFrame.new(0, -placeholder.Size.Y / 2, 0)
 
-	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame)
+	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame, serverLevel)
 	newItemSpawn:spawnItem()
 	return newItemSpawn
 end
@@ -67,6 +70,8 @@ function ItemSpawn.spawnItem(self: ItemSpawn): ()
 			end
 
 			self.currentlySpawnedItem = nil
+
+			(self.serverLevel :: ServerLevel.ServerLevel):getPersistentInstanceManager():register(itemToolClone)
 		end
 	end)
 end

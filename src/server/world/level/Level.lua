@@ -596,7 +596,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "ItemSpawn" then
-				propsInLevelSet[ItemSpawn.createFromPlaceholder(placeholder)] = true
+				propsInLevelSet[ItemSpawn.createFromPlaceholder(placeholder, nil, Level)] = true
 				return true
 			end
 
