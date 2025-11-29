@@ -8,7 +8,20 @@
   "ui.prompt.ammo_full": "Your ammo is full",
   "ui.prompt.has_fbb": "You already have an FB Beryl",
   "ui.prompt.inventory_no_fbb": "You don't have an FB Beryl",
+  "ui.prompt.take": "Take",
   "ui.objectives.stealth": "Stealth",
   "ui.objectives.mission": "Mission",
-  "ui.objectives.loud": "Loud"
+  "ui.objectives.loud": "Loud",
+  "ui.alert_level.calm": "Calm",
+  "ui.alert_level.normal": "Normal",
+  "ui.alert_level.alert": "Alert",
+  "ui.alert_level.searching": "Searching",
+  "ui.alert_level.lockdown": "Lockdown",
+  "ui.status.trespassing_minor": "Trespassing",
+  "ui.status.trespassing_major": "Trespassing",
+  "ui.status.disguised": "Disguised",
+  "ui.status.suspicious": "Suspicious",
+  "ui.status.suspicious_criminal": "Suspicious",
+  "ui.status.armed": "Armed",
+  "ui.status.dangerous_item": "Dangerous Item"
 }
