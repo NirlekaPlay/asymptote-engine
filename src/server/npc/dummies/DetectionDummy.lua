@@ -81,6 +81,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.JumpHeight = 0
 	humanoid.JumpPower = 0
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
 		self:onDied()
 	end)
