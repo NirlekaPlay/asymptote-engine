@@ -13,8 +13,8 @@ if not Remotes then
 	warn("Cannot initialise C4 server: 'remotes' not found in ReplicatedStorage.")
 	return
 end
-local PlantEvent = Remotes.PlantEvent
-local DetonateEvent = Remotes.DetonateEvent
+local PlantEvent = Remotes.c4.PlantEvent
+local DetonateEvent = Remotes.c4.DetonateEvent
 
 local TIME_TO_ARM_C4 = 0.8
 local TIME_TO_DETONATE_C4 = 0.8
