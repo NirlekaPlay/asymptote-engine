@@ -4,6 +4,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 --[=[
 	@class ItemSpawn
@@ -16,22 +17,25 @@ export type ItemSpawn = Prop.Prop & typeof(setmetatable({} :: {
 	currentlySpawnedItem: Tool?,
 	currentSpawnedItemParentChangedConn: RBXScriptConnection?,
 	spawnCFrame: CFrame,
-	serverLevel: ServerLevel.ServerLevel
+	serverLevel: ServerLevel.ServerLevel,
+	itemPickedVariable: string?
 }, ItemSpawn)) 
 
-function ItemSpawn.new(itemTool: Tool, spawnCFrame: CFrame, serverLevel: ServerLevel.ServerLevel): ItemSpawn
+function ItemSpawn.new(itemTool: Tool, spawnCFrame: CFrame, itemPickedVariable, serverLevel: ServerLevel.ServerLevel): ItemSpawn
 	return setmetatable({
 		itemTool = itemTool,
 		currentlySpawnedItem = nil,
 		currentSpawnedItemParentChangedConn = nil,
 		spawnCFrame = spawnCFrame,
-		serverLevel = serverLevel
+		serverLevel = serverLevel,
+		itemPickedVariable = itemPickedVariable
 	}, ItemSpawn) :: ItemSpawn
 end
 
 function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?, serverLevel: ServerLevel.ServerLevel): ItemSpawn
 	local itemName = placeholder:GetAttribute("Item") :: string
 	local itemTool = (ServerStorage :: any).Tools:FindFirstChild(itemName) :: Tool?
+	local itemPickedVariable = placeholder:GetAttribute("ItemRemovedVariable") :: string?
 	if not itemTool then
 		error(`Item '{itemTool}' does not exist under ServerStorage.Tools`)
 	end
@@ -45,7 +49,7 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?, s
 
 	local bottomFaceCFrame = placeholder.CFrame * CFrame.new(0, -placeholder.Size.Y / 2, 0)
 
-	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame, serverLevel)
+	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame, itemPickedVariable, serverLevel)
 	newItemSpawn:spawnItem()
 	return newItemSpawn
 end
@@ -53,6 +57,10 @@ end
 function ItemSpawn.spawnItem(self: ItemSpawn): ()
 	if self.currentlySpawnedItem then
 		return
+	end
+
+	if self.itemPickedVariable then
+		GlobalStatesHolder.setState(self.itemPickedVariable, false)
 	end
 
 	local itemToolClone = self.itemTool:Clone() :: Tool
@@ -72,6 +80,10 @@ function ItemSpawn.spawnItem(self: ItemSpawn): ()
 			self.currentlySpawnedItem = nil
 
 			(self.serverLevel :: ServerLevel.ServerLevel):getPersistentInstanceManager():register(itemToolClone)
+
+			if self.itemPickedVariable then
+				GlobalStatesHolder.setState(self.itemPickedVariable, true)
+			end
 		end
 	end)
 end
