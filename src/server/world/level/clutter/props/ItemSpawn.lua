@@ -40,7 +40,9 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?): 
 	placeholder.CanTouch = false
 	placeholder.AudioCanCollide = false
 
-	local newItemSpawn = ItemSpawn.new(itemTool, placeholder.CFrame)
+	local bottomFaceCFrame = placeholder.CFrame * CFrame.new(0, -placeholder.Size.Y / 2, 0)
+
+	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame)
 	newItemSpawn:spawnItem()
 	return newItemSpawn
 end
@@ -54,6 +56,8 @@ function ItemSpawn.spawnItem(self: ItemSpawn): ()
 	itemToolClone:PivotTo(self.spawnCFrame)
 
 	itemToolClone.Parent = workspace
+
+	self.currentlySpawnedItem = itemToolClone
 
 	self.currentSpawnedItemParentChangedConn = itemToolClone.AncestryChanged:Connect(function()
 		if itemToolClone.Parent ~= workspace then
