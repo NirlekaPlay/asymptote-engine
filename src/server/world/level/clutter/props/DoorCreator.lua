@@ -350,7 +350,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		end
 	end
 
-	local function trigegrMiddle(player): ()
+	local function triggerMiddle(player): ()
 		if DEBUG_SIDES_TRIGGER then
 			print("Proximity prompt", "Middle", "triggered for", model)
 		end
@@ -364,7 +364,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 
 	frontProxPrompt.Triggered:Connect(triggerFront)
 	backProxPrompt.Triggered:Connect(triggerBack)
-	middleProxPrompt.Triggered:Connect(trigegrMiddle)
+	middleProxPrompt.Triggered:Connect(triggerMiddle)
 
 	if isDoubleDoor then
 		local promptsForDouble = prompts :: DoorPromptComponent.DoubleDoorPrompts
@@ -374,7 +374,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		promptsForDouble.doorRightFront[1].Triggered:Connect(triggerFront)
 	end
 
-	if remoteUnlock then
+	if remoteUnlock and string.match(remoteUnlock, "%S") ~= nil then
 		if not GlobalStatesHolder.hasState(remoteUnlock) then
 			GlobalStatesHolder.setState(remoteUnlock, false)
 		end
