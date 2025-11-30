@@ -51,6 +51,8 @@ local cellManager: CellManager.CellManager
 local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
 local charsAppearancePayloads: { [Model]: CharacterAppearancePayload.CharacterAppearancePayload } = {}
 local objectiveManager: ObjectiveManager.ObjectiveManager = ObjectiveManager.new()
+local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, usedVariables: { [string]: true }}} = {}
+local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -102,13 +104,35 @@ function Level.initializeLevel(): ()
 
 	-- Global variables
 
-	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference())
+	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference(), true)
 
 	if next(missionSetupObj.globalsExpressionStrs) ~= nil then -- SHOULD BE A METHOD!! TOO LAZY TO IMPLEMENT
 		for varName, varExpr in missionSetupObj.globalsExpressionStrs do
-			GlobalStatesHolder.setState(varName, ExpressionParser.parseAndEvalute(varExpr, context)) -- TODO: SHOULD BE UPDATED WHEN STUFF CHANGES
+			local parsed = ExpressionParser.fromString(varExpr):parse()
+			local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, context)
+			local usedVars = if parsed then ExpressionParser.getVariablesSet(parsed) else {}
+			globalVariablesObjs[varName] = {
+				parsed = parsed,
+				usedVariables = usedVars
+			}
+			GlobalStatesHolder.setState(varName, evaluated)
 		end
 	end
+
+	globalVariablesStatesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
+		--print(stateName, stateValue)
+		--print(GlobalStatesHolder.getAllStatesReference())
+		for varName, data in globalVariablesObjs do
+			if data.usedVariables[stateName] then
+				if data.parsed then
+					local newValue = ExpressionParser.evaluate(data.parsed, context)
+					if GlobalStatesHolder.getState(varName) ~= newValue then
+						GlobalStatesHolder.setState(varName, newValue)
+					end
+				end
+			end
+		end
+	end)
 
 	local propsFolder = levelFolder:FindFirstChild("Props")
 	if propsFolder and (propsFolder:IsA("Model") or propsFolder:IsA("Folder")) then
@@ -694,9 +718,15 @@ function Level.restartLevel(): ()
 
 	task.wait()
 
+	for prop in propsInLevelSet do
+		prop:onLevelRestart()
+	end
+
+	print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
+
 	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
 	GlobalStatesHolder.resetAllStates(function(stateName)
-		return registeredGlobals[stateName] ~= nil
+		return true --registeredGlobals[stateName] ~= nil
 	end)
 
 	if next(registeredGlobals) ~= nil then
@@ -705,9 +735,7 @@ function Level.restartLevel(): ()
 		end
 	end
 
-	for prop in propsInLevelSet do
-		prop:onLevelRestart()
-	end
+	print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
 
 	Mission.resetAlertLevel()
 
@@ -752,6 +780,8 @@ function Level.restartLevel(): ()
 	task.wait(1)
 
 	levelIsRestarting = false
+
+	print(GlobalStatesHolder.getAllStatesReference())
 end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()
