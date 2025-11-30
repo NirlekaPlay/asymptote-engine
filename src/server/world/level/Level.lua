@@ -353,6 +353,20 @@ function Level.initializeNpc(inst: Instance): ()
 		pants.Parent = characterRigClone
 	end
 
+	local customShirtId = inst:GetAttribute("CustomShirtId") :: number?
+	if customShirtId then
+		local shirt = Instance.new("Shirt")
+		shirt.ShirtTemplate = "rbxassetid://" .. tostring(customShirtId)
+		shirt.Parent = characterRigClone
+	end
+
+	local customPantstId = inst:GetAttribute("CustomPantsId") :: number?
+	if customPantstId then
+		local pants = Instance.new("Pants")
+		pants.PantsTemplate = "rbxassetid://" .. tostring(customPantstId)
+		pants.Parent = characterRigClone
+	end
+
 	local skinColor = inst:GetAttribute("SkinColor") :: (Color3 | BrickColor)?
 	if not skinColor then
 		skinColor = BrickColor.new("Pastel brown")
@@ -455,7 +469,7 @@ function Level.initializeNpc(inst: Instance): ()
 	characterRigClone:SetAttribute("Nodes", nodes)
 	characterRigClone:SetAttribute("CharName", charName)
 	local serverTag = inst:GetAttribute("ServerTag") :: string?
-	if serverTag then
+	if serverTag and serverTag ~= "" then
 		characterRigClone:AddTag(serverTag)
 	end
 	if inst:GetAttribute("EnforceClass") then
