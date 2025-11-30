@@ -9,6 +9,7 @@ local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payl
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionEvaluationSorter = require(ReplicatedStorage.shared.util.expression.ExpressionEvaluationSorter)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
@@ -25,6 +26,7 @@ local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.I
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
+local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
 local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
@@ -53,6 +55,7 @@ local charsAppearancePayloads: { [Model]: CharacterAppearancePayload.CharacterAp
 local objectiveManager: ObjectiveManager.ObjectiveManager = ObjectiveManager.new()
 local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, usedVariables: { [string]: true }}} = {}
 local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
+local stateComponentsSet: { [any]: true } = {}
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -102,25 +105,79 @@ function Level.initializeLevel(): ()
 		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
 	end
 
+	local stateComponentsFolder = levelFolder:FindFirstChild("StateComponents") :: Folder?
+	if stateComponentsFolder then
+		local stack = {stateComponentsFolder}
+		local index = 1
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index = index - 1
+
+			if current:IsA("BoolValue") then
+				if current.Name == "NpcStateTracker" then
+					stateComponentsSet[NpcStateTracker.fromInstance(current)] = true
+				end
+			end
+
+			if current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
+			end
+		end
+	end
+
 	-- Global variables
 
 	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference(), true)
 
-	if next(missionSetupObj.globalsExpressionStrs) ~= nil then -- SHOULD BE A METHOD!! TOO LAZY TO IMPLEMENT
+	if next(missionSetupObj.globalsExpressionStrs) ~= nil then
+		local adjacencyList: {[string]:{string}} = {}
+		local expressionsArray: {string} = {}
+		local globalVarNames: {[string]: boolean} = {}
+		local globalVariablesExpressions = {}
+
 		for varName, varExpr in missionSetupObj.globalsExpressionStrs do
+			table.insert(expressionsArray, varName)
+			globalVarNames[varName] = true
+			adjacencyList[varName] = {}
+			
 			local parsed = ExpressionParser.fromString(varExpr):parse()
-			local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, context)
-			local usedVars = if parsed then ExpressionParser.getVariablesSet(parsed) else {}
-			globalVariablesObjs[varName] = {
-				parsed = parsed,
-				usedVariables = usedVars
-			}
-			GlobalStatesHolder.setState(varName, evaluated)
+			local usedVars: { [string]: true } = if parsed then ExpressionParser.getVariablesSet(parsed) else {}
+			globalVariablesExpressions[varName] = { parsed = parsed, usedVariables = usedVars }
+			globalVariablesObjs[varName] = { parsed = parsed, usedVariables = usedVars }
+		end
+
+		for varName, varExprObj in globalVariablesExpressions do
+			for usedVarName, _ in varExprObj.usedVariables do
+				
+				if globalVarNames[usedVarName] then
+					if usedVarName ~= varName then
+						local dependents = adjacencyList[usedVarName]
+						table.insert(dependents, varName)
+					end
+				end
+			end
+		end
+
+		local topologicalOrder = ExpressionEvaluationSorter.kahnsTopologicalSort(expressionsArray, adjacencyList)
+		
+		if topologicalOrder then
+			for _, varName in topologicalOrder do
+				local varExprObj = globalVariablesExpressions[varName]
+				local parsed = varExprObj.parsed
+				local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, context)
+				GlobalStatesHolder.setState(varName, evaluated)
+			end
 		end
 	end
 
 	globalVariablesStatesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
-		--print(stateName, stateValue)
+		print(stateName, stateValue)
 		--print(GlobalStatesHolder.getAllStatesReference())
 		for varName, data in globalVariablesObjs do
 			if data.usedVariables[stateName] then
@@ -397,6 +454,10 @@ function Level.initializeNpc(inst: Instance): ()
 	characterRigClone:SetAttribute("Seed", seed)
 	characterRigClone:SetAttribute("Nodes", nodes)
 	characterRigClone:SetAttribute("CharName", charName)
+	local serverTag = inst:GetAttribute("ServerTag") :: string?
+	if serverTag then
+		characterRigClone:AddTag(serverTag)
+	end
 	if inst:GetAttribute("EnforceClass") then
 		characterRigClone:SetAttribute("EnforceClass", inst:GetAttribute("EnforceClass"))
 	end
@@ -717,6 +778,10 @@ function Level.restartLevel(): ()
 	levelIsRestarting = true
 
 	task.wait()
+
+	for component in stateComponentsSet do
+		component:onLevelRestart()
+	end
 
 	for prop in propsInLevelSet do
 		prop:onLevelRestart()

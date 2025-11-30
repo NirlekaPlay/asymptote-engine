@@ -12,6 +12,7 @@
   "ui.objectives.stealth": "Stealth",
   "ui.objectives.mission": "Mission",
   "ui.objectives.loud": "Loud",
+  "ui.objectives.body.exfiltrate": "Exfiltrate.",
   "ui.alert_level.calm": "Calm",
   "ui.alert_level.normal": "Normal",
   "ui.alert_level.alert": "Alert",
