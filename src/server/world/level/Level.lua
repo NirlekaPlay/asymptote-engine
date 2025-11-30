@@ -56,6 +56,7 @@ local objectiveManager: ObjectiveManager.ObjectiveManager = ObjectiveManager.new
 local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, usedVariables: { [string]: true }}} = {}
 local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
 local stateComponentsSet: { [any]: true } = {}
+local globalVariablesTopolicalOrder = {}
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -173,11 +174,17 @@ function Level.initializeLevel(): ()
 				local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, context)
 				GlobalStatesHolder.setState(varName, evaluated)
 			end
+
+			globalVariablesTopolicalOrder = topologicalOrder
 		end
 	end
 
 	globalVariablesStatesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
 		print(stateName, stateValue)
+		if Level.isRestarting() then
+			warn(`CANNOT PROCEED FOR AFTER '{stateName}' VALUE CHANGED TO {stateValue}: LEVEL IS RESTARTING`)
+			return
+		end
 		--print(GlobalStatesHolder.getAllStatesReference())
 		for varName, data in globalVariablesObjs do
 			if data.usedVariables[stateName] then
@@ -805,12 +812,17 @@ function Level.restartLevel(): ()
 
 	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
 	GlobalStatesHolder.resetAllStates(function(stateName)
-		return true --registeredGlobals[stateName] ~= nil
+		return registeredGlobals[stateName] ~= nil
 	end)
 
 	if next(registeredGlobals) ~= nil then
-		for varName, varExpr in levelInstancesAccessor:getMissionSetup().globalsExpressionStrs do
-			GlobalStatesHolder.setState(varName, ExpressionParser.parseAndEvalute(varExpr, Level:getExpressionContext()))
+		if next(globalVariablesTopolicalOrder) ~= nil then
+			for _, varName in globalVariablesTopolicalOrder do
+				local varExprObj = globalVariablesObjs[varName]
+				local parsed = varExprObj.parsed
+				local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, Level:getExpressionContext())
+				GlobalStatesHolder.setState(varName, evaluated)
+			end
 		end
 	end
 
