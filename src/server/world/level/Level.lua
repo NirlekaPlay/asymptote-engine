@@ -835,7 +835,7 @@ function Level.restartLevel(): ()
 	end
 
 	for prop in propsInLevelSet do
-		prop:onLevelRestart()
+		prop:onLevelRestart(Level)
 	end
 
 	print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())

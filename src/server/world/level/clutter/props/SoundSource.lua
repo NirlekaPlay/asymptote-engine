@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
@@ -19,16 +20,19 @@ SoundSource.__index = SoundSource
 
 export type SoundSource = Prop.Prop & typeof(setmetatable({} :: {
 	parsedPlayCondition: ExpressionParser.ASTNode?,
-	parsedVariablesConnections: { [string]: RBXScriptConnection }
+	parsedVariablesConnections: { [string]: RBXScriptConnection },
+	sound: Sound
 }, SoundSource))
 
 function SoundSource.new(
 	parsedNode: ExpressionParser.ASTNode?,
-	varConns: { [string]: RBXScriptConnection }
+	varConns: { [string]: RBXScriptConnection },
+	sound: Sound
 ): SoundSource
 	return setmetatable({
 		parsedPlayCondition = parsedNode,
-		parsedVariablesConnections = varConns
+		parsedVariablesConnections = varConns,
+		sound = sound
 	}, SoundSource) :: SoundSource
 end
 
@@ -90,18 +94,29 @@ function SoundSource.createFromPlaceholder(placeholder: BasePart): SoundSource
 	end
 
 	local newSoundSource = SoundSource.new(
-		parsed, variablesChangedConn
+		parsed, variablesChangedConn, sound
 	)
 
 	return newSoundSource
 end
 
-function SoundSource.onLevelRestart(): ()
-	-- Should we? No? Alright.
+function SoundSource.onLevelRestart(self: SoundSource, serverLevel: ServerLevel.ServerLevel): ()
+	local sound = self.sound
+	sound:Stop()
+	local evaluated
+	if self.parsedPlayCondition then
+		evaluated = ExpressionParser.evaluate(
+			self.parsedPlayCondition, serverLevel:getExpressionContext()
+		)
+	elseif self.parsedPlayCondition == nil then
+		evaluated = true
+	end
 
-	-- Seriously though, if the level restarts, then the variables
-	-- will also reset. And the SoundSource will also update from those,
-	-- so no need to disconnect any connections for now.
+	if evaluated then
+		sound:Play()
+	else
+		sound:Stop()
+	end
 end
 
 function SoundSource.update(deltaTime: number): ()
