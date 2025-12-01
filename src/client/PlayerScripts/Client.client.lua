@@ -5,7 +5,9 @@ local LocalizationService = game:GetService("LocalizationService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
+local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
 local LocalPlayer = Players.LocalPlayer
@@ -38,4 +40,13 @@ local Objectives = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.
 
 RunService.PreRender:Connect(function(deltaTime)
 	IndicatorsRenderer.update()
+	CameraManager.update(deltaTime)
+end)
+
+TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function()
+	local camTestInst = workspace.Level.Props.IntroCam :: BasePart
+	local newSocket = CameraSocket.fromPart(camTestInst)
+	CameraManager.takeOverCamera()
+	CameraManager.setSocket(newSocket)
+	CameraManager.startTilting()
 end)

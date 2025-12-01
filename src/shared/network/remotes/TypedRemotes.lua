@@ -42,6 +42,7 @@ return {
 	ClientBoundCharacterAppearances = RE("ClientBoundCharacterAppearance") :: RE<{CharacterAppearancePayload.CharacterAppearancePayload}>,
 	--
 	ClientBoundObjectivesInfo = RE("ClientBoundObjectivesInfo") :: RE<ClientBoundObjectivesInfoPayload.ObjectivesInfoPayload>,
+	ClientBoundMissionConcluded = RE("ClientBoundMissionConcluded") :: RE<>,
 	--
 	ClientBoundTeleportReady = RE("ClientBoundTeleportReady"),
 	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady")

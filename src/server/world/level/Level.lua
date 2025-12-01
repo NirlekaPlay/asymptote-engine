@@ -23,11 +23,13 @@ local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
 local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
+local MissionEndZone = require(ServerScriptService.server.world.level.clutter.props.MissionEndZone)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
 local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
+local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
 local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
@@ -57,6 +59,7 @@ local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, used
 local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
 local stateComponentsSet: { [any]: true } = {}
 local globalVariablesTopolicalOrder = {}
+local missionManager: MissionManager.MissionManager = MissionManager.new()
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -724,6 +727,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "MissionEndZone" then
+				propsInLevelSetThrottledUpdate[MissionEndZone.createFromPlaceholder(placeholder, nil, Level)] = true
+				return true
+			end
+
 			return false
 		end)
 	end
@@ -739,6 +747,10 @@ end
 
 function Level.getGuardCombatNodes(): { Node.Node }
 	return guardCombatNodes
+end
+
+function Level.getMissionManager(_): MissionManager.MissionManager
+	return missionManager
 end
 
 function Level.initializeCells(cellsFolder: Folder): ()
