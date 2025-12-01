@@ -12,6 +12,8 @@ local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
 local LocalPlayer = Players.LocalPlayer
 
+local DEBUG_LOCALIZATION_INIT = false
+
 -- Localization:
 
 TypedRemotes.ClientBoundLocalizationAppend.OnClientEvent:Connect(function(dict)
@@ -25,13 +27,19 @@ end)
 local userLocaleId
 if success and translator then
 	userLocaleId = translator.LocaleId
-	print("LOCALE")
+	if DEBUG_LOCALIZATION_INIT then
+		print("LOCALE")
+	end
 else
 	userLocaleId = "en-us"
-	print("FALLBACK")
+	if DEBUG_LOCALIZATION_INIT then
+		print("FALLBACK")
+	end
 end
 
-print("The user's current locale is: " .. userLocaleId)
+if DEBUG_LOCALIZATION_INIT then
+	print("The user's current locale is: " .. userLocaleId)
+end
 
 ClientLanguage.load()
 
@@ -43,10 +51,37 @@ RunService.PreRender:Connect(function(deltaTime)
 	CameraManager.update(deltaTime)
 end)
 
-TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function()
-	local camTestInst = workspace.Level.Props.IntroCam :: BasePart
-	local newSocket = CameraSocket.fromPart(camTestInst)
+-- TODO: Tight cuppling bullshit.
+local missionConcluded = false
+
+TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function(cameraSocket)
+	missionConcluded = true
 	CameraManager.takeOverCamera()
-	CameraManager.setSocket(newSocket)
+	CameraManager.setSocket(cameraSocket)
 	CameraManager.startTilting()
+end)
+
+TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
+	-- How the fuck does this mess work? I don't fucking know.
+	-- But it does fix and revert the player's camera back to its original behavior.
+	missionConcluded = false
+	print(Players.LocalPlayer.Character)
+	CameraManager.restoreToDefaultBehavior()
+	CameraManager.stopTilting()
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+	workspace.CurrentCamera.CameraSubject = nil
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+	if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+		workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") 
+	end
+	CameraManager.restoreToDefaultBehavior()
+end)
+
+Players.LocalPlayer.CharacterAdded:Connect(function(char)
+	print("Character added")
+	if not missionConcluded then
+		print("Mission not concluded. Restarting camera...")
+		workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+		CameraManager.restoreToDefaultBehavior()
+	end
 end)
