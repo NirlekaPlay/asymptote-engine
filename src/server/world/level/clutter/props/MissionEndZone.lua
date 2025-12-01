@@ -9,7 +9,7 @@ local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
-local DEBUG_TRIGGER_BOUNDS = true
+local DEBUG_TRIGGER_BOUNDS = false
 
 --[=[
 	@class MissionEndZone
@@ -23,20 +23,23 @@ export type MissionEndZone = Prop.Prop & typeof(setmetatable({} :: {
 	enabled: boolean,
 	targetVariableName: string,
 	parsedEnabledExpression: ExpressionParser.ASTNode?,
-	zonePart: BasePart
+	zonePart: BasePart,
+	highlightInst: Instance?
 }, MissionEndZone))
 
 function MissionEndZone.new(
 	enabled: boolean,
 	targetVariableName: string,
 	parsedEnabledExpression: ExpressionParser.ASTNode?,
-	zonePart: BasePart
+	zonePart: BasePart,
+	highlightInst: Instance?
 ): MissionEndZone
 	return setmetatable({
 		enabled = false,
 		targetVariableName = targetVariableName,
 		parsedEnabledExpression = parsedEnabledExpression,
-		zonePart = zonePart
+		zonePart = zonePart,
+		highlightInst = highlightInst
 	}, MissionEndZone) :: MissionEndZone
 end
 
@@ -45,6 +48,7 @@ function MissionEndZone.createFromPlaceholder(
 ): MissionEndZone
 	local expressionStr = placeholder:GetAttribute("Active") :: string
 	local targetVariableName = placeholder:GetAttribute("Variable") :: string
+	local doHighlight = placeholder:GetAttribute("HighlightZone") :: boolean?
 	local evaluated: any
 	local parsedExpression
 	if not expressionStr or expressionStr == "" then
@@ -54,11 +58,18 @@ function MissionEndZone.createFromPlaceholder(
 		evaluated = ExpressionParser.evaluate(parsedExpression, serverLevel:getExpressionContext())
 	end
 
+	local highlightInst: Instance
+
+	if doHighlight and doHighlight == true then
+		highlightInst = MissionEndZone.createHighlightEffectToPart(placeholder)
+	end
+
 	local newTriggerZone = MissionEndZone.new(
 		evaluated,
 		targetVariableName,
 		parsedExpression,
-		placeholder
+		placeholder,
+		highlightInst
 	)
 
 	TriggerZone.makePartStatic(placeholder)
@@ -72,6 +83,9 @@ end
 
 function MissionEndZone.update(self: MissionEndZone, deltaTime: number, serverLevel: ServerLevel.ServerLevel): ()
 	if serverLevel:getMissionManager():isConcluded() then
+		if self.highlightInst and self.highlightInst.Parent ~= nil then
+			self.highlightInst.Parent = nil
+		end
 		return
 	end
 	local canCheck = false
@@ -86,7 +100,14 @@ function MissionEndZone.update(self: MissionEndZone, deltaTime: number, serverLe
 	end
 
 	if not canCheck then
+		if self.highlightInst and self.highlightInst.Parent ~= nil then
+			self.highlightInst.Parent = nil
+		end
 		return
+	end
+
+	if self.highlightInst and self.highlightInst.Parent == nil then
+		self.highlightInst.Parent = workspace
 	end
 
 	local validPlayers: {Player} = {}
@@ -137,6 +158,20 @@ function MissionEndZone.isValidPlayer(player: Player): (boolean, Vector3?)
 	end
 
 	return true, pos
+end
+
+function MissionEndZone.createHighlightEffectToPart(part: BasePart): Instance
+	local gradientModel = ReplicatedStorage.shared.assets.models.gradient:Clone()
+	for _, child in gradientModel:GetChildren() do
+		if child:IsA("BasePart") then
+			local original_Y = part.Size.Y
+			child.Size = Vector3.new(part.Size.X, original_Y / 2, part.Size.Z)
+
+			local shift_Y = original_Y / 4
+			child.CFrame = part.CFrame:ToWorldSpace(CFrame.new(0, -shift_Y, 0))
+		end
+	end
+	return gradientModel
 end
 
 function MissionEndZone.onLevelRestart(self: MissionEndZone): ()
