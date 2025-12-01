@@ -8,6 +8,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
+local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionEvaluationSorter = require(ReplicatedStorage.shared.util.expression.ExpressionEvaluationSorter)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
@@ -60,6 +61,7 @@ local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
 local stateComponentsSet: { [any]: true } = {}
 local globalVariablesTopolicalOrder = {}
 local missionManager: MissionManager.MissionManager = MissionManager.new()
+local currentIntroCam: CameraSocket.CameraSocket
 
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
@@ -732,9 +734,25 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "IntroCam" then
+				placeholder.Anchored = true
+				placeholder.Transparency = 1
+				placeholder.CanCollide = false
+				placeholder.CanQuery = false
+				placeholder.AudioCanCollide = false
+				currentIntroCam = CameraSocket.fromPart(placeholder)
+				return true
+			end
+
 			return false
 		end)
 	end
+
+	if not currentIntroCam then
+		currentIntroCam = CameraSocket.new("", CFrame.new(), 70)
+	end
+
+	missionManager:setCameraSocket(currentIntroCam)
 end
 
 function Level.isRestarting(): boolean
@@ -847,8 +865,12 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
+		print("LOADING CHARACTER")
 		player:LoadCharacter()
 	end
+
+	missionManager:onLevelRestart()
+	TypedRemotes.ClientBoundMissionStart:FireAllClients()
 
 	if destroyNpcsCallback then
 		destroyNpcsCallback()

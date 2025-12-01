@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 
 --[=[
 	@class MissionManager
@@ -10,13 +11,19 @@ local MissionManager = {}
 MissionManager.__index = MissionManager
 
 export type MissionManager = typeof(setmetatable({} :: {
-	missionConcluded: boolean
+	missionConcluded: boolean,
+	cameraSocket: CameraSocket.CameraSocket -- TODO: Bad. VERY BAD. NOOO-
 }, MissionManager))
 
 function MissionManager.new(): MissionManager
 	return setmetatable({
-		missionConcluded = false
+		missionConcluded = false,
+		cameraSocket = nil :: any
 	}, MissionManager)
+end
+
+function MissionManager.setCameraSocket(self: MissionManager, socket: CameraSocket.CameraSocket): ()
+	self.cameraSocket = socket
 end
 
 function MissionManager.concludeMission(self: MissionManager): ()
@@ -24,7 +31,8 @@ function MissionManager.concludeMission(self: MissionManager): ()
 		return
 	end
 	self.missionConcluded = true
-	TypedRemotes.ClientBoundMissionConcluded:FireAllClients()
+	print("Mission concluded!")
+	TypedRemotes.ClientBoundMissionConcluded:FireAllClients(self.cameraSocket)
 end
 
 function MissionManager.isConcluded(self: MissionManager): boolean
@@ -32,7 +40,7 @@ function MissionManager.isConcluded(self: MissionManager): boolean
 end
 
 function MissionManager.onLevelRestart(self: MissionManager): ()
-	
+	self.missionConcluded = false
 end
 
 return MissionManager

@@ -9,7 +9,7 @@ local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
-local DEBUG_TRIGGER_BOUNDS = false
+local DEBUG_TRIGGER_BOUNDS = true
 
 --[=[
 	@class MissionEndZone
