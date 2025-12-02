@@ -288,6 +288,7 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+	Level.onPlayerRemoving(player)
 	-- entity reg here:
 	playersToRemove[player.UserId] = true
 	--

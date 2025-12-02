@@ -60,7 +60,7 @@ local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, used
 local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
 local stateComponentsSet: { [any]: true } = {}
 local globalVariablesTopolicalOrder = {}
-local missionManager: MissionManager.MissionManager = MissionManager.new()
+local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
 
 function startsWith(mainString: string, startString: string)
@@ -202,6 +202,16 @@ function Level.initializeLevel(): ()
 			end
 		end
 	end)
+
+	-- Mission
+
+	missionManager = MissionManager.new(Level)
+
+	TypedRemotes.ServerBoundPlayerWantRestart.OnServerEvent:Connect(function(player)
+		missionManager:onPlayerWantRetry(player)
+	end)
+
+	-- Props
 
 	local propsFolder = levelFolder:FindFirstChild("Props")
 	if propsFolder and (propsFolder:IsA("Model") or propsFolder:IsA("Folder")) then
@@ -927,6 +937,10 @@ end
 function Level.onSimulationStepped(deltaTime: number): ()
 	persistentInstMan:update(deltaTime)
 	Level.updateProps(deltaTime)
+end
+
+function Level.onPlayerRemoving(player: Player): ()
+	missionManager:onPlayerLeaving(player)
 end
 
 -- its a reference so I guess we dont need to change anything????

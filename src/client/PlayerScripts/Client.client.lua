@@ -10,6 +10,8 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
+local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 local LocalPlayer = Players.LocalPlayer
 
 local DEBUG_LOCALIZATION_INIT = false
@@ -54,11 +56,32 @@ end)
 -- TODO: Tight cuppling bullshit.
 local missionConcluded = false
 
+UITextShadow.createTextShadow(LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle)
+
+LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.RetryButton.MouseButton1Click:Connect(function()
+	TypedRemotes.ServerBoundPlayerWantRestart:FireServer()
+end)
+
+local debounce = false
+
+LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.HomeButton.MouseButton1Click:Connect(function()
+	if debounce then
+		return
+	end
+	debounce = true
+	LoadingScreen.onTeleporting(3, function()
+		TypedRemotes.JoinTestingServer:FireServer()
+	end)
+end)
+
 TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function(cameraSocket)
 	missionConcluded = true
 	CameraManager.takeOverCamera()
 	CameraManager.setSocket(cameraSocket)
 	CameraManager.startTilting()
+	LocalPlayer.PlayerGui.MissionConclusion.Enabled = true
+	LocalPlayer.PlayerGui.Objectives.Enabled = false
+	LocalPlayer.PlayerGui.Status.Enabled = false
 end)
 
 TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
@@ -75,6 +98,10 @@ TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
 		workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") 
 	end
 	CameraManager.restoreToDefaultBehavior()
+	task.wait()
+	LocalPlayer.PlayerGui.MissionConclusion.Enabled = false
+	LocalPlayer.PlayerGui.Objectives.Enabled = true
+	LocalPlayer.PlayerGui.Status.Enabled = true
 end)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(char)

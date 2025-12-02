@@ -47,5 +47,6 @@ return {
 	ClientBoundMissionStart = RE("ClientBoundMissionStart") :: RE<>,
 	--
 	ClientBoundTeleportReady = RE("ClientBoundTeleportReady"),
-	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady")
+	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady"),
+	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart")
 }
