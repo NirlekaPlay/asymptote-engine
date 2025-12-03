@@ -130,3 +130,5 @@ Players.LocalPlayer.CharacterAdded:Connect(function(char)
 		CameraManager.restoreToDefaultBehavior()
 	end
 end)
+
+require(StarterPlayer.StarterPlayerScripts.client.modules.level.Clutters)
