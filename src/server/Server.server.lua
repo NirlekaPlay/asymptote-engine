@@ -272,6 +272,7 @@ Players.PlayerAdded:Connect(function(player)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.Died:Once(function()
+				Level.onPlayerDied(player)
 				local plrStatuses = PlayerStatusRegistry.getPlayerStatusHolder(player)
 				plrStatuses:clearAllStatuses()
 			end)
@@ -299,3 +300,5 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 Commands.register()
+
+Level.startMission()

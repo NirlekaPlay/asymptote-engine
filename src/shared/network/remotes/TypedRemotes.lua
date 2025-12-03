@@ -43,7 +43,7 @@ return {
 	ClientBoundCharacterAppearances = RE("ClientBoundCharacterAppearance") :: RE<{CharacterAppearancePayload.CharacterAppearancePayload}>,
 	--
 	ClientBoundObjectivesInfo = RE("ClientBoundObjectivesInfo") :: RE<ClientBoundObjectivesInfoPayload.ObjectivesInfoPayload>,
-	ClientBoundMissionConcluded = RE("ClientBoundMissionConcluded") :: RE<CameraSocket.CameraSocket>,
+	ClientBoundMissionConcluded = RE("ClientBoundMissionConcluded") :: RE<CameraSocket.CameraSocket, boolean>,
 	ClientBoundMissionStart = RE("ClientBoundMissionStart") :: RE<>,
 	--
 	ClientBoundTeleportReady = RE("ClientBoundTeleportReady"),

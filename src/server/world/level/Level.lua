@@ -63,6 +63,8 @@ local globalVariablesTopolicalOrder = {}
 local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
 
+Players.CharacterAutoLoads = false
+
 function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
 end
@@ -514,6 +516,9 @@ function Level.initializeNpc(inst: Instance): ()
 end
 
 function Level.onPlayerJoined(player: Player): ()
+	if not Level:getMissionManager():isConcluded() then
+		player:LoadCharacter()
+	end
 	if next(charsAppearancePayloads) ~= nil then
 		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
 		local i = 0
@@ -525,6 +530,10 @@ function Level.onPlayerJoined(player: Player): ()
 	end
 
 	objectiveManager:sendCurrentObjectivesToPlayer(player)
+end
+
+function Level.onPlayerDied(player: Player): ()
+	missionManager:onPlayerDied(player)
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
@@ -917,6 +926,12 @@ function Level.restartLevel(): ()
 	levelIsRestarting = false
 
 	print(GlobalStatesHolder.getAllStatesReference())
+end
+
+function Level.startMission(): ()
+	for _, player in Players:GetPlayers() do
+		player:LoadCharacter()
+	end
 end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()

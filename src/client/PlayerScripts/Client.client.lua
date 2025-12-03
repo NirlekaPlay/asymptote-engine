@@ -10,6 +10,7 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
+local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
@@ -62,7 +63,8 @@ blurcc.Parent = workspace.CurrentCamera
 -- TODO: Tight cuppling bullshit.
 local missionConcluded = false
 
-UITextShadow.createTextShadow(LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle)
+local missionTitle = LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle
+local missionTitleShadow = UITextShadow.createTextShadow(LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle)
 
 LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.RetryButton.MouseButton1Click:Connect(function()
 	TypedRemotes.ServerBoundPlayerWantRestart:FireServer()
@@ -80,8 +82,15 @@ LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.HomeButton.MouseButton1Clic
 	end)
 end)
 
-TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function(cameraSocket)
+TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function(cameraSocket, failed)
 	missionConcluded = true
+	if failed then
+		missionTitle.Text = "Mission Failed"
+		missionTitleShadow.Text = "Mission Failed"
+	else
+		missionTitle.Text = "Mission Complete"
+		missionTitleShadow.Text = "Mission Complete"
+	end
 	Transition.transition()
 	CameraManager.takeOverCamera()
 	CameraManager.setSocket(cameraSocket)
@@ -96,7 +105,7 @@ TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
 	-- How the fuck does this mess work? I don't fucking know.
 	-- But it does fix and revert the player's camera back to its original behavior.
 	missionConcluded = false
-	print(Players.LocalPlayer.Character)
+	Transition.transition()
 	CameraManager.restoreToDefaultBehavior()
 	CameraManager.stopTilting()
 	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
@@ -107,7 +116,6 @@ TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
 	end
 	CameraManager.restoreToDefaultBehavior()
 	task.wait()
-	Transition.transition()
 	LocalPlayer.PlayerGui.MissionConclusion.Enabled = false
 	LocalPlayer.PlayerGui.Objectives.Enabled = true
 	LocalPlayer.PlayerGui.Status.Enabled = true
