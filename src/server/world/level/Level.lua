@@ -1,19 +1,39 @@
 --!strict
 
 local InsertService = game:GetService("InsertService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
+local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
+local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionEvaluationSorter = require(ReplicatedStorage.shared.util.expression.ExpressionEvaluationSorter)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
-local Cell = require(ServerScriptService.server.world.level.cell.Cell)
-local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
+local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
+local CellManager = require(ServerScriptService.server.world.level.cell.CellManager)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
-local LightingNames = require(ServerScriptService.server.world.lighting.LightingNames)
+local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
+local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
+local MissionEndZone = require(ServerScriptService.server.world.level.clutter.props.MissionEndZone)
+local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
+local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
+local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
+local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
+local Mission = require(ServerScriptService.server.world.level.mission.Mission)
+local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
+local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
+local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
@@ -23,10 +43,35 @@ local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
 
-local levelFolder: Folder?
-local cellsConfig: { [string]: CellConfig.Config }?
+local levelFolder: Folder
 local cellsList: { Model } = {}
+local propsInLevelSet: { [Prop.Prop]: true } = {}
+local propsInLevelSetThrottledUpdate: { [Prop.Prop]: true } = {}
+local instancesParentedToNpcConfigs: { [Instance]: { [Instance]: true }} = {}
 local guardCombatNodes: { Node.Node } = {}
+local levelIsRestarting = false
+local destroyNpcsCallback: () -> ()
+local persistentInstMan = PersistentInstanceManager.new()
+local cellManager: CellManager.CellManager
+local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
+local charsAppearancePayloads: { [Model]: CharacterAppearancePayload.CharacterAppearancePayload } = {}
+local objectiveManager: ObjectiveManager.ObjectiveManager = ObjectiveManager.new()
+local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, usedVariables: { [string]: true }}} = {}
+local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
+local stateComponentsSet: { [any]: true } = {}
+local globalVariablesTopolicalOrder = {}
+local missionManager: MissionManager.MissionManager
+local currentIntroCam: CameraSocket.CameraSocket
+
+Players.CharacterAutoLoads = false
+
+local function startsWith(mainString: string, startString: string)
+	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
+end
+
+local function isEmptyStr(str: string): boolean
+	return string.match(str, "%S") == nil
+end
 
 --[=[
 	@class Level
@@ -34,34 +79,23 @@ local guardCombatNodes: { Node.Node } = {}
 local Level = {}
 
 function Level.initializeLevel(): ()
-	levelFolder = workspace:FindFirstChild("Level") :: Folder?
+	levelFolder = workspace:FindFirstChild("Level") :: Folder
+	if not levelFolder or next(levelFolder:GetChildren()) == nil then
+		levelFolder = workspace:FindFirstChild("DebugMission") :: Folder
+	end
 	if not levelFolder or not levelFolder:IsA("Folder") then
-		warn("Unable to initialize Level: Level not found in Workspace or is not a Folder.")
+		warn("Unable to initialize Level: Level or DebugMission not found in Workspace or is not a Folder.")
 		return
 	end
+
+	local missionSetupObj
 
 	local missionSetupModule = levelFolder:FindFirstChild("MissionSetup") :: ModuleScript?
 	if not missionSetupModule or not missionSetupModule:IsA("ModuleScript") then
 		error("Unable to initialize Mission: MissionSetup module not found in Level folder or is not a ModuleScript.")
 	else
-		cellsConfig = (require :: any)(missionSetupModule).Cells
-	end
-
-	-- TODO: Should probably parse it first THEN create a mission object with getter methods
-	-- or something.
-	if (require :: any)(missionSetupModule).CustomDisguises == nil then
-		error("CustomDisguises is nil in MissionSetup. Must atleast be an empty table.")
-	end
-
-	if (require :: any)(missionSetupModule).LightingSettings ~= nil then
-		local lightingPresetName = (require :: any)(missionSetupModule).LightingSettings
-		local lightingPreset = (LightingNames :: any)[lightingPresetName]
-		if not lightingPreset then
-			warn(`'{lightingPresetName}' is not a valid lighting preset name.`)
-			return
-		end
-
-		LightingSetter.readConfig(lightingPreset)
+		-- TODO: Use an actual centralized reader.
+		missionSetupObj = MissionSetupReaderV1.parse(missionSetupModule)
 	end
 
 	local cellsFolder = levelFolder:FindFirstChild("Cells")
@@ -70,6 +104,120 @@ function Level.initializeLevel(): ()
 	else
 		Level.initializeCells(cellsFolder)
 	end
+
+	levelInstancesAccessor = LevelInstancesAccessor.new(
+		missionSetupObj,
+		cellsFolder and cellsFolder:GetChildren() :: { Model} or {},
+		levelFolder:FindFirstChild("Nodes") :: Folder?
+	)
+
+	cellManager = CellManager.new(levelInstancesAccessor)
+
+	if missionSetupObj:hasLightingSettings() then
+		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
+	end
+
+	local stateComponentsFolder = levelFolder:FindFirstChild("StateComponents") :: Folder?
+	if stateComponentsFolder then
+		local stack = {stateComponentsFolder}
+		local index = 1
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index = index - 1
+
+			if current:IsA("BoolValue") then
+				if current.Name == "NpcStateTracker" then
+					stateComponentsSet[NpcStateTracker.fromInstance(current)] = true
+				end
+			end
+
+			if current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
+			end
+		end
+	end
+
+	-- Global variables
+
+	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference(), true)
+
+	if next(missionSetupObj.globalsExpressionStrs) ~= nil then
+		local adjacencyList: {[string]:{string}} = {}
+		local expressionsArray: {string} = {}
+		local globalVarNames: {[string]: boolean} = {}
+		local globalVariablesExpressions = {}
+
+		for varName, varExpr in missionSetupObj.globalsExpressionStrs do
+			table.insert(expressionsArray, varName)
+			globalVarNames[varName] = true
+			adjacencyList[varName] = {}
+			
+			local parsed = ExpressionParser.fromString(varExpr):parse()
+			local usedVars: { [string]: true } = if parsed then ExpressionParser.getVariablesSet(parsed) else {}
+			globalVariablesExpressions[varName] = { parsed = parsed, usedVariables = usedVars }
+			globalVariablesObjs[varName] = { parsed = parsed, usedVariables = usedVars }
+		end
+
+		for varName, varExprObj in globalVariablesExpressions do
+			for usedVarName, _ in varExprObj.usedVariables do
+				
+				if globalVarNames[usedVarName] then
+					if usedVarName ~= varName then
+						local dependents = adjacencyList[usedVarName]
+						table.insert(dependents, varName)
+					end
+				end
+			end
+		end
+
+		local topologicalOrder = ExpressionEvaluationSorter.kahnsTopologicalSort(expressionsArray, adjacencyList)
+		
+		if topologicalOrder then
+			for _, varName in topologicalOrder do
+				local varExprObj = globalVariablesExpressions[varName]
+				local parsed = varExprObj.parsed
+				local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, context)
+				GlobalStatesHolder.setState(varName, evaluated)
+			end
+
+			globalVariablesTopolicalOrder = topologicalOrder
+		end
+	end
+
+	globalVariablesStatesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
+		print(stateName, stateValue)
+		if Level.isRestarting() then
+			warn(`CANNOT PROCEED FOR AFTER '{stateName}' VALUE CHANGED TO {stateValue}: LEVEL IS RESTARTING`)
+			return
+		end
+		--print(GlobalStatesHolder.getAllStatesReference())
+		for varName, data in globalVariablesObjs do
+			if data.usedVariables[stateName] then
+				if data.parsed then
+					local newValue = ExpressionParser.evaluate(data.parsed, context)
+					if GlobalStatesHolder.getState(varName) ~= newValue then
+						GlobalStatesHolder.setState(varName, newValue)
+					end
+				end
+			end
+		end
+	end)
+
+	-- Mission
+
+	missionManager = MissionManager.new(Level)
+
+	TypedRemotes.ServerBoundPlayerWantRestart.OnServerEvent:Connect(function(player)
+		missionManager:onPlayerWantRetry(player)
+	end)
+
+	-- Props
 
 	local propsFolder = levelFolder:FindFirstChild("Props")
 	if propsFolder and (propsFolder:IsA("Model") or propsFolder:IsA("Folder")) then
@@ -112,6 +260,10 @@ function Level.initializeLevel(): ()
 			end
 		end
 	end
+
+	-- Objectives
+
+	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
 end
 
 -- TODO: THIS SHIT TOO.
@@ -121,40 +273,21 @@ local OUTFITS = {
 	["PsdPlain"] = { 4893814518, 4893808612 }
 } :: { [string]: { number } }
 
-local function generateSeededHairColorRGB(seed: number)
-	math.randomseed(seed) -- what?
-
-	local hue = math.random() * (60 / 360)
-	local saturation = math.random() * 0.5 + 0.2
-	local value = math.random() * 0.7 + 0.1
-
-	local i = math.floor(hue * 6)
-	local f = hue * 6 - i
-	local p = value * (1 - saturation)
-	local q = value * (1 - f * saturation)
-	local t = value * (1 - (1 - f) * saturation)
-
-	local r_float, g_float, b_float
-	
-	if i % 6 == 0 then
-		r_float, g_float, b_float = value, t, p
-	elseif i % 6 == 1 then
-		r_float, g_float, b_float = q, value, p
-	elseif i % 6 == 2 then
-		r_float, g_float, b_float = p, value, t
-	elseif i % 6 == 3 then
-		r_float, g_float, b_float = p, q, value
-	elseif i % 6 == 4 then
-		r_float, g_float, b_float = t, p, value
-	else -- i % 6 == 5
-		r_float, g_float, b_float = value, p, q
-	end
-
-	local r = math.floor(r_float * 255)
-	local g = math.floor(g_float * 255)
-	local b = math.floor(b_float * 255)
-	
-	return Color3.fromRGB(r, g, b)
+local function applyBodyColors(bodyColorsInst: BodyColors, bodyColors: BodyColorType.BodyColorType): ()
+	-- ROBLOX FIX YOUR SHIT
+	-- I SWEAR TO GOD THE LIMB COLORS ARE NOT SET
+	-- AND YES THE ACTUAL COLOR PROPERTIES OF THE BODY COLORS INSTANCE ARE SET CORRECTLY
+	-- BUT NOOOO THE FUCKING LIMB COLORS ARE NOT UPDATED, ONLY IF I FUCKING MANUALLY CHANGE
+	-- A COLOR PROPERTY OF THE BODY COLORS INSTANCE FROM THE EDITOR **THEN** THE LIMB COLORS
+	-- CHANGES. BUT EVEN WITH THAT BULLSHIT THE HEAD COLOR IS STILL FUCKING GRAY
+	-- EVEN THOUGH THE COLOR PROPERTY OF THE HEAD IS SET.
+	-- WHAT IN THE RETARDED ASS FUCK IS THIS?!??!?!?!
+	bodyColorsInst.HeadColor3 = bodyColors.HeadColor
+	bodyColorsInst.LeftArmColor3 = bodyColors.LeftArmColor
+	bodyColorsInst.RightArmColor3 = bodyColors.RightArmColor
+	bodyColorsInst.LeftLegColor3 = bodyColors.LeftLegColor
+	bodyColorsInst.RightLegColor3 = bodyColors.RightLegColor
+	bodyColorsInst.TorsoColor3 = bodyColors.TorsoColor
 end
 
 function Level.initializeNpc(inst: Instance): ()
@@ -175,11 +308,17 @@ function Level.initializeNpc(inst: Instance): ()
 		return
 	end
 	local charName = inst:GetAttribute("CharName") :: string?
-	print(charName, "nodes of", '"' .. nodes ..'"')
+
 	local seed =( inst:GetAttribute("Seed") or tick() ) :: number
 	local rng = Random.new(seed)
 
-	local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodes, true)
+	local nodesFolder
+	if not levelInstancesAccessor:getNodesFolder() then
+		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Cannot initialise node group as 'Nodes' folder is not set!`)
+		return
+	else
+		nodesFolder = (levelInstancesAccessor:getNodesFolder() :: Folder):FindFirstChild(nodes, true)
+	end
 	if not nodesFolder then
 		warn(`Error while trying to spawn NPCs: {inst:GetFullName()}: Node group '{nodes}' not found!`)
 		return
@@ -222,9 +361,7 @@ function Level.initializeNpc(inst: Instance): ()
 	local nodeCframe = selectedRandomNode.CFrame
 
 	local characterRigClone = RIG_TO_CLONE:Clone()
-	if charName then
-		characterRigClone.Name = charName
-	end
+	characterRigClone.Name = inst.Name
 
 	local charAppSeed = tonumber(inst:GetAttribute("CharAppSeed") :: (string | number)?) or tick()
 	if charAppSeed then
@@ -244,36 +381,41 @@ function Level.initializeNpc(inst: Instance): ()
 		pants.Parent = characterRigClone
 	end
 
+	local customShirtId = inst:GetAttribute("CustomShirtId") :: number?
+	if customShirtId then
+		local shirt = Instance.new("Shirt")
+		shirt.ShirtTemplate = "rbxassetid://" .. tostring(customShirtId)
+		shirt.Parent = characterRigClone
+	end
+
+	local customPantstId = inst:GetAttribute("CustomPantsId") :: number?
+	if customPantstId then
+		local pants = Instance.new("Pants")
+		pants.PantsTemplate = "rbxassetid://" .. tostring(customPantstId)
+		pants.Parent = characterRigClone
+	end
+
 	local skinColor = inst:GetAttribute("SkinColor") :: (Color3 | BrickColor)?
 	if not skinColor then
 		skinColor = BrickColor.new("Pastel brown")
 	end
-	if skinColor then
-		-- Hmm.. racism.
-		local bodyColorsInst = characterRigClone:FindFirstChild("Body Colors")
-		if not bodyColorsInst then
-			warn("Body Colors instance not found in character rig clone!")
-			return
-		end
 
-		-- no sane person will ever do this.
-		if typeof(skinColor) == "BrickColor" then
-			bodyColorsInst.HeadColor = skinColor
-			bodyColorsInst.LeftArmColor = skinColor
-			bodyColorsInst.RightArmColor = skinColor
-			bodyColorsInst.LeftLegColor = skinColor
-			bodyColorsInst.RightLegColor = skinColor
-			bodyColorsInst.TorsoColor = skinColor
+	local skinColor3: Color3
 
-		elseif typeof(skinColor) == "Color3" then
-			bodyColorsInst.HeadColor3 = skinColor
-			bodyColorsInst.LeftArmColor3 = skinColor
-			bodyColorsInst.RightArmColor3 = skinColor
-			bodyColorsInst.LeftLegColor3 = skinColor
-			bodyColorsInst.RightLegColor3 = skinColor
-			bodyColorsInst.TorsoColor3 = skinColor
-		end
+	if typeof(skinColor) == "BrickColor" then
+		skinColor3 = skinColor.Color
+	else
+		skinColor3 = skinColor :: Color3
 	end
+	
+	local bodyColors: BodyColorType.BodyColorType = {
+		HeadColor = skinColor3,
+		LeftArmColor = skinColor3,
+		RightArmColor = skinColor3,
+		LeftLegColor = skinColor3,
+		RightLegColor = skinColor3,
+		TorsoColor = skinColor3
+	}
 
 	local upperBodyColor = inst:GetAttribute("UpperBodyColor") :: (Color3 | BrickColor)?
 	if upperBodyColor then
@@ -285,16 +427,17 @@ function Level.initializeNpc(inst: Instance): ()
 			return
 		end
 
-		if typeof(upperBodyColor) == "BrickColor" then
-			bodyColorsInst.LeftArmColor = upperBodyColor
-			bodyColorsInst.RightArmColor = upperBodyColor
-			bodyColorsInst.TorsoColor = upperBodyColor
+		local upperBodyColor3: Color3
 
+		if typeof(upperBodyColor) == "BrickColor" then
+			upperBodyColor3 = upperBodyColor.Color
 		elseif typeof(upperBodyColor) == "Color3" then
-			bodyColorsInst.LeftArmColor3 = upperBodyColor
-			bodyColorsInst.RightArmColor3 = upperBodyColor
-			bodyColorsInst.TorsoColor3 = upperBodyColor
+			upperBodyColor3 = upperBodyColor
 		end
+
+		bodyColors.LeftArmColor = upperBodyColor3
+		bodyColors.RightArmColor = upperBodyColor3
+		bodyColors.TorsoColor = upperBodyColor3
 	end
 
 	-- TODO: For accessories, maybe just parent the accesorries to the instance
@@ -324,21 +467,77 @@ function Level.initializeNpc(inst: Instance): ()
 		end
 	end
 
-	for _, child in inst:GetChildren() do
-		child.Parent = characterRigClone
+	if instancesParentedToNpcConfigs[inst] then
+		for child in instancesParentedToNpcConfigs[inst] do
+			local childClone = child:Clone()
+			childClone.Parent = characterRigClone
+		end
+	else
+		for _, child in inst:GetChildren() do
+			if not instancesParentedToNpcConfigs[inst] then
+				instancesParentedToNpcConfigs[inst] = {}
+			end
+
+			instancesParentedToNpcConfigs[inst][child] = true
+
+			child.Parent = nil
+
+			local childClone = child:Clone()
+			childClone.Parent = characterRigClone
+		end
 	end
 
 	local offsetPosition = nodeCframe.Position
 	characterRigClone:PivotTo(CFrame.new(offsetPosition, offsetPosition + nodeCframe.LookVector))
 
+	-- Works on the fucking server what the fuck.
+	applyBodyColors(characterRigClone:FindFirstChildOfClass("BodyColors"), bodyColors)
 	characterRigClone.Parent = workspace
 	characterRigClone:SetAttribute("Seed", seed)
 	characterRigClone:SetAttribute("Nodes", nodes)
 	characterRigClone:SetAttribute("CharName", charName)
+	local serverTag = inst:GetAttribute("ServerTag") :: string?
+	if serverTag and serverTag ~= "" then
+		characterRigClone:AddTag(serverTag)
+	end
 	if inst:GetAttribute("EnforceClass") then
 		characterRigClone:SetAttribute("EnforceClass", inst:GetAttribute("EnforceClass"))
 	end
 	characterRigClone:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName) -- this aint a dummy no more
+
+	local payload: CharacterAppearancePayload.CharacterAppearancePayload = {
+		character = characterRigClone,
+		bodyColors = bodyColors
+	}
+
+	charsAppearancePayloads[characterRigClone] = payload
+
+	TypedRemotes.ClientBoundCharacterAppearances:FireAllClients({payload})
+
+	characterRigClone.Destroying:Once(function()
+		charsAppearancePayloads[characterRigClone] = nil
+	end)
+end
+
+function Level.onPlayerJoined(player: Player): ()
+	if not Level:getMissionManager():isConcluded() then
+		player:LoadCharacter()
+	end
+	if next(charsAppearancePayloads) ~= nil then
+		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
+		local i = 0
+		for char, payload in charsAppearancePayloads do
+			i = 1
+			charAppearancesPayloads[i] = payload
+		end
+		TypedRemotes.ClientBoundCharacterAppearances:FireClient(player, charAppearancesPayloads)
+	end
+
+	objectiveManager:sendCurrentObjectivesToPlayer(player)
+end
+
+function Level.onPlayerDied(player: Player): ()
+	missionManager:onPlayerDied(player)
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
@@ -373,7 +572,17 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					(prop :: any).Base:SetAttribute(attName, v)
 				end
 
-				prop.Base.Size = placeholder.Size
+				(prop :: any).Base.Size = placeholder.Size
+
+				local tagAtt = prop:GetAttribute("Tag")
+				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
+					prop:AddTag(tagAtt)
+				end
+			else
+				local tagAtt = placeholder:GetAttribute("Tag")
+				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
+					placeholder:AddTag(tagAtt)
+				end
 			end
 			
 			if placeholder.Name == "SpawnLocation" then
@@ -514,26 +723,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "SoundSource" then
-				placeholder.Transparency = 1
-				placeholder.CanCollide = false
-				placeholder.CanQuery = false
-				placeholder.CanTouch = false
-				placeholder.AudioCanCollide = false
-
-				local sound = Instance.new("Sound")
-				sound.Volume = (placeholder:GetAttribute("Volume") :: number?) or 1
-				sound.SoundId = "rbxassetid://" .. tostring((placeholder:GetAttribute("SoundId") :: number?))
-				sound.Looped = (placeholder:GetAttribute("Looped") :: boolean?) or false
-
-				for _, child in placeholder:GetChildren() do
-					child.Parent = sound
-					if child:IsA("BaseScript") then
-						child.Enabled = true
-					end
-				end
-
-				sound.Parent = placeholder
-				sound:Play()
+				propsInLevelSet[SoundSource.createFromPlaceholder(placeholder)] = true
 				return true
 			end
 
@@ -557,13 +747,61 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if startsWith(placeholder.Name, "Door") and passed and prop then
+				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop)] = true
+				return true
+			end
+
+			if placeholder.Name == "ItemSpawn" then
+				propsInLevelSet[ItemSpawn.createFromPlaceholder(placeholder, nil, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "TriggerZone" then
+				propsInLevelSetThrottledUpdate[TriggerZone.createFromPlaceholder(placeholder, nil, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "MissionEndZone" then
+				propsInLevelSetThrottledUpdate[MissionEndZone.createFromPlaceholder(placeholder, nil, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "IntroCam" then
+				placeholder.Anchored = true
+				placeholder.Transparency = 1
+				placeholder.CanCollide = false
+				placeholder.CanQuery = false
+				placeholder.AudioCanCollide = false
+				currentIntroCam = CameraSocket.fromPart(placeholder)
+				return true
+			end
+
 			return false
 		end)
 	end
+
+	if not currentIntroCam then
+		currentIntroCam = CameraSocket.new("", CFrame.new(), 70)
+	end
+
+	missionManager:setCameraSocket(currentIntroCam)
+end
+
+function Level.isRestarting(): boolean
+	return levelIsRestarting
+end
+
+function Level.getPersistentInstanceManager(_): PersistentInstanceManager.PersistentInstanceManager
+	return persistentInstMan
 end
 
 function Level.getGuardCombatNodes(): { Node.Node }
 	return guardCombatNodes
+end
+
+function Level.getMissionManager(_): MissionManager.MissionManager
+	return missionManager
 end
 
 function Level.initializeCells(cellsFolder: Folder): ()
@@ -571,13 +809,6 @@ function Level.initializeCells(cellsFolder: Folder): ()
 		if not cellModel:IsA("Model") then
 			continue
 		end
-
-		--[[local cellName = cellModel.Name
-		local cellConfig = Level.getCellConfig(cellName)
-		local cframe, size = cellModel:GetBoundingBox()
-		local areaName = cellModel:GetAttribute("AreaName") :: string?
-		local bounds = { CFrame = cframe, Size = size, AreaName = areaName }
-		Cell.addCell(cellName, bounds, cellConfig)]]
 
 		if HIDE_CELLS then
 			Level.hideCell(cellModel)
@@ -587,12 +818,16 @@ function Level.initializeCells(cellsFolder: Folder): ()
 	end
 end
 
-function Level.getCellConfig(cellName: string): CellConfig.Config?
-	return cellsConfig and cellsConfig[cellName] or nil
+function Level.getServerLevelInstancesAccessor(_): LevelInstancesAccessor.LevelInstancesAccessor
+	return levelInstancesAccessor
 end
 
 function Level.getCellModels(): {Model}
 	return cellsList
+end
+
+function Level.getCellManager(_): CellManager.CellManager
+	return cellManager
 end
 
 function Level.hideCell(cellModel: Model): ()
@@ -619,7 +854,107 @@ function Level.showCell(cellModel: Model): ()
 	end
 end
 
+function Level.restartLevel(): ()
+	if Level.isRestarting() then
+		return
+	end
+
+	levelIsRestarting = true
+
+	task.wait()
+
+	for component in stateComponentsSet do
+		component:onLevelRestart()
+	end
+
+	for prop in propsInLevelSet do
+		prop:onLevelRestart(Level)
+	end
+
+	print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
+
+	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
+	GlobalStatesHolder.resetAllStates(function(stateName)
+		return registeredGlobals[stateName] ~= nil
+	end)
+
+	if next(registeredGlobals) ~= nil then
+		if next(globalVariablesTopolicalOrder) ~= nil then
+			for _, varName in globalVariablesTopolicalOrder do
+				local varExprObj = globalVariablesObjs[varName]
+				local parsed = varExprObj.parsed
+				local evaluated = if parsed == nil then true else ExpressionParser.evaluate(parsed, Level:getExpressionContext())
+				GlobalStatesHolder.setState(varName, evaluated)
+			end
+		end
+	end
+
+	print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
+
+	Mission.resetAlertLevel()
+
+	for _, player in Players:GetPlayers() do
+		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		if statusHolder then
+			statusHolder:clearAllStatuses()
+		end
+		print("LOADING CHARACTER")
+		player:LoadCharacter()
+	end
+
+	missionManager:onLevelRestart()
+	TypedRemotes.ClientBoundMissionStart:FireAllClients()
+
+	if destroyNpcsCallback then
+		destroyNpcsCallback()
+	end
+
+	persistentInstMan:destroyAll()
+
+	local npcsFolder = levelFolder:FindFirstChild("Bots") or levelFolder:FindFirstChild("Npcs")
+	if npcsFolder then
+		local stack = {npcsFolder}
+		local index = 1
+
+		while index > 0 do
+			local current = stack[index]
+			stack[index] = nil
+			index = index - 1
+
+			if (current:IsA("BoolValue") and not (INITIALIZE_NPCS_ONLY_WHEN_ENABLED and not current.Value)) or current:IsA("Configuration") then
+				task.spawn(Level.initializeNpc, current)
+			end
+
+			if current:IsA("Folder") then
+				local children = current:GetChildren()
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
+			end
+		end
+	end
+
+	task.wait(1)
+
+	levelIsRestarting = false
+
+	print(GlobalStatesHolder.getAllStatesReference())
+end
+
+function Level.startMission(): ()
+	for _, player in Players:GetPlayers() do
+		player:LoadCharacter()
+	end
+end
+
+function Level.setDestroyNpcsCallback(f: () -> ()): ()
+	destroyNpcsCallback = f
+end
+
 function Level.update(deltaTime: number): ()
+	Level.onSimulationStepped(deltaTime)
+
 	timeAccum += deltaTime
 
 	while timeAccum >= UPDATE_INTERVAL do
@@ -628,12 +963,38 @@ function Level.update(deltaTime: number): ()
 	end
 end
 
+function Level.onSimulationStepped(deltaTime: number): ()
+	persistentInstMan:update(deltaTime)
+	Level.updateProps(deltaTime)
+end
+
+function Level.onPlayerRemoving(player: Player): ()
+	missionManager:onPlayerLeaving(player)
+end
+
+-- its a reference so I guess we dont need to change anything????
+local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()) 
+
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
+	for prop in propsInLevelSetThrottledUpdate do
+		prop:update(deltaTime, Level)
+	end
+	objectiveManager:update(context)
+end
+
+function Level.getExpressionContext(_): ExpressionContext.ExpressionContext
+	return context
+end
+
+function Level.updateProps(deltaTime: number): ()
+	for prop in propsInLevelSet do
+		prop:update(deltaTime, Level)
+	end
 end
 
 function Level.updateCells(): ()
-	Cell.update()
+	cellManager:update()
 end
 
 return Level

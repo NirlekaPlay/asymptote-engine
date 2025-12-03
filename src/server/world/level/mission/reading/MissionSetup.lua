@@ -18,7 +18,10 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	cells: { [string]: CellConfig.Config },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
-	lightingSettings: LightingSettings
+	lightingSettings: LightingSettings?,
+	colors: { [string]: Color3 },
+	objectives: any, -- TODO: FOR NOW
+	globalsExpressionStrs: { [string]: string }
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -28,14 +31,20 @@ function MissionSetup.new(
 	cells: { [string]: CellConfig.Config },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
-	lightingSettings: LightingSettings
+	lightingSettings: LightingSettings?,
+	colors: { [string]: Color3 },
+	objectives: any,
+	globalsExpressionStrs: { [string]: string }
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
 		cells = cells,
 		disguiseConfigs = disguiseConfigs,
 		enforceClasses = enforceClasses,
-		lightingSettings = lightingSettings
+		lightingSettings = lightingSettings,
+		colors = colors,
+		objectives = objectives,
+		globalsExpressionStrs = globalsExpressionStrs
 	}, MissionSetup)
 end
 
@@ -70,8 +79,29 @@ function MissionSetup.getEnforceClass(self: MissionSetup, profileName: string): 
 	return enforceClass
 end
 
+function MissionSetup.hasLightingSettings(self: MissionSetup): boolean
+	return self.lightingSettings ~= nil
+end
+
 function MissionSetup.getLightingSettings(self: MissionSetup): LightingSettings
-	return self.lightingSettings
+	if self.lightingSettings == nil then
+		error(`Attempt to fetch unset LightingSettings`)
+	else
+		return self.lightingSettings
+	end
+end
+
+function MissionSetup.getColor(self: MissionSetup, colorName: string): Color3
+	local color = self.colors[colorName]
+	if not color then
+		error(`Attempt to fetch non-existent color '{colorName}'`)
+	end
+
+	return color
+end
+
+function MissionSetup.getObjectives(self: MissionSetup): any
+	return self.objectives
 end
 
 return MissionSetup

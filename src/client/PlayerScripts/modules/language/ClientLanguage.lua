@@ -5,6 +5,7 @@ local en_us = require(ReplicatedStorage.shared.assets.lang["en-us"])
 
 local TEMP_STUFF_TO_LOAD: {{[string]: string}} = { en_us :: any }
 local UNLOCALIZED_STRING = "UNLOCALIZED_STRING"
+local DEBUG_LOCALIZATION_KEYS = false
 
 local storage: { [string]: string } = {}
 
@@ -12,7 +13,9 @@ local ClientLanguage = {}
 
 function ClientLanguage.load(): ()
 	for _, dict in TEMP_STUFF_TO_LOAD do
-		print("Localization: Loading key", dict)
+		if DEBUG_LOCALIZATION_KEYS then
+			print("Localization: Loading key", dict)
+		end
 		ClientLanguage.appendFromDict(dict)
 	end
 end

@@ -75,6 +75,31 @@ function DoorHingeComponent.setHingeTargetCFrame(hinge: Hinge, degrees: number):
 	hinge.endCFrame = CFrame.new(currentPosition) * CFrame.Angles(0, targetRadians, 0)
 end
 
+function DoorHingeComponent.applyHingeDegrees(hinge: Hinge, degrees: number): ()
+	local targetRadians = math.rad(degrees)
+	local cframe = hinge.startCFrame
+	local currentPosition = cframe.Position
+	
+	local finalCFrame = CFrame.new(currentPosition) * CFrame.Angles(0, targetRadians, 0)
+
+	hinge.part.CFrame = finalCFrame
+	
+	-- NOTE: Also update the startCFrame and endCFrame to reflect the new state, 
+	-- ensuring future `update` calls start from the correct position if necessary.
+	hinge.startCFrame = finalCFrame
+	hinge.endCFrame = finalCFrame
+end
+
+function DoorHingeComponent.setDegrees(self: DoorHingeComponent, degrees: number): ()
+	DoorHingeComponent.applyHingeDegrees(self.hinges[1], degrees)
+
+	if self:isDouble() then
+		DoorHingeComponent.applyHingeDegrees(self.hinges[2], -degrees)
+	end
+
+	self.turningTimeAccum = 0
+end
+
 function DoorHingeComponent.update(self: DoorHingeComponent, turningTime: number, deltaTime: number): ()
 	self.turningTimeAccum += deltaTime
 	for i, hinge in self.hinges do

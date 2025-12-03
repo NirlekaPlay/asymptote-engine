@@ -4,8 +4,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
+local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
 local ClientBoundChatMessagePayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundChatMessagePayload)
+local ClientBoundObjectivesInfoPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundObjectivesInfoPayload)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
+local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
 local _, RE = TypedRemote.parent()
@@ -33,5 +36,17 @@ return {
 	--
 	ServerBoundGlobalStatesReplicateRequest = RE("ClientBoundChatMessage") :: RE<>,
 	ClientBoundReplicateIndividualGlobalStates = RE("ClientBoundReplicateGlobalStates") :: RE<string, any>,
-	ClientBoundReplicateAllGlobalStates = RE("ClientBoundReplicateAllGlobalStates") :: RE<{[string]:any}>
+	ClientBoundReplicateAllGlobalStates = RE("ClientBoundReplicateAllGlobalStates") :: RE<{[string]:any}>,
+	--
+	ClientBoundLocalizationAppend = RE("ClientBoundLocalizationAppend") :: RE<{[string]:string}>,
+	--
+	ClientBoundCharacterAppearances = RE("ClientBoundCharacterAppearance") :: RE<{CharacterAppearancePayload.CharacterAppearancePayload}>,
+	--
+	ClientBoundObjectivesInfo = RE("ClientBoundObjectivesInfo") :: RE<ClientBoundObjectivesInfoPayload.ObjectivesInfoPayload>,
+	ClientBoundMissionConcluded = RE("ClientBoundMissionConcluded") :: RE<CameraSocket.CameraSocket, boolean>,
+	ClientBoundMissionStart = RE("ClientBoundMissionStart") :: RE<>,
+	--
+	ClientBoundTeleportReady = RE("ClientBoundTeleportReady"),
+	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady"),
+	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart")
 }

@@ -40,6 +40,10 @@ end
 
 --
 
+function StringReader.isEmpty(self: StringReader): boolean
+	return next(self.characters) == nil
+end
+
 function StringReader.getString(self: StringReader): string
 	return self.string
 end

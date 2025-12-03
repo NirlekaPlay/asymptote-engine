@@ -1,6 +1,5 @@
 --!strict
 
-local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -8,6 +7,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
@@ -18,12 +18,12 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
-local CollisionGroupBuilder = require(ServerScriptService.server.physics.collision.CollisionGroupBuilder)
-local CollisionGroupRegistry = require(ServerScriptService.server.physics.collision.CollisionGroupRegistry)
+local CollisionGroupManager = require(ServerScriptService.server.physics.collision.CollisionGroupManager)
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
-local guards: { [Model]: Guard.Guard } = {}
+local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
@@ -74,7 +74,7 @@ local function getNodes(char: Model): { Node.Node }
 	local nodesName = char:GetAttribute("Nodes") :: string
 	if not nodeGroups[nodesName] then
 		nodeGroups[nodesName] = {}
-		local nodesFolder = (workspace.Level.Nodes :: Folder):FindFirstChild(nodesName, true) :: Folder
+		local nodesFolder = Level:getServerLevelInstancesAccessor():getNodesFolder():FindFirstChild(nodesName, true) :: Folder
 
 		local nodesCount = 0
 		local stack = { nodesFolder }
@@ -120,20 +120,16 @@ end
 local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
 	local nodes = getNodes(dummyChar)
-	local newDummy = DetectionDummy.new(dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
+	local newDummy = DetectionDummy.new(Level, dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
 		:setDesignatedPosts(nodes)
 
 	local enforceClassName = dummyChar:GetAttribute("EnforceClass") :: string?
-	if dummyChar:GetAttribute("EnforceClass") then
-		if not (require)((workspace :: any).Level.MissionSetup).EnforceClass then
-			warn("EnforceClass must ATLEAST be an empty table.")
-		else
-			local enforceClass = (require)((workspace :: any).Level.MissionSetup).EnforceClass[enforceClassName]
-			if not enforceClass then
-				warn(`Enforce class {enforceClassName} doesnt exist in MissionSetup.`)
-			elseif next(enforceClass) ~= nil then
-				newDummy:setEnforceClass(enforceClass)
-			end
+	if enforceClassName then
+		local enforceClass = Level:getServerLevelInstancesAccessor():getMissionSetup():getEnforceClass(enforceClassName)
+		if not enforceClass then
+			warn(`Enforce class {enforceClassName} doesnt exist in MissionSetup.`)
+		elseif next(enforceClass) ~= nil then
+			newDummy:setEnforceClass(enforceClass)
 		end
 	end
 
@@ -158,6 +154,22 @@ local function onMapTaggedDummies(dummyChar: Model): ()
 	setupDummy(dummyChar)
 end
 
+local function clearAndDestroyAllNpcs(): ()
+	for char, npc in guards do
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Health = 0
+		end
+
+		--print("Destroying", char)
+		char:Destroy()
+	end
+
+	table.clear(guards)
+end
+
+GlobalStatesHolder.setState("IsStudio", RunService:IsStudio())
+
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
@@ -166,6 +178,7 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, onMapTaggedGu
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
 
+Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
 Level.initializeLevel()
 
 -- to prevent race condition bullshit
@@ -180,6 +193,11 @@ local function update(deltaTime: number): ()
 
 		table.clear(playersToRemove)
 	end
+
+	if Level.isRestarting() then
+		return
+	end
+
 	Level.update(deltaTime)
 
 	-- this frame, is there any listening clients?
@@ -237,20 +255,15 @@ task.spawn(function()
 	end
 end)]]
 
-CollisionGroupRegistry.registerCollisionGroupsFromDict(CollisionGroupTypes :: any)
-
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.BLOCK_VISION_RAYCAST, true)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.IGNORE_VISION_RAYCAST, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
-PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.BULLET, CollisionGroupTypes.PLAYER_COLLIDER, false)
-
-CollisionGroupBuilder.new(CollisionGroupTypes.PATHFINDING_BLOCKER)
-	:notCollideWithAnything()
-	:register()
+CollisionGroupManager.register()
 
 Players.PlayerAdded:Connect(function(player)
+	Level.onPlayerJoined(player)
+	-- Localization:
+	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
+	if localizedStrings and next(localizedStrings) ~= nil then
+		TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
+	end
 	-- entity reg here:
 	EntityManager.newDynamic("Player", player, tostring(player.UserId))
 	--
@@ -259,6 +272,7 @@ Players.PlayerAdded:Connect(function(player)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.Died:Once(function()
+				Level.onPlayerDied(player)
 				local plrStatuses = PlayerStatusRegistry.getPlayerStatusHolder(player)
 				plrStatuses:clearAllStatuses()
 			end)
@@ -275,6 +289,7 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+	Level.onPlayerRemoving(player)
 	-- entity reg here:
 	playersToRemove[player.UserId] = true
 	--
@@ -285,3 +300,5 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 Commands.register()
+
+Level.startMission()

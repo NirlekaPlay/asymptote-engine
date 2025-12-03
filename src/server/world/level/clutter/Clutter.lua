@@ -68,9 +68,50 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, 
 
 		if current:IsA("Folder") then
 			local children = current:GetChildren()
-			for i = #children, 1, -1 do
-				index = index + 1
-				stack[index] = children[i]
+			
+			local spawnCountValue = current:GetAttribute("PickCount") :: number?
+			local spawnSeedValue = current:FindFirstChild("PickSeed") :: number?
+
+			if spawnCountValue then
+				local count = math.round(spawnCountValue)
+				local seed = spawnSeedValue or os.clock()
+				
+				-- Guard against non-positive counts
+				if count > 0 then
+					local totalChildren = #children
+					
+					local rng = Random.new(seed)
+					
+					local indices = {}
+					for i = 1, totalChildren do
+						indices[i] = i
+					end
+					
+					-- Perform a Fisher-Yates shuffle using the deterministic RNG
+					for i = totalChildren, 2, -1 do
+						local j = rng:NextInteger(1, i)
+						indices[i], indices[j] = indices[j], indices[i]
+					end
+					
+					local toProcessIndices = {}
+					for i = 1, math.min(count, totalChildren) do
+						toProcessIndices[indices[i]] = true
+					end
+
+					for i = #children, 1, -1 do
+						if toProcessIndices[i] then
+							index = index + 1
+							stack[index] = children[i]
+						end
+						-- Children not in the set are effectively skipped.
+					end
+				end
+			else
+				-- No special values, proccess as usual.
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
 			end
 		end
 	end
