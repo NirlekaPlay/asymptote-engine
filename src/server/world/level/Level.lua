@@ -65,8 +65,12 @@ local currentIntroCam: CameraSocket.CameraSocket
 
 Players.CharacterAutoLoads = false
 
-function startsWith(mainString: string, startString: string)
+local function startsWith(mainString: string, startString: string)
 	return string.match(mainString, "^" .. string.gsub(startString, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")) ~= nil
+end
+
+local function isEmptyStr(str: string): boolean
+	return string.match(str, "%S") == nil
 end
 
 --[=[
@@ -569,6 +573,16 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				end
 
 				(prop :: any).Base.Size = placeholder.Size
+
+				local tagAtt = prop:GetAttribute("Tag")
+				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
+					prop:AddTag(tagAtt)
+				end
+			else
+				local tagAtt = placeholder:GetAttribute("Tag")
+				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
+					placeholder:AddTag(tagAtt)
+				end
 			end
 			
 			if placeholder.Name == "SpawnLocation" then
