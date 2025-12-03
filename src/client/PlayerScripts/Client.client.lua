@@ -11,6 +11,7 @@ local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.Camera
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
+local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 local LocalPlayer = Players.LocalPlayer
 
@@ -53,6 +54,11 @@ RunService.PreRender:Connect(function(deltaTime)
 	CameraManager.update(deltaTime)
 end)
 
+local blurcc = Instance.new("BlurEffect")
+blurcc.Size = 25
+blurcc.Enabled = false
+blurcc.Parent = workspace.CurrentCamera
+
 -- TODO: Tight cuppling bullshit.
 local missionConcluded = false
 
@@ -76,12 +82,14 @@ end)
 
 TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function(cameraSocket)
 	missionConcluded = true
+	Transition.transition()
 	CameraManager.takeOverCamera()
 	CameraManager.setSocket(cameraSocket)
 	CameraManager.startTilting()
 	LocalPlayer.PlayerGui.MissionConclusion.Enabled = true
 	LocalPlayer.PlayerGui.Objectives.Enabled = false
 	LocalPlayer.PlayerGui.Status.Enabled = false
+	blurcc.Enabled = true
 end)
 
 TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
@@ -99,9 +107,11 @@ TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
 	end
 	CameraManager.restoreToDefaultBehavior()
 	task.wait()
+	Transition.transition()
 	LocalPlayer.PlayerGui.MissionConclusion.Enabled = false
 	LocalPlayer.PlayerGui.Objectives.Enabled = true
 	LocalPlayer.PlayerGui.Status.Enabled = true
+	blurcc.Enabled = false
 end)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(char)
