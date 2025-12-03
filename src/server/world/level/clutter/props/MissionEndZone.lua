@@ -164,6 +164,7 @@ function MissionEndZone.createHighlightEffectToPart(part: BasePart): Instance
 	local gradientModel = ReplicatedStorage.shared.assets.models.gradient:Clone()
 	for _, child in gradientModel:GetChildren() do
 		if child:IsA("BasePart") then
+			child.CastShadow = false
 			local original_Y = part.Size.Y
 			child.Size = Vector3.new(part.Size.X, original_Y / 2, part.Size.Z)
 
