@@ -512,8 +512,6 @@ function Level.initializeNpc(inst: Instance): ()
 
 	charsAppearancePayloads[characterRigClone] = payload
 
-	TypedRemotes.ClientBoundCharacterAppearances:FireAllClients({payload})
-
 	characterRigClone.Destroying:Once(function()
 		charsAppearancePayloads[characterRigClone] = nil
 	end)
@@ -532,7 +530,6 @@ function Level.onPlayerJoined(player: Player): ()
 			i = 1
 			charAppearancesPayloads[i] = payload
 		end
-		TypedRemotes.ClientBoundCharacterAppearances:FireClient(player, charAppearancesPayloads)
 	end
 
 	objectiveManager:sendCurrentObjectivesToPlayer(player)
