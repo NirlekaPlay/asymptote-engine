@@ -150,34 +150,40 @@ function MissionManager.onPlayerJoined(self: MissionManager, player: Player): ()
 end
 
 function MissionManager.onPlayerLeaving(self: MissionManager, player: Player): ()
+	self:failMissionIfNoValidPlayersLeft()
+	
 	if not self:isConcluded() then
 		return
 	end
 
 	self.playersWantingRetry[player] = nil
+
+	local playersInGame = #Players:GetPlayers()
+		
+	if playersInGame > 1 then 
+		local playersWantingRetryCount = 0
+		for _, wantsRetry in pairs(self.playersWantingRetry) do
+			if wantsRetry then
+				playersWantingRetryCount += 1
+			end
+		end
+		
+		TypedRemotes.ClientBoundRemainingRestartPlayers:FireAllClients(
+			playersWantingRetryCount,
+			playersInGame
+		)
+	end
 	
 	if self:canRestart() then
 		self.serverLevel:restartLevel()
-	else
-		local playersInGame = #Players:GetPlayers() -- This is the *new* total player count
-		
-		if playersInGame > 1 then 
-			local playersWantingRetryCount = 0
-			for _, wantsRetry in pairs(self.playersWantingRetry) do
-				if wantsRetry then
-					playersWantingRetryCount += 1
-				end
-			end
-			
-			TypedRemotes.ClientBoundRemainingRestartPlayers:FireAllClients(
-				playersWantingRetryCount,
-				playersInGame
-			)
-		end
 	end
 end
 
 function MissionManager.onPlayerDied(self: MissionManager, player: Player): ()
+	self:failMissionIfNoValidPlayersLeft()
+end
+
+function MissionManager.failMissionIfNoValidPlayersLeft(self: MissionManager): ()
 	local validPlayers = MissionManager.getValidPlayersSet()
 	local count = 0
 	for player in validPlayers do
