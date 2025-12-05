@@ -35,8 +35,8 @@ end
 
 local function updateHealthEffects(currentHealth: number)
 	colorCorrectionEffect.Saturation = math.map(currentHealth, 0, 100, -1, 0)
-	colorCorrectionEffect.Brightness = math.map(currentHealth, 0, 100, -0.3, 0)
-	colorCorrectionEffect.Contrast = math.map(currentHealth, 0, 100, 0.3, 0)
+	colorCorrectionEffect.Brightness = math.map(currentHealth, 0, 100, 0.2, 0)
+	colorCorrectionEffect.Contrast = math.map(currentHealth, 0, 100, 1, 0)
 
 	if not vignetteScreenGui then return end
 	(vignetteScreenGui:FindFirstChild("ImageLabel") :: ImageLabel)
