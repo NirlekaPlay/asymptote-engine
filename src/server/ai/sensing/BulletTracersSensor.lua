@@ -11,6 +11,7 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 
 local DEBUG_RADIUS = false
+local DEBUG_BULLET_INIT_DIRS = false
 
 local BulletTracersSensor = {}
 BulletTracersSensor.__index = BulletTracersSensor
@@ -83,7 +84,9 @@ function BulletTracersSensor.doUpdate(self: BulletTracersSensor, agent: Agent, d
 		local rayOrigin = initialCFrame.Position
 		local rayDirection = initialCFrame.LookVector
 
-		Debris:AddItem(Draw.direction(rayOrigin, rayDirection), 0.5)
+		if DEBUG_BULLET_INIT_DIRS then
+			Debris:AddItem(Draw.direction(rayOrigin, rayDirection), 0.5)
+		end
 
 		local isHit, t = rayIntersectsSphere(rayOrigin, rayDirection, agentPrimaryPartPos, detectionRadius)
 		if isHit and t < 1000 then
