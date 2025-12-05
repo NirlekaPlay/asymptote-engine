@@ -257,7 +257,21 @@ end)]]
 
 CollisionGroupManager.register()
 
+-- To prevent streaming bullshit.
+-- This fixes players who joined and don't have a character yet.
+-- Leading to empty voids.
+local replicationFocusPart = Instance.new("Part")
+replicationFocusPart.Anchored = true
+replicationFocusPart.CanCollide = false
+replicationFocusPart.CanQuery = false
+replicationFocusPart.CanTouch = false
+replicationFocusPart.AudioCanCollide = false
+replicationFocusPart.Transparency = 1
+replicationFocusPart.Position = Vector3.zero
+replicationFocusPart.Parent = workspace
+
 Players.PlayerAdded:Connect(function(player)
+	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
 	-- Localization:
 	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
