@@ -7,7 +7,7 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
 
 local SCREEN_GUI_NAME = "Transition"
-local TRANSITION_FRAME_COLOR = Color3.new(0.109804, 0.109804, 0.109804)
+local TRANSITION_FRAME_COLOR = Color3.new(0.090196, 0.090196, 0.090196)
 
 --[=[
 	@class Transition

@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
+local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
@@ -30,16 +31,25 @@ local currentMissionData
 local missionTitle = LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle
 local missionTitleShadow = UITextShadow.createTextShadow(LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle)
 
+local subtitleFrame = LocalPlayer.PlayerGui.MissionConclusion.Root.Subtitle
 local subtitle = LocalPlayer.PlayerGui.MissionConclusion.Root.Subtitle.Subtitle
 local subtitleShadow = UITextShadow.createTextShadow(LocalPlayer.PlayerGui.MissionConclusion.Root.Subtitle.Subtitle, nil, 3)
 
-subtitle.Visible = false
-subtitleShadow.Visible = false
+subtitleFrame.Visible = false
+subtitle.Visible = true
+subtitleShadow.Visible = true
 
 local retryButton = LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.RetryButton
 local homeButton = LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.HomeButton
 
 local function updateMissionConclusionScreen(cameraSocket: CameraSocket.CameraSocket, failed: boolean): ()
+	if missionConcluded then
+		return
+	end
+	LocalPlayer.PlayerGui:WaitForChild("MissionConclusion")
+	if missionConcluded then
+		return
+	end
 	missionConcluded = true
 	if failed then
 		missionTitle.Text = "Mission Failed"
@@ -50,6 +60,7 @@ local function updateMissionConclusionScreen(cameraSocket: CameraSocket.CameraSo
 	end
 	retryButton.Text = "Replay Mission"
 	retryButton.Interactable = true
+	homeButton.Text = "Return to Lobby"
 	homeButton.Interactable = true
 	Transition.transition()
 	CameraManager.takeOverCamera()
@@ -60,6 +71,14 @@ local function updateMissionConclusionScreen(cameraSocket: CameraSocket.CameraSo
 	LocalPlayer.PlayerGui.Status.Enabled = false
 	LocalPlayer.PlayerGui.Interaction.Enabled = false
 	blurcc.Enabled = true
+	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, false)
+	local freeCamGui = Players.LocalPlayer.PlayerGui:FindFirstChild("Freecam")
+	if freeCamGui then
+		local scriptInst = freeCamGui:FindFirstChildOfClass("LocalScript")
+		if scriptInst then
+			scriptInst:SetAttribute("FreecamEnabled", false)
+		end
+	end
 end
 
 TypedRemotes.ClientBoundServerMatchInfo.OnClientEvent:Connect(function(payloadType, data)
@@ -123,20 +142,17 @@ end)
 homeButton.MouseButton1Click:Connect(function()
 	homeButton.Interactable = false
 	homeButton.Text = "Returning to Lobby..."
-	LoadingScreen.onTeleporting(3, function()
+	LoadingScreen.onTeleporting(0, function()
 		TypedRemotes.JoinTestingServer:FireServer()
 	end)
 end)
 
 TypedRemotes.ClientBoundRemainingRestartPlayers.OnClientEvent:Connect(function(plrsWhoWant, remainingPlrs)
-	subtitle.Visible = true
-	subtitleShadow.Visible = true
-
+	subtitleFrame.Visible = true
 	local str = `{plrsWhoWant}/{remainingPlrs} remaining for replay`
 	subtitle.Text = str
 	subtitleShadow.Text = str
 end)
-
 
 TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(updateMissionConclusionScreen)
 
@@ -160,8 +176,8 @@ TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
 	LocalPlayer.PlayerGui.Status.Enabled = true
 	LocalPlayer.PlayerGui.Interaction.Enabled = true
 	blurcc.Enabled = false
-	subtitle.Visible = false
-	subtitleShadow.Visible = false
+	subtitleFrame.Visible = false
+	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
 end)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(char)
@@ -171,6 +187,41 @@ Players.LocalPlayer.CharacterAdded:Connect(function(char)
 		workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
 		CameraManager.restoreToDefaultBehavior()
 	end
+
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.Died:Once(function()
+			task.wait()
+			if #Players:GetPlayers() > 1 then
+				local freeCamGui = Players.LocalPlayer.PlayerGui:FindFirstChild("Freecam")
+				if freeCamGui then
+					local scriptInst = freeCamGui:FindFirstChildOfClass("LocalScript")
+					if scriptInst then
+						scriptInst:SetAttribute("FreecamEnabled", true)
+					end
+				end
+			end
+		end)
+	end
 end)
+
+if Players.LocalPlayer.Character then
+	local char = Players.LocalPlayer.Character
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.Died:Once(function()
+			task.wait()
+			if #Players:GetPlayers() > 1 then
+				local freeCamGui = Players.LocalPlayer.PlayerGui:FindFirstChild("Freecam")
+				if freeCamGui then
+					local scriptInst = freeCamGui:FindFirstChildOfClass("LocalScript")
+					if scriptInst then
+						scriptInst:SetAttribute("FreecamEnabled", true)
+					end
+				end
+			end
+		end)
+	end
+end
 
 require(StarterPlayer.StarterPlayerScripts.client.modules.level.Clutters)
