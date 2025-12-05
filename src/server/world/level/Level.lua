@@ -520,6 +520,8 @@ function Level.initializeNpc(inst: Instance): ()
 end
 
 function Level.onPlayerJoined(player: Player): ()
+	print("Server: Player added " .. `'{player.Name}'`)
+	missionManager:onPlayerJoined(player)
 	if not Level:getMissionManager():isConcluded() then
 		player:LoadCharacter()
 	end
@@ -775,6 +777,18 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				placeholder.AudioCanCollide = false
 				currentIntroCam = CameraSocket.fromPart(placeholder)
 				return true
+			end
+
+			if placeholder.Name == "Killbrick" then
+				placeholder.Touched:Connect(function(part)
+					local ancestor = part:FindFirstAncestorOfClass("Model")
+					if ancestor then
+						local humanoid = ancestor:FindFirstChildOfClass("Humanoid")
+						if humanoid then
+							humanoid.Health = 0
+						end
+					end
+				end)
 			end
 
 			return false

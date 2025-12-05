@@ -68,6 +68,7 @@ end
 function MissionManager.onLevelRestart(self: MissionManager): ()
 	self.missionConcluded = false
 	GlobalStatesHolder.setState(MISSION_FAILED_VARIABLE, false)
+	table.clear(self.playersWantingRetry)
 end
 
 function MissionManager.canRestart(self: MissionManager): boolean
@@ -94,9 +95,57 @@ function MissionManager.onPlayerWantRetry(self: MissionManager, player: Player):
 
 	self.playersWantingRetry[player] = true
 	
+	local playersInGame = #Players:GetPlayers()
+	local playersWantingRetryCount = 0
+	
+	for _, wantsRetry in pairs(self.playersWantingRetry) do
+		if wantsRetry then
+			playersWantingRetryCount += 1
+		end
+	end
+
 	if self:canRestart() then
+		if playersInGame > 1 then
+			TypedRemotes.ClientBoundRemainingRestartPlayers:FireAllClients(
+				playersWantingRetryCount,
+				playersInGame
+			)
+		end
+		
 		table.clear(self.playersWantingRetry)
 		self.serverLevel:restartLevel()
+		
+	elseif playersInGame > 1 then
+		TypedRemotes.ClientBoundRemainingRestartPlayers:FireAllClients(
+			playersWantingRetryCount,
+			playersInGame
+		)
+	end
+end
+
+function MissionManager.onPlayerJoined(self: MissionManager, player: Player): ()
+	print("MissionManager: Player joined:", `'{player.Name}'`)
+	TypedRemotes.ClientBoundServerMatchInfo:FireClient(player, "MATCH_INFO", {
+		cameraSocket = self.cameraSocket,
+		isConcluded = self.missionConcluded,
+		isFailed = GlobalStatesHolder.getState(MISSION_FAILED_VARIABLE)
+	})
+	print("Match info fired for", player.Name)
+
+	local playersInGame = #Players:GetPlayers()
+		
+	if playersInGame > 1 then 
+		local playersWantingRetryCount = 0
+		for _, wantsRetry in pairs(self.playersWantingRetry) do
+			if wantsRetry then
+				playersWantingRetryCount += 1
+			end
+		end
+		
+		TypedRemotes.ClientBoundRemainingRestartPlayers:FireAllClients(
+			playersWantingRetryCount,
+			playersInGame
+		)
 	end
 end
 
@@ -109,6 +158,22 @@ function MissionManager.onPlayerLeaving(self: MissionManager, player: Player): (
 	
 	if self:canRestart() then
 		self.serverLevel:restartLevel()
+	else
+		local playersInGame = #Players:GetPlayers() -- This is the *new* total player count
+		
+		if playersInGame > 1 then 
+			local playersWantingRetryCount = 0
+			for _, wantsRetry in pairs(self.playersWantingRetry) do
+				if wantsRetry then
+					playersWantingRetryCount += 1
+				end
+			end
+			
+			TypedRemotes.ClientBoundRemainingRestartPlayers:FireAllClients(
+				playersWantingRetryCount,
+				playersInGame
+			)
+		end
 	end
 end
 

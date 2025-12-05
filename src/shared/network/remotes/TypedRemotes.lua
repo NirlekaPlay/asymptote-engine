@@ -48,5 +48,7 @@ return {
 	--
 	ClientBoundTeleportReady = RE("ClientBoundTeleportReady"),
 	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady"),
-	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart")
+	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart"),
+	ClientBoundRemainingRestartPlayers = RE("ClientBoundRemainingRestartPlayers") :: RE<number, number>,
+	ClientBoundServerMatchInfo = RE("ClientBoundServerMatchInfo") :: RE<string, { isConcluded: boolean, isFailed: boolean, cameraSocket: CameraSocket.CameraSocket}>
 }
