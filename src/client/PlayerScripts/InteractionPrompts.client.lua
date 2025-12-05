@@ -39,14 +39,7 @@ local ATTRIBUTES = {
 type InteractionPrompt = InteractionPrompt.InteractionPrompt
 type InteractionPromptConfiguration = InteractionPromptConfiguration.InteractionPromptConfiguration
 
---[=[
-	Returns BaseParts that are obscuring a target. Unlike `Camera:GetPartsObscuringTarget()`,
-	this gives us more control on what part that obscures and what does not.
-]=]
-local function getPartsObscuringTarget(camera: Camera, castPoints: {Vector3}, ignoreList: {Instance}): {BasePart}
-	local obscuringParts: {BasePart} = {}
-	local checkedParts: { [BasePart]: boolean } = {}
-	
+local function isTargetObstructed(camera: Camera, castPoints: {Vector3}, ignoreList: {Instance}): boolean
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterDescendantsInstances = ignoreList or {}
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -66,13 +59,12 @@ local function getPartsObscuringTarget(camera: Camera, castPoints: {Vector3}, ig
 			Debris:AddItem(debugRay, DEBUG_OCCLUSION_RAYS_LIFETIME)
 		end
 		
-		if result and not checkedParts[result.Instance] then
-			table.insert(obscuringParts, result.Instance)
-			checkedParts[result.Instance] = true
+		if result then
+			return true
 		end
 	end
 	
-	return obscuringParts
+	return false
 end
 
 local function isWorldPosInPartBounds(pos: Vector3, part: BasePart): boolean
@@ -290,7 +282,7 @@ local function update(deltaTime: number): ()
 			continue
 		end
 
-		local ignoreList: { Instance } = { localPlayer.Character :: Model }
+		local ignoreList: { Instance } = { localPlayer.Character :: Model, workspace.CurrentCamera }
 
 		-- TODO: Performance fuck up. Run every frame.
 		if isWorldPosInPartBounds(promptAttachment.WorldPosition, promptParentPart) then
@@ -300,11 +292,11 @@ local function update(deltaTime: number): ()
 		-- NOTES: Removed the prompt's parent part from the ignore list.
 		-- I don't know if this will fuck things up, bho, but I haven't seen any issues so far.
 		-- It also fixes the promblem with proximity prompts showing on the other side of the door.
-		local obstructingParts = getPartsObscuringTarget(
+		local isObstructed = isTargetObstructed(
 			camera, {camera.CFrame.Position, promptPos}, ignoreList
 		)
 
-		if next(obstructingParts) ~= nil then
+		if isObstructed then
 			continue
 		end
 
