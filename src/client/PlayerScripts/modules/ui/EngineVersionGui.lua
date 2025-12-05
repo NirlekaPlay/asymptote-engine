@@ -235,6 +235,7 @@ function EngineVersionGui.createNewEngineVersionGui(): ScreenGui
 	headText.LayoutOrder = 0
 	headText.TextXAlignment = Enum.TextXAlignment.Right
 	headText.TextYAlignment = Enum.TextYAlignment.Top
+	headText.AutoLocalize = false
 	headText.Parent = versionTextFrame
 
 	local versionText = Instance.new("TextLabel")
@@ -247,6 +248,7 @@ function EngineVersionGui.createNewEngineVersionGui(): ScreenGui
 	versionText.LayoutOrder = 1
 	versionText.TextXAlignment = Enum.TextXAlignment.Right
 	versionText.TextYAlignment = Enum.TextYAlignment.Top
+	versionText.AutoLocalize = false
 	versionText.Parent = versionTextFrame
  
 	EngineVersionGui.setEngineAndVersionTexts(headText, versionText)
