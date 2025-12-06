@@ -7,6 +7,7 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
+local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
@@ -97,6 +98,9 @@ function MissionConclusionScreen.onMissionStart(): ()
 	blurcc.Enabled = false
 	subtitleFrame.Visible = false
 	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
+
+	MouseManager.setIconEnabled(false)
+	MouseManager.setLockEnabled(true)
 end
 
 function MissionConclusionScreen.updateMissionConclusionScreen(
@@ -129,6 +133,9 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 	MissionConclusionScreen.setOtherGuisEnabled(false)
 	blurcc.Enabled = true
 	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, false)
+
+	MouseManager.setIconEnabled(true)
+	MouseManager.setLockEnabled(false)
 end
 
 function MissionConclusionScreen.setOtherGuisEnabled(enabled: boolean): ()

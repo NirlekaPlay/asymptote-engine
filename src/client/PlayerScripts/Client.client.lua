@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
+local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
@@ -61,9 +62,13 @@ end
 ClientLanguage.load()
 
 RunService.PreRender:Connect(function(deltaTime)
+	MouseManager.update()
 	IndicatorsRenderer.update()
 	CameraManager.update(deltaTime)
 end)
+
+MouseManager.setIconEnabled(false)
+MouseManager.setLockEnabled(true)
 
 -- So that languages can be loaded properly before anything uses it
 task.spawn(function()
