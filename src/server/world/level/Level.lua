@@ -786,6 +786,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 						end
 					end
 				end)
+				return true
 			end
 
 			return false
