@@ -13,7 +13,9 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
 local bubbleChatUi = playerGui:WaitForChild("BubbleChat")
 
+local VERTICAL_OFFSET_PIXELS = 55
 local DEFAULT_BUBBLE_CHAT_TTL = 5
+local EPSILON = 1e-5
 
 type BubbleChat = {
 	parentedTo: BasePart,
@@ -105,41 +107,47 @@ local function updateBubbleChats(deltaTime: number): ()
 
 		local frame = bubbleChat.uiInstances.frame
 		local textLabel = bubbleChat.uiInstances.msgTextLabel
-
+		
 		local contentSize = textLabel.AbsoluteSize
 		frame.Size = UDim2.fromOffset(contentSize.X, contentSize.Y)
 
 		local worldPos = part.Position
-		local relPos = camera.CFrame:PointToObjectSpace(worldPos)
-		local screenPos, _ = camera:WorldToScreenPoint(worldPos)
+		
+		local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 
-		-- Since we set AnchorPoint to 0.5, 0.5, 'pos' refers to the center of the frame.
+		local adjustedScreenY = screenPos.Y - VERTICAL_OFFSET_PIXELS
+
 		local halfWidth = contentSize.X / 2
 		local halfHeight = contentSize.Y / 2
 
-		local minX = safeAreaPadding.X + halfWidth
-		local maxX = viewportSize.X - safeAreaPadding.X - halfWidth
-		local minY = safeAreaPadding.Y + halfHeight
-		local maxY = viewportSize.Y - safeAreaPadding.Y - halfHeight
+		local maxBoundsX = (viewportSize.X / 2) - safeAreaPadding.X - halfWidth
+		local maxBoundsY = (viewportSize.Y / 2) - safeAreaPadding.Y - halfHeight
 
-		local targetX, targetY
-
-		if relPos.Z > 0 then
-			-- It's behind / off-screen.
-			local screenDir = Vector2.new(relPos.X, -relPos.Y).Unit
-			if screenDir.X ~= screenDir.X then screenDir = Vector2.new(0, -1) end -- NaN check
-
-			-- Push it way out so math.clamp catches it at the border
-			targetX = centerScreen.X + (screenDir.X * 100000)
-			targetY = centerScreen.Y + (screenDir.Y * 100000)
-		else
-			-- The bubble chat is in front.
-			targetX = screenPos.X
-			targetY = screenPos.Y
+		local rX = screenPos.X - centerScreen.X
+		local rY = adjustedScreenY - centerScreen.Y
+		
+		if screenPos.Z < 0 then
+			rX = -rX
+			rY = -rY
 		end
 
-		local finalX = math.clamp(targetX, minX, maxX)
-		local finalY = math.clamp(targetY, minY, maxY)
+		local absX = math.abs(rX)
+		local absY = math.abs(rY)
+		
+		local scaleX = maxBoundsX / math.max(absX, EPSILON) -- Use epsilon to avoid division by zero
+		local scaleY = maxBoundsY / math.max(absY, EPSILON)
+		
+		local scale = math.min(scaleX, scaleY)
+		
+		local finalX, finalY
+
+		if onScreen and scale >= 1 then
+			finalX = screenPos.X
+			finalY = adjustedScreenY
+		else
+			finalX = centerScreen.X + (rX * scale)
+			finalY = centerScreen.Y + (rY * scale)
+		end
 
 		frame.Position = UDim2.fromOffset(finalX, finalY)
 		frame.Visible = true

@@ -350,32 +350,6 @@
 					</Item>
 				</Item>
 			</Item>
-			<Item class="UIPadding" referent="RBXdd29fa2c3fb74a2195c9315fb127bdb5">
-				<Properties>
-					<UDim name="PaddingBottom">
-						<S>0</S>
-						<O>10</O>
-					</UDim>
-					<UDim name="PaddingLeft">
-						<S>0</S>
-						<O>10</O>
-					</UDim>
-					<UDim name="PaddingRight">
-						<S>0</S>
-						<O>10</O>
-					</UDim>
-					<UDim name="PaddingTop">
-						<S>0</S>
-						<O>10</O>
-					</UDim>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<string name="Name">UIPadding</string>
-					<int64 name="SourceAssetId">-1</int64>
-					<BinaryString name="Tags"></BinaryString>
-				</Properties>
-			</Item>
 		</Item>
 	</Item>
 </roblox>
