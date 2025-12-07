@@ -268,6 +268,7 @@ replicationFocusPart.CanTouch = false
 replicationFocusPart.AudioCanCollide = false
 replicationFocusPart.Transparency = 1
 replicationFocusPart.Position = Vector3.zero
+replicationFocusPart.Name = "ReplicationFocus"
 replicationFocusPart.Parent = workspace
 
 Players.PlayerAdded:Connect(function(player)
