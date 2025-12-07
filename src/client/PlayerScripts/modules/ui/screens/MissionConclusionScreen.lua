@@ -25,7 +25,8 @@ local BLUR_CC_NAME = "MissionConclusionBlur"
 local DISABLE_SCREEN_GUIS_NAME = {
 	["Objectives"] = true,
 	["Status"] = true,
-	["Interaction"] = true
+	["Interaction"] = true,
+	["BubbleChat"] = true
 } :: { [string]: true }
 
 local missionConcluded = false
