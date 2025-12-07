@@ -44,7 +44,7 @@ local function getDetectionMeterInstance(): DetectionMeterObject
 	for _, obj in ipairs(detectionMetersPool) do
 		if not obj.inUse then
 			obj.inUse = true
-			obj.rootFrame.Visible = true
+			--obj.rootFrame.Visible = true
 			return obj
 		end
 	end
@@ -117,9 +117,10 @@ function DetectionMeterRenderer.updateDetectionMeter(
 	detectionMeterObject.fillMeter.ImageColor3 = renderCallData.fillColor
 	detectionMeterObject.fillMeter.ImageTransparency = renderCallData.fillTransparency
 	detectionMeterObject.fillMeter.Size = UDim2.fromScale(clampedSusValue, 1)
-	task.defer(function()
+	if not detectionMeterObject.rootFrame.Visible then
+		task.wait() -- Prevents it lagging behind
 		detectionMeterObject.rootFrame.Visible = true
-	end)
+	end
 
 	if renderCallData.susValue == 1 then
 		DetectionMeterRenderer.animateMeterAlert(detectionMeterObject, renderCallData)
