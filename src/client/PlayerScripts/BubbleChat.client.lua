@@ -13,7 +13,8 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
 local bubbleChatUi = playerGui:WaitForChild("BubbleChat")
 
-local VERTICAL_OFFSET_PIXELS = 55
+local VERTICAL_OFFSET_PIXELS = 25
+local VERTICAL_OFFSET_WORLD = 1
 local DEFAULT_BUBBLE_CHAT_TTL = 5
 local EPSILON = 1e-5
 
@@ -111,7 +112,7 @@ local function updateBubbleChats(deltaTime: number): ()
 		local contentSize = textLabel.AbsoluteSize
 		frame.Size = UDim2.fromOffset(contentSize.X, contentSize.Y)
 
-		local worldPos = part.Position
+		local worldPos = part.Position + Vector3.new(0, (part.Size.Y + VERTICAL_OFFSET_WORLD) / 2, 0)
 		
 		local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 
