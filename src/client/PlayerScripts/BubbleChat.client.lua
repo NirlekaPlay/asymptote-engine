@@ -64,7 +64,7 @@ local function newBubbleChat(directedTo: number, message: string, parent: BasePa
 	-- Disable AutomaticSize on the frame so we can control it manually
 	newFrame.AutomaticSize = Enum.AutomaticSize.None 
 	
-	newFrame.Visible = true
+	--newFrame.Visible = true
 	newFrame.Parent = frameToClone.Parent
 
 	local newBubbleChatData = {
@@ -150,7 +150,11 @@ local function updateBubbleChats(deltaTime: number): ()
 		end
 
 		frame.Position = UDim2.fromOffset(finalX, finalY)
-		frame.Visible = true
+		
+		if not frame.Visible then
+			task.wait() -- Fix a thing where the frame lags behind before being properly positioned.
+			frame.Visible = true
+		end
 	end
 end
 
