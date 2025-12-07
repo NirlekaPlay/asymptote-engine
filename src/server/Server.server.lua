@@ -209,10 +209,12 @@ local function update(deltaTime: number): ()
 			continue
 		end
 
-		if not guard:isAlive() then
-			setmetatable(guards[model], nil)
+		if not model:IsDescendantOf(workspace) or not guard:isAlive() then
 			guards[model] = nil
-			continue
+			task.spawn(function()
+				task.wait(1) -- wait for a while so the died connections can run properly.
+				setmetatable(guard, nil)
+			end)
 		end
 
 		guard:update(deltaTime)
