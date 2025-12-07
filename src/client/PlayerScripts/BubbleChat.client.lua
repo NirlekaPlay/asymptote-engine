@@ -51,6 +51,9 @@ local function deleteBubbleChat(bubbleChat: BubbleChat): ()
 	if bubbleChat.uiInstances.frame then
 		bubbleChat.uiInstances.frame:Destroy()
 	end
+	if bubbleChat.typeThread then
+		task.cancel(bubbleChat.typeThread)
+	end
 	bubbleChatsSet[bubbleChat.parentedTo] = nil
 end
 
@@ -249,6 +252,13 @@ local function updateBubbleChats(deltaTime: number): ()
 end
 
 TypedBubbleChatRemote.OnClientEvent:Connect(function(part, text)
+	if not text and part then
+		local existing = bubbleChatsSet[part]
+		if existing then
+			deleteBubbleChat(existing)
+		end
+		return
+	end
 	newBubbleChat(0, text, part)
 end)
 
