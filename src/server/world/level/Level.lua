@@ -504,7 +504,10 @@ function Level.initializeNpc(inst: Instance): ()
 		characterRigClone:SetAttribute("EnforceClass", inst:GetAttribute("EnforceClass"))
 	end
 	characterRigClone:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName) -- this aint a dummy no more
-
+	local tag = inst:GetAttribute("ClientTag") :: string?
+	if tag and tag ~= "" then
+		characterRigClone:AddTag(tag)
+	end
 	local payload: CharacterAppearancePayload.CharacterAppearancePayload = {
 		character = characterRigClone,
 		bodyColors = bodyColors

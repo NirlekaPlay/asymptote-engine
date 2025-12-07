@@ -18,17 +18,21 @@ export type ItemSpawn = Prop.Prop & typeof(setmetatable({} :: {
 	currentSpawnedItemParentChangedConn: RBXScriptConnection?,
 	spawnCFrame: CFrame,
 	serverLevel: ServerLevel.ServerLevel,
-	itemPickedVariable: string?
+	itemPickedVariable: string?,
+	tag: string?
 }, ItemSpawn)) 
 
-function ItemSpawn.new(itemTool: Tool, spawnCFrame: CFrame, itemPickedVariable, serverLevel: ServerLevel.ServerLevel): ItemSpawn
+function ItemSpawn.new(
+	itemTool: Tool, spawnCFrame: CFrame, itemPickedVariable, serverLevel: ServerLevel.ServerLevel, tag: string?
+): ItemSpawn
 	return setmetatable({
 		itemTool = itemTool,
 		currentlySpawnedItem = nil,
 		currentSpawnedItemParentChangedConn = nil,
 		spawnCFrame = spawnCFrame,
 		serverLevel = serverLevel,
-		itemPickedVariable = itemPickedVariable
+		itemPickedVariable = itemPickedVariable,
+		tag = tag
 	}, ItemSpawn) :: ItemSpawn
 end
 
@@ -36,6 +40,7 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?, s
 	local itemName = placeholder:GetAttribute("Item") :: string
 	local itemTool = (ServerStorage :: any).Tools:FindFirstChild(itemName) :: Tool?
 	local itemPickedVariable = placeholder:GetAttribute("ItemRemovedVariable") :: string?
+	local itemTag = placeholder:GetAttribute("ItemTagString") :: string?
 	if not itemTool then
 		error(`Item '{itemTool}' does not exist under ServerStorage.Tools`)
 	end
@@ -48,8 +53,11 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?, s
 	placeholder.AudioCanCollide = false
 
 	local bottomFaceCFrame = placeholder.CFrame * CFrame.new(0, -placeholder.Size.Y / 2, 0)
-
-	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame, itemPickedVariable, serverLevel)
+	local tagString
+	if itemTag and itemTag ~= "" then
+		tagString = itemTag
+	end
+	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame, itemPickedVariable, serverLevel, tagString)
 	newItemSpawn:spawnItem()
 	return newItemSpawn
 end
@@ -65,6 +73,10 @@ function ItemSpawn.spawnItem(self: ItemSpawn): ()
 
 	local itemToolClone = self.itemTool:Clone() :: Tool
 	itemToolClone:PivotTo(self.spawnCFrame)
+
+	if self.tag then
+		itemToolClone:AddTag(self.tag)
+	end
 
 	itemToolClone.Parent = workspace
 

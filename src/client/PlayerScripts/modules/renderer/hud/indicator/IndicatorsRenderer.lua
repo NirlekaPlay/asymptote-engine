@@ -26,8 +26,8 @@ export type Indicator = {
 	ui: Frame
 }
 
-function IndicatorsRenderer.addIndicatorAttachment(attachment: Attachment): ()
-	local indicatorUi = IndicatorsRenderer.createNewIndicatorUi()
+function IndicatorsRenderer.addIndicatorAttachment(attachment: Attachment, image: number?, color: Color3?): ()
+	local indicatorUi = IndicatorsRenderer.createNewIndicatorUi(image, color)
 	indicatorUi.Parent = IndicatorsRenderer.getScreenGui()
 
 	local newIndicator: Indicator = {
@@ -35,6 +35,16 @@ function IndicatorsRenderer.addIndicatorAttachment(attachment: Attachment): ()
 		ui = indicatorUi
 	}
 	worldIndicatorsSet[newIndicator] = true
+end
+
+function IndicatorsRenderer.removeIndicatorAttachment(attachment: Attachment): ()
+	for indicator in worldIndicatorsSet do
+		if indicator.attachment == attachment then
+			indicator.ui:Destroy()
+			worldIndicatorsSet[indicator] = nil
+			return
+		end
+	end
 end
 
 function IndicatorsRenderer.update(): ()
@@ -127,28 +137,27 @@ function IndicatorsRenderer.isIndicatorInvalid(indicator: Indicator): boolean
 	return false
 end
 
-function IndicatorsRenderer.createNewIndicatorUi(): Frame
+function IndicatorsRenderer.createNewIndicatorUi(image: number?, color: Color3?): Frame
 	local newMainFrame = Instance.new("Frame")
 	newMainFrame.AnchorPoint = MIDDLE_ANCHOR_POINT
 	newMainFrame.Size = DEFAULT_SIZE
 	newMainFrame.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	newMainFrame.BackgroundTransparency = 1
 	newMainFrame.Name = "MainFrame"
 	do
-		local newUICorner = Instance.new("UICorner")
-		newUICorner.CornerRadius = UDim.new(0.5, 0)
-		newUICorner.Parent = newMainFrame
-
 		local newIconImage = Instance.new("ImageLabel")
+		if image then
+			newIconImage.ImageContent = Content.fromAssetId(image)
+		end
+		if color then
+			newIconImage.ImageColor3 = color
+		end
 		newIconImage.AnchorPoint = MIDDLE_ANCHOR_POINT
 		newIconImage.Position = MIDDLE_POSITION
 		newIconImage.BackgroundTransparency = 1
 		newIconImage.Size = UDim2.fromScale(0.87, 0.87)
-		newIconImage.Parent = newMainFrame
 		newIconImage.Name = "IconImage"
-		do
-			local newNewUICorner = newUICorner:Clone()
-			newNewUICorner.Parent = newIconImage
-		end
+		newIconImage.Parent = newMainFrame
 	end
 
 	return newMainFrame
