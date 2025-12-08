@@ -29,17 +29,19 @@ local HEADERS_LAYOUT_ORDERS = {
 local HEADERS_UI_SETTINGS = {
 	["Mission"] = {
 		BackgroundColor3 = Color3.fromRGB(155, 66, 171),
+		TagImageId = 117168128386109,
 		HeaderTextKey = "ui.objectives.mission"
 	},
 	["Stealth"] = {
 		BackgroundColor3 = Color3.fromRGB(60, 157, 208),
+		TagImageId = 71498862162050,
 		HeaderTextKey = "ui.objectives.stealth"
 	},
 	["Loud"] = {
 		BackgroundColor3 = Color3.fromRGB(177, 50, 50),
 		HeaderTextKey = "ui.objectives.loud"
 	}
-} :: { [string]: { BackgroundColor3: Color3, HeaderTextKey: string, TextColor3: Color3 }}
+} :: { [string]: { BackgroundColor3: Color3, HeaderTextKey: string, TextColor3: Color3, TagImageId: number }}
 
 local BLACK = Color3.new(0, 0, 0)
 
@@ -227,7 +229,8 @@ local function updateObjectiveUI(headerName: string, data: {text: string, tag: s
 	end
 
 	if data.tag and data.tag ~= "" then
-		createIndicatorsForTag(data.tag, 117168128386109, HEADERS_UI_SETTINGS[headerName].BackgroundColor3)
+		local headerSettings = HEADERS_UI_SETTINGS[headerName]
+		createIndicatorsForTag(data.tag, headerSettings.TagImageId or 0, headerSettings.BackgroundColor3)
 	end
 	
 	local localizedText = ClientLanguage.getOrDefault(data.text, data.text)

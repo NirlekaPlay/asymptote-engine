@@ -26,7 +26,8 @@ local DISABLE_SCREEN_GUIS_NAME = {
 	["Objectives"] = true,
 	["Status"] = true,
 	["Interaction"] = true,
-	["BubbleChat"] = true
+	["BubbleChat"] = true,
+	["Indicators"] = true
 } :: { [string]: true }
 
 local missionConcluded = false
