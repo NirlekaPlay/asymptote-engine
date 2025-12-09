@@ -9,6 +9,11 @@ colorCorrectionEffect.Parent = currentCamera
 local currentCharacter: Model?
 local humanoidHealthChangedConnection: RBXScriptConnection?
 local vignetteScreenGui = localPlayer.PlayerGui:FindFirstChild("Vignette") :: ScreenGui?
+local DISABLE = true
+
+if DISABLE then
+	return
+end
 
 local function createVignetteGui(): ScreenGui
 	local screenGui = Instance.new("ScreenGui")

@@ -86,6 +86,7 @@ local function handleCharacter(character: Model): ()
 			task.wait(1)
 			if #Players:GetPlayers() > 1 and not MissionConclusionScreen.getIsMissionConcluded() then
 				Transition.transition()
+				MissionConclusionScreen.setOtherGuisEnabled(false)
 				Spectate.enableMode()
 			end
 		end)

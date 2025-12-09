@@ -89,6 +89,7 @@ function MissionConclusionScreen.onMissionStart(): ()
 	local subtitleFrame = missionConclusionGui.Root.Subtitle
 	
 	Transition.transition()
+	Spectate.disableMode()
 	CameraManager.restoreToDefaultBehavior()
 	CameraManager.stopTilting()
 	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
@@ -108,7 +109,6 @@ function MissionConclusionScreen.onMissionStart(): ()
 
 	MouseManager.setIconEnabled(false)
 	MouseManager.setLockEnabled(true)
-	Spectate.disableMode()
 end
 
 function MissionConclusionScreen.updateMissionConclusionScreen(
@@ -134,6 +134,7 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 	homeButton.Text = "Return to Lobby"
 	homeButton.Interactable = true
 	Transition.transition()
+	Spectate.disableMode()
 	CameraManager.takeOverCamera()
 	CameraManager.setSocket(cameraSocket)
 	CameraManager.startTilting()
@@ -144,7 +145,6 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 
 	MouseManager.setIconEnabled(true)
 	MouseManager.setLockEnabled(false)
-	Spectate.disableMode()
 end
 
 function MissionConclusionScreen.setOtherGuisEnabled(enabled: boolean): ()

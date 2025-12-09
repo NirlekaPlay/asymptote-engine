@@ -2,6 +2,9 @@
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
+local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
 
 local ACTION_NAME_LEFT = "ACTION_SPECTATE_CYCLE_LEFT"
 local ACTION_NAME_RIGHT = "ACTION_SPECTATE_CYCLE_RIGHT"
@@ -13,6 +16,8 @@ local ACTION_KEYCODE_STOP = Enum.KeyCode.Space
 local LocalPlayer = Players.LocalPlayer
 local currentIndex = 1
 local isSpectating = false
+
+local spectateGui = ReplicatedStorage.shared.assets.gui.Spectate
 
 --[=[
 	@class Spectate
@@ -77,6 +82,7 @@ function Spectate.spectateTarget(targetPlayer: Player?): ()
 		local localHumanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
 		camera.CameraSubject = localHumanoid
 		isSpectating = false
+		Spectate.updateSpectateGui(nil)
 		return
 	end
 
@@ -84,22 +90,26 @@ function Spectate.spectateTarget(targetPlayer: Player?): ()
 	local targetHumanoid = targetCharacter and targetCharacter:FindFirstChildOfClass("Humanoid")
 
 	if targetHumanoid then
-		camera.CameraType = Enum.CameraType.Orbital 
+		camera.CameraType = Enum.CameraType.Watch 
 		camera.CameraSubject = targetHumanoid
 
 		isSpectating = true
 	else
 		Spectate.cycleSpectate(true) 
 	end
+
+	Spectate.updateSpectateGui(targetPlayer)
 end
 
 function Spectate.enableMode(): ()
+	Spectate.startSpectate()
 	ContextActionService:BindAction(ACTION_NAME_LEFT, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_LEFT)
 	ContextActionService:BindAction(ACTION_NAME_RIGHT, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_RIGHT)
 	ContextActionService:BindAction(ACTION_NAME_STOP, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_STOP)
 end
 
 function Spectate.disableMode(): ()
+	Spectate.spectateTarget(nil)
 	ContextActionService:UnbindAction(ACTION_NAME_LEFT)
 	ContextActionService:UnbindAction(ACTION_NAME_RIGHT)
 	ContextActionService:UnbindAction(ACTION_NAME_STOP)
@@ -134,6 +144,38 @@ function Spectate.getValidPlayers(): { Player }
 	end)
 
 	return sortedPlayersList
+end
+
+--
+
+function Spectate.updateSpectateGui(spectateTarget: Player?): ()
+	-- TODO: Maybe update the key icons as well.
+	local gui = Spectate.getSpectateGui()
+	
+	if spectateTarget then
+		if not gui.Enabled then
+			gui.Enabled = true
+		end
+
+		gui.Root.Frame.PlayerName.Text = spectateTarget.Name
+		-- TODO: Should be handled in another module.
+		CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, false)
+	else
+		gui.Enabled = false
+		CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
+	end
+end
+
+function Spectate.getSpectateGui(): typeof(spectateGui)
+	local existing = LocalPlayer.PlayerGui:FindFirstChild(spectateGui.Name)
+	if not existing then
+		local new = spectateGui:Clone()
+		new.Enabled = false
+		new.Parent = LocalPlayer.PlayerGui
+		return new
+	end
+
+	return existing :: any
 end
 
 return Spectate
