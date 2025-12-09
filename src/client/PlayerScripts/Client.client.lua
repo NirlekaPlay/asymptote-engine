@@ -11,6 +11,7 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
+local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local MissionConclusionScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.MissionConclusionScreen)
 local LocalPlayer = Players.LocalPlayer
 
@@ -77,15 +78,21 @@ task.spawn(function()
 	require(StarterPlayer.StarterPlayerScripts.client.modules.level.Clutters)
 end)
 
-LocalPlayer.CharacterAdded:Connect(function(character)
+local function handleCharacter(character: Model): ()
 	-- Probably should use WaitForChild but I dunno...
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.Died:Once(function()
 			task.wait(1)
 			if #Players:GetPlayers() > 1 and not MissionConclusionScreen.getIsMissionConcluded() then
+				Transition.transition()
 				Spectate.enableMode()
 			end
 		end)
 	end
-end)
+end
+
+LocalPlayer.CharacterAdded:Connect(handleCharacter)
+if LocalPlayer.Character then
+	handleCharacter(LocalPlayer.Character)
+end

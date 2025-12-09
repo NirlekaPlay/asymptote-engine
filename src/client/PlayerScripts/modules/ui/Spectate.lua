@@ -8,6 +8,7 @@ local ACTION_NAME_RIGHT = "ACTION_SPECTATE_CYCLE_RIGHT"
 local ACTION_NAME_STOP = "ACTION_SPECTATE_STOP"
 local ACTION_KEYCODE_LEFT = Enum.KeyCode.Q
 local ACTION_KEYCODE_RIGHT = Enum.KeyCode.E
+local ACTION_KEYCODE_STOP = Enum.KeyCode.Space
 
 local LocalPlayer = Players.LocalPlayer
 local currentIndex = 1
@@ -30,6 +31,10 @@ end
 function Spectate.onInputCycleSpectate(
 	actionName: string, inputState: Enum.UserInputState, inputObj: InputObject
 ): Enum.ContextActionResult?
+
+	if inputState ~= Enum.UserInputState.Begin then
+		return nil
+	end
 
 	if actionName == ACTION_NAME_LEFT then
 		Spectate.cycleSpectate(false)
@@ -91,7 +96,7 @@ end
 function Spectate.enableMode(): ()
 	ContextActionService:BindAction(ACTION_NAME_LEFT, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_LEFT)
 	ContextActionService:BindAction(ACTION_NAME_RIGHT, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_RIGHT)
-	ContextActionService:BindAction(ACTION_NAME_STOP, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_RIGHT)
+	ContextActionService:BindAction(ACTION_NAME_STOP, Spectate.onInputCycleSpectate, false, ACTION_KEYCODE_STOP)
 end
 
 function Spectate.disableMode(): ()
