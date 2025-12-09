@@ -39,6 +39,7 @@ local LightingSetter = require(ServerScriptService.server.world.lighting.Lightin
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
 local HIDE_CELLS = true
 local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5
+local DEBUG_STATE_CHANGES = false
 local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
@@ -191,9 +192,13 @@ function Level.initializeLevel(): ()
 	end
 
 	globalVariablesStatesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
-		print(stateName, stateValue)
+		if DEBUG_STATE_CHANGES then
+			print(stateName, stateValue)
+		end
 		if Level.isRestarting() then
-			warn(`CANNOT PROCEED FOR AFTER '{stateName}' VALUE CHANGED TO {stateValue}: LEVEL IS RESTARTING`)
+			if DEBUG_STATE_CHANGES then
+				warn(`CANNOT PROCEED FOR AFTER '{stateName}' VALUE CHANGED TO {stateValue}: LEVEL IS RESTARTING`)
+			end
 			return
 		end
 		--print(GlobalStatesHolder.getAllStatesReference())
@@ -886,7 +891,9 @@ function Level.restartLevel(): ()
 		prop:onLevelRestart(Level)
 	end
 
-	print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
+	if DEBUG_STATE_CHANGES then
+		print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
+	end
 
 	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
 	GlobalStatesHolder.resetAllStates(function(stateName)
@@ -904,7 +911,9 @@ function Level.restartLevel(): ()
 		end
 	end
 
-	print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
+	if DEBUG_STATE_CHANGES then
+		print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
+	end
 
 	Mission.resetAlertLevel()
 
@@ -913,7 +922,6 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		print("LOADING CHARACTER")
 		player:LoadCharacter()
 	end
 
@@ -954,7 +962,9 @@ function Level.restartLevel(): ()
 
 	levelIsRestarting = false
 
-	print(GlobalStatesHolder.getAllStatesReference())
+	if DEBUG_STATE_CHANGES then
+		print(GlobalStatesHolder.getAllStatesReference())
+	end
 end
 
 function Level.startMission(): ()
