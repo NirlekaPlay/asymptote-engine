@@ -10,6 +10,7 @@ local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.i
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
+local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local MissionConclusionScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.MissionConclusionScreen)
 local LocalPlayer = Players.LocalPlayer
 
@@ -74,4 +75,17 @@ MouseManager.setLockEnabled(true)
 task.spawn(function()
 	require(StarterPlayer.StarterPlayerScripts.client.modules.ui.objectives.Objectives)
 	require(StarterPlayer.StarterPlayerScripts.client.modules.level.Clutters)
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+	-- Probably should use WaitForChild but I dunno...
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.Died:Once(function()
+			task.wait(1)
+			if #Players:GetPlayers() > 1 and not MissionConclusionScreen.getIsMissionConcluded() then
+				Spectate.enableMode()
+			end
+		end)
+	end
 end)

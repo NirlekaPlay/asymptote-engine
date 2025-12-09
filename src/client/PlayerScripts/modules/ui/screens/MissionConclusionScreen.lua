@@ -9,6 +9,7 @@ local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
+local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
@@ -39,6 +40,10 @@ local MissionConclusionScreen = {}
 
 function MissionConclusionScreen.setIsMissionConcluded(concluded: boolean): ()
 	missionConcluded = concluded
+end
+
+function MissionConclusionScreen.getIsMissionConcluded(): boolean
+	return missionConcluded
 end
 
 function MissionConclusionScreen.isConcluded(): boolean
@@ -103,6 +108,7 @@ function MissionConclusionScreen.onMissionStart(): ()
 
 	MouseManager.setIconEnabled(false)
 	MouseManager.setLockEnabled(true)
+	Spectate.disableMode()
 end
 
 function MissionConclusionScreen.updateMissionConclusionScreen(
@@ -138,6 +144,7 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 
 	MouseManager.setIconEnabled(true)
 	MouseManager.setLockEnabled(false)
+	Spectate.disableMode()
 end
 
 function MissionConclusionScreen.setOtherGuisEnabled(enabled: boolean): ()
