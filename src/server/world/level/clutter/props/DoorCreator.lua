@@ -21,6 +21,28 @@ local RESERVED_DOOR_PARTS_NAMES = {
 
 local DoorCreator = {}
 
+local function createUprightAttachment(parentPart: BasePart, localPosition: Vector3, lookDirection: Vector3): Attachment
+	local att = Instance.new("Attachment")
+	
+	-- Get the World Position where we want the attachment
+	local worldPos = parentPart.CFrame:PointToWorldSpace(localPosition)
+	
+	-- Determine where looking "forward" or "backward" is in the real world
+	local worldLookDir = parentPart.CFrame:VectorToWorldSpace(lookDirection)
+	local lookAtTarget = worldPos + worldLookDir
+
+	-- Create a World CFrame that is FORCED to be upright using Vector3.new(0, 1, 0)
+	-- This ignores the Part's Z-axis/Roll and forces the attachment to be upright in the world
+	local targetWorldCFrame = CFrame.lookAt(worldPos, lookAtTarget, Vector3.new(0, 1, 0))
+
+	-- Convert this perfect World CFrame into a local CFrame relative to the Parent Part
+	-- This mathematically calculates the exact offset/rotation needed to fix the tilt
+	att.CFrame = parentPart.CFrame:ToObjectSpace(targetWorldCFrame)
+	
+	att.Parent = parentPart
+	return att
+end
+
 local function weld(part0: BasePart, part1: BasePart): WeldConstraint
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = part0
@@ -206,21 +228,18 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		local attatchmentOffset = doorSizeZ / 2 + attatchmentAddDist
 
 		-- RIGHT door attachments (part1)
-		local frontAttatchment1 = Instance.new("Attachment")
+		-- Front: Position is -offset, Look Direction is Forward (0, 0, -1)
+		local frontAttatchment1 = createUprightAttachment(part1, Vector3.new(0, 0, -attatchmentOffset), Vector3.new(0, 0, -1))
 		frontAttatchment1.Name = "Front"
-		frontAttatchment1.Position = Vector3.new(0, 0, -attatchmentOffset)
-		frontAttatchment1.Parent = part1
 
 		local frontProxPrompt1 = Instance.new("ProximityPrompt")
 		frontProxPrompt1.Style = Enum.ProximityPromptStyle.Custom
 		frontProxPrompt1.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		frontProxPrompt1.Parent = frontAttatchment1
 
-		local backAttatchment1 = Instance.new("Attachment")
+		-- Back: Position is +offset, Look Direction is Backward (0, 0, 1)
+		local backAttatchment1 = createUprightAttachment(part1, Vector3.new(0, 0, attatchmentOffset), Vector3.new(0, 0, 1))
 		backAttatchment1.Name = "Back"
-		backAttatchment1.Position = Vector3.new(0, 0, attatchmentOffset)
-		backAttatchment1.Orientation = Vector3.new(0, 180, 0)
-		backAttatchment1.Parent = part1
 
 		local backProxPrompt1 = Instance.new("ProximityPrompt")
 		backProxPrompt1.Style = Enum.ProximityPromptStyle.Custom
@@ -228,21 +247,18 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		backProxPrompt1.Parent = backAttatchment1
 
 		-- LEFT door attachments (part0)
-		local frontAttatchment2 = Instance.new("Attachment")
+		-- Front
+		local frontAttatchment2 = createUprightAttachment(part0, Vector3.new(0, 0, -attatchmentOffset), Vector3.new(0, 0, -1))
 		frontAttatchment2.Name = "Front"
-		frontAttatchment2.Position = Vector3.new(0, 0, -attatchmentOffset)
-		frontAttatchment2.Parent = part0
 
 		local frontProxPrompt2 = Instance.new("ProximityPrompt")
 		frontProxPrompt2.Style = Enum.ProximityPromptStyle.Custom
 		frontProxPrompt2.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		frontProxPrompt2.Parent = frontAttatchment2
 
-		local backAttatchment2 = Instance.new("Attachment")
+		-- Back
+		local backAttatchment2 = createUprightAttachment(part0, Vector3.new(0, 0, attatchmentOffset), Vector3.new(0, 0, 1))
 		backAttatchment2.Name = "Back"
-		backAttatchment2.Position = Vector3.new(0, 0, attatchmentOffset)
-		backAttatchment2.Orientation = Vector3.new(0, 180, 0)
-		backAttatchment2.Parent = part0
 
 		local backProxPrompt2 = Instance.new("ProximityPrompt")
 		backProxPrompt2.Style = Enum.ProximityPromptStyle.Custom
