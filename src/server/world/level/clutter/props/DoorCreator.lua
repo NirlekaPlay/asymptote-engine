@@ -152,57 +152,57 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 
 		table.insert(doorParts, part1)
 
-		local nonDoorPartsRelativeCF: { [BasePart]: CFrame } = {}
-		for _, part in nonMainDoorParts do
-			nonDoorPartsRelativeCF[part] = part0_OrigCF:ToObjectSpace(nonDoorParts_OrigCF[part])
-		end
-
-		-- Calculate half-width offset in the base's local X-axis
-		local halfWidth = base.Size.X / 4  -- Quarter because each door takes up half, and we offset from center
-		
-		-- Get base's right vector (X-axis in its local space)
+		-- We actually mirror this one now.
 		local baseCF = base.CFrame
-		local baseRight = baseCF.RightVector
-		
-		-- Position LEFT door (part0) - offset to the left
-		local leftOffset = baseRight * halfWidth
-		part0.CFrame = part0_OrigCF + leftOffset
-		
-		-- Position non-door parts for left door
+		local halfWidth = base.Size.X / 4
+
+		-- Position LEFT Door (Part0)
+		-- Offset to the Left (-X in local space if base is centered)
+		-- Note: Ensure halfWidth polarity matches your setup. Usually Left is +X or -X depending on Base LookVector.
+		-- Assuming Standard Roblox: Left is +X relative to looking forward? No, Left is -X. 
+		-- Adjust the sign of 'halfWidth' below if your doors swap sides.
+		local leftOffsetCF = baseCF * CFrame.new(halfWidth, 0, 0) 
+		local part0RelToBase = baseCF:ToObjectSpace(part0_OrigCF)
+		part0.CFrame = leftOffsetCF * part0RelToBase
+
+		-- Position non-door parts for Left Door
 		for _, part in nonMainDoorParts do
-			part.CFrame = part0.CFrame * nonDoorPartsRelativeCF[part]
+			local rel = part0_OrigCF:ToObjectSpace(nonDoorParts_OrigCF[part])
+			part.CFrame = part0.CFrame * rel
 		end
-		
-		-- Position RIGHT door (part1) - offset to the right and mirror
-		local rightOffset = baseRight * -halfWidth
-		
-		-- Get part0's orientation
-		--local relPos = Vector3.zero
-		local rx, ry, rz = part0_OrigCF:ToOrientation()
-		
-		-- Create mirrored rotation (flip around Y-axis by negating Y and Z rotations)
-		local mirroredRotation = CFrame.Angles(rx, -ry, -rz)
-		
-		-- Position part1: take original position, add offset, apply mirrored rotation
-		part1.CFrame = CFrame.new((part0_OrigCF + rightOffset).Position) * mirroredRotation
 
-		-- Mirror and position cloned non-door parts for right door
+		-- Position RIGHT Door (Part1) - MIRRORING LOGIC
+		-- We want Part1 at the opposite side (-halfWidth)
+		local rightOffsetCF = baseCF * CFrame.new(-halfWidth, 0, 0)
+		
+		-- We rotate the door 180 on Y to put the hinge on the outside
+		-- But we acknowledge this makes the door face "Backwards" in Local Space
+		local part1Rotation = part0RelToBase.Rotation * CFrame.Angles(0, math.pi, 0)
+		
+		-- Apply calculation
+		part1.CFrame = rightOffsetCF * part1Rotation * CFrame.new(part0RelToBase.Position)
+
+		-- Position Cloned Handles (Non-Door Parts) - CORRECTION
 		for orig, clone in nonDoorPartsClones do
-			local relCF = nonDoorPartsRelativeCF[orig]
-			local relPos = relCF.Position
-			local rx, ry, rz = relCF:ToOrientation()
-
-			-- Mirror the relative CFrame: negate X position and Y/Z rotations
-			local mirroredRelativeCF = CFrame.new(-relPos.X, relPos.Y, relPos.Z) * CFrame.Angles(rx, -ry, -rz)
+			-- Calculate the original handle's position relative to the BASE, not the door
+			local relToBase = baseCF:ToObjectSpace(orig.CFrame)
 			
-			clone.CFrame = part1.CFrame * mirroredRelativeCF
-			weld(clone, hingePart2)
+			-- MIRROR POSITION: Flip X, Keep Y, **Keep Z** (This keeps it on the Front face)
+			local mirroredPos = Vector3.new(-relToBase.X, relToBase.Y, relToBase.Z)
+			
+			-- MIRROR ROTATION: Convert to Euler, Flip Y and Z to mirror across X-Axis
+			local rx, ry, rz = relToBase:ToEulerAnglesYXZ()
+			local mirroredRot = CFrame.fromEulerAnglesYXZ(rx, -ry, -rz)
+			
+			-- Apply to World Space
+			clone.CFrame = baseCF * CFrame.new(mirroredPos) * mirroredRot
+			
+			weld(clone, part1)
 		end
 
 		weld(part0, hingePart)
 		weld(part1, hingePart2)
 
-		-- Create attachments for proximity prompts
 		local attatchmentOffset = doorSizeZ / 2 + attatchmentAddDist
 
 		-- RIGHT door attachments (part1)
