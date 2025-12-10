@@ -8,6 +8,7 @@ local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payl
 local ClientBoundChatMessagePayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundChatMessagePayload)
 local ClientBoundObjectivesInfoPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundObjectivesInfoPayload)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
+local LocalTweenPayload = require(ReplicatedStorage.shared.network.payloads.LocalTweenPayload)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
@@ -50,5 +51,7 @@ return {
 	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady"),
 	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart"),
 	ClientBoundRemainingRestartPlayers = RE("ClientBoundRemainingRestartPlayers") :: RE<number, number>,
-	ClientBoundServerMatchInfo = RE("ClientBoundServerMatchInfo") :: RE<string, { isConcluded: boolean, isFailed: boolean, cameraSocket: CameraSocket.CameraSocket}>
+	ClientBoundServerMatchInfo = RE("ClientBoundServerMatchInfo") :: RE<string, { isConcluded: boolean, isFailed: boolean, cameraSocket: CameraSocket.CameraSocket}>,
+	--
+	ClientBoundTween = RE("ClientBoundTween") :: RE<LocalTweenPayload.LocalTweenPayload>
 }
