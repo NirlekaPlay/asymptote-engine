@@ -142,8 +142,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		part1.Name = "Part1"
 		part1.Parent = model
 
-		-- Istg all of these for loops are unoptimized as shit
-		local nonDoorPartsClones: { [BasePart]: BasePart } = {} -- k: original; v: clone
+		local nonDoorPartsClones: { [BasePart]: BasePart } = {}
 		for _, part in nonMainDoorParts do
 			local clone = part:Clone()
 			clone.Parent = part.Parent
@@ -153,66 +152,73 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 
 		table.insert(doorParts, part1)
 
-		local quarterBaseSizeX = base.Size.X / 4
-		local rotation180 = CFrame.Angles(0, math.rad(180), 0)
-		
-		local leftDoorOffset = CFrame.new(quarterBaseSizeX, 0, 0)
-		
-		local rightDoorOffset = CFrame.new(-quarterBaseSizeX, 0, 0)
-
-		-- 2. Get the door part's CFrame *relative to the door panel*
 		local nonDoorPartsRelativeCF: { [BasePart]: CFrame } = {}
 		for _, part in nonMainDoorParts do
 			nonDoorPartsRelativeCF[part] = part0_OrigCF:ToObjectSpace(nonDoorParts_OrigCF[part])
 		end
 
-		-- 3. Position the LEFT door (part0 and handle)
-		local leftDoorCF = base.CFrame * leftDoorOffset
-		part0.CFrame = leftDoorCF
-		for _, part in nonMainDoorParts do
-			part.CFrame = leftDoorCF * nonDoorPartsRelativeCF[part]
-		end
-
-		-- 4. Position the RIGHT door (part1 and handle1)
-		-- This CFrame correctly positions and rotates the door panel.
-		local rightDoorCF = base.CFrame * rightDoorOffset * rotation180
-		part1.CFrame = rightDoorCF
-
-		-- 5. Create the mirrored CFrame for the RIGHT handle (handle1)
+		-- Calculate half-width offset in the base's local X-axis
+		local halfWidth = base.Size.X / 4  -- Quarter because each door takes up half, and we offset from center
 		
+		-- Get base's right vector (X-axis in its local space)
+		local baseCF = base.CFrame
+		local baseRight = baseCF.RightVector
+		
+		-- Position LEFT door (part0) - offset to the left
+		local leftOffset = baseRight * halfWidth
+		part0.CFrame = part0_OrigCF + leftOffset
+		
+		-- Position non-door parts for left door
+		for _, part in nonMainDoorParts do
+			part.CFrame = part0.CFrame * nonDoorPartsRelativeCF[part]
+		end
+		
+		-- Position RIGHT door (part1) - offset to the right and mirror
+		local rightOffset = baseRight * -halfWidth
+		
+		-- Get part0's orientation
+		--local relPos = Vector3.zero
+		local rx, ry, rz = part0_OrigCF:ToOrientation()
+		
+		-- Create mirrored rotation (flip around Y-axis by negating Y and Z rotations)
+		local mirroredRotation = CFrame.Angles(rx, -ry, -rz)
+		
+		-- Position part1: take original position, add offset, apply mirrored rotation
+		part1.CFrame = CFrame.new((part0_OrigCF + rightOffset).Position) * mirroredRotation
+
+		-- Mirror and position cloned non-door parts for right door
 		for orig, clone in nonDoorPartsClones do
-			-- Get the handle's original relative position and rotation
 			local relCF = nonDoorPartsRelativeCF[orig]
 			local relPos = relCF.Position
 			local rx, ry, rz = relCF:ToOrientation()
 
-			-- We use the SAME relative position (relPos.X, not -relPos.X).
-			-- We mirror the rotation of the handle by negating the
-			-- Y-axis (yaw) and Z-axis (roll) rotation.
-			local mirroredHandleRelativeCF = CFrame.new(relPos.X, relPos.Y, relPos.Z) * CFrame.Angles(rx, -ry, -rz)
+			-- Mirror the relative CFrame: negate X position and Y/Z rotations
+			local mirroredRelativeCF = CFrame.new(-relPos.X, relPos.Y, relPos.Z) * CFrame.Angles(rx, -ry, -rz)
 			
-			clone.CFrame = rightDoorCF * mirroredHandleRelativeCF
+			clone.CFrame = part1.CFrame * mirroredRelativeCF
 			weld(clone, hingePart2)
 		end
 
+		weld(part0, hingePart)
 		weld(part1, hingePart2)
-		-- Attatchments
 
-		----
+		-- Create attachments for proximity prompts
+		local attatchmentOffset = doorSizeZ / 2 + attatchmentAddDist
 
+		-- RIGHT door attachments (part1)
 		local frontAttatchment1 = Instance.new("Attachment")
 		frontAttatchment1.Name = "Front"
-		frontAttatchment1.Position = Vector3.new(0, 0, (-doorSizeZ / 2) + -attatchmentAddDist)
+		frontAttatchment1.Position = Vector3.new(0, 0, -attatchmentOffset)
 		frontAttatchment1.Parent = part1
 
 		local frontProxPrompt1 = Instance.new("ProximityPrompt")
 		frontProxPrompt1.Style = Enum.ProximityPromptStyle.Custom
 		frontProxPrompt1.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		frontProxPrompt1.Parent = frontAttatchment1
-	
+
 		local backAttatchment1 = Instance.new("Attachment")
 		backAttatchment1.Name = "Back"
-		backAttatchment1.Position = Vector3.new(0, 0, (doorSizeZ / 2) + attatchmentAddDist)
+		backAttatchment1.Position = Vector3.new(0, 0, attatchmentOffset)
 		backAttatchment1.Orientation = Vector3.new(0, 180, 0)
 		backAttatchment1.Parent = part1
 
@@ -221,21 +227,20 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		backProxPrompt1.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		backProxPrompt1.Parent = backAttatchment1
 
-		----
-
+		-- LEFT door attachments (part0)
 		local frontAttatchment2 = Instance.new("Attachment")
 		frontAttatchment2.Name = "Front"
-		frontAttatchment2.Position = Vector3.new(0, 0, (-doorSizeZ / 2) + -attatchmentAddDist)
+		frontAttatchment2.Position = Vector3.new(0, 0, -attatchmentOffset)
 		frontAttatchment2.Parent = part0
 
 		local frontProxPrompt2 = Instance.new("ProximityPrompt")
 		frontProxPrompt2.Style = Enum.ProximityPromptStyle.Custom
 		frontProxPrompt2.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		frontProxPrompt2.Parent = frontAttatchment2
-	
+
 		local backAttatchment2 = Instance.new("Attachment")
 		backAttatchment2.Name = "Back"
-		backAttatchment2.Position = Vector3.new(0, 0, (doorSizeZ / 2) + attatchmentAddDist)
+		backAttatchment2.Position = Vector3.new(0, 0, attatchmentOffset)
 		backAttatchment2.Orientation = Vector3.new(0, 180, 0)
 		backAttatchment2.Parent = part0
 
@@ -244,10 +249,9 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		backProxPrompt2.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		backProxPrompt2.Parent = backAttatchment2
 
-		--
-
+		-- Assign prompts
 		local doubleDoorPrompts = prompts :: DoorPromptComponent.DoubleDoorPrompts
-		doubleDoorPrompts.doorRightBack = {frontProxPrompt1} -- flipped because, well, we flipped the cloned door side.
+		doubleDoorPrompts.doorRightBack = {frontProxPrompt1}
 		doubleDoorPrompts.doorRightFront = {backProxPrompt1}
 		doubleDoorPrompts.doorLeftBack = {backProxPrompt2}
 		doubleDoorPrompts.doorLeftFront = {frontProxPrompt2}
