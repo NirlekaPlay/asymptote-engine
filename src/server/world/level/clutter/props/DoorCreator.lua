@@ -249,7 +249,6 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		backProxPrompt2.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 		backProxPrompt2.Parent = backAttatchment2
 
-		-- Assign prompts
 		local doubleDoorPrompts = prompts :: DoorPromptComponent.DoubleDoorPrompts
 		doubleDoorPrompts.doorRightBack = {frontProxPrompt1}
 		doubleDoorPrompts.doorRightFront = {backProxPrompt1}
