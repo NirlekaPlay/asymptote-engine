@@ -12,6 +12,15 @@ local mouseDefaultLocked = true
 local mouseLocked = mouseDefaultLocked
 local mouseDefaultIconEnabled = false
 local mouseIconEnabled = mouseDefaultIconEnabled
+local mouseUnusableOverrides: { [string]: true } = {}
+
+function MouseManager.addUnuseableMouseOverride(name: string): ()
+	mouseUnusableOverrides[name] = true
+end
+
+function MouseManager.removeUnuseableMouseOverride(name: string): ()
+	mouseUnusableOverrides[name] = nil
+end
 
 function MouseManager.setLockEnabled(locked: boolean): ()
 	mouseDefaultLocked = locked
@@ -25,7 +34,7 @@ end
 
 function MouseManager.update(): ()
 	local isConsoleVisible = StarterGui:GetCore("DevConsoleVisible") :: boolean
-	if isConsoleVisible then
+	if isConsoleVisible or next(mouseUnusableOverrides) ~= nil then
 		mouseIconEnabled = true
 		mouseLocked = false
 	else

@@ -42,5 +42,6 @@ end
 
 onLoad()
 
+createNewPair("H", "Help")
 createNewPair("N", "Debug brain")
 createNewPair("B", "Debug tracers")
