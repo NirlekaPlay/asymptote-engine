@@ -7,6 +7,8 @@ local Agent = require(ServerScriptService.server.Agent)
 local PerceptiveAgent = require(ServerScriptService.server.PerceptiveAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 
+local MIN_WALK_SPEED = 16
+
 local HearingPlayersSensor = {}
 HearingPlayersSensor.__index = HearingPlayersSensor
 
@@ -71,6 +73,10 @@ function HearingPlayersSensor.isHeard(self: HearingPlayersSensor, agent: Agent, 
 	end
 
 	if humanoid.MoveDirection.Magnitude <= 0 then
+		return false
+	end
+
+	if humanoid.WalkSpeed < MIN_WALK_SPEED then
 		return false
 	end
 
