@@ -1,5 +1,6 @@
 --!strict
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local LocalizationService = game:GetService("LocalizationService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -97,3 +98,20 @@ LocalPlayer.CharacterAdded:Connect(handleCharacter)
 if LocalPlayer.Character then
 	handleCharacter(LocalPlayer.Character)
 end
+
+local mouseToggle = false
+ContextActionService:BindAction("ACTION_UNLOCK_MOUSE", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	
+	mouseToggle = not mouseToggle
+
+	if mouseToggle then
+		MouseManager.addUnuseableMouseOverride("MANUAL_UNLOCK")
+	else
+		MouseManager.removeUnuseableMouseOverride("MANUAL_UNLOCK")
+	end
+
+	return Enum.ContextActionResult.Pass
+end, false, Enum.KeyCode.L)
