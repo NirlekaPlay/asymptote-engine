@@ -27,7 +27,7 @@ and shows the first objective where the `Active` component returns a truthy valu
 ## Objectives Tagging
 <figure markdown="span">
   ![Disguise props](/asymptote-engine/assets/images/screenshots/objectives-tags-keycard.png){ width="10000" }
-  <figcaption>Fig. 1. A door. That's it.</figcaption>
+  <figcaption>Fig. 1. A tagged keycard under the Stealth header.</figcaption>
 </figure>
 You know *tags* right? The little icons on your screen that points towards the objectives' object?
 It can be a keycard, an NPC, a trigger zone, anything. Or, almost anything.
