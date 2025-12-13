@@ -197,11 +197,32 @@ local function createIndicatorsForTag(tag: string, image: number, color: Color3)
 			att.Parent = (inst :: any).Handle
 			t[att] = true
 			IndicatorsRenderer.addIndicatorAttachment(att, image, color)
-		elseif inst:IsA("Model") and inst:FindFirstChildOfClass("Humanoid") and inst:FindFirstChild("HumanoidRootPart") then
-			local att = attRef:Clone()
-			att.Parent = (inst :: any).HumanoidRootPart
-			t[att] = true
-			IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+		elseif inst:IsA("Model") then
+			if inst:FindFirstChildOfClass("Humanoid") and inst:FindFirstChild("HumanoidRootPart") then
+				local att = attRef:Clone()
+				att.Parent = (inst :: any).HumanoidRootPart
+				t[att] = true
+				IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+			else
+				local base = inst:FindFirstChild("Base")
+				if not base or not base:IsA("BasePart") then
+					continue
+				end
+
+				local triggerAtt = inst:FindFirstChild("Trigger", true) -- TODO: Hardcoded af.
+				if triggerAtt and triggerAtt:IsA("Attachment") then
+					local att = attRef:Clone()
+					att.Parent = base
+					att.WorldCFrame = triggerAtt.WorldCFrame
+					t[att] = true
+					IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+				else
+					local att = attRef:Clone()
+					att.Parent = base
+					t[att] = true
+					IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+				end
+			end
 		end
 	end
 end
@@ -215,7 +236,6 @@ local function removeIndicatorsForTag(tag: string)
 
 	for attachment, _ in pairs(tagAttachments) do
 		IndicatorsRenderer.removeIndicatorAttachment(attachment)
-		attachment:Destroy()
 	end
 	
 	tagsInstances[tag] = nil
