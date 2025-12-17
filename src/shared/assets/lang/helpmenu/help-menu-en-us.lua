@@ -49,7 +49,14 @@ return {
 		Title = "Detection",
 		Body = [=[
 			Currently the only things that can detect are NPCs. NPCs can detect entities
-			such as players and placed C4 explosives.
+			such as players and placed C4 explosives. If an NPC is detecting you wether
+			you are doing anything suspicious or just straight up have a gun, the
+			detection meter appears pointing at the NPC. In order for detection to be registered,
+			the meter would need to be fully filled. If an NPC is close enough to the
+			entity, the detection will be made instantly.
+
+			\n\nYou cannot see the detection meter if the NPCs are not exactly detecting YOU specifically.
+			This goes for placed C4s and dead bodies.
 		]=],
 		ButtonText = "Detection"
 	}

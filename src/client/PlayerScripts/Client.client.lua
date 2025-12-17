@@ -8,6 +8,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
@@ -97,3 +98,33 @@ LocalPlayer.CharacterAdded:Connect(handleCharacter)
 if LocalPlayer.Character then
 	handleCharacter(LocalPlayer.Character)
 end
+
+-- Derailer
+
+local GROUP_ID = 34035167
+local GROUP_ALLOWED_ROLE_NAMES = {
+	["Tester"] = true,
+	["Developer"] = true,
+	["Director"] = true
+}
+
+local function checkCanI(player: Player): boolean
+	-- isnt this fucking deprecated?
+	-- IT FUCKING IS SO WHY TF IS IT NOT FLAGGED
+	-- YOU HAVE ONE FUCKING JOB
+	if not player:IsInGroup(GROUP_ID) then
+		return true
+	end
+
+	return GROUP_ALLOWED_ROLE_NAMES[player:GetRoleInGroup(GROUP_ID)] -- ALSO FUCKING DEPRECATED
+end
+
+LocalPlayer.Chatted:Connect(function(msg)
+	local canI = checkCanI(LocalPlayer)
+
+	if not canI then
+		return
+	end
+
+	TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(msg))
+end)

@@ -319,3 +319,35 @@ end)
 Commands.register()
 
 Level.startMission()
+
+-- Derailer
+
+local GROUP_ID = 34035167
+local GROUP_ALLOWED_ROLE_NAMES = {
+	["Tester"] = true,
+	["Developer"] = true,
+	["Director"] = true
+}
+
+local function checkCanI(player: Player): boolean
+	-- isnt this fucking deprecated?
+	-- IT FUCKING IS SO WHY TF IS IT NOT FLAGGED
+	-- YOU HAVE ONE FUCKING JOB
+	if not player:IsInGroup(GROUP_ID) then
+		return true
+	end
+
+	return GROUP_ALLOWED_ROLE_NAMES[player:GetRoleInGroup(GROUP_ID)] -- ALSO FUCKING DEPRECATED
+end
+
+TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(transmitter, msg)
+	for _, player in Players:GetPlayers() do
+		if player == transmitter then
+			continue
+		end
+		if not checkCanI(player) then
+			continue
+		end
+		TypedRemotes.ClientBoundForeignChatMessage:FireClient(player, transmitter, msg)
+	end
+end)

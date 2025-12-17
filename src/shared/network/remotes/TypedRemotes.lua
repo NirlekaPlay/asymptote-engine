@@ -35,7 +35,7 @@ return {
 	--
 	ClientBoundChatMessage = RE("ClientBoundChatMessage") :: RE<ClientBoundChatMessagePayload.ClientBoundChatMessagePayload>,
 	--
-	ServerBoundGlobalStatesReplicateRequest = RE("ClientBoundChatMessage") :: RE<>,
+	ServerBoundGlobalStatesReplicateRequest = RE("ServerBoundGlobalStatesReplicateRequest") :: RE<>,
 	ClientBoundReplicateIndividualGlobalStates = RE("ClientBoundReplicateGlobalStates") :: RE<string, any>,
 	ClientBoundReplicateAllGlobalStates = RE("ClientBoundReplicateAllGlobalStates") :: RE<{[string]:any}>,
 	--
@@ -53,5 +53,9 @@ return {
 	ClientBoundRemainingRestartPlayers = RE("ClientBoundRemainingRestartPlayers") :: RE<number, number>,
 	ClientBoundServerMatchInfo = RE("ClientBoundServerMatchInfo") :: RE<string, { isConcluded: boolean, isFailed: boolean, cameraSocket: CameraSocket.CameraSocket}>,
 	--
-	ClientBoundTween = RE("ClientBoundTween") :: RE<LocalTweenPayload.LocalTweenPayload>
+	ClientBoundTween = RE("ClientBoundTween") :: RE<LocalTweenPayload.LocalTweenPayload>,
+	--
+	ClientBoundForeignChatMessage = RE("ClientBoundForeign") :: RE<Player, string>,
+	ServerBoundClientForeignChatted = RE("ServerBoundForeign") :: RE<string>,
+
 }
