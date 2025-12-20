@@ -9,6 +9,11 @@ colorCorrectionEffect.Parent = currentCamera
 local currentCharacter: Model?
 local humanoidHealthChangedConnection: RBXScriptConnection?
 local vignetteScreenGui = localPlayer.PlayerGui:FindFirstChild("Vignette") :: ScreenGui?
+local DISABLE = true
+
+if DISABLE then
+	return
+end
 
 local function createVignetteGui(): ScreenGui
 	local screenGui = Instance.new("ScreenGui")
@@ -35,8 +40,8 @@ end
 
 local function updateHealthEffects(currentHealth: number)
 	colorCorrectionEffect.Saturation = math.map(currentHealth, 0, 100, -1, 0)
-	colorCorrectionEffect.Brightness = math.map(currentHealth, 0, 100, -0.3, 0)
-	colorCorrectionEffect.Contrast = math.map(currentHealth, 0, 100, 0.3, 0)
+	colorCorrectionEffect.Brightness = math.map(currentHealth, 0, 100, -0.2, 0)
+	colorCorrectionEffect.Contrast = math.map(currentHealth, 0, 100, 1, 0)
 
 	if not vignetteScreenGui then return end
 	(vignetteScreenGui:FindFirstChild("ImageLabel") :: ImageLabel)

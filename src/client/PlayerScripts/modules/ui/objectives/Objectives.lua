@@ -1,10 +1,12 @@
 --!strict
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
+local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
@@ -27,17 +29,19 @@ local HEADERS_LAYOUT_ORDERS = {
 local HEADERS_UI_SETTINGS = {
 	["Mission"] = {
 		BackgroundColor3 = Color3.fromRGB(155, 66, 171),
+		TagImageId = 117168128386109,
 		HeaderTextKey = "ui.objectives.mission"
 	},
 	["Stealth"] = {
 		BackgroundColor3 = Color3.fromRGB(60, 157, 208),
+		TagImageId = 71498862162050,
 		HeaderTextKey = "ui.objectives.stealth"
 	},
 	["Loud"] = {
 		BackgroundColor3 = Color3.fromRGB(177, 50, 50),
 		HeaderTextKey = "ui.objectives.loud"
 	}
-} :: { [string]: { BackgroundColor3: Color3, HeaderTextKey: string, TextColor3: Color3 }}
+} :: { [string]: { BackgroundColor3: Color3, HeaderTextKey: string, TextColor3: Color3, TagImageId: number }}
 
 local BLACK = Color3.new(0, 0, 0)
 
@@ -169,12 +173,84 @@ end
 referenceUi.Visible = false
 
 local currentObjectives: { [string]: {text: string, tag: string} } = {}
+local tagsInstances: { [string]: { [Attachment]: true }} = {}
+
+local function createIndicatorsForTag(tag: string, image: number, color: Color3): ()
+	local t
+	if tagsInstances[tag] then
+		t = tagsInstances[tag]
+	else
+		t = {}
+		tagsInstances[tag] = t
+	end
+	local attRef = Instance.new("Attachment")
+	attRef.Name = "TagIndicator"
+	for _, inst in CollectionService:GetTagged(tag) do
+		-- TODO: This abomination.
+		if inst:IsA("BasePart") then
+			local att = attRef:Clone()
+			att.Parent = inst
+			t[att] = true
+			IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+		elseif inst:IsA("Tool") and inst:FindFirstChild("Handle") then
+			local att = attRef:Clone()
+			att.Parent = (inst :: any).Handle
+			t[att] = true
+			IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+		elseif inst:IsA("Model") then
+			if inst:FindFirstChildOfClass("Humanoid") and inst:FindFirstChild("HumanoidRootPart") then
+				local att = attRef:Clone()
+				att.Parent = (inst :: any).HumanoidRootPart
+				t[att] = true
+				IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+			else
+				local base = inst:FindFirstChild("Base")
+				if not base or not base:IsA("BasePart") then
+					continue
+				end
+
+				local triggerAtt = inst:FindFirstChild("Trigger", true) -- TODO: Hardcoded af.
+				if triggerAtt and triggerAtt:IsA("Attachment") then
+					local att = attRef:Clone()
+					att.Parent = base
+					att.WorldCFrame = triggerAtt.WorldCFrame
+					t[att] = true
+					IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+				else
+					local att = attRef:Clone()
+					att.Parent = base
+					t[att] = true
+					IndicatorsRenderer.addIndicatorAttachment(att, image, color)
+				end
+			end
+		end
+	end
+end
+
+local function removeIndicatorsForTag(tag: string)
+	local tagAttachments = tagsInstances[tag]
+	
+	if not tagAttachments then
+		return
+	end
+
+	for attachment, _ in pairs(tagAttachments) do
+		IndicatorsRenderer.removeIndicatorAttachment(attachment)
+	end
+	
+	tagsInstances[tag] = nil
+end
 
 local function updateObjectiveUI(headerName: string, data: {text: string, tag: string})
 	local uiElement = objectiveUiElements[headerName]
 	if not uiElement then
 		warn(`No UI element found for header: {headerName}`)
 		return
+	end
+
+	if data.tag and data.tag ~= "" then
+		local headerSettings = HEADERS_UI_SETTINGS[headerName]
+		createIndicatorsForTag(data.tag, headerSettings.TagImageId or 0, headerSettings.BackgroundColor3)
 	end
 	
 	local localizedText = ClientLanguage.getOrDefault(data.text, data.text)
@@ -205,17 +281,27 @@ local function hideObjectiveUI(headerName: string)
 end
 
 TypedRemotes.ClientBoundObjectivesInfo.OnClientEvent:Connect(function(payload)
-	for headerName in pairs(currentObjectives) do
+	for headerName, currentData in pairs(currentObjectives) do
 		if not payload[headerName] then
+			if currentData.tag and currentData.tag ~= "" then
+				removeIndicatorsForTag(currentData.tag)
+			end
+			
 			hideObjectiveUI(headerName)
 		end
 	end
 	
 	for headerName, data in pairs(payload) do
 		local currentData = currentObjectives[headerName]
+		
 		if not currentData or
 			currentData.text ~= data.text or 
 			currentData.tag ~= data.tag then
+			
+			if currentData and currentData.tag and currentData.tag ~= "" and currentData.tag ~= data.tag then
+				removeIndicatorsForTag(currentData.tag)
+			end
+			
 			updateObjectiveUI(headerName, data)
 		end
 	end

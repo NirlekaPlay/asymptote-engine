@@ -8,6 +8,7 @@ local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payl
 local ClientBoundChatMessagePayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundChatMessagePayload)
 local ClientBoundObjectivesInfoPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundObjectivesInfoPayload)
 local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.DetectionPayload)
+local LocalTweenPayload = require(ReplicatedStorage.shared.network.payloads.LocalTweenPayload)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
@@ -19,7 +20,7 @@ type RE<T...> = TypedRemote.Event<T...>
 local playerHeadRotationJointRemote = RE("PlayerHeadRotation")
 return {
 	Detection = RE("Detection") :: RE<{DetectionPayload.DetectionData}>,
-	BubbleChat = RE("BubbleChat") :: RE<BasePart, string>,
+	BubbleChat = RE("BubbleChat") :: RE<BasePart, string?>,
 	Status = RE("Status") :: RE<{ [string]: true }>,
 	AlertLevel = RE("AlertLevel") :: RE<AlertLevels.AlertLevel>,
 	--
@@ -34,7 +35,7 @@ return {
 	--
 	ClientBoundChatMessage = RE("ClientBoundChatMessage") :: RE<ClientBoundChatMessagePayload.ClientBoundChatMessagePayload>,
 	--
-	ServerBoundGlobalStatesReplicateRequest = RE("ClientBoundChatMessage") :: RE<>,
+	ServerBoundGlobalStatesReplicateRequest = RE("ServerBoundGlobalStatesReplicateRequest") :: RE<>,
 	ClientBoundReplicateIndividualGlobalStates = RE("ClientBoundReplicateGlobalStates") :: RE<string, any>,
 	ClientBoundReplicateAllGlobalStates = RE("ClientBoundReplicateAllGlobalStates") :: RE<{[string]:any}>,
 	--
@@ -48,5 +49,13 @@ return {
 	--
 	ClientBoundTeleportReady = RE("ClientBoundTeleportReady"),
 	ServerBoundPlayerTeleportReady = RE("ServerBoundPlayerTeleportReady"),
-	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart")
+	ServerBoundPlayerWantRestart = RE("ServerBoundPlayerWantRestart"),
+	ClientBoundRemainingRestartPlayers = RE("ClientBoundRemainingRestartPlayers") :: RE<number, number>,
+	ClientBoundServerMatchInfo = RE("ClientBoundServerMatchInfo") :: RE<string, { isConcluded: boolean, isFailed: boolean, cameraSocket: CameraSocket.CameraSocket}>,
+	--
+	ClientBoundTween = RE("ClientBoundTween") :: RE<LocalTweenPayload.LocalTweenPayload>,
+	--
+	ClientBoundForeignChatMessage = RE("ClientBoundForeign") :: RE<Player, string>,
+	ServerBoundClientForeignChatted = RE("ServerBoundForeign") :: RE<string>,
+
 }

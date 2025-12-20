@@ -209,10 +209,12 @@ local function update(deltaTime: number): ()
 			continue
 		end
 
-		if not guard:isAlive() then
-			setmetatable(guards[model], nil)
+		if not model:IsDescendantOf(workspace) or not guard:isAlive() then
 			guards[model] = nil
-			continue
+			task.spawn(function()
+				task.wait(1) -- wait for a while so the died connections can run properly.
+				setmetatable(guard, nil)
+			end)
 		end
 
 		guard:update(deltaTime)
@@ -257,7 +259,22 @@ end)]]
 
 CollisionGroupManager.register()
 
+-- To prevent streaming bullshit.
+-- This fixes players who joined and don't have a character yet.
+-- Leading to empty voids.
+local replicationFocusPart = Instance.new("Part")
+replicationFocusPart.Anchored = true
+replicationFocusPart.CanCollide = false
+replicationFocusPart.CanQuery = false
+replicationFocusPart.CanTouch = false
+replicationFocusPart.AudioCanCollide = false
+replicationFocusPart.Transparency = 1
+replicationFocusPart.Position = Vector3.zero
+replicationFocusPart.Name = "ReplicationFocus"
+replicationFocusPart.Parent = workspace
+
 Players.PlayerAdded:Connect(function(player)
+	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
 	-- Localization:
 	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
@@ -302,3 +319,35 @@ end)
 Commands.register()
 
 Level.startMission()
+
+-- Derailer
+
+local GROUP_ID = 34035167
+local GROUP_ALLOWED_ROLE_NAMES = {
+	["Tester"] = true,
+	["Developer"] = true,
+	["Director"] = true
+}
+
+local function checkCanI(player: Player): boolean
+	-- isnt this fucking deprecated?
+	-- IT FUCKING IS SO WHY TF IS IT NOT FLAGGED
+	-- YOU HAVE ONE FUCKING JOB
+	if not player:IsInGroup(GROUP_ID) then
+		return true
+	end
+
+	return GROUP_ALLOWED_ROLE_NAMES[player:GetRoleInGroup(GROUP_ID)] -- ALSO FUCKING DEPRECATED
+end
+
+TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(transmitter, msg)
+	for _, player in Players:GetPlayers() do
+		if player == transmitter then
+			continue
+		end
+		if not checkCanI(player) then
+			continue
+		end
+		TypedRemotes.ClientBoundForeignChatMessage:FireClient(player, transmitter, msg)
+	end
+end)

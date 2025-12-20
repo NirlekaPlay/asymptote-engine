@@ -191,7 +191,7 @@ function Door.update(self: Door, deltaTime: number): ()
 	if self:isTurning() then
 		self.turningTimeAccum += deltaTime;
 		
-		(self.hingeComponent :: DoorHingeComponent.DoorHingeComponent):update(TURNING_TIME, deltaTime)
+		(self.hingeComponent :: DoorHingeComponent.DoorHingeComponent):update(deltaTime)
 		
 		if self.turningTimeAccum >= TURNING_TIME then
 			self.turningTimeAccum = 0

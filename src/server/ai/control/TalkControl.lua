@@ -70,6 +70,7 @@ function TalkControl.stopTalking(self: TalkControl): ()
 	if self.talkThread then
 		task.cancel(self.talkThread)
 		self.talkThread = nil
+		(self.bubbleChatControl :: BubbleChatControl.BubbleChatControl):clearBubble()
 	end
 	
 	if self.faceControl then
@@ -122,24 +123,24 @@ function TalkControl.createTalkThread(self: TalkControl, dialogueSegment: Dialog
 		task.cancel(self.talkThread)
 	end
 
-	local f = function()
-			for _, segment in pairs(dialogueSegment) do
-				local speechDur = segment.customSpeechDur or TalkControl.getStringSpeechDuration(segment.text)
-				local finalText = segment.text
-				if segment.values and #segment.values >= 1 then
-					finalText = (finalText :: any):format(table.unpack(segment.values))
-				end
-
-				self.bubbleChatControl:displayBubble(finalText)
-				TalkControl.performLipSync(self.faceControl, finalText, speechDur)
+	local function f()
+		for _, segment in pairs(dialogueSegment) do
+			local speechDur = segment.customSpeechDur or TalkControl.getStringSpeechDuration(segment.text)
+			local finalText = segment.text
+			if segment.values and #segment.values >= 1 then
+				finalText = (finalText :: any):format(table.unpack(segment.values))
 			end
 
-			if self.faceControl then
-				self.faceControl:resetMouthToExpression()
-			end
-
-			self.talkThread = nil
+			self.bubbleChatControl:displayBubble(finalText)
+			TalkControl.performLipSync(self.faceControl, finalText, speechDur)
 		end
+
+		if self.faceControl then
+			self.faceControl:resetMouthToExpression()
+		end
+
+		self.talkThread = nil
+	end
 
 	-- NOTES: This should be on client-side, but I haven't seen any signifficant
 	-- performance difference, yet.
@@ -227,6 +228,7 @@ function TalkControl.connectOnDiedConnection(self: TalkControl): ()
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
 	self._diedConnection = humanoid.Died:Once(function()
 		if not self.talkThread then
+			(self.bubbleChatControl :: BubbleChatControl.BubbleChatControl):clearBubble()
 			return
 		end
 		task.cancel(self.talkThread :: thread)

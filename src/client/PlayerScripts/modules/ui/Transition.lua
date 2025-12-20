@@ -7,7 +7,8 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
 
 local SCREEN_GUI_NAME = "Transition"
-local TRANSITION_FRAME_COLOR = Color3.new(0.109804, 0.109804, 0.109804)
+local TWEEN_INFO = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
+local TRANSITION_FRAME_COLOR = Color3.new(0.090196, 0.090196, 0.090196)
 
 --[=[
 	@class Transition
@@ -27,14 +28,18 @@ function Transition.transition(): ()
 		tween:Play()
 	end
 
-	task.wait(1)
+	task.wait(TWEEN_INFO.Time)
 
 	for _, tween in currentTransitionUi.tweensForHide do
 		tween:Play()
 	end
+
+	task.delay(TWEEN_INFO.Time, currentTransitionUi.endFunc)
 end
 
-function Transition.createTransitionUi(): { setupFunc: () -> (), tweensForShow: {Tween}, tweensForHide: {Tween} }
+function Transition.createTransitionUi(): {
+	setupFunc: () -> (), endFunc: () -> (), tweensForShow: {Tween}, tweensForHide: {Tween} 
+}
 	local screenGui = Transition.getScreenGui()
 
 	local rootFrame = Instance.new("Frame")
@@ -42,25 +47,29 @@ function Transition.createTransitionUi(): { setupFunc: () -> (), tweensForShow: 
 	rootFrame.BackgroundTransparency = 0
 	rootFrame.Position = UDim2.fromScale(0, 0)
 	rootFrame.Size = UDim2.fromScale(1, 0)
+	rootFrame.BorderSizePixel = 0
 	rootFrame.Parent = screenGui
-
-	local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
 
 	local tweensForShow: {Tween} = {}
 
-	table.insert(tweensForShow, TweenService:Create(rootFrame, tweenInfo, { Size = UDim2.fromScale(1, 1) }))
+	table.insert(tweensForShow, TweenService:Create(rootFrame, TWEEN_INFO, { Size = UDim2.fromScale(1, 1) }))
 
 	local tweensForHide: {Tween} = {}
 
-	table.insert(tweensForHide, TweenService:Create(rootFrame, tweenInfo, { Position = UDim2.fromScale(0, 1) }))
-	table.insert(tweensForHide, TweenService:Create(rootFrame, tweenInfo, { Size = UDim2.fromScale(1, 1) }))
+	table.insert(tweensForHide, TweenService:Create(rootFrame, TWEEN_INFO, { Position = UDim2.fromScale(0, 1) }))
+	table.insert(tweensForHide, TweenService:Create(rootFrame, TWEEN_INFO, { Size = UDim2.fromScale(1, 1) }))
 
 	local function setupTransition(): ()
+		rootFrame.Visible = true
 		rootFrame.Position = UDim2.fromScale(0, 0)
 		rootFrame.Size = UDim2.fromScale(1, 0)
 	end
 
-	return { setupFunc = setupTransition, tweensForShow = tweensForShow, tweensForHide = tweensForHide }
+	local function endTransition(): ()
+		rootFrame.Visible = false
+	end
+
+	return { setupFunc = setupTransition, endFunc = endTransition, tweensForShow = tweensForShow, tweensForHide = tweensForHide }
 end
 
 function Transition.getScreenGui(): ScreenGui

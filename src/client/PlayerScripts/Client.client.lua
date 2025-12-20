@@ -6,17 +6,34 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
+local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
-local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
+local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
-local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
-local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
+local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local MissionConclusionScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.MissionConclusionScreen)
 local LocalPlayer = Players.LocalPlayer
 
 local DEBUG_LOCALIZATION_INIT = false
+local DEBUG_MATCH_DATA = false
+
+TypedRemotes.ClientBoundServerMatchInfo.OnClientEvent:Connect(function(payloadType, data)
+	if data.isConcluded then
+		MissionConclusionScreen.setIsMissionConcluded(true)
+	end
+	if DEBUG_MATCH_DATA then
+		print("Client receieved match data:")
+		for k, v in data :: any do
+			print(`'{k}': {v}`)
+		end
+	end
+
+	if MissionConclusionScreen.isConcluded() and data then
+		MissionConclusionScreen.updateMissionConclusionScreen(data.cameraSocket, data.isFailed)
+	end
+end)
 
 -- Localization:
 
@@ -47,88 +64,67 @@ end
 
 ClientLanguage.load()
 
--- So that languages can be loaded properly before anything uses it
-local Objectives = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.objectives.Objectives)
-
 RunService.PreRender:Connect(function(deltaTime)
+	MouseManager.update()
 	IndicatorsRenderer.update()
 	CameraManager.update(deltaTime)
 end)
 
-local blurcc = Instance.new("BlurEffect")
-blurcc.Size = 25
-blurcc.Enabled = false
-blurcc.Parent = workspace.CurrentCamera
+MouseManager.setIconEnabled(false)
+MouseManager.setLockEnabled(true)
 
--- TODO: Tight cuppling bullshit.
-local missionConcluded = false
-
-local missionTitle = LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle
-local missionTitleShadow = UITextShadow.createTextShadow(LocalPlayer.PlayerGui.MissionConclusion.Root.Title.MissionConclusionTitle)
-
-LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.RetryButton.MouseButton1Click:Connect(function()
-	TypedRemotes.ServerBoundPlayerWantRestart:FireServer()
+-- So that languages can be loaded properly before anything uses it
+task.spawn(function()
+	require(StarterPlayer.StarterPlayerScripts.client.modules.ui.objectives.Objectives)
+	require(StarterPlayer.StarterPlayerScripts.client.modules.level.Clutters)
 end)
 
-local debounce = false
+local function handleCharacter(character: Model): ()
+	-- Probably should use WaitForChild but I dunno...
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.Died:Once(function()
+			task.wait(1)
+			if #Players:GetPlayers() > 1 and not MissionConclusionScreen.getIsMissionConcluded() then
+				Transition.transition()
+				MissionConclusionScreen.setOtherGuisEnabled(false)
+				Spectate.enableMode()
+			end
+		end)
+	end
+end
 
-LocalPlayer.PlayerGui.MissionConclusion.Root.Buttons.HomeButton.MouseButton1Click:Connect(function()
-	if debounce then
+LocalPlayer.CharacterAdded:Connect(handleCharacter)
+if LocalPlayer.Character then
+	handleCharacter(LocalPlayer.Character)
+end
+
+-- Derailer
+
+local GROUP_ID = 34035167
+local GROUP_ALLOWED_ROLE_NAMES = {
+	["Tester"] = true,
+	["Developer"] = true,
+	["Director"] = true
+}
+
+local function checkCanI(player: Player): boolean
+	-- isnt this fucking deprecated?
+	-- IT FUCKING IS SO WHY TF IS IT NOT FLAGGED
+	-- YOU HAVE ONE FUCKING JOB
+	if not player:IsInGroup(GROUP_ID) then
+		return true
+	end
+
+	return GROUP_ALLOWED_ROLE_NAMES[player:GetRoleInGroup(GROUP_ID)] -- ALSO FUCKING DEPRECATED
+end
+
+LocalPlayer.Chatted:Connect(function(msg)
+	local canI = checkCanI(LocalPlayer)
+
+	if not canI then
 		return
 	end
-	debounce = true
-	LoadingScreen.onTeleporting(3, function()
-		TypedRemotes.JoinTestingServer:FireServer()
-	end)
-end)
 
-TypedRemotes.ClientBoundMissionConcluded.OnClientEvent:Connect(function(cameraSocket, failed)
-	missionConcluded = true
-	if failed then
-		missionTitle.Text = "Mission Failed"
-		missionTitleShadow.Text = "Mission Failed"
-	else
-		missionTitle.Text = "Mission Complete"
-		missionTitleShadow.Text = "Mission Complete"
-	end
-	Transition.transition()
-	CameraManager.takeOverCamera()
-	CameraManager.setSocket(cameraSocket)
-	CameraManager.startTilting()
-	LocalPlayer.PlayerGui.MissionConclusion.Enabled = true
-	LocalPlayer.PlayerGui.Objectives.Enabled = false
-	LocalPlayer.PlayerGui.Status.Enabled = false
-	blurcc.Enabled = true
+	TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(msg))
 end)
-
-TypedRemotes.ClientBoundMissionStart.OnClientEvent:Connect(function()
-	-- How the fuck does this mess work? I don't fucking know.
-	-- But it does fix and revert the player's camera back to its original behavior.
-	missionConcluded = false
-	Transition.transition()
-	CameraManager.restoreToDefaultBehavior()
-	CameraManager.stopTilting()
-	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-	workspace.CurrentCamera.CameraSubject = nil
-	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-	if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-		workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") 
-	end
-	CameraManager.restoreToDefaultBehavior()
-	task.wait()
-	LocalPlayer.PlayerGui.MissionConclusion.Enabled = false
-	LocalPlayer.PlayerGui.Objectives.Enabled = true
-	LocalPlayer.PlayerGui.Status.Enabled = true
-	blurcc.Enabled = false
-end)
-
-Players.LocalPlayer.CharacterAdded:Connect(function(char)
-	print("Character added")
-	if not missionConcluded then
-		print("Mission not concluded. Restarting camera...")
-		workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-		CameraManager.restoreToDefaultBehavior()
-	end
-end)
-
-require(StarterPlayer.StarterPlayerScripts.client.modules.level.Clutters)

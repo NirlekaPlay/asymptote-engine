@@ -39,6 +39,7 @@ local LightingSetter = require(ServerScriptService.server.world.lighting.Lightin
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
 local HIDE_CELLS = true
 local DEBUG_MIN_CELLS_TRANSPARENCY = 0.5
+local DEBUG_STATE_CHANGES = false
 local UPDATES_PER_SEC = 20
 local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
 local timeAccum = 0
@@ -71,6 +72,13 @@ end
 
 local function isEmptyStr(str: string): boolean
 	return string.match(str, "%S") == nil
+end
+
+local function setIsHalloweenVar(): ()
+	local currentMonth = tonumber(os.date("%m")) -- Returns month as number (1-12)
+	local isHalloween = currentMonth == 10
+
+	GlobalStatesHolder.setState("IsHalloween", isHalloween)
 end
 
 --[=[
@@ -145,6 +153,8 @@ function Level.initializeLevel(): ()
 
 	-- Global variables
 
+	setIsHalloweenVar()
+
 	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference(), true)
 
 	if next(missionSetupObj.globalsExpressionStrs) ~= nil then
@@ -191,9 +201,13 @@ function Level.initializeLevel(): ()
 	end
 
 	globalVariablesStatesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
-		print(stateName, stateValue)
+		if DEBUG_STATE_CHANGES then
+			print(stateName, stateValue)
+		end
 		if Level.isRestarting() then
-			warn(`CANNOT PROCEED FOR AFTER '{stateName}' VALUE CHANGED TO {stateValue}: LEVEL IS RESTARTING`)
+			if DEBUG_STATE_CHANGES then
+				warn(`CANNOT PROCEED FOR AFTER '{stateName}' VALUE CHANGED TO {stateValue}: LEVEL IS RESTARTING`)
+			end
 			return
 		end
 		--print(GlobalStatesHolder.getAllStatesReference())
@@ -504,7 +518,10 @@ function Level.initializeNpc(inst: Instance): ()
 		characterRigClone:SetAttribute("EnforceClass", inst:GetAttribute("EnforceClass"))
 	end
 	characterRigClone:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName) -- this aint a dummy no more
-
+	local tag = inst:GetAttribute("ClientTag") :: string?
+	if tag and tag ~= "" then
+		characterRigClone:AddTag(tag)
+	end
 	local payload: CharacterAppearancePayload.CharacterAppearancePayload = {
 		character = characterRigClone,
 		bodyColors = bodyColors
@@ -512,14 +529,14 @@ function Level.initializeNpc(inst: Instance): ()
 
 	charsAppearancePayloads[characterRigClone] = payload
 
-	TypedRemotes.ClientBoundCharacterAppearances:FireAllClients({payload})
-
 	characterRigClone.Destroying:Once(function()
 		charsAppearancePayloads[characterRigClone] = nil
 	end)
 end
 
 function Level.onPlayerJoined(player: Player): ()
+	print("Server: Player added " .. `'{player.Name}'`)
+	missionManager:onPlayerJoined(player)
 	if not Level:getMissionManager():isConcluded() then
 		player:LoadCharacter()
 	end
@@ -530,7 +547,6 @@ function Level.onPlayerJoined(player: Player): ()
 			i = 1
 			charAppearancesPayloads[i] = payload
 		end
-		TypedRemotes.ClientBoundCharacterAppearances:FireClient(player, charAppearancesPayloads)
 	end
 
 	objectiveManager:sendCurrentObjectivesToPlayer(player)
@@ -565,7 +581,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 		-- Luau you stupid bastard fix this shit, `placeholder` is of type `unknown`.
 
 		-- TODO: If you cant see it already, this is bad. make it better.
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, Level.getExpressionContext(), function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
 			if passed and prop then
 				for attName, v in pairs(placeholder:GetAttributes()) do
 					prop:SetAttribute(attName, v);
@@ -777,6 +793,19 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if placeholder.Name == "Killbrick" then
+				placeholder.Touched:Connect(function(part)
+					local ancestor = part:FindFirstAncestorOfClass("Model")
+					if ancestor then
+						local humanoid = ancestor:FindFirstChildOfClass("Humanoid")
+						if humanoid then
+							humanoid.Health = 0
+						end
+					end
+				end)
+				return true
+			end
+
 			return false
 		end)
 	end
@@ -871,7 +900,11 @@ function Level.restartLevel(): ()
 		prop:onLevelRestart(Level)
 	end
 
-	print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
+	if DEBUG_STATE_CHANGES then
+		print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
+	end
+
+	setIsHalloweenVar()
 
 	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
 	GlobalStatesHolder.resetAllStates(function(stateName)
@@ -889,7 +922,9 @@ function Level.restartLevel(): ()
 		end
 	end
 
-	print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
+	if DEBUG_STATE_CHANGES then
+		print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
+	end
 
 	Mission.resetAlertLevel()
 
@@ -898,7 +933,6 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		print("LOADING CHARACTER")
 		player:LoadCharacter()
 	end
 
@@ -939,7 +973,9 @@ function Level.restartLevel(): ()
 
 	levelIsRestarting = false
 
-	print(GlobalStatesHolder.getAllStatesReference())
+	if DEBUG_STATE_CHANGES then
+		print(GlobalStatesHolder.getAllStatesReference())
+	end
 end
 
 function Level.startMission(): ()

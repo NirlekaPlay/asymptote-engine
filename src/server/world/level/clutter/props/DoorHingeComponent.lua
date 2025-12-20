@@ -1,5 +1,10 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+
+local DEFAULT_TURNING_TIME = 0.3
+
 --[=[
 	@class DoorHingeComponent
 
@@ -12,7 +17,8 @@ DoorHingeComponent.__index = DoorHingeComponent
 export type DoorHingeComponent = typeof(setmetatable({} :: {
 	hinges: { Hinge },
 	double: boolean,
-	turningTimeAccum: number
+	turningTimeAccum: number,
+	turningTime: number
 }, DoorHingeComponent))
 
 export type Hinge = {
@@ -21,23 +27,24 @@ export type Hinge = {
 	endCFrame: CFrame
 }
 
-function DoorHingeComponent.new(hinges: { Hinge }, isDouble: boolean): DoorHingeComponent
+function DoorHingeComponent.new(hinges: { Hinge }, isDouble: boolean, turningTime: number): DoorHingeComponent
 	return setmetatable({
 		hinges = hinges,
 		double = isDouble,
-		turningTimeAccum = 0
+		turningTimeAccum = 0,
+		turningTime = turningTime
 	}, DoorHingeComponent)
 end
 
-function DoorHingeComponent.single(hingePart: BasePart): DoorHingeComponent
+function DoorHingeComponent.single(hingePart: BasePart, turningTime: number?): DoorHingeComponent
 	return DoorHingeComponent.new({{
 		part = hingePart,
 		startCFrame = hingePart.CFrame,
-		endCFrame = hingePart.CFrame
-	}}, false)
+		endCFrame = hingePart.CFrame,
+	}}, false, turningTime or DEFAULT_TURNING_TIME)
 end
 
-function DoorHingeComponent.double(hingePart1: BasePart, hingePart2: BasePart): DoorHingeComponent
+function DoorHingeComponent.double(hingePart1: BasePart, hingePart2: BasePart, turningTime: number?): DoorHingeComponent
 	return DoorHingeComponent.new(
 		{
 			{
@@ -50,7 +57,7 @@ function DoorHingeComponent.double(hingePart1: BasePart, hingePart2: BasePart): 
 				startCFrame = hingePart2.CFrame,
 				endCFrame = hingePart2.CFrame
 			}
-		}, true)
+		}, true, turningTime or DEFAULT_TURNING_TIME)
 end
 
 --
@@ -64,6 +71,23 @@ function DoorHingeComponent.turnToDegrees(self: DoorHingeComponent, degrees: num
 	DoorHingeComponent.setHingeTargetCFrame(self.hinges[1], degrees)
 	if self:isDouble() then
 		DoorHingeComponent.setHingeTargetCFrame(self.hinges[2], -degrees)
+	end
+
+	for _, hinge in self.hinges do
+		TypedRemotes.ClientBoundTween:FireAllClients({
+			instance = hinge.part,
+			tweenInfo = {
+				time = self.turningTime,
+				easingStyle = Enum.EasingStyle.Sine,
+				easingDirection = degrees ~= 0 and Enum.EasingDirection.InOut or Enum.EasingDirection.In,
+				repeatCount = 0,
+				reverses = false,
+				delayTime = 0
+			},
+			properties = {
+				CFrame = hinge.endCFrame
+			}
+		})
 	end
 end
 
@@ -100,14 +124,9 @@ function DoorHingeComponent.setDegrees(self: DoorHingeComponent, degrees: number
 	self.turningTimeAccum = 0
 end
 
-function DoorHingeComponent.update(self: DoorHingeComponent, turningTime: number, deltaTime: number): ()
+function DoorHingeComponent.update(self: DoorHingeComponent, deltaTime: number): ()
 	self.turningTimeAccum += deltaTime
-	for i, hinge in self.hinges do
-		local alpha = math.clamp(self.turningTimeAccum / turningTime, 0, 1)
-		hinge.part.CFrame = hinge.startCFrame:Lerp(hinge.endCFrame, alpha)
-	end
-
-	if self.turningTimeAccum >= turningTime then
+	if self.turningTimeAccum >= self.turningTime then
 		self.turningTimeAccum = 0
 		for i, hinge in self.hinges do
 			hinge.part.CFrame = hinge.endCFrame
