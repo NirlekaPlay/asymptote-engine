@@ -74,6 +74,13 @@ local function isEmptyStr(str: string): boolean
 	return string.match(str, "%S") == nil
 end
 
+local function setIsHalloweenVar(): ()
+	local currentMonth = tonumber(os.date("%m")) -- Returns month as number (1-12)
+	local isHalloween = currentMonth == 10
+
+	GlobalStatesHolder.setState("IsHalloween", isHalloween)
+end
+
 --[=[
 	@class Level
 ]=]
@@ -145,6 +152,8 @@ function Level.initializeLevel(): ()
 	end
 
 	-- Global variables
+
+	setIsHalloweenVar()
 
 	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference(), true)
 
@@ -572,7 +581,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 		-- Luau you stupid bastard fix this shit, `placeholder` is of type `unknown`.
 
 		-- TODO: If you cant see it already, this is bad. make it better.
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, Level.getExpressionContext(), function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
 			if passed and prop then
 				for attName, v in pairs(placeholder:GetAttributes()) do
 					prop:SetAttribute(attName, v);
@@ -894,6 +903,8 @@ function Level.restartLevel(): ()
 	if DEBUG_STATE_CHANGES then
 		print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
 	end
+
+	setIsHalloweenVar()
 
 	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
 	GlobalStatesHolder.resetAllStates(function(stateName)
