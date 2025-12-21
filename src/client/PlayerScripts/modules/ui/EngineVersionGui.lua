@@ -9,6 +9,7 @@ local LoadingScreen = require(script.Parent.LoadingScreen)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
+local TELEPORT_WAIT_TIME = 0.5
 local ENGINE_VERSION_SCREEN_GUI_NAME = "EngineVersion"
 local ENGINE_VERSION_STRING_VALUE_NAME = "Version"
 local ENGINE_IS_EXPERIMENTAL_BOOL_VALUE_NAME = "IsExperimental"
@@ -159,14 +160,14 @@ function EngineVersionGui.onJoinServerButtonTriggered(): ()
 		if isStudio then
 			print("JoinServerButton triggered. Joining stable server...")
 		end
-		LoadingScreen.onTeleporting(3, function()
+		LoadingScreen.onTeleporting(TELEPORT_WAIT_TIME, function()
 			TypedRemotes.JoinStableServer:FireServer()
 		end)
 	else
 		if isStudio then
 			print("JoinServerButton triggered. Joining testing server...")
 		end
-		LoadingScreen.onTeleporting(3, function()
+		LoadingScreen.onTeleporting(TELEPORT_WAIT_TIME, function()
 			TypedRemotes.JoinTestingServer:FireServer()
 		end)
 	end
@@ -234,6 +235,7 @@ function EngineVersionGui.createNewEngineVersionGui(): ScreenGui
 	headText.LayoutOrder = 0
 	headText.TextXAlignment = Enum.TextXAlignment.Right
 	headText.TextYAlignment = Enum.TextYAlignment.Top
+	headText.AutoLocalize = false
 	headText.Parent = versionTextFrame
 
 	local versionText = Instance.new("TextLabel")
@@ -246,6 +248,7 @@ function EngineVersionGui.createNewEngineVersionGui(): ScreenGui
 	versionText.LayoutOrder = 1
 	versionText.TextXAlignment = Enum.TextXAlignment.Right
 	versionText.TextYAlignment = Enum.TextYAlignment.Top
+	versionText.AutoLocalize = false
 	versionText.Parent = versionTextFrame
  
 	EngineVersionGui.setEngineAndVersionTexts(headText, versionText)

@@ -1,0 +1,2 @@
+# Bugs
+If you believe to have found a bug in any of our games using the Engine that is related to the Engine itself, please open a [GitHub issue](https://github.com/NirlekaPlay/asymptote-engine/issues/new). It helps if you also include the engine version where the bug happened.

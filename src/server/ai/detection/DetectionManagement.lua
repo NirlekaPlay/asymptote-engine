@@ -9,10 +9,12 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 
 local DEBUG_MODE = false
+local DEBUG_DET_LEVELS = false
 local BASE_DETECTION_TIME = 1.25
 local QUICK_DETECTION_RANGE = 10
 local QUIK_DETECTION_MULTIPLIER = 3.33
@@ -399,8 +401,10 @@ end
 function DetectionManagement.update(self: DetectionManagement, deltaTime: number): ()
 	self:updateDetectionPerEntities(deltaTime)
 	self:updateCuriousState(deltaTime)
-	if next(self.detectionLevels) ~= nil then
-		--print(self.detectionLevels)
+	if DEBUG_DET_LEVELS then
+		if next(self.detectionLevels) ~= nil then
+			print(self.detectionLevels)
+		end
 	end
 end
 
@@ -590,7 +594,6 @@ end
 function DetectionManagement.raiseDetection(
 	self: DetectionManagement, entityUuid: string, deltaTime: number, entityPriorityInfo: EntityPriority
 ): ()
-
 	local entityDetVal = self.detectionLevels[entityUuid] or 0
 	if entityDetVal >= 1 then
 		return
@@ -602,14 +605,29 @@ function DetectionManagement.raiseDetection(
 	end
 
 	local speedMultiplier = entityPriorityInfo.speedMultiplier
-	local detectionSpeed = speedMultiplier
-	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
-	local isEntityVisible = self.detectedEntities[entityPriorityInfo.entityUuid].isVisible
+	local detectionProfile = self.detectedEntities[entityPriorityInfo.entityUuid]
+	local isEntityVisible = detectionProfile.isVisible
 	local distance = entityPriorityInfo.distance
+
+	if detectionProfile and detectionProfile.isHeard and not isEntityVisible then
+		local playerInst = EntityUtils.ifPlayerThenGet(EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid))
+		if playerInst and playerInst.Character then
+			local humanoid = (playerInst.Character :: Model):FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				-- NOTES: Detection speed multiplier by walk speed
+				-- TODO: should be handled in a seperate code.
+
+				speedMultiplier *= math.map(humanoid.WalkSpeed, 16, 24, 1, 3)
+			end
+		end
+	end
 
 	if isEntityVisible and distance <= QUICK_DETECTION_RANGE then
 		speedMultiplier *= QUIK_DETECTION_MULTIPLIER
 	end
+
+	local detectionSpeed = speedMultiplier
+	local progressRate = (1 / BASE_DETECTION_TIME) * detectionSpeed
 
 	entityDetVal = math.clamp(entityDetVal + progressRate * deltaTime, 0.0, 1.0)
 	self.detectionLevels[entityUuid] = entityDetVal
@@ -637,19 +655,24 @@ function DetectionManagement.handleInstantDetection(
 	end
 
 	local player = (entity :: EntityManager.DynamicEntity).instance :: Player
-
+	
+	-- Status tracker update
+	-- TODO: Keep this separate.
 	local previousStatus = playerStatusTracker[player]
 	if previousStatus ~= highestStatus then
 		playerStatusTracker[player] = highestStatus
+	end
+	
+	local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
+	
+	if (instantRange and distance <= instantRange)
+		or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
+		
+		self.detectionLevels[entityKey] = 1
+		self:syncDetectionToClientIfPlayer(entityKey)
+		self.detectedSound:Play()
 
-		local instantRange = INSTANT_DETECTION_RULES[highestStatus] :: number
-		if (instantRange and distance <= instantRange)
-			or (QUICK_DETECTION_INSTANT_STATUSES[highestStatus] and distance <= QUICK_DETECTION_RANGE) then
-			self.detectionLevels[entityKey] = 1
-			self:syncDetectionToClientIfPlayer(entityKey)
-			self.detectedSound:Play()
-			return true
-		end
+		return true
 	end
 
 	return false

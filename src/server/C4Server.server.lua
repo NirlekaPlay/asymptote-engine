@@ -8,8 +8,13 @@ local Debris = game:GetService("Debris")
 
 local GunSysTypedRemotes = require(ReplicatedStorage.shared.network.remotes.GunSysTypedRemotes)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
-local PlantEvent = ReplicatedStorage.remotes.c4.PlantEvent
-local DetonateEvent = ReplicatedStorage.remotes.c4.DetonateEvent
+local Remotes = ReplicatedStorage:FindFirstChild("remotes") :: Folder?
+if not Remotes then
+	warn("Cannot initialise C4 server: 'remotes' not found in ReplicatedStorage.")
+	return
+end
+local PlantEvent = Remotes.c4.PlantEvent
+local DetonateEvent = Remotes.c4.DetonateEvent
 
 local TIME_TO_ARM_C4 = 0.8
 local TIME_TO_DETONATE_C4 = 0.8

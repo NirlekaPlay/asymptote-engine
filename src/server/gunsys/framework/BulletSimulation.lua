@@ -9,6 +9,7 @@ local DEBUG_MODE = false
 local PI = math.pi
 
 local activeBullets: { ServerBulletObject } = {}
+local activeBulletsInitialCFrame: { [ServerBulletObject]: CFrame } = {}
 local sharedRayIgnoreList: { BasePart } = {}
 
 workspace.DescendantAdded:Connect(function(inst)
@@ -51,6 +52,10 @@ export type ServerBulletObject = {
 	damageCallback: (humanoid: Humanoid?, limb: BasePart) -> Humanoid
 }
 
+function BulletSimulation.getBulletsInitialCFrames(): { [ServerBulletObject]: CFrame }
+	return activeBulletsInitialCFrame
+end
+
 function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayload.BulletTracer, fromChar: Model, damageCallback: (humanoid: Humanoid, limb: BasePart) -> ()): ()
 	-- Seeded RNG for deterministic micro-jitter in pierce/deflect only
 	local rng = Random.new(bulletData.seed)
@@ -70,7 +75,7 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 	rayParams.CollisionGroup = "Bullet"
 	rayParams.FilterDescendantsInstances = filter :: any -- stfu
 
-	table.insert(activeBullets, {
+	local bulletObj = {
 		cframe = bulletCFrame,
 		currentSpeed = bulletData.speed,
 		currentYSpeed = 0,
@@ -80,7 +85,11 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 		raycastParams = rayParams,
 		size = bulletData.size,
 		damageCallback = damageCallback
-	})
+	}
+
+	table.insert(activeBullets, bulletObj)
+	local lookAtPoint = bulletData.origin + bulletData.direction
+	activeBulletsInitialCFrame[bulletObj] = CFrame.lookAt(bulletData.origin, lookAtPoint)
 end
 
 function BulletSimulation.update(deltaTime: number): ()
@@ -118,6 +127,7 @@ function BulletSimulation.stepBullets(deltaTime: number): ()
 				bulletObj.currentYSpeed = bulletObj.currentYSpeed + (0.25 * deltaTime)
 				bulletObj.size = Vector3.new(math.max(bulletObj.currentSpeed, 0) / 5, 0.25, 0.25)
 				if bulletObj.currentSpeed < 0 then
+					activeBulletsInitialCFrame[activeBullets[i]] = nil
 					table.remove(activeBullets, i)
 				end
 				continue
@@ -171,6 +181,7 @@ function BulletSimulation.stepBullets(deltaTime: number): ()
 			end
 
 			if destroyBullet then
+				activeBulletsInitialCFrame[activeBullets[i]] = nil
 				table.remove(activeBullets, i)
 				continue
 			end
@@ -190,6 +201,7 @@ function BulletSimulation.stepBullets(deltaTime: number): ()
 
 		-- Die when speed flips negative (legacy behavior)
 		if bulletObj.currentSpeed < 0 then
+			activeBulletsInitialCFrame[activeBullets[i]] = nil
 			table.remove(activeBullets, i)
 		end
 	end

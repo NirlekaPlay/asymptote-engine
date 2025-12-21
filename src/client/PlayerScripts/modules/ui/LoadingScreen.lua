@@ -1,5 +1,6 @@
 --!strict
 
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
@@ -19,6 +20,7 @@ local DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME = "ShowQuoteOfTheDayUi"
 local DEBUG_BACKGROUND_INDEX_ATTRIBUTE_NAME = "BakckgroundIndex"
 
 local LOADING_SCREEN_SCREEN_GUI_NAME = "LoadingScreen"
+local LOADING_SCREEN_BACKGROUND_COLOR = Color3.new(0.090196, 0.090196, 0.090196)
 local LOADING_SCREEN_BACKGROUND_IDS = {
 	{ name = "Hub Room", id = 93100734007160 },
 	{ name = "The Founder's Eye", id = 119595682823582 },
@@ -28,11 +30,19 @@ local LOADING_SCREEN_BACKGROUND_IDS = {
 	{ name = "Darkness and Light", id = 98157055540963 },
 	{ name = "Falling Stairs of God", id = 78883576372525 }
 }
-local TWEEN_INFO_FADE = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
+local TWEEN_INFO_FADE = TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
 local lastArrivedBackgroundId: number? = nil
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
 local currentLoadingScreenGui: ScreenGui
+
+task.spawn(function()
+	local t = table.create(#LOADING_SCREEN_BACKGROUND_IDS, true) :: {string}
+	for i, v in LOADING_SCREEN_BACKGROUND_IDS do
+		t[i] = `rbxassetid://{v}`
+	end
+	ContentProvider:PreloadAsync(t)
+end)
 
 --[=[
 	@class LoadingScreen
@@ -40,6 +50,42 @@ local currentLoadingScreenGui: ScreenGui
 	Manages the UI you see when teleporting accross places.
 ]=]
 local LoadingScreen = {}
+
+function LoadingScreen.revert(): ()
+	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.All, true)
+
+	local tweens: { Tween } = {}
+	local trackingTween: Tween
+	for _, guiObject in ipairs((currentLoadingScreenGui:FindFirstChild("Frame") :: Frame):GetChildren()) do
+		if guiObject:IsA("TextLabel") then
+			local newTween = TweenService:Create(
+				guiObject, TWEEN_INFO_FADE, { TextTransparency = 1 }
+			)
+			table.insert(tweens, newTween)
+
+			if not trackingTween then
+				trackingTween = newTween
+			end
+		elseif guiObject:IsA("ImageLabel") then
+			local newTween = TweenService:Create(
+				guiObject, TWEEN_INFO_FADE, { ImageTransparency = 1 }
+			)
+			local newTween1 = TweenService:Create(
+				guiObject, TWEEN_INFO_FADE, { BackgroundTransparency = 1 }
+			)
+			table.insert(tweens, newTween)
+			table.insert(tweens, newTween1)
+
+			if not trackingTween then
+				trackingTween = newTween
+			end
+		end
+	end
+
+	for _, tween in ipairs(tweens) do
+		tween:Play()
+	end
+end
 
 function LoadingScreen.onTeleporting(delay: number, teleportCallback: () -> ())
 	if DEBUG_MODE then
@@ -59,7 +105,7 @@ function LoadingScreen.onTeleporting(delay: number, teleportCallback: () -> ())
 		if guiObject:IsA("TextLabel") then
 			guiObject.TextTransparency = 1
 			local newTween = TweenService:Create(
-				guiObject, TWEEN_INFO_FADE, { TextTransparency = 0}
+				guiObject, TWEEN_INFO_FADE, { TextTransparency = 0 }
 			)
 			table.insert(tweens, newTween)
 
@@ -68,11 +114,14 @@ function LoadingScreen.onTeleporting(delay: number, teleportCallback: () -> ())
 			end
 		elseif guiObject:IsA("ImageLabel") then
 			guiObject.ImageTransparency = 1
-			guiObject.BackgroundTransparency = 1
 			local newTween = TweenService:Create(
-				guiObject, TWEEN_INFO_FADE, { ImageTransparency = 0}
+				guiObject, TWEEN_INFO_FADE, { ImageTransparency = 0 }
+			)
+			local newTween1 = TweenService:Create(
+				guiObject, TWEEN_INFO_FADE, { BackgroundTransparency = 0 }
 			)
 			table.insert(tweens, newTween)
+			table.insert(tweens, newTween1)
 
 			if not trackingTween then
 				trackingTween = newTween
@@ -114,6 +163,8 @@ function LoadingScreen.createLoadingScreenGui(): ScreenGui
 	backgroundImageLabel.Size = UDim2.fromScale(1, 1)
 	backgroundImageLabel.ScaleType = Enum.ScaleType.Crop
 	backgroundImageLabel.ZIndex = 0
+	backgroundImageLabel.BackgroundTransparency = 0
+	backgroundImageLabel.BackgroundColor3 = LOADING_SCREEN_BACKGROUND_COLOR
 	backgroundImageLabel.ImageContent = Content.fromAssetId(LoadingScreen.selectBackgroundId())
 	backgroundImageLabel.Parent = rootFrame
 

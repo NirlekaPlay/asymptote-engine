@@ -10,9 +10,7 @@
       "EnvironmentSpecularScale": 1,
       "ExposureCompensation": 0,
       "GlobalShadows": true,
-      "LightingStyle": "Enum.LightingStyle.Realistic",
       "OutdoorAmbient": [139, 113, 75],
-      "PrioritizeLightingQuality": true,
       "ShadowSoftness": 0.31
     }
   },

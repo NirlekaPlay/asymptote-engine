@@ -13,6 +13,7 @@ local InsertAssetCommand = require(ServerScriptService.server.commands.InsertAss
 local KillCommand = require(ServerScriptService.server.commands.KillCommand)
 local LightingCommand = require(ServerScriptService.server.commands.LightingCommand)
 local QuoteOfTheDayCommand = require(ServerScriptService.server.commands.QuoteOfTheDayCommand)
+local RestartLevelCommand = require(ServerScriptService.server.commands.RestartLevelCommand)
 local RestartServerCommand = require(ServerScriptService.server.commands.RestartServerCommand)
 local SummonCommand = require(ServerScriptService.server.commands.SummonCommand)
 local TagCommand = require(ServerScriptService.server.commands.TagCommand)
@@ -50,6 +51,7 @@ function Commands.register()
 	CellCommand.register(dispatcher)
 	LightingCommand.register(dispatcher)
 	InsertAssetCommand.register(dispatcher)
+	RestartLevelCommand.register(dispatcher)
 end
 
 function Commands.getDispatcher(): CommandDispatcher

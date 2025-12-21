@@ -32,5 +32,5 @@ TypedRemotes.JoinTestingServer.OnServerEvent:Connect(function(player)
 		warnTeleportSuccessInStudioEnvironment(player, PLACE_IDS.SECONDARY_TESTING_SERVER)
 		return
 	end
-	TeleportService:TeleportAsync(PLACE_IDS.TESTING_SERVER, {player})
+	TeleportService:TeleportAsync(PLACE_IDS.SECONDARY_TESTING_SERVER, {player})
 end)

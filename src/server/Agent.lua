@@ -9,6 +9,7 @@ local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 
 --[=[
 	@class Agent
@@ -30,7 +31,8 @@ export type Agent = typeof(setmetatable({} :: {
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	pathNavigation: PathNavigation.PathNavigation,
-	random: Random
+	random: Random,
+	serverLevel: ServerLevel.ServerLevel
 }, Agent))
 
 function Agent.isAlive(self: Agent): boolean
@@ -55,6 +57,10 @@ end
 
 function Agent.getRandom(self: Agent): Random
 	return self.random
+end
+
+function Agent.getServerLevel(self: Agent): ServerLevel.ServerLevel
+	return self.serverLevel
 end
 
 function Agent.getUuid(self: Agent): string

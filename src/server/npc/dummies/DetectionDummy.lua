@@ -18,6 +18,7 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
@@ -49,10 +50,11 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	detectionManager: DetectionManagement.DetectionManagement,
 	--
 	designatedPosts: { Node.Node },
-	enforceClass: { [string]: number }
+	enforceClass: { [string]: number },
+	serverLevel: ServerLevel.ServerLevel
 }, DummyAgent))
 
-function DummyAgent.new(character: Model, charName: string?, seed: number?): DummyAgent
+function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
@@ -70,15 +72,16 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	self.faceControl:setFace("Neutral")
 	self.bodyRotationControl = BodyRotationControl.new(character, self.pathNavigation)
 	self.bubbleChatControl = BubbleChatControl.new(character)
-	self.gunControl = GunControl.new(self)
+	self.gunControl = GunControl.new(self, serverLevel)
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl, self.faceControl)
 	self.ragdollControl = RagdollControl.new(character)
-	self.reportControl = ReportControl.new(self)
+	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or tick())
 
 	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.JumpHeight = 0
 	humanoid.JumpPower = 0
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
 		self:onDied()
 	end)
@@ -87,6 +90,7 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 	self.brain = DetectionDummyAi.makeBrain(self) :: Brain.Brain<any>
 	self.designatedPosts = {} :: { Node.Node }
 	self.enforceClass = {}
+	self.serverLevel = serverLevel
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
@@ -131,6 +135,8 @@ function DummyAgent.new(character: Model, charName: string?, seed: number?): Dum
 		end
 		descendantAddedConnection:Disconnect()
 	end)
+
+	serverLevel:getPersistentInstanceManager():register(character)
 
 	return self
 end
@@ -218,6 +224,10 @@ end
 
 function DummyAgent.getFaceControl(self: DummyAgent): FaceControl.FaceControl
 	return self.faceControl
+end
+
+function DummyAgent.getServerLevel(self: DummyAgent): ServerLevel.ServerLevel
+	return self.serverLevel
 end
 
 function DummyAgent.getGunControl(self: DummyAgent): GunControl.GunControl

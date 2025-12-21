@@ -1,6 +1,8 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
 local ASSETS_FOLDER_NAME = "Assets"
 local PROPS_FOLDER_NAME = "Props"
@@ -53,7 +55,7 @@ function Clutter.initialize(): boolean
 	return true
 end
 
-function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, callback: ((placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart }) -> boolean)?): ()
+function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, context: ExpressionContext.ExpressionContext, callback: ((placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart }) -> boolean)?): ()
 	local stack = {levelPropsFolder} :: {Instance}
 	local index = 1
 
@@ -67,10 +69,64 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, 
 		end
 
 		if current:IsA("Folder") then
+			if current ~= levelPropsFolder :: any then
+				local conditionAttribute = current:GetAttribute("Condition")
+				if conditionAttribute and type(conditionAttribute) == "string" and conditionAttribute ~= "" then
+					local result = ExpressionParser.parseAndEvalute(conditionAttribute, context)
+					if not result then
+						-- Destroy the folder and skip traversal
+						-- TODO: Maybe save the folder somewhere in case of restarts?
+
+						current:Destroy()
+						continue
+					end
+				end
+			end
 			local children = current:GetChildren()
-			for i = #children, 1, -1 do
-				index = index + 1
-				stack[index] = children[i]
+			
+			local spawnCountValue = current:GetAttribute("PickCount") :: number?
+			local spawnSeedValue = current:FindFirstChild("PickSeed") :: number?
+
+			if spawnCountValue then
+				local count = math.round(spawnCountValue)
+				local seed = spawnSeedValue or os.clock()
+				
+				-- Guard against non-positive counts
+				if count > 0 then
+					local totalChildren = #children
+					
+					local rng = Random.new(seed)
+					
+					local indices = {}
+					for i = 1, totalChildren do
+						indices[i] = i
+					end
+					
+					-- Perform a Fisher-Yates shuffle using the deterministic RNG
+					for i = totalChildren, 2, -1 do
+						local j = rng:NextInteger(1, i)
+						indices[i], indices[j] = indices[j], indices[i]
+					end
+					
+					local toProcessIndices = {}
+					for i = 1, math.min(count, totalChildren) do
+						toProcessIndices[indices[i]] = true
+					end
+
+					for i = #children, 1, -1 do
+						if toProcessIndices[i] then
+							index = index + 1
+							stack[index] = children[i]
+						end
+						-- Children not in the set are effectively skipped.
+					end
+				end
+			else
+				-- No special values, proccess as usual.
+				for i = #children, 1, -1 do
+					index = index + 1
+					stack[index] = children[i]
+				end
 			end
 		end
 	end

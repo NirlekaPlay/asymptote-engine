@@ -1,7 +1,8 @@
 --!nonstrict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TypedBubbleChatRemote = require(ReplicatedStorage.shared.network.remotes.TypedRemotes).BubbleChat
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local TypedBubbleChatRemote = TypedRemotes.BubbleChat
 
 --[=[
 	@class BubbleChatControl
@@ -27,6 +28,14 @@ function BubbleChatControl.displayBubble(self: BubbleChatControl, text: string):
 	end
 
 	TypedBubbleChatRemote:FireAllClients(self.character.PrimaryPart, text)
+end
+
+function BubbleChatControl.clearBubble(self: BubbleChatControl): ()
+	if not self:isAgentValid() then
+		return
+	end
+
+	TypedBubbleChatRemote:FireAllClients(self.character.PrimaryPart, nil)
 end
 
 function BubbleChatControl.isAgentValid(self: BubbleChatControl): boolean

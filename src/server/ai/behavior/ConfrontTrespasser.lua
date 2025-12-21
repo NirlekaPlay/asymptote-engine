@@ -14,7 +14,6 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
-local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local DEFAULT_TRESPASSING_UPDATE_TIME = 3
@@ -109,7 +108,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	if currentEncounters == 1 then
 		doReport = true
 		reportType = ReportType.TRESPASSER_SPOTTED
-		local trespasserAreaName = Cell.getPlayerOccupiedAreaName(trespasserPlayer)
+		local trespasserAreaName = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(trespasserPlayer)
 		
 		if trespasserAreaName then
 			reportDialogue = GuardGenericDialogues["trespassing.minor.report.area.known"]

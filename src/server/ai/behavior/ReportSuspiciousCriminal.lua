@@ -13,7 +13,6 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
-local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 
 --[=[
 	@class ReportSuspiciousCriminal
@@ -73,7 +72,7 @@ function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent:
 	local criminalUuid = criminal:getUuid()
 	local criminalEntity = EntityManager.getEntityByUuid(criminalUuid)
 	local criminalPlayer = EntityUtils.getPlayerOrThrow(criminalEntity)
-	local criminalCurrentArea = Cell.getPlayerOccupiedAreaName(criminalPlayer)
+	local criminalCurrentArea = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(criminalPlayer)
 	local reportDialogue
 	if criminalCurrentArea then
 		reportDialogue = GuardGenericDialogues["status.sus_criminal.area.known"]

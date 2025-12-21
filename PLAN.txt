@@ -131,3 +131,26 @@ stealth mechanics of the engine.
          detecting  Agent  and  will  fill  up  to show how close is to
          detecting  the Player. If the Player does get detected, simply
          allows them to try again.
+
+4. Objective system.
+For now, let's just make a simple objective system. For the dean
+assasination mission, we will only have these simple objectives:
+ a. "Find a way to get up stairs". Starting at the 3rd floor, The Player
+    can steal a keycard from the guards, or shut off the power to get to
+    the stairs.
+ b. "Access the penthouse". The Player needs to access Dean's penthouse
+    either via infiltrating using disguises or breaking in.
+ c. "Kill the target". If the Player is on the 6th floor, they need to
+    kill the target (Dean). After thats done...
+ d. "Exfiltrate". The Player can now leave and finish the mission.
+
+5. Philosphy.
+Our objective system must be easily restartable. For development, it
+must be declarative. For example, the developer puts in a Part or other
+instances then set the attributes to dictate its functions.
+ a. Established systems. We have an expression parser and states. Global
+    and local respectively. For example, a `TriggerZone` can have an
+    attribute named "EnabledCondition" which can be an expression. e.g.
+    "!Mission_AlarmRaised && Mission_AlertLevel >= 1", an attribute named
+    "Variable" that sets a global or client state that is set to `true` when
+    an entity enters.
