@@ -353,7 +353,7 @@ TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(tran
 	end
 end)
 
-local size = 64
+local size = 1024
 local halfSize = size / 2
 
 -- Calculate the corners
@@ -361,12 +361,11 @@ local minPoint = Vector3.new(-halfSize, -halfSize, -halfSize)
 local maxPoint = Vector3.new(halfSize, halfSize, halfSize)
 
 local voxelWorld = VoxelWorld.new(minPoint, maxPoint)
-voxelWorld:Voxelize(Level.getServerLevelInstancesAccessor():getGeometriesFolder())
-voxelWorld:Visualize()
+voxelWorld:voxelize(Level.getServerLevelInstancesAccessor():getGeometriesFolder())
 
 local lastUpdate = 0
 local UPDATE_INTERVAL = 0.1 -- Runs 10 times per second max
-local SOUND_TRAVEL_DISTANCE = 100
+local SOUND_TRAVEL_DISTANCE = 50
 
 local currentThread: thread? = nil
 
@@ -381,7 +380,7 @@ local currentThread: thread? = nil
 		
 		currentThread = task.spawn(function()
 			 -- Run the visualization
-			local result = voxelWorld:GetSoundPath(
+			local result = voxelWorld:getSoundPath(
 				workspace.SoundSource.Position, 
 				workspace.SoundListener.Position, 
 				SOUND_TRAVEL_DISTANCE

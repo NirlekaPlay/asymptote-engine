@@ -6,13 +6,32 @@ local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Heap = require(ServerScriptService.server.world.level.voxel.Heap)
 
 local DEBUG_PATH_NODES = true
+local DEBUG_PATH_NODES_FOLDER_NAME = "DebugComputedNodes"
+local DEBUG_VOXELS = false -- TURNING THIS ON WILL LIKELY CRASH YOUR POOR PC
+local DEFAULT_MATERIAL_ID = 1
+local RESOLUTION = 1
+local CHUNK_SIZE = 16
+local MAX_ITERATIONS = 3000
 
---[=[
-	TODOs:
-	This is fast, sure, but any resolution below 4 will crash the buffer.
-	I propose using a chunk-based system and only allocate chunks where
-	stuff actually exists there. If not, just don't allocate at all.
-]=]
+local MATERIALS = {
+	[Enum.Material.Air] = 0,
+	[Enum.Material.Wood] = 1,
+	[Enum.Material.Concrete] = 2,
+	[Enum.Material.Metal] = 3,
+}
+
+local WEIGHTS = {
+	[0] = 1,
+	[1] = 15,
+	[2] = 50,
+	[3] = 150 
+}
+
+local NEIGHBOR_OFFSETS = {
+	Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
+	Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
+	Vector3.new(0, 0, 1), Vector3.new(0, 0, -1)
+}
 
 --[=[
 	@class VoxelWorld
@@ -23,20 +42,17 @@ local DEBUG_PATH_NODES = true
 local VoxelWorld = {}
 VoxelWorld.__index = VoxelWorld
 
-local RESOLUTION = 4
-local MATERIALS = {
-	[Enum.Material.Air] = 0,
-	[Enum.Material.Wood] = 1,
-	[Enum.Material.Concrete] = 2,
-	[Enum.Material.Metal] = 3,
-}
-local WEIGHTS = { [0] = 1, [1] = 15, [2] = 50, [3] = 150 }
+export type VoxelWorld = typeof(setmetatable({} :: {
+	chunks: { [any]: any },
+	min: Vector3
+}, VoxelWorld))
 
-local NEIGHBOR_OFFSETS = {
-	Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
-	Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
-	Vector3.new(0, 0, 1), Vector3.new(0, 0, -1)
-}
+function VoxelWorld.new(min: Vector3, max: Vector3): VoxelWorld
+	local self = setmetatable({}, VoxelWorld)
+	self.chunks = {}
+	self.min = min
+	return self
+end
 
 local function snapToGrid(vector: Vector3)
 	return Vector3.new(
@@ -46,213 +62,110 @@ local function snapToGrid(vector: Vector3)
 	)
 end
 
-function VoxelWorld.new(min: Vector3, max: Vector3)
-	local self = setmetatable({}, VoxelWorld)
-	self.Size = (max - min) / RESOLUTION
-	self.Min = min
-	self.SizeX = math.ceil(self.Size.X)
-	self.SizeY = math.ceil(self.Size.Y)
-	self.SizeZ = math.ceil(self.Size.Z)
-	-- Allocate 1 byte per voxel
-	self.Data = buffer.create(self.SizeX * self.SizeY * self.SizeZ)
-	
-	-- Cache for faster index calculation
-	self.YZMultiplier = self.SizeY * self.SizeZ
-	self.ZMultiplier = self.SizeZ
-	
-	return self
-end
-
-function VoxelWorld:GetIndex(x, y, z)
-	return (x * self.YZMultiplier) + (y * self.ZMultiplier) + z
-end
-
--- Fast hash function for 3D coordinates - avoid string allocation
-local function hashPos(x, y, z, sizeY, sizeZ)
+local function hashPos(x: number, y: number, z: number): number
 	return x * 1000000 + y * 1000 + z
 end
 
-function VoxelWorld:IsInBounds(x, y, z)
-	return x >= 0 and x < self.SizeX 
-	   and y >= 0 and y < self.SizeY 
-	   and z >= 0 and z < self.SizeZ
+local function getFolder(parent: Instance, name: string): Folder
+	local existing = parent:FindFirstChild(name)
+	if existing and existing:IsA("Folder") then
+		return existing
+	end
+
+	local newFolder = Instance.new("Folder")
+	newFolder.Name = name
+	newFolder.Parent = parent
+
+	return newFolder
 end
 
-function VoxelWorld:Visualize()
-	-- Clean up previous visualization
-	local folder = workspace:FindFirstChild("VoxelDebug") or Instance.new("Folder", workspace)
-	folder.Name = "VoxelDebug"
-	folder:ClearAllChildren()
+local currentDebugVisualizeComputedNodesThread: thread? = nil
+local computedNodesFolder = getFolder(workspace, DEBUG_PATH_NODES_FOLDER_NAME)
 
-	for x = 0, self.SizeX - 1 do
-		for y = 0, self.SizeY - 1 do
-			for z = 0, self.SizeZ - 1 do
-				local matId = buffer.readu8(self.Data, self:GetIndex(x, y, z))
-				
-				-- Only visualize if not Air (0)
-				if matId > 0 and matId == 2 then
-					print("yay?")
-					local pos = self.Min + Vector3.new(x, y, z) * RESOLUTION
-					
-					local adorn = Instance.new("BoxHandleAdornment")
-					adorn.Size = Vector3.one * RESOLUTION
-					adorn.CFrame = CFrame.new(pos)
-					adorn.Color3 = (matId == 2) and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
-					adorn.Transparency = 0.5
-					adorn.AlwaysOnTop = false
-					adorn.Adornee = workspace.Terrain
-					adorn.Parent = folder
-				end
+local function cancelLastDebugThread(): ()
+	if currentDebugVisualizeComputedNodesThread then
+		task.cancel(currentDebugVisualizeComputedNodesThread)
+		currentDebugVisualizeComputedNodesThread = nil
+		computedNodesFolder:ClearAllChildren()
+	end
+end
+
+local function visualizeComputedNodes(debugNodes: {{pos: Vector3, cost: number}}): ()
+	cancelLastDebugThread()
+
+	currentDebugVisualizeComputedNodesThread = task.spawn(function()
+		local maxCostFound = 0
+		for _, node in debugNodes do
+			if node.cost > maxCostFound then
+				maxCostFound = node.cost
 			end
 		end
-	end
-end
-
-function VoxelWorld:Voxelize(parent: Instance)
-	local bufferData = self.Data
-	local minBounds = self.Min
-	
-	-- Clear existing buffer
-	buffer.fill(bufferData, 0, 0, buffer.len(bufferData))
-
-	-- Filter parts first to avoid checking non-baseparts
-	local parts = {}
-	for _, descendant in ipairs(parent:GetDescendants()) do
-		if descendant:IsA("BasePart") then
-			Draw.part(descendant)
-			table.insert(parts, descendant)
-		end
-	end
-
-	local processedCount = 0
-	local yieldFrequency = 500
-
-	for _, part in ipairs(parts) do
-		local cf = part.CFrame
-		local size = part.Size
-		local halfSize = size / 2
 		
-		-- Get AABB for rotated parts
-		local right, up, look = cf.RightVector, cf.UpVector, cf.LookVector
-		local absSize = Vector3.new(
-			math.abs(right.X * size.X) + math.abs(up.X * size.Y) + math.abs(look.X * size.Z),
-			math.abs(right.Y * size.X) + math.abs(up.Y * size.Y) + math.abs(look.Y * size.Z),
-			math.abs(right.Z * size.X) + math.abs(up.Z * size.Y) + math.abs(look.Z * size.Z)
-		)
+		for _, node in debugNodes do
+			local t = maxCostFound > 0 and (node.cost / maxCostFound) or 0
+			local color = Color3.new(t, 1 - t, 0)
 
-		local minV = (cf.Position - (absSize / 2) - minBounds) / RESOLUTION
-		local maxV = (cf.Position + (absSize / 2) - minBounds) / RESOLUTION
+			local dPart = Draw.box(
+				CFrame.new(node.pos),
+				Vector3.one * (RESOLUTION * 0.8),
+				color
+			)
 
-		local matValue = MATERIALS[part.Material.Name] or 1
-
-		-- Loop through potential voxel grid area WITH BOUNDS CHECKS INSIDE
-		for x = math.floor(minV.X), math.ceil(maxV.X) do
-			-- Bounds check for X
-			if x < 0 or x >= self.SizeX then continue end
-			
-			for y = math.floor(minV.Y), math.ceil(maxV.Y) do
-				if y < 0 or y >= self.SizeY then continue end
-				
-				for z = math.floor(minV.Z), math.ceil(maxV.Z) do
-					if z < 0 or z >= self.SizeZ then continue end
-					
-					-- Precision check (OBB Logic)
-					local worldPos = minBounds + Vector3.new(x, y, z) * RESOLUTION
-					local localPos = cf:PointToObjectSpace(worldPos)
-					
-					-- If point is inside the part's actual volume
-					if math.abs(localPos.X) <= halfSize.X and
-					   math.abs(localPos.Y) <= halfSize.Y and
-					   math.abs(localPos.Z) <= halfSize.Z then
-						
-						local index = self:GetIndex(x, y, z)
-						buffer.writeu8(bufferData, index, matValue)
-					end
-				end
-			end
+			dPart.Parent = computedNodesFolder
+			--task.wait()
 		end
-
-		processedCount += 1
-		if processedCount >= yieldFrequency then
-			processedCount = 0
-			task.wait() 
-		end
-	end
-	print("Voxelization Complete!")
+	end)
 end
 
-local currentDebugThread: thread? = nil
-local debugFolder = workspace:FindFirstChild("DebugNodes") or Instance.new("Folder", workspace)
-debugFolder.Name = "DebugNodes"
+function VoxelWorld.getSoundPath(
+	self: VoxelWorld, 
+	startPos: Vector3, 
+	endPos: Vector3, 
+	maxCost: number
+): number
+	-- Convert world positions to grid coordinates
+	local startSnapped = snapToGrid(startPos)
+	local endSnapped = snapToGrid(endPos)
+	
+	local startV = (startSnapped - self.min) / RESOLUTION
+	local endV = (endSnapped - self.min) / RESOLUTION
+	
+	local startX = math.floor(startV.X)
+	local startY = math.floor(startV.Y)
+	local startZ = math.floor(startV.Z)
+	
+	local endX = math.floor(endV.X)
+	local endY = math.floor(endV.Y)
+	local endZ = math.floor(endV.Z)
 
-local function showDebugParts(debugNodes): ()
-	-- Debug: Visualize all explored nodes
-	if DEBUG_PATH_NODES then
-		if currentDebugThread then
-			task.cancel(currentDebugThread)
-			debugFolder:ClearAllChildren()
-		end
-		currentDebugThread = task.spawn(function()
-			local maxCostFound = 0
-			for _, node in ipairs(debugNodes) do
-				if node.cost > maxCostFound then maxCostFound = node.cost end
-			end
-			
-			for _, node in ipairs(debugNodes) do
-				-- Color gradient: green (low cost) -> red (high cost)
-				local t = maxCostFound > 0 and (node.cost / maxCostFound) or 0
-				local color = Color3.new(t, 1 - t, 0)
-				
-				local debugPart = Draw.box(
-					CFrame.new(node.pos),
-					Vector3.one * (RESOLUTION * 0.8), -- Slightly smaller than voxel
-					color
-				)
-				debugPart.Parent = debugFolder
-				--task.wait() -- Yield each frame to avoid lag spike
-			end
-		end)
-	end
-end
-
-function VoxelWorld:GetSoundPath(startPos: Vector3, endPos: Vector3, maxCost: number)
-	local startV = (snapToGrid(startPos) - self.Min) / RESOLUTION
-	local endV = (snapToGrid(endPos) - self.Min) / RESOLUTION
-	
-	-- Round to integers
-	local startX, startY, startZ = math.floor(startV.X), math.floor(startV.Y), math.floor(startV.Z)
-	local endX, endY, endZ = math.floor(endV.X), math.floor(endV.Y), math.floor(endV.Z)
-	
-	-- Bounds check
-	if not self:IsInBounds(startX, startY, startZ) or not self:IsInBounds(endX, endY, endZ) then
-		return math.huge
-	end
-	
 	local openList = Heap.new()
-	local closedList = {} -- Use hash table instead of string keys
+	local closedList: { boolean } = {}
 	
-	-- Calculate initial heuristic
+	-- Calculate initial heuristic (Manhattan distance)
 	local dx = math.abs(endX - startX)
 	local dy = math.abs(endY - startY)
 	local dz = math.abs(endZ - startZ)
-	local initialH = math.sqrt(dx*dx + dy*dy + dz*dz)
+	local initialH = dx + dy + dz
 	
-	openList:push({x = startX, y = startY, z = startZ, g = 0, f = initialH})
+	openList:push({
+		x = startX,
+		y = startY,
+		z = startZ,
+		g = 0,
+		f = initialH
+	})
 	
 	local iterations = 0
-	local maxIterations = 10000 -- Prevent infinite loops
 	
-	-- Debug visualization setup
 	local debugNodes = {}
 	
-	while not openList:isEmpty() and iterations < maxIterations do
+	while #openList.nodes > 0 and iterations < MAX_ITERATIONS do
 		iterations += 1
 		local current = openList:pop() :: Heap.Node -- Unlikely to return nil
 		local cx, cy, cz = current.x, current.y, current.z
 		
-		-- Debug: Store visited node
 		if DEBUG_PATH_NODES then
-			local worldPos = self.Min + Vector3.new(cx, cy, cz) * RESOLUTION
+			local worldPos = self.min + Vector3.new(cx, cy, cz) * RESOLUTION
 			table.insert(debugNodes, {pos = worldPos, cost = current.g})
 		end
 		
@@ -261,15 +174,18 @@ function VoxelWorld:GetSoundPath(startPos: Vector3, endPos: Vector3, maxCost: nu
 		dy = cy - endY
 		dz = cz - endZ
 		if dx*dx + dy*dy + dz*dz < 2 then
-			showDebugParts(debugNodes)
-			return current.g 
+			if DEBUG_PATH_NODES then
+				visualizeComputedNodes(debugNodes)
+			end
+			
+			return current.g
 		end
 		
-		-- Use integer hash instead of string
-		local key = hashPos(cx, cy, cz, self.SizeY, self.SizeZ)
+		-- Use hash for closed list
+		local key = hashPos(cx, cy, cz)
 		
-		if closedList[key] or current.g > maxCost then 
-			continue 
+		if closedList[key] or current.g > maxCost then
+			continue
 		end
 		closedList[key] = true
 		
@@ -280,38 +196,181 @@ function VoxelWorld:GetSoundPath(startPos: Vector3, endPos: Vector3, maxCost: nu
 			local ny = cy + offset.Y
 			local nz = cz + offset.Z
 			
-			-- Bounds checking
-			if not self:IsInBounds(nx, ny, nz) then continue end
-			
 			-- Check if already visited
-			local nkey = hashPos(nx, ny, nz, self.SizeY, self.SizeZ)
-			if closedList[nkey] then continue end
+			local nkey = hashPos(nx, ny, nz)
+			if closedList[nkey] then 
+				continue 
+			end
 			
 			-- Get material and calculate cost
-			local matId = buffer.readu8(self.Data, self:GetIndex(nx, ny, nz))
-			local stepCost = WEIGHTS[matId] or 1
+			local matId = self:getVoxel(nx, ny, nz)
+			local stepCost = WEIGHTS[matId] or DEFAULT_MATERIAL_ID
 			local g = current.g + stepCost
 			
 			-- Early termination if over budget
-			if g > maxCost then continue end
+			if g > maxCost then 
+				continue 
+			end
 			
-			-- Calculate heuristic (Manhattan distance is faster than Euclidean)
+			-- Calculate heuristic (Manhattan distance)
 			dx = math.abs(endX - nx)
 			dy = math.abs(endY - ny)
 			dz = math.abs(endZ - nz)
-			local h = dx + dy + dz -- Manhattan distance
+			local h = dx + dy + dz
 			
-			openList:push({x = nx, y = ny, z = nz, g = g, f = g + h})
+			openList:push({
+				x = nx,
+				y = ny,
+				z = nz,
+				g = g,
+				f = g + h
+			})
 		end
 	end
 	
-	if iterations >= maxIterations then
+	if iterations >= MAX_ITERATIONS then
 		warn("VoxelWorld :: Pathfinding hit iteration limit")
 	end
 
-	showDebugParts(debugNodes)
+	cancelLastDebugThread()
 	
 	return math.huge
+end
+
+function VoxelWorld.voxelize(self: VoxelWorld, parent: Instance)
+	self.chunks = {}
+
+	local parts: { BasePart } = {}
+	for _, descendant in parent:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			table.insert(parts, descendant)
+		end
+	end
+
+	local processedCount = 0
+	local yieldFrequency = 500
+
+	for _, part in parts do
+		local cf = part.CFrame
+		local size = part.Size
+		local halfSize = size / 2
+
+		-- Gets the AABB of the part.
+		-- Then for every voxels inside said AABB,
+		-- we check if the voxels' center are inside the part
+		-- if it is, mark it, with the part's material.
+		
+		-- Calculate AABB relative to world Min to get grid coordinates
+		local right, up, look = cf.RightVector, cf.UpVector, cf.LookVector
+		local absSize = Vector3.new(
+			math.abs(right.X * size.X) + math.abs(up.X * size.Y) + math.abs(look.X * size.Z),
+			math.abs(right.Y * size.X) + math.abs(up.Y * size.Y) + math.abs(look.Y * size.Z),
+			math.abs(right.Z * size.X) + math.abs(up.Z * size.Y) + math.abs(look.Z * size.Z)
+		)
+
+		-- Grid-space bounds
+		local minV = (cf.Position - (absSize / 2) - self.min) / RESOLUTION
+		local maxV = (cf.Position + (absSize / 2) - self.min) / RESOLUTION
+
+		local matValue = MATERIALS[part.Material] or DEFAULT_MATERIAL_ID
+
+		-- Iterate through the grid bounds of this part
+		for x = math.floor(minV.X), math.ceil(maxV.X) do
+			for y = math.floor(minV.Y), math.ceil(maxV.Y) do
+				for z = math.floor(minV.Z), math.ceil(maxV.Z) do
+					
+					-- Precision check: is this voxel center actually inside the part?
+					local worldPos = self.min + Vector3.new(x, y, z) * RESOLUTION
+					local localPos = cf:PointToObjectSpace(worldPos)
+					
+					if math.abs(localPos.X) <= halfSize.X and
+						math.abs(localPos.Y) <= halfSize.Y and
+						math.abs(localPos.Z) <= halfSize.Z then
+						
+						-- This handles the chunk creation and indexing automatically
+						self:setVoxel(x, y, z, matValue)
+					end
+				end
+			end
+		end
+
+		processedCount += 1
+		if processedCount >= yieldFrequency then
+			processedCount = 0
+			task.wait()
+		end
+	end
+end
+
+function VoxelWorld.getChunkKey(self: VoxelWorld, x: number, y: number, z: number): number
+	local cx = math.floor(x / CHUNK_SIZE)
+	local cy = math.floor(y / CHUNK_SIZE)
+	local cz = math.floor(z / CHUNK_SIZE)
+	return cx * 1000000 + cy * 1000 + cz
+end
+
+function VoxelWorld.getOrCreateChunk(self: VoxelWorld, cx: number, cy: number, cz: number)
+	local key = cx * 1000000 + cy * 1000 + cz
+	if not self.chunks[key] then
+		-- Only allocate 16x16x16 = 4096 bytes per chunk
+		self.chunks[key] = {
+			data = buffer.create(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE),
+			pos = Vector3.new(cx, cy, cz),
+			isEmpty = true -- Track if chunk has any non-air blocks
+		}
+	end
+	return self.chunks[key]
+end
+
+function VoxelWorld.setVoxel(self: VoxelWorld, x: number, y: number, z: number, matId: number): ()
+	local cx = math.floor(x / CHUNK_SIZE)
+	local cy = math.floor(y / CHUNK_SIZE)
+	local cz = math.floor(z / CHUNK_SIZE)
+
+	if DEBUG_VOXELS then
+		-- Convert grid space to world space
+		local worldX = self.min.X + (x * RESOLUTION)
+		local worldY = self.min.Y + (y * RESOLUTION)
+		local worldZ = self.min.Z + (z * RESOLUTION)
+		
+		local worldPos = Vector3.new(worldX, worldY, worldZ)
+
+		Draw.box(CFrame.new(worldPos), Vector3.one * RESOLUTION)
+	end
+	
+	local chunk = self:getOrCreateChunk(cx, cy, cz)
+	
+	-- Local coordinates within chunk
+	local lx = x % CHUNK_SIZE
+	local ly = y % CHUNK_SIZE
+	local lz = z % CHUNK_SIZE
+	
+	local index = (lx * CHUNK_SIZE * CHUNK_SIZE) + (ly * CHUNK_SIZE) + lz
+	buffer.writeu8(chunk.data, index, matId)
+	
+	if matId ~= 0 then
+		chunk.isEmpty = false
+	end
+end
+
+function VoxelWorld.getVoxel(self: VoxelWorld, x: number, y: number, z: number): number
+	local cx = math.floor(x / CHUNK_SIZE)
+	local cy = math.floor(y / CHUNK_SIZE)
+	local cz = math.floor(z / CHUNK_SIZE)
+
+	local key = cx * 1000000 + cy * 1000 + cz
+	local chunk = self.chunks[key]
+
+	if not chunk or chunk.isEmpty then
+		return 0 -- Air
+	end
+
+	local lx = x % CHUNK_SIZE
+	local ly = y % CHUNK_SIZE
+	local lz = z % CHUNK_SIZE
+
+	local index = (lx * CHUNK_SIZE * CHUNK_SIZE) + (ly * CHUNK_SIZE) + lz
+	return buffer.readu8(chunk.data, index)
 end
 
 return VoxelWorld
