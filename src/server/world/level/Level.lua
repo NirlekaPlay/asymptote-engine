@@ -116,7 +116,8 @@ function Level.initializeLevel(): ()
 	levelInstancesAccessor = LevelInstancesAccessor.new(
 		missionSetupObj,
 		cellsFolder and cellsFolder:GetChildren() :: { Model} or {},
-		levelFolder:FindFirstChild("Nodes") :: Folder?
+		levelFolder:FindFirstChild("Nodes") :: Folder?,
+		levelFolder:FindFirstChild("Geometry") or error("ERR_NO_GEOMETRY_FOLDER")
 	)
 
 	cellManager = CellManager.new(levelInstancesAccessor)
