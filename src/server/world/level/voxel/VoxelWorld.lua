@@ -24,7 +24,7 @@ local WEIGHTS = {
 	[0] = 1,
 	[1] = 15,
 	[2] = 50,
-	[3] = 150 
+	[3] = 150
 }
 
 local NEIGHBOR_OFFSETS = {
@@ -118,9 +118,9 @@ local function visualizeComputedNodes(debugNodes: {{pos: Vector3, cost: number}}
 end
 
 function VoxelWorld.getSoundPath(
-	self: VoxelWorld, 
-	startPos: Vector3, 
-	endPos: Vector3, 
+	self: VoxelWorld,
+	startPos: Vector3,
+	endPos: Vector3,
 	maxCost: number
 ): number
 	-- Convert world positions to grid coordinates
@@ -208,8 +208,8 @@ function VoxelWorld.getSoundPath(
 			local g = current.g + stepCost
 			
 			-- Early termination if over budget
-			if g > maxCost then 
-				continue 
+			if g > maxCost then
+				continue
 			end
 			
 			-- Calculate heuristic (Manhattan distance)
