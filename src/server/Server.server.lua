@@ -22,6 +22,7 @@ local CollisionGroupManager = require(ServerScriptService.server.physics.collisi
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
+local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
@@ -349,5 +350,43 @@ TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(tran
 			continue
 		end
 		TypedRemotes.ClientBoundForeignChatMessage:FireClient(player, transmitter, msg)
+	end
+end)
+
+local size = 64
+local halfSize = size / 2
+
+-- Calculate the corners
+local minPoint = Vector3.new(-halfSize, -halfSize, -halfSize)
+local maxPoint = Vector3.new(halfSize, halfSize, halfSize)
+
+local voxelWorld = VoxelWorld.new(minPoint, maxPoint)
+voxelWorld:Voxelize(Level.getServerLevelInstancesAccessor():getGeometriesFolder())
+voxelWorld:Visualize()
+
+local lastUpdate = 0
+local UPDATE_INTERVAL = 0.1 -- Runs 10 times per second max
+local SOUND_TRAVEL_DISTANCE = 100
+
+local currentThread: thread? = nil
+
+(workspace.SoundSource :: Part):GetPropertyChangedSignal("Position"):Connect(function()
+	local now = os.clock()
+	if now - lastUpdate >= UPDATE_INTERVAL then
+		lastUpdate = now
+
+		if currentThread then
+			task.cancel(currentThread)
+		end
+		
+		currentThread = task.spawn(function()
+			 -- Run the visualization
+			local result = voxelWorld:GetSoundPath(
+				workspace.SoundSource.Position, 
+				workspace.SoundListener.Position, 
+				SOUND_TRAVEL_DISTANCE
+			)
+			print("Sound Cost:", result)
+		end)
 	end
 end)
