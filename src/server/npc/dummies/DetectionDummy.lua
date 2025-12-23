@@ -19,6 +19,7 @@ local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local SoundListener = require(ServerScriptService.server.world.sound.SoundListener)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
@@ -51,7 +52,8 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	--
 	designatedPosts: { Node.Node },
 	enforceClass: { [string]: number },
-	serverLevel: ServerLevel.ServerLevel
+	serverLevel: ServerLevel.ServerLevel,
+	soundListener: SoundListener.SoundListener
 }, DummyAgent))
 
 function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
@@ -136,7 +138,27 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		descendantAddedConnection:Disconnect()
 	end)
 
+	local soundListener: SoundListener.SoundListener = {}
+	function soundListener:getPosition(): Vector3
+		return character.HumanoidRootPart.Position
+	end
+
+	function soundListener:onReceiveSound(soundPosition: Vector3, cost: number, soundType: string): ()
+		print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
+	end
+
+	function soundListener:canListen(): boolean
+		return true
+	end
+
+	function soundListener:checkExtraConditionsBeforeCalc(pos: Vector3, soundType: string): boolean
+		return true
+	end
+
+	self.soundListener = soundListener
+
 	serverLevel:getPersistentInstanceManager():register(character)
+	serverLevel:getSoundDispatcher():registerListener(soundListener)
 
 	return self
 end
@@ -278,6 +300,7 @@ end
 
 function DummyAgent.onDied(self: DummyAgent): ()
 	self.alive = false
+	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
 	self:getFaceControl():setFace("Unconscious")
 end
 

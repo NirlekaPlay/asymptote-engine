@@ -15,6 +15,7 @@ local ExpressionParser = require(ReplicatedStorage.shared.util.expression.Expres
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
+local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
@@ -34,7 +35,9 @@ local MissionManager = require(ServerScriptService.server.world.level.mission.Mi
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
 local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
+local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
+local SoundDispatcher = require(ServerScriptService.server.world.sound.SoundDispatcher)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
 local HIDE_CELLS = true
@@ -63,6 +66,8 @@ local stateComponentsSet: { [any]: true } = {}
 local globalVariablesTopolicalOrder = {}
 local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
+local soundDispatcher: SoundDispatcher.SoundDispatcher
+local voxelWorld: VoxelWorld.VoxelWorld
 
 Players.CharacterAutoLoads = false
 
@@ -125,6 +130,34 @@ function Level.initializeLevel(): ()
 	if missionSetupObj:hasLightingSettings() then
 		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
 	end
+
+	local size = 1024
+	local halfSize = size / 2
+
+	-- Calculate the corners
+	local minPoint = Vector3.new(-halfSize, -halfSize, -halfSize)
+	local maxPoint = Vector3.new(halfSize, halfSize, halfSize)
+
+	voxelWorld = VoxelWorld.new(minPoint, maxPoint)
+	voxelWorld:voxelize(Level.getServerLevelInstancesAccessor():getGeometriesFolder())
+
+	soundDispatcher = SoundDispatcher.new(voxelWorld)
+
+	-- TODO: You know what to do.
+	-- Do you?
+
+	-- Man do I love tight coupling!
+	BulletSimulation.addConsumer({
+		onBulletCreated = function(_, origin: Vector3, char: Model): ()
+			if not Players:GetPlayerFromCharacter(char) then
+				return
+			end
+			print("TEMP: LEVEL :: BULLET SHOT")
+			soundDispatcher:emitSound(origin, "GUN_SHOT", 50)
+		end
+	})
+
+	-- That's sarcasm.
 
 	local stateComponentsFolder = levelFolder:FindFirstChild("StateComponents") :: Folder?
 	if stateComponentsFolder then
@@ -848,6 +881,10 @@ function Level.initializeCells(cellsFolder: Folder): ()
 	end
 end
 
+function Level.getSoundDispatcher(_): SoundDispatcher.SoundDispatcher
+	return soundDispatcher
+end
+
 function Level.getServerLevelInstancesAccessor(_): LevelInstancesAccessor.LevelInstancesAccessor
 	return levelInstancesAccessor
 end
@@ -1014,6 +1051,7 @@ local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()
 
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
+	soundDispatcher:update(deltaTime)
 	for prop in propsInLevelSetThrottledUpdate do
 		prop:update(deltaTime, Level)
 	end
