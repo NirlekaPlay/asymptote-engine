@@ -74,7 +74,6 @@ function IndicatorsRenderer.removeIndicator(indicator: Indicator): ()
 		task.wait(HIDE_TIME)
 
 		worldIndicatorsSet[indicator] = nil
-		print("removed")
 		indicator.ui:Destroy()
 		indicator.attachment:Destroy()
 	end)
