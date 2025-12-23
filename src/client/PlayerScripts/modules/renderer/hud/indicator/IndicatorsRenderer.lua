@@ -66,7 +66,6 @@ function IndicatorsRenderer.addIndicatorAttachment(attachment: Attachment, image
 end
 
 function IndicatorsRenderer.removeIndicator(indicator: Indicator): ()
-	print(debug.traceback())
 	task.spawn(function()
 		for _, tween in indicator.tweensForHide do
 			tween:Play()
