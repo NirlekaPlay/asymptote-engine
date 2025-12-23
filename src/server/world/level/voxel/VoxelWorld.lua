@@ -5,7 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Heap = require(ServerScriptService.server.world.level.voxel.Heap)
 
-local DEBUG_PATH_NODES = true
+local DEBUG_PATH_NODES = false
 local DEBUG_PATH_NODES_FOLDER_NAME = "DebugComputedNodes"
 local DEBUG_VOXELS = false -- TURNING THIS ON WILL LIKELY CRASH YOUR POOR PC
 local DEFAULT_MATERIAL_ID = 1
