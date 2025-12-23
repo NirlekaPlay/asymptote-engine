@@ -11,7 +11,7 @@ local DEBUG_VOXELS = false -- TURNING THIS ON WILL LIKELY CRASH YOUR POOR PC
 local DEFAULT_MATERIAL_ID = 1
 local RESOLUTION = 1
 local CHUNK_SIZE = 16
-local MAX_ITERATIONS = 3000
+local TIME_BUDGET = 0.002 -- 2ms per frame
 
 local MATERIALS = {
 	[Enum.Material.Air] = 0,
@@ -117,7 +117,7 @@ local function visualizeComputedNodes(debugNodes: {{pos: Vector3, cost: number}}
 	end)
 end
 
-function VoxelWorld.getSoundPath(
+function VoxelWorld.getSoundPathAsync(
 	self: VoxelWorld,
 	startPos: Vector3,
 	endPos: Vector3,
@@ -141,7 +141,6 @@ function VoxelWorld.getSoundPath(
 	local openList = Heap.new()
 	local closedList: { boolean } = {}
 	
-	-- Calculate initial heuristic (Manhattan distance)
 	local dx = math.abs(endX - startX)
 	local dy = math.abs(endY - startY)
 	local dz = math.abs(endZ - startZ)
@@ -155,13 +154,19 @@ function VoxelWorld.getSoundPath(
 		f = initialH
 	})
 	
-	local iterations = 0
-	
 	local debugNodes = {}
+
+	local startClock = os.clock()
 	
-	while #openList.nodes > 0 and iterations < MAX_ITERATIONS do
-		iterations += 1
-		local current = openList:pop() :: Heap.Node -- Unlikely to return nil
+	-- We yield instead of crashing the frame
+	while not openList:isEmpty() do
+		-- Budget check
+		if os.clock() - startClock > TIME_BUDGET then
+			task.wait()
+			startClock = os.clock()
+		end
+
+		local current = openList:pop() :: Heap.Node
 		local cx, cy, cz = current.x, current.y, current.z
 		
 		if DEBUG_PATH_NODES then
@@ -226,10 +231,6 @@ function VoxelWorld.getSoundPath(
 				f = g + h
 			})
 		end
-	end
-	
-	if iterations >= MAX_ITERATIONS then
-		warn("VoxelWorld :: Pathfinding hit iteration limit")
 	end
 
 	cancelLastDebugThread()
