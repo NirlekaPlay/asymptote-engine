@@ -130,5 +130,16 @@
     ["I found %s unresponsive! I need backup!"],
     ["%s is lying on the ground!", "Got no pulse!"],
     ["Found %s on the floor! I think %s is dead!"]
+  ],
+  "sound.gun_shot": [
+    ["Control! I think I'm hearing gunshots!"],
+    ["Control! I'm hearing gunshots!!"],
+    ["I'm hearing gunshots over here!!"],
+    ["I think I'm hearing gunshots!!"],
+    ["Control! Someone's shooting here!!"],
+    ["Control! Shots fired!"],
+    ["Control! Shots fired! Shots fired!"],
+    ["Control! Someone's shooting over here!"],
+    ["I hear someone shooting!!"]
   ]
 }
