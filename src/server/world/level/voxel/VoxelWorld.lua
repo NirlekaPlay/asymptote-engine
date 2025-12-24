@@ -5,13 +5,15 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Heap = require(ServerScriptService.server.world.level.voxel.Heap)
 
-local DEBUG_PATH_NODES = false
+local DEBUG_PATH_NODES = true
+local DEBUG_PATH_NODES_SERVER = false -- If this is true, it will create debug parts on the server
 local DEBUG_PATH_NODES_FOLDER_NAME = "DebugComputedNodes"
 local DEBUG_VOXELS = false -- TURNING THIS ON WILL LIKELY CRASH YOUR POOR PC
-local DEFAULT_MATERIAL_ID = 1
+local DEFAULT_MATERIAL_ID = 2
 local RESOLUTION = 1
 local CHUNK_SIZE = 16
 local TIME_BUDGET = 0.002 -- 2ms per frame
+local PATH_DIR_PERCENTAGE = 1 - 0.30 -- How close of a path's nodes to compute the perceived sound direction
 
 local MATERIALS = {
 	[Enum.Material.Air] = 0,
@@ -23,7 +25,7 @@ local MATERIALS = {
 local WEIGHTS = {
 	[0] = 1,
 	[1] = 15,
-	[2] = 50,
+	[2] = 100,
 	[3] = 150
 }
 
@@ -64,6 +66,29 @@ end
 
 local function hashPos(x: number, y: number, z: number): number
 	return x * 1000000 + y * 1000 + z
+end
+
+local function getDirectionFromPath(nodes: {{pos: Vector3, cost: number}}, targetT: number): Vector3
+	local maxCostFound = 0
+	for _, node in nodes do
+		if node.cost > maxCostFound then
+			maxCostFound = node.cost
+		end
+	end
+	
+	local directionPos = nodes[1].pos  -- fallback to last node
+	local closestDiff = math.huge
+	
+	for _, node in nodes do
+		local t = maxCostFound > 0 and (node.cost / maxCostFound) or 0
+		local diff = math.abs(t - targetT)
+		if diff < closestDiff then
+			closestDiff = diff
+			directionPos = node.pos
+		end
+	end
+	
+	return directionPos
 end
 
 local function getFolder(parent: Instance, name: string): Folder
@@ -122,7 +147,7 @@ function VoxelWorld.getSoundPathAsync(
 	startPos: Vector3,
 	endPos: Vector3,
 	maxCost: number
-): number
+): (number, Vector3, {{cost: number, pos: Vector3}})
 	-- Convert world positions to grid coordinates
 	local startSnapped = snapToGrid(startPos)
 	local endSnapped = snapToGrid(endPos)
@@ -145,6 +170,8 @@ function VoxelWorld.getSoundPathAsync(
 	local dy = math.abs(endY - startY)
 	local dz = math.abs(endZ - startZ)
 	local initialH = dx + dy + dz
+
+	local closestNode = {x = startX, y = startY, z = startZ, h = initialH}
 	
 	openList:push({
 		x = startX,
@@ -155,6 +182,7 @@ function VoxelWorld.getSoundPathAsync(
 	})
 	
 	local debugNodes = {}
+	local pathNodes: {{cost: number, pos: Vector3}} = {}
 
 	local startClock = os.clock()
 	
@@ -168,10 +196,13 @@ function VoxelWorld.getSoundPathAsync(
 
 		local current = openList:pop() :: Heap.Node
 		local cx, cy, cz = current.x, current.y, current.z
+
+		local worldPos = self.min + Vector3.new(cx, cy, cz) * RESOLUTION
+		local tNode = {pos = worldPos, cost = current.g}
+		table.insert(pathNodes, tNode)
 		
 		if DEBUG_PATH_NODES then
-			local worldPos = self.min + Vector3.new(cx, cy, cz) * RESOLUTION
-			table.insert(debugNodes, {pos = worldPos, cost = current.g})
+			table.insert(debugNodes, tNode) -- TODO: This is just redundant as fuck.
 		end
 		
 		-- Check if reached goal (within 1 voxel)
@@ -179,11 +210,11 @@ function VoxelWorld.getSoundPathAsync(
 		dy = cy - endY
 		dz = cz - endZ
 		if dx*dx + dy*dy + dz*dz < 2 then
-			if DEBUG_PATH_NODES then
+			if DEBUG_PATH_NODES_SERVER then
 				visualizeComputedNodes(debugNodes)
 			end
 			
-			return current.g
+			return current.g, getDirectionFromPath(pathNodes, PATH_DIR_PERCENTAGE), debugNodes
 		end
 		
 		-- Use hash for closed list
@@ -222,6 +253,10 @@ function VoxelWorld.getSoundPathAsync(
 			dy = math.abs(endY - ny)
 			dz = math.abs(endZ - nz)
 			local h = dx + dy + dz
+
+			if h < closestNode.h then
+				closestNode = {x = nx, y = ny, z = nz, h = h}
+			end
 			
 			openList:push({
 				x = nx,
@@ -234,8 +269,10 @@ function VoxelWorld.getSoundPathAsync(
 	end
 
 	cancelLastDebugThread()
-	
-	return math.huge
+
+	local lastPos = self.min + Vector3.new(closestNode.x, closestNode.y, closestNode.z) * RESOLUTION
+
+	return math.huge, lastPos, {}
 end
 
 function VoxelWorld.voxelize(self: VoxelWorld, parent: Instance)

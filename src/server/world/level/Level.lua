@@ -153,7 +153,7 @@ function Level.initializeLevel(): ()
 				return
 			end
 			print("TEMP: LEVEL :: BULLET SHOT")
-			soundDispatcher:emitSound(origin, "GUN_SHOT", 50)
+			soundDispatcher:emitSound(origin, "GUN_SHOT", 100)
 		end
 	})
 

@@ -9,9 +9,9 @@
 
 export type SoundListener = {
 	getPosition: (self: SoundListener) -> Vector3,
-	canListen: (self: SoundListener) -> boolean,
-	onReceiveSound: (self: SoundListener, soundPosition: Vector3, cost: number, soundType: string) -> (),
-	checkExtraConditionsBeforeCalc: (self: SoundListener, origin: Vector3, soundType: string) -> ()
+	canReceiveSound: (self: SoundListener) -> boolean,
+	onReceiveSound: (self: SoundListener, soundPos: Vector3, cost: number, lastPos: Vector3, soundType: string) -> (),
+	checkExtraConditionsBeforeCalc: (self: SoundListener, origin: Vector3, soundType: string) -> boolean
 }
 
 return nil
