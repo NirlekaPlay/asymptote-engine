@@ -352,3 +352,5 @@ TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(tran
 		TypedRemotes.ClientBoundForeignChatMessage:FireClient(player, transmitter, msg)
 	end
 end)
+
+TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(DebugPackets.onReceiveSubscription)

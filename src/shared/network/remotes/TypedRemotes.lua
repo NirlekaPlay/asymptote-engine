@@ -32,6 +32,7 @@ return {
 	--
 	BrainDebugDump = RE("BrainDebugDump") :: RE<{BrainDebugPayload.BrainDump}>,
 	SubscribeDebugDump = RE("SubscribeDebugDump") :: RE<string, boolean>,
+	ClientBoundDynamicDebugDump = RE("ClientBoundDynamicDebugDump") :: RE<string, any>,
 	--
 	ClientBoundChatMessage = RE("ClientBoundChatMessage") :: RE<ClientBoundChatMessagePayload.ClientBoundChatMessagePayload>,
 	--
