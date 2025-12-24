@@ -65,7 +65,7 @@ function SoundSource.createFromPlaceholder(placeholder: BasePart): SoundSource
 	local parsed: ExpressionParser.ASTNode?
 	local variablesChangedConn: { [string]: RBXScriptConnection } = {}
 	
-	if activeStr then
+	if activeStr and activeStr ~= "" then
 		parsed = ExpressionParser.fromString(activeStr):parse()
 		local variablesUsedSet = ExpressionParser.getVariablesSet(parsed)
 		local evaluatedResult = ExpressionParser.evaluate(
@@ -89,7 +89,7 @@ function SoundSource.createFromPlaceholder(placeholder: BasePart): SoundSource
 				end
 			end)
 		end
-	else
+	elseif not activeStr or activeStr == "" then
 		sound:Play()
 	end
 
