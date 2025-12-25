@@ -591,7 +591,7 @@ function Level.onPlayerDied(player: Player): ()
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
-	for _, part in ipairs(folder:GetChildren()) do
+	for _, part in ipairs(folder:GetDescendants()) do
 		if not part:IsA("BasePart") then
 			continue
 		end
