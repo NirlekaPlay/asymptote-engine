@@ -43,6 +43,11 @@ local function getScreenGui(): typeof(HelpMenuGui)
 	local existing = PlayerGui:FindFirstChild(HelpMenuGui.Name)
 	if not existing then
 		local new = HelpMenuGui:Clone()
+		new.Root.UIPadding.PaddingLeft = UDim.new(0.07, 0)
+		new.Root.UIPadding.PaddingRight = UDim.new(0.07, 0)
+		new.Root.UIPadding.PaddingBottom = UDim.new(0.07, 0)
+		new.Root.UIPadding.PaddingTop = UDim.new(0.07, 0)
+		new.Root.SafeArea.Chapters.Size = UDim2.fromScale(0.2, 0.947)
 		new.Enabled = true
 		new.Parent = PlayerGui
 		return new
@@ -128,6 +133,7 @@ end
 
 for index, chapterData in HelpContent do
 	local newButton = ReferenceButton:Clone()
+	newButton.Size = UDim2.fromScale(1, 0.03)
 	newButton.Name = "Chapter" .. index
 	newButton.Text = chapterData.ButtonText
 	newButton.Visible = true
