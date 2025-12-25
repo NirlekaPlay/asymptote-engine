@@ -3,6 +3,7 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
@@ -211,6 +212,7 @@ local function onInputPress(actionName: string, inputState: Enum.UserInputState,
 	if not isVisible then
 		MouseManager.addUnuseableMouseOverride(MOUSE_OVERRIDE_ID)
 		slideInMenu()
+		StarterGui:SetCore("ChatActive", false)
 	else
 		MouseManager.removeUnuseableMouseOverride(MOUSE_OVERRIDE_ID)
 		slideOutMenu()
