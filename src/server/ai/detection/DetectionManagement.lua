@@ -28,7 +28,7 @@ local INSTANT_DETECTION_RULES = {
 local QUICK_DETECTION_INSTANT_STATUSES = {      -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
 	[PlayerStatusTypes.ARMED] = true
 }
-local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
+local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_alert
 
 -- I don't know how to implement this.
 -- But we will keep this shit from now on.
@@ -653,7 +653,11 @@ function DetectionManagement.raiseDetection(
 	self.detectionLevels[entityUuid] = entityDetVal
 	self:syncDetectionToClientIfPlayer(entityUuid)
 	if entityDetVal >= 1 then
-		self.detectedSound:Play()
+		local isPlayer = EntityUtils.isPlayer(EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid))
+
+		if isPlayer then
+			self.detectedSound:Play()
+		end
 	end
 end
 
