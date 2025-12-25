@@ -14,7 +14,7 @@ local FLOAT_MAX_TILT_Z_ATT_NAME = "MaxTiltZ"
 local FLOAT_MAX_ROT_Y = "MaxRotY"
 local FLOAT_SPEED_ATT_NAME = "FloatSpeed"
 
-local rng = Random.new(os.clock())
+local rng = Random.new()
 --local clutterInstances: { [Instance]: true } = {}
 local floatingClutters: { [Model | BasePart]: HoveringSpotlight } = {}
 
