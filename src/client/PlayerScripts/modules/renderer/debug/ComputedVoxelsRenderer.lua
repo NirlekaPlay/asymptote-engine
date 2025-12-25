@@ -1,9 +1,11 @@
 --!strict
 
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
 local DEBUG_PATH_NODES_FOLDER_NAME = "DebugComputedNodesClient"
+local DEBUG_PART_TTL = 15
 local RESOLUTION = 1
 
 --[=[
@@ -67,11 +69,14 @@ function ComputedVoxelsRenderer.visualizeComputedNodes(debugNodes: {{pos: Vector
 			local t = maxCostFound > 0 and (node.cost / maxCostFound) or 0
 			local color = Color3.new(t, 1 - t, 0)
 
-			Draw.box(
+			local debugPart = Draw.box(
 				CFrame.new(node.pos),
 				Vector3.one * (RESOLUTION * 0.8),
 				color
-			).Parent = computedNodesFolder
+			)
+			
+			debugPart.Parent = computedNodesFolder
+			Debris:AddItem(debugPart, DEBUG_PART_TTL)
 
 			-- Yield every X iterations to let the engine breathe
 			if i % BATCH_SIZE == 0 then
