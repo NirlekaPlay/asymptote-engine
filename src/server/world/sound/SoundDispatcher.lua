@@ -149,4 +149,8 @@ function SoundDispatcher.dispatchToListener(self: SoundDispatcher, listener: Sou
 	end)
 end
 
+function SoundDispatcher.setDebugSendDebugPackets(bool: boolean): ()
+	DEBUG_NODES = bool
+end
+
 return SoundDispatcher
