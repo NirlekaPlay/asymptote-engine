@@ -66,7 +66,6 @@ function IndicatorsRenderer.addIndicatorAttachment(attachment: Attachment, image
 end
 
 function IndicatorsRenderer.removeIndicator(indicator: Indicator): ()
-	print(debug.traceback())
 	task.spawn(function()
 		for _, tween in indicator.tweensForHide do
 			tween:Play()
@@ -75,7 +74,6 @@ function IndicatorsRenderer.removeIndicator(indicator: Indicator): ()
 		task.wait(HIDE_TIME)
 
 		worldIndicatorsSet[indicator] = nil
-		print("removed")
 		indicator.ui:Destroy()
 		indicator.attachment:Destroy()
 	end)

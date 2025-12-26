@@ -1,13 +1,18 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
+
+local DEBUG_SOUND_PERCEIVED_POS = false
+local BLUE = Color3.new(0, 0, 1)
 
 local LookAndFaceAtTargetSink = {}
 LookAndFaceAtTargetSink.__index = LookAndFaceAtTargetSink
@@ -62,6 +67,11 @@ function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agen
 			end
 
 			local entityObj = EntityManager.getEntityByUuid(targetUuid)
+
+			if entityObj and entityObj.name == "Sound" then
+				return true
+			end
+
 			if entityObj and not entityObj.isStatic and entityObj.name == "Player" then
 				return hearingPlayers[entityObj.instance :: Player] ~= nil
 			end
@@ -90,11 +100,21 @@ function LookAndFaceAtTargetSink.doUpdate(self: LookAndFaceAtTargetSink, agent: 
 	if lookTarget:isPresent() then
 		local entityUuid = lookTarget:get()
 		local entityObj = EntityManager.getEntityByUuid(entityUuid)
-		if not entityObj or entityObj.isStatic then
+		if not entityObj then
 			return
 		end
 
-		self.lastKnownTargetPos = EntityUtils.getPos(entityObj)
+		if entityObj.name == "Sound" then
+			-- TODO: SRP.
+			local soundPerceivedPos = agent.hearingSounds[entityUuid].lastVisitedNodePos
+			self.lastKnownTargetPos = soundPerceivedPos
+
+			if DEBUG_SOUND_PERCEIVED_POS then
+				Draw.point(soundPerceivedPos, BLUE)
+			end
+		else
+			self.lastKnownTargetPos = EntityUtils.getPos(entityObj)
+		end
 	end
 
 	if self.lastKnownTargetPos then

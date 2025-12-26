@@ -17,8 +17,10 @@ local DetectionManagement = require(ServerScriptService.server.ai.detection.Dete
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
+local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local SoundListener = require(ServerScriptService.server.world.sound.SoundListener)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
@@ -51,8 +53,18 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	--
 	designatedPosts: { Node.Node },
 	enforceClass: { [string]: number },
-	serverLevel: ServerLevel.ServerLevel
+	serverLevel: ServerLevel.ServerLevel,
+	soundListener: SoundListener.SoundListener,
+	hearingSounds: { [string]: HeardSound } -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
 }, DummyAgent))
+
+type HeardSound = {
+	entityUuid: string,
+	pos: Vector3,
+	soundType: string,
+	cost: number,
+	lastVisitedNodePos: Vector3
+}
 
 function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
@@ -136,7 +148,55 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		descendantAddedConnection:Disconnect()
 	end)
 
+	self.hearingSounds = {}
+
+	local soundListener: SoundListener.SoundListener = {}
+	local this = self
+	function soundListener:getPosition(): Vector3
+		return this:getPrimaryPart().Position
+	end
+
+	-- Do we even need this?
+	function soundListener:checkExtraConditionsBeforeCalc(pos: Vector3, soundType: string): boolean
+		for _, sound in this.hearingSounds do
+			if (sound :: HeardSound).soundType == soundType then
+				return false
+			end
+		end
+
+		return true
+	end
+
+	function soundListener:canReceiveSound(): boolean
+		if not this.character then
+			return false
+		end
+
+		-- Even the typechecker is starting to break down.
+		if (this:getBrain() :: Brain.Brain<Agent.Agent>):hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) then
+			return false
+		end
+
+		return true
+	end
+
+	function soundListener:onReceiveSound(soundPosition: Vector3, cost: number, lastPos: Vector3, soundType: string): ()
+		--print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
+		local entityUuid = EntityManager.newStatic("Sound", soundPosition) -- Kill me.
+		this.hearingSounds[entityUuid] = {
+			pos = soundPosition,
+			cost = cost,
+			soundType = soundType,
+			uuid = entityUuid,
+			lastVisitedNodePos = lastPos
+		}
+
+	end
+
+	self.soundListener = soundListener
+
 	serverLevel:getPersistentInstanceManager():register(character)
+	serverLevel:getSoundDispatcher():registerListener(soundListener)
 
 	return self
 end
@@ -156,6 +216,7 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	-- Breaks SRP. But who cares at this point.
 	local visibleEntities = self.brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})
 	local hearingPlayers = self.brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS):orElse({})
+	local hearingSounds = self.hearingSounds
 
 	local detectionProfiles: { [string]: DetectionManagement.DetectionProfile } = {}
 
@@ -178,6 +239,15 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 				isHeard = true
 			}
 		end
+	end
+
+	-- TODO: Someone fix this bullshit here thank you.
+
+	for uuid, sound in hearingSounds do
+		detectionProfiles[uuid] = {
+			isVisible = false,
+			isHeard = true
+		}
 	end
 
 	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
@@ -278,6 +348,7 @@ end
 
 function DummyAgent.onDied(self: DummyAgent): ()
 	self.alive = false
+	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
 	self:getFaceControl():setFace("Unconscious")
 end
 

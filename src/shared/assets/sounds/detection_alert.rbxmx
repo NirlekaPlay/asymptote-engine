@@ -1,0 +1,45 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Sound" referent="RBX71b2af6a9a1f4744b2a785294cdf9ed1">
+		<Properties>
+			<bool name="IsMutedForCapture">false</bool>
+			<NumberRange name="LoopRegion">0 60000 </NumberRange>
+			<bool name="Looped">false</bool>
+			<bool name="PlayOnRemove">false</bool>
+			<NumberRange name="PlaybackRegion">0 60000 </NumberRange>
+			<bool name="PlaybackRegionsEnabled">false</bool>
+			<float name="PlaybackSpeed">1.10000002</float>
+			<bool name="Playing">false</bool>
+			<float name="RollOffMaxDistance">10000</float>
+			<float name="RollOffMinDistance">10</float>
+			<token name="RollOffMode">3</token>
+			<Ref name="SoundGroup">null</Ref>
+			<Content name="SoundId"><url>rbxassetid://752527668</url></Content>
+			<double name="TimePosition">0</double>
+			<float name="Volume">6</float>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">Detected</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+		<Item class="EqualizerSoundEffect" referent="RBX402383edfe7c4d23aa9c4f3e2cd07b78">
+			<Properties>
+				<float name="HighGain">0.100000001</float>
+				<float name="LowGain">-80</float>
+				<float name="MidGain">-10</float>
+				<bool name="Enabled">true</bool>
+				<int name="Priority">0</int>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">EqualizerSoundEffect</string>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>

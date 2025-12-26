@@ -104,7 +104,7 @@ function LookAtSuspiciousEntities.doUpdate(self: LookAtSuspiciousEntities, agent
 			
 			-- Look at the entity if we're curious OR it's fully detected
 			if isCurious or detectionLevel >= 1.0 then
-				brain:setNullableMemory(MemoryModuleTypes.LOOK_TARGET, focusTarget.entityUuid)
+				brain:setMemory(MemoryModuleTypes.LOOK_TARGET, focusTarget.entityUuid)
 			end
 		end
 	end

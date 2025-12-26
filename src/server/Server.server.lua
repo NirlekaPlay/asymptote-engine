@@ -22,6 +22,7 @@ local CollisionGroupManager = require(ServerScriptService.server.physics.collisi
 --local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
+local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
@@ -351,3 +352,5 @@ TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(tran
 		TypedRemotes.ClientBoundForeignChatMessage:FireClient(player, transmitter, msg)
 	end
 end)
+
+TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(DebugPackets.onReceiveSubscription)

@@ -1,7 +1,9 @@
 --!strict
 
-local ServerScriptService = game:GetService("ServerScriptService")
-local Agent = require(ServerScriptService.server.Agent)
+type Entity = { -- Made to avoid circular dependency bullshit.
+	getCharacterName: (self: Entity) -> string?,
+	getUuid: (self: Entity) -> string
+}
 
 --[=[
 	@class DebugEntityNameGenerator
@@ -119,7 +121,7 @@ local NAMES_SECOND_PART = {
 	Returns a generated name based on the Agent's UUID if
 	Agent:GetCharacterName() returns nil or an empty string.
 ]=]
-function DebugEntityNameGenerator.getEntityName(agent: Agent.Agent): string
+function DebugEntityNameGenerator.getEntityName(agent: Entity): string
 	local charName = agent:getCharacterName()
 	if charName and charName ~= "" then
 		return charName

@@ -11,9 +11,14 @@ local PI = math.pi
 local activeBullets: { ServerBulletObject } = {}
 local activeBulletsInitialCFrame: { [ServerBulletObject]: CFrame } = {}
 local sharedRayIgnoreList: { BasePart } = {}
+local consumers: { any } = {} -- "trust me bro"
 
 workspace.DescendantAdded:Connect(function(inst)
-	if inst:IsA("Accessory") or inst:IsA("Hat") or inst.Name == "HumanoidRootPart" then
+	if not inst.Parent then
+		return
+	end
+
+	if inst:IsA("Accessory") or inst.Name == "HumanoidRootPart" then
 		table.insert(sharedRayIgnoreList, inst)
 	elseif inst:IsA("BasePart") and not inst.CanCollide and not inst.Parent:FindFirstChildOfClass("Humanoid") then
 		table.insert(sharedRayIgnoreList, inst)
@@ -51,6 +56,10 @@ export type ServerBulletObject = {
 	size: Vector3,
 	damageCallback: (humanoid: Humanoid?, limb: BasePart) -> Humanoid
 }
+
+function BulletSimulation.addConsumer(consumer: any): ()
+	table.insert(consumers, consumer)
+end
 
 function BulletSimulation.getBulletsInitialCFrames(): { [ServerBulletObject]: CFrame }
 	return activeBulletsInitialCFrame
@@ -90,6 +99,11 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 	table.insert(activeBullets, bulletObj)
 	local lookAtPoint = bulletData.origin + bulletData.direction
 	activeBulletsInitialCFrame[bulletObj] = CFrame.lookAt(bulletData.origin, lookAtPoint)
+
+	-- TODO: This is bad.
+	for _, consumer in consumers do
+		consumer:onBulletCreated(bulletData.origin, fromChar)
+	end
 end
 
 function BulletSimulation.update(deltaTime: number): ()

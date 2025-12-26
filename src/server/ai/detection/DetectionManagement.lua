@@ -28,7 +28,7 @@ local INSTANT_DETECTION_RULES = {
 local QUICK_DETECTION_INSTANT_STATUSES = {      -- Suspects with this status within the QUICK_DETECTION_RANGE will be instantly detected
 	[PlayerStatusTypes.ARMED] = true
 }
-local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_undertale_alert_temp
+local DETECTED_SOUND = ReplicatedStorage.shared.assets.sounds.detection_alert
 
 -- I don't know how to implement this.
 -- But we will keep this shit from now on.
@@ -41,7 +41,8 @@ local STATUS_PRIORITIES = {
 	CriminalSuspicious = 6,
 	DeadBodies = 7,
 	DangerousItems = 8,
-	Armed = 9,
+	GunShot = 9,
+	Armed = 10,
 }
 
 local SPEED_MULTIPLIERS = {
@@ -325,6 +326,25 @@ function DetectionManagement.getEntityPriorityInfo(
 			distance = distance,
 			speedMultiplier = SPEED_MULTIPLIERS["DangerousItems"] or 1.0
 		})
+	elseif self.agent.hearingSounds[entityObject.uuid] then -- TODO: What the fuck is this.
+		local soundEntity = self.agent.hearingSounds[entityObject.uuid] -- OH GOD NO
+		local cost = soundEntity.cost :: number
+		local soundType = soundEntity.soundType :: string
+		local priority = 0
+		local multiplier = 1.0
+		if soundType == "GUN_SHOT" then
+			priority = STATUS_PRIORITIES["GunShot"]
+			multiplier = 100
+		end
+		table.insert(results, {
+			entityUuid = entityUuid,
+			status = soundType,
+			priority = priority,
+			distance = distance,
+			speedMultiplier = multiplier
+		})
+	else
+		warn(`DetectionManagement :: UNRECOGNISED_ENTITY : {entityObject}`)
 	end
 
 	return results
@@ -409,27 +429,27 @@ function DetectionManagement.update(self: DetectionManagement, deltaTime: number
 end
 
 function DetectionManagement.updateDetectionPerEntities(self: DetectionManagement, deltaTime: number): ()
-	local currentlyDetectedKeys: { [string]: true } = {}
-	
-	if not self.allDetectionBlocked then
-		local focusTarget = self:findHighestPriorityEntity()
-		self.focusingTarget = focusTarget
+    local currentlyDetectedKeys: { [string]: true } = {}
+    
+    if not self.allDetectionBlocked then
+        local focusTarget = self:findHighestPriorityEntity()
+        self.focusingTarget = focusTarget
 
-		for entityUuid, detectionProfile in pairs(self.detectedEntities) do
-			local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
-			local entity = EntityManager.getEntityByUuid(entityUuid)
-			
-			if entity and entity.name == "Player" then
-				local highestPriorityInfo = nil
+        for entityUuid, detectionProfile in pairs(self.detectedEntities) do
+            local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
+            local entity = EntityManager.getEntityByUuid(entityUuid)
+            
+            if entity and entity.name == "Player" then
+                local highestPriorityInfo = nil
 				for _, info in ipairs(infos) do
-					if not highestPriorityInfo or info.priority > highestPriorityInfo.priority then
-						highestPriorityInfo = info
-					end
-				end
-				
-				if highestPriorityInfo then
-					local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
-					
+                    if not highestPriorityInfo or info.priority > highestPriorityInfo.priority then
+                        highestPriorityInfo = info
+                    end
+                end
+                
+                if highestPriorityInfo then
+                    local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
+                    
 					-- Step 1: Check for any maxed higher priority status, override highestPriorityInfo if found
 					local highestPriority = highestPriorityInfo.priority
 					for key, level in pairs(self.detectionLevels) do
@@ -504,49 +524,49 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 							if keyPriority < highestPriority and level < 1.0 then
 								-- Transfer detection to highestPriorityInfo before removing
 								self.detectionLevels[currentKey] = math.max(self.detectionLevels[currentKey] or 0, level)
-								self.detectionLevels[key] = nil
-							end
-						end
-					end
-					
+                                self.detectionLevels[key] = nil
+                            end
+                        end
+                    end
+
 					-- Step 5: Ensure highestPriorityInfo detection level initialized
-					if self.detectionLevels[currentKey] == nil then
-						self.detectionLevels[currentKey] = 0
-					end
-					
-					currentlyDetectedKeys[currentKey] = true
-					
+                    if self.detectionLevels[currentKey] == nil then
+                        self.detectionLevels[currentKey] = 0
+                    end
+                    
+                    currentlyDetectedKeys[currentKey] = true
+                    
 					-- Step 6: Raise detection on highestPriorityInfo
 					if focusTarget
 						and focusTarget.entityUuid == highestPriorityInfo.entityUuid
 						and focusTarget.status == highestPriorityInfo.status
 					then
-						self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
-					else
-						self:lowerDetection(currentKey, deltaTime)
-					end
-				end
-			else
+                        self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
+                    else
+                        self:lowerDetection(currentKey, deltaTime)
+                    end
+                end
+            else
 				-- Non-player entities (DeadBody, C4, etc.) - no stacking rules apply
-				for _, info in ipairs(infos) do
-					local key = entityUuid .. ":" .. info.status
-					currentlyDetectedKeys[key] = true
+                for _, info in ipairs(infos) do
+                        local key = entityUuid .. ":" .. info.status
+                        currentlyDetectedKeys[key] = true
 					if focusTarget
 						and focusTarget.entityUuid == info.entityUuid
 						and focusTarget.status == info.status
 					then
-						self:raiseDetection(key, deltaTime, info)
-					else
-						self:lowerDetection(key, deltaTime)
-					end
-				end
-			end
-		end
-	end
+                            self:raiseDetection(key, deltaTime, info)
+                        else
+                            self:lowerDetection(key, deltaTime)
+                    end
+                end
+            end
+        end
+    end
 
 	-- Clean up detection levels that are no longer being tracked
 	for key, _ in pairs(self.detectionLevels) do
-		if not currentlyDetectedKeys[key] then
+        if not currentlyDetectedKeys[key] then
 			local entityUuid = string.match(key, "^(.-):") :: string
 			local entity = EntityManager.getEntityByUuid(entityUuid)
 			if entity and entity.name == "Player" then
@@ -559,14 +579,14 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 				end
 				if not hasCurrentDetection then
 					self:lowerDetection(key, deltaTime)
-				else
+            else
 					self:lowerDetection(key, deltaTime)
-				end
+            end
 			else
 				self:lowerDetection(key, deltaTime)
 			end
-		end
-	end
+        end
+    end
 end
 
 function DetectionManagement.updateCuriousState(self: DetectionManagement, deltaTime: number): ()
@@ -633,7 +653,11 @@ function DetectionManagement.raiseDetection(
 	self.detectionLevels[entityUuid] = entityDetVal
 	self:syncDetectionToClientIfPlayer(entityUuid)
 	if entityDetVal >= 1 then
-		self.detectedSound:Play()
+		local isPlayer = EntityUtils.isPlayer(EntityManager.getEntityByUuid(entityPriorityInfo.entityUuid))
+
+		if isPlayer then
+			self.detectedSound:Play()
+		end
 	end
 end
 
