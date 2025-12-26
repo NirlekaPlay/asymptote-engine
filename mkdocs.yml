@@ -125,6 +125,7 @@ nav:
     - Doors: tutorials/doors.md
     - Setting up your NPCs: tutorials/npcs.md
     - Commands: tutorials/commands.md
+    - Objectives: tutorials/objectives.md
   - Reference:
     - Engine:
       - Level:
