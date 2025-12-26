@@ -124,6 +124,7 @@ nav:
     - Disguises: tutorials/disguises.md
     - Doors: tutorials/doors.md
     - Setting up your NPCs: tutorials/npcs.md
+    - Commands: tutorials/commands.md
   - Reference:
     - Engine:
       - Level:

@@ -7,6 +7,7 @@ local CellCommand = require(ServerScriptService.server.commands.CellCommand)
 local DestroyCommand = require(ServerScriptService.server.commands.DestroyCommand)
 local ForceFieldCommand = require(ServerScriptService.server.commands.ForceFieldCommand)
 local GiveCommand = require(ServerScriptService.server.commands.GiveCommand)
+local GreetCommand = require(ServerScriptService.server.commands.GreetCommand)
 local HelpCommand = require(ServerScriptService.server.commands.HelpCommand)
 local HighlightCommand = require(ServerScriptService.server.commands.HighlightCommand)
 local InsertAssetCommand = require(ServerScriptService.server.commands.InsertAssetCommand)
@@ -54,6 +55,7 @@ function Commands.register()
 	InsertAssetCommand.register(dispatcher)
 	RestartLevelCommand.register(dispatcher)
 	PacketCommand.register(dispatcher)
+	GreetCommand.register(dispatcher)
 end
 
 function Commands.getDispatcher(): CommandDispatcher
