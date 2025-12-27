@@ -1,178 +1,155 @@
---PURELY CLIENTSIDE API! Do not use this on the server
---Whizzy bullets module made by PostVivic
+--!strict
 
---[[
-USAGE
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-Helper Functions:
-	WhizzyBullets.IsAlive(Character:Model?)->boolean
-		Alterable table that checks if your character is alive (change it if you arent using humanoids)
+local HEAD_NAME = "Head"
+local SOUNDS_REL_TO_CAMERA = true
+local REMOVE_ATT_ON_DISPOSE = false
+local WHIZ_SOUND_RANDOM_PLAYBACK_SPEED_MIN = 0.8
+local WHIZ_SOUND_RANDOM_PLAYBACK_SPEED_MAX = 1.5
 
-	WhizzyBullets.GetCFrameFromP0P1(P0:Vector3, P1:Vector3)->(CFrame, number)
-		Gets the cframe and VectorDistance from two world space points
-	
-	WhizzyBullets.DefaultFocalPoint()->CFrame
-		Gets the default focal point if one isn't provided
+--[=[
+	@class WhizzyBullets
 
-Properties:
-	WhizSFX: Sound
-		the stored whiz sound effects
-	
-	SFXDist: number
-		min dist the sfx will try to play at
-	
-	Attachment: Attachment
-		the instanced Attachment (if there is any)
-	
-	AttConnection: RBXScriptConnection
-		The event handler for moving the attachment every frame
-	
-Methods:
-	Check(Origin:CFrame, VectorDistance:number, PlayerFocalPoint:CFrame?)->number
-		Runs a check, Origin and VectorDistance can be swapped out with GetCFrameFromP0P1 like
-		Check(WhizzyBullets.GetCFrameFromP0P1(p0, p1))
-	
-	Dispose()->nil
-		Disposes of the current WhizzyBulletsObject and destroys all of it's connections
-
-Constructors:
-	WhizzyBullets.new(WhizSFX:Sound, SFXDist:number)->WhizzyBulletsObject
-
-]]
-
+	A class used to handle bullet whiz.
+	Originally made by PostVivic.
+]=]
 local WhizzyBullets = {}
 WhizzyBullets.__index = WhizzyBullets
 
---CONFIG
-local HEAD_NAME = "Head" --the name of the head in characters, make a cframe for a primary part offset, make nil for camera
-local LOG_MODE = true --log errors or no
+export type WhizzyBullets = typeof(setmetatable({} :: {
+	whizSound: Sound,
+	soundDist: number,
+	random: Random,
+	currentAttachment: Attachment?,
+	currentAttachmentConn: RBXScriptConnection?
+}, WhizzyBullets))
 
-local SOUNDS_RELTO_CAMERA = true--True if the sound should be positioned relative to the camera, false if it should be positioned 
-local REMOVE_ATT_ON_DISPOSE = false--true if you want the attachment to be removed on dispose
-
---SERVICES
-local RunService = game:GetService("RunService")
-
---if you arent using humanoids, alter this so its true if the player is alive and false if they are dead
-function WhizzyBullets.IsAlive(Character)
-	if Character and Character:FindFirstChild("Humanoid") and Character.Humanoid.Health > 0 then
-		return true
-	end
-end
-
-function WhizzyBullets.GetCFrameFromP0P1(P0:Vector3, P1:Vector3)
-	local CF = CFrame.lookAt(P0, P1)
-	return CF, (P0-P1).Magnitude
-end
-
-function WhizzyBullets.DefaultFocalPoint():CFrame?
-	local Plr = game.Players.LocalPlayer
-	if WhizzyBullets.IsAlive(Plr.Character) then
-		if not HEAD_NAME then
-			return workspace.CurrentCamera.CFrame
-		elseif typeof(HEAD_NAME) == "string" then
-			local Head = Plr.Character:FindFirstChild(HEAD_NAME)
-			Log(Head, "%s is not a valid object in the head", HEAD_NAME)
-			return Head.CFrame
-		elseif typeof(HEAD_NAME) == "CFrame" then
-			return Plr.Character.PrimaryPart and Plr.Character.PrimaryPart.CFrame * HEAD_NAME
-		else
-			Log(true, "HEAD_NAME Needs to be a valid CFrame, String, or nil")
-		end
-	end
-	return
-end
-
-function WhizzyBullets:Dispose()
-	if REMOVE_ATT_ON_DISPOSE then
-		if self.Attachment then self.Attachment:Destroy() end
-		if self.AttConnection then self.AttConnection:Disconnect() end
-	end
-	
-	setmetatable(self, nil)
-	table.clear(self)
-end
-
-function WhizzyBullets:Check(Origin:CFrame, VectorDistance:number, PlayerFocalPoint:CFrame?)
-	local PlayerFocalPoint = PlayerFocalPoint or WhizzyBullets.DefaultFocalPoint()
-	if not PlayerFocalPoint then return end
-	
-	local RelativeVector = PlayerFocalPoint.Position - Origin.Position
-	local DotMagnitude = Origin.LookVector:Dot(RelativeVector)
-	
-	if DotMagnitude < 0 or DotMagnitude > VectorDistance then
-		return
-	end
-	
-	local MagRealSpace = Origin.LookVector * DotMagnitude
-	local Difference = RelativeVector - MagRealSpace
-	
-	if self.WhizSFX and (not self.SFXDist or self.SFXDist >= Difference.Magnitude) then
-		local Attachment = Instance.new("Attachment")
-		Attachment.Name = "WhizSFXPlayer"
-		
-		local WhizSFX:Sound = self.WhizSFX:Clone()
-		
-		local function PositionAttachment()
-			if SOUNDS_RELTO_CAMERA then
-				Attachment.CFrame = workspace.CurrentCamera.CFrame - Difference
-			else
-				Attachment.CFrame = PlayerFocalPoint - Difference
-			end
-		end
-		
-		local AttConnection
-		AttConnection = RunService.RenderStepped:Connect(function(dt)
-			if not Attachment or not Attachment.Parent then AttConnection:Disconnect() return end
-			PositionAttachment()
-		end)
-		PositionAttachment()
-		
-		--Attachment.Visible = true
-		
-		WhizSFX.Parent = Attachment
-		Attachment.Parent = workspace.Terrain
-		
-		WhizSFX.Ended:Once(function()
-			AttConnection:Disconnect()
-			Attachment:Destroy()
-		end)
-
-		WhizSFX.PlaybackSpeed = (self.random :: Random):NextNumber(0.8, 1.5)
-		
-		WhizSFX:Play()
-		
-		self.Attachment = Attachment
-		self.AttConnection = AttConnection
-		self.WhizSFX = nil
-	end
-	
-	return Difference.Magnitude
-end
-
-function WhizzyBullets.new(WhizSFX, SFXDist)
+function WhizzyBullets.new(whizSound: Sound, soundDist: number): WhizzyBullets
 	local self = setmetatable({}, WhizzyBullets)
 	
-	self.WhizSFX = WhizSFX
-	self.SFXDist = SFXDist
-	self.random = Random.new(os.clock())
+	self.whizSound = whizSound
+	self.soundDist = soundDist
+	self.random = Random.new()
+	self.currentAttachment = nil :: Attachment?
+	self.currentAttachmentConn = nil :: RBXScriptConnection?
 	
 	return self
 end
 
+function WhizzyBullets.isCharacterValid(character: Model?): boolean
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return humanoid ~= nil and humanoid.Health > 0
+end
 
-function Log(Assertion, Msg, ...)
-	if not Assertion then
-		if LOG_MODE then
-			if ... then
-				error(string.format(Msg, ...))
-			else
-				error(Msg)
-			end
-		else
-			coroutine.yield()
+function WhizzyBullets.getCFrameFromP0P1(p0: Vector3, p1: Vector3): (CFrame, number)
+	local CF = CFrame.lookAt(p0, p1)
+	return CF, (p0 - p1).Magnitude
+end
+
+function WhizzyBullets.getDefaultFocalPoint(): CFrame?
+	local player = Players.LocalPlayer
+	local playerChar = player.Character
+	if WhizzyBullets.isCharacterValid(playerChar) then
+		-- We will not sacrifice performance for some simple sanity checks.
+		-- Don't check if the head is actually a BasePart.
+		-- No normal circumstances where there is a Head that is not a BasePart.
+		local head = (playerChar :: Model):FindFirstChild(HEAD_NAME) :: BasePart?
+		if head then
+			return head.CFrame
 		end
 	end
+	return nil
+end
+
+function WhizzyBullets.check(
+	self: WhizzyBullets,
+	origin: CFrame,
+	vectorDist: number,
+	plrFocalPoint: CFrame?
+): number?
+	plrFocalPoint = plrFocalPoint or WhizzyBullets.getDefaultFocalPoint()
+	if not plrFocalPoint then
+		return nil
+	end
+
+	local relativeVector = plrFocalPoint.Position - origin.Position
+	local dotMagnitude = origin.LookVector:Dot(relativeVector)
+	
+	if dotMagnitude < 0 or dotMagnitude > vectorDist then
+		return nil
+	end
+	
+	local magnitudeWorldSpace = origin.LookVector * dotMagnitude
+	local diff = relativeVector - magnitudeWorldSpace
+	
+	if self.whizSound and (not self.soundDist or self.soundDist >= diff.Magnitude) then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "WhizSFXPlayer"
+		
+		local whizSound = self.whizSound:Clone()
+		
+		local function positionAttchment()
+			if SOUNDS_REL_TO_CAMERA then
+				attachment.CFrame = workspace.CurrentCamera.CFrame - diff
+			else
+				attachment.CFrame = (plrFocalPoint :: CFrame) - diff
+			end
+		end
+		
+		-- This is so bad.
+		-- But I don't have the mental capacity to fix this right now.
+		local attachmentConn
+		attachmentConn = RunService.RenderStepped:Connect(function(dt)
+			if not attachment or not attachment.Parent then
+				if attachmentConn then
+					attachmentConn:Disconnect()
+				end
+				return
+			end
+			positionAttchment()
+		end)
+		positionAttchment()
+		
+		whizSound.Parent = attachment
+		attachment.Parent = workspace.Terrain
+		
+		whizSound.Ended:Once(function()
+			if attachmentConn then
+				attachmentConn:Disconnect()
+			end
+			attachment:Destroy()
+		end)
+
+		whizSound.PlaybackSpeed = (self.random :: Random):NextNumber(
+			WHIZ_SOUND_RANDOM_PLAYBACK_SPEED_MIN, WHIZ_SOUND_RANDOM_PLAYBACK_SPEED_MAX
+		)
+		
+		whizSound:Play()
+
+		self.currentAttachment = attachment
+		self.currentAttachmentConn = attachmentConn
+		self.whizSound = nil
+	end
+
+	return diff.Magnitude
+end
+
+function WhizzyBullets.dispose(self: WhizzyBullets): ()
+	-- This might be unnecessary. As simply removing all references
+	-- to this instances will make the garbage collector do its job
+	if REMOVE_ATT_ON_DISPOSE then
+		if self.currentAttachment then
+			self.currentAttachment:Destroy()
+		end
+		if self.currentAttachmentConn then
+			self.currentAttachmentConn:Disconnect()
+		end
+	end
+	
+	setmetatable(self, nil)
+	table.clear(self :: any)
 end
 
 return WhizzyBullets

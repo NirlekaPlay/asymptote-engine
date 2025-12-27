@@ -49,6 +49,10 @@ workspace.DescendantRemoving:Connect(function(inst)
 end)
 
 for _, inst in pairs(workspace:GetDescendants()) do
+	if not inst.Parent then
+		continue
+	end
+
 	if inst:IsA("BasePart") and not inst.CanQuery then
 		continue
 	end
@@ -71,7 +75,7 @@ export type BulletObject = {
 	currentYSpeed: number,
 	penetration: number,
 	elapsed: number,
-	whiz: WhizzyBullets,
+	whiz: WhizzyBullets.WhizzyBullets,
 	rng: Random,
 	raycastParams: RaycastParams,
 }
@@ -123,8 +127,8 @@ function BulletTracerHandler.update(deltaTime: number): ()
 		local hit = workspace:Raycast(rayOrigin, rayDir, bulletObj.raycastParams)
 
 		-- Bullet whizz data:
-		local cf, dist = WhizzyBullets.GetCFrameFromP0P1(rayOrigin, rayOrigin + rayDir)
-		bulletObj.whiz:Check(cf, dist)
+		local cf, dist = WhizzyBullets.getCFrameFromP0P1(rayOrigin, rayOrigin + rayDir)
+		bulletObj.whiz:check(cf, dist)
 
 		if SharedConstants.DEBUG_BULLET_TRACERS then
 			if hit then
