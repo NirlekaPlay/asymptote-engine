@@ -334,11 +334,11 @@ local function checkCanI(player: Player): boolean
 	-- isnt this fucking deprecated?
 	-- IT FUCKING IS SO WHY TF IS IT NOT FLAGGED
 	-- YOU HAVE ONE FUCKING JOB
-	if not player:IsInGroup(GROUP_ID) then
+	if not player:IsInGroupAsync(GROUP_ID) then
 		return true
 	end
 
-	return GROUP_ALLOWED_ROLE_NAMES[player:GetRoleInGroup(GROUP_ID)] -- ALSO FUCKING DEPRECATED
+	return GROUP_ALLOWED_ROLE_NAMES[player:GetRoleInGroupAsync(GROUP_ID)] -- ALSO FUCKING DEPRECATED
 end
 
 TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(transmitter, msg)
