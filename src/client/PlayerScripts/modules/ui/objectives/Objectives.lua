@@ -39,7 +39,8 @@ local HEADERS_UI_SETTINGS = {
 	},
 	["Loud"] = {
 		BackgroundColor3 = Color3.fromRGB(177, 50, 50),
-		HeaderTextKey = "ui.objectives.loud"
+		HeaderTextKey = "ui.objectives.loud",
+		TagImageId = 117168128386109,
 	}
 } :: { [string]: { BackgroundColor3: Color3, HeaderTextKey: string, TextColor3: Color3, TagImageId: number }}
 

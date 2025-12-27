@@ -129,6 +129,12 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 		missionTitle.Text = "Mission Complete"
 		missionTitleShadow.Text = "Mission Complete"
 	end
+	-- TODO: This is bad. Choose a different logic...
+	if ReplicatedStorage:FindFirstChild("IsLobby") and ReplicatedStorage:FindFirstChild("IsLobby").Value then
+		homeButton.Visible = false
+	else
+		homeButton.Visible = true
+	end
 	retryButton.Text = "Replay Mission"
 	retryButton.Interactable = true
 	homeButton.Text = "Return to Lobby"
