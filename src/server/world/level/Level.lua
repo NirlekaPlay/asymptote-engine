@@ -37,6 +37,7 @@ local ObjectiveManager = require(ServerScriptService.server.world.level.objectiv
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
 local SoundDispatcher = require(ServerScriptService.server.world.sound.SoundDispatcher)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
@@ -153,7 +154,7 @@ function Level.initializeLevel(): ()
 				return
 			end
 			print("TEMP: LEVEL :: BULLET SHOT")
-			soundDispatcher:emitSound(origin, "GUN_SHOT", 100)
+			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED, origin)
 		end
 	})
 

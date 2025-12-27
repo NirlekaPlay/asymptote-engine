@@ -12,6 +12,7 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
 
 local DEBUG_MODE = false
 local DEBUG_DET_LEVELS = false
@@ -329,16 +330,16 @@ function DetectionManagement.getEntityPriorityInfo(
 	elseif self.agent.hearingSounds[entityObject.uuid] then -- TODO: What the fuck is this.
 		local soundEntity = self.agent.hearingSounds[entityObject.uuid] -- OH GOD NO
 		local cost = soundEntity.cost :: number
-		local soundType = soundEntity.soundType :: string
+		local soundType = soundEntity.soundType :: DetectableSound.DetectableSound
 		local priority = 0
 		local multiplier = 1.0
-		if soundType == "GUN_SHOT" then
+		if soundType == DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED then
 			priority = STATUS_PRIORITIES["GunShot"]
 			multiplier = 100
 		end
 		table.insert(results, {
 			entityUuid = entityUuid,
-			status = soundType,
+			status = soundType.name,
 			priority = priority,
 			distance = distance,
 			speedMultiplier = multiplier
