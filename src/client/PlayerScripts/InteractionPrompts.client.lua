@@ -26,6 +26,7 @@ local currentPrompt: InteractionPrompt? = nil
 local DEBUG_PROMPTS = false
 local DEBUG_OCCLUSION_RAYS = false
 local DEBUG_OCCLUSION_RAYS_LIFETIME = 0.1
+local DEFAULT_OMNI_DIR_VALUE = false
 local INF = math.huge
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
@@ -151,7 +152,7 @@ local function setupInteractionPromptFromProxPrompt(
 
 	local config: InteractionPromptConfiguration = {
 		activationDistance = originalMaxActivationDistance,
-		omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or true
+		omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or DEFAULT_OMNI_DIR_VALUE
 	}
 
 	local newInteractionPrompt: InteractionPrompt = InteractionPrompt.new(
