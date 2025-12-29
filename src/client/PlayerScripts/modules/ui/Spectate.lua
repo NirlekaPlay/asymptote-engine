@@ -90,7 +90,7 @@ function Spectate.spectateTarget(targetPlayer: Player?): ()
 	local targetHumanoid = targetCharacter and targetCharacter:FindFirstChildOfClass("Humanoid")
 
 	if targetHumanoid then
-		camera.CameraType = Enum.CameraType.Watch 
+		camera.CameraType = Enum.CameraType.Custom
 		camera.CameraSubject = targetHumanoid
 
 		isSpectating = true
