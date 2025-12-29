@@ -29,6 +29,7 @@ local MissionEndZone = require(ServerScriptService.server.world.level.clutter.pr
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
+local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
 local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
@@ -171,8 +172,11 @@ function Level.initializeLevel(): ()
 			index = index - 1
 
 			if current:IsA("BoolValue") then
+				-- Oh God.
 				if current.Name == "NpcStateTracker" then
 					stateComponentsSet[NpcStateTracker.fromInstance(current)] = true
+				elseif current.Name == "MusicController" then
+					stateComponentsSet[MusicController.fromInstance(current, Level.getExpressionContext())] = true
 				end
 			end
 
@@ -313,6 +317,7 @@ function Level.initializeLevel(): ()
 	-- Objectives
 
 	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
+	MusicController.evaluateStack()
 end
 
 -- TODO: THIS SHIT TOO.
