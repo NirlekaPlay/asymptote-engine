@@ -1,9 +1,11 @@
 --!strict
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local LocalizationService = game:GetService("LocalizationService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
@@ -128,3 +130,17 @@ LocalPlayer.Chatted:Connect(function(msg)
 
 	TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(msg))
 end)
+
+-- TODO: iajsoduhofe
+local currentMusicToggle = true
+ContextActionService:BindAction("BIND_MUSIC_TOGGLE", function(actionName: string, inputState, inputObject): Enum.ContextActionResult?
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	currentMusicToggle = not currentMusicToggle
+	local musicSoundGroup = SoundService:FindFirstChild("Music")
+	if musicSoundGroup and musicSoundGroup:IsA("SoundGroup") then
+		musicSoundGroup.Volume = currentMusicToggle and 1 or 0 -- TODO: Might fuck up if volume is controlled by another system.
+	end
+	return Enum.ContextActionResult.Sink
+end, false, Enum.KeyCode.U)
