@@ -655,6 +655,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				newSpawnLocation.CanQuery = false
 				newSpawnLocation.CanTouch = false
 				newSpawnLocation.AudioCanCollide = false
+				newSpawnLocation.Duration = 0
 				newSpawnLocation.Parent = placeholder.Parent
 				placeholder:Destroy()
 				return true
