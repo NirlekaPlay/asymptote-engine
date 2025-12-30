@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 local Bounds = require(ReplicatedStorage.shared.math.geometry.Bounds)
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 
@@ -28,7 +29,7 @@ local function weld(part0: BasePart, part1: BasePart): WeldConstraint
 end
 
 local function createPrimaryPartFromModel(model: Model): ()
-	local _, size = model:GetBoundingBox()
+	local cframe, size = model:GetBoundingBox()
 
 	local primaryPart = Instance.new("Part")
 	primaryPart.Transparency = 1
@@ -36,6 +37,7 @@ local function createPrimaryPartFromModel(model: Model): ()
 	primaryPart.AudioCanCollide = false
 	primaryPart.CanQuery = false
 	primaryPart.Size = size
+	primaryPart.CFrame = cframe
 	primaryPart.Anchored = true
 
 	for _, child in model:GetChildren() do
@@ -83,6 +85,9 @@ function Elevator.createFromPlaceholder(
 	local doorLeft = (model :: any).ElevatorDoor0 :: Model
 	local doorRight = (model :: any).ElevatorDoor1 :: Model
 
+	local cframe, size = model:GetBoundingBox()
+	local bounds = { cframe = cframe, size = size }
+
 	createPrimaryPartFromModel(doorLeft)
 	createPrimaryPartFromModel(doorRight)
 
@@ -92,8 +97,7 @@ function Elevator.createFromPlaceholder(
 	local ceilingPointLight = Instance.new("PointLight")
 	ceilingPointLight.Parent = ceilingLightPart
 
-	local cframe, size = model:GetBoundingBox()
-	local bounds = { cframe = cframe, size = size - Vector3.new(1.2, 1.2, 1.2)}
+	
 
 	local dingSound = ReplicatedStorage.shared.assets.sounds.props.elevator_ding:Clone()
 	dingSound.Volume = 0.1
