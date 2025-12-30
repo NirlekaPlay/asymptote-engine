@@ -10,6 +10,8 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
+local StarterPlayer = game:GetService("StarterPlayer")
+local UIGradientWipe = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UIGradientWipe)
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")
@@ -186,8 +188,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	local tweenInfoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local tweenInfoExpoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
 
-	local tweensForButtonHoldBeginTransparency = 0.5
-
 	local promptParentAttatchment = prompt.Parent :: Attachment
 
 	-- To know if the ProximityPrompt can be the normal one or the flat one.
@@ -214,7 +214,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	promptUI.AlwaysOnTop = true
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromScale(0.5, 1)
+	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
 	frame.BackgroundColor3 = Color3.new(0.07, 0.07, 0.07)
 	frame.Parent = promptUI
@@ -263,7 +263,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	actionText.TextColor3 = Color3.new(1, 1, 1)
 	actionText.TextXAlignment = Enum.TextXAlignment.Left
 	actionText.Parent = frame
-	table.insert(tweensForButtonHoldBegin, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = tweensForButtonHoldBeginTransparency }))
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
 	table.insert(tweensForFadeOut, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
@@ -279,18 +278,24 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	objectText.TextXAlignment = Enum.TextXAlignment.Left
 	objectText.Parent = frame
 
-	table.insert(tweensForButtonHoldBegin, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = tweensForButtonHoldBeginTransparency }))
+	local tweenInfoStylish = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local fadeInTweens, fadeOutTweens = UIGradientWipe.createFromGuiObjects({actionText, objectText}, tweenInfoStylish)
+
+	for _, tween in fadeInTweens do
+		table.insert(tweensForFadeIn, tween)
+	end
+
+	for _, tween in fadeOutTweens do
+		table.insert(tweensForFadeOut, tween)
+	end
+
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
 	table.insert(tweensForFadeOut, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
 
 	table.insert(
-		tweensForButtonHoldBegin,
-		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = tweensForButtonHoldBeginTransparency })
-	)
-	table.insert(
 		tweensForButtonHoldEnd,
-		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 0.2 })
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = 0.2 })
 	)
 	table.insert(
 		tweensForFadeOut,
@@ -298,7 +303,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	)
 	table.insert(
 		tweensForFadeIn,
-		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 0.2 })
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = 0.2 })
 	)
 
 	if prompt.HoldDuration > 0 then
@@ -482,8 +487,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 
 	local holdBeganConnection
 	local holdEndedConnection
-	local triggeredConnection
-	local triggerEndedConnection
 
 	if prompt.HoldDuration > 0 then
 		holdBeganConnection = prompt.PromptButtonHoldBegan:Connect(function()
@@ -498,18 +501,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			end
 		end)
 	end
-
-	triggeredConnection = prompt.Triggered:Connect(function()
-		for _, tween in ipairs(tweensForFadeOut) do
-			tween:Play()
-		end
-	end)
-
-	triggerEndedConnection = prompt.TriggerEnded:Connect(function()
-		for _, tween in ipairs(tweensForFadeIn) do
-			tween:Play()
-		end
-	end)
 
 	local function updateUIFromPrompt()
 		local promptHeight = 60
@@ -609,8 +600,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			holdEndedConnection:Disconnect()
 		end
 
-		triggeredConnection:Disconnect()
-		triggerEndedConnection:Disconnect()
 		changedConnection:Disconnect()
 
 		for _, tween in ipairs(tweensForFadeOut) do
