@@ -7,6 +7,7 @@ local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
+local HelpMenu = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.menus.HelpMenu)
 local help_menu_en_us = require(ReplicatedStorage.shared.assets.lang.helpmenu["help-menu-en-us"])
 
 local LocalPlayer = Players.LocalPlayer
@@ -216,10 +217,12 @@ local function onInputPress(actionName: string, inputState: Enum.UserInputState,
 	end
 	
 	if not isVisible then
+		HelpMenu.setIsEnabled(true)
 		MouseManager.addUnuseableMouseOverride(MOUSE_OVERRIDE_ID)
 		slideInMenu()
 		StarterGui:SetCore("ChatActive", false)
 	else
+		HelpMenu.setIsEnabled(false)
 		MouseManager.removeUnuseableMouseOverride(MOUSE_OVERRIDE_ID)
 		slideOutMenu()
 	end
