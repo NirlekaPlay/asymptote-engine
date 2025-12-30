@@ -24,6 +24,7 @@ local CellManager = require(ServerScriptService.server.world.level.cell.CellMana
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
+local Elevator = require(ServerScriptService.server.world.level.clutter.props.Elevator)
 local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
 local MissionEndZone = require(ServerScriptService.server.world.level.clutter.props.MissionEndZone)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
@@ -847,6 +848,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if (placeholder.Name == "Elevator" or placeholder.Name == "FunctionalElevator") and prop then
+				propsInLevelSetThrottledUpdate[Elevator.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
 			return false
 		end)
 	end
@@ -945,6 +951,10 @@ function Level.restartLevel(): ()
 		prop:onLevelRestart(Level)
 	end
 
+	for prop in propsInLevelSetThrottledUpdate do
+		prop:onLevelRestart(Level)
+	end
+
 	if DEBUG_STATE_CHANGES then
 		print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
 	end
@@ -978,7 +988,7 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 
 	missionManager:onLevelRestart()
@@ -1025,7 +1035,7 @@ end
 
 function Level.startMission(): ()
 	for _, player in Players:GetPlayers() do
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 end
 

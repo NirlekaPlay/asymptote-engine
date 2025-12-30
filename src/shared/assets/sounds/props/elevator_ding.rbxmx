@@ -1,0 +1,30 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Sound" referent="RBX4d48dca0f3b74c3fada05bdf6a8a7453">
+		<Properties>
+			<bool name="IsMutedForCapture">false</bool>
+			<NumberRange name="LoopRegion">0 60000 </NumberRange>
+			<bool name="Looped">false</bool>
+			<bool name="PlayOnRemove">false</bool>
+			<NumberRange name="PlaybackRegion">0 60000 </NumberRange>
+			<bool name="PlaybackRegionsEnabled">false</bool>
+			<float name="PlaybackSpeed">1</float>
+			<bool name="Playing">false</bool>
+			<float name="RollOffMaxDistance">10000</float>
+			<float name="RollOffMinDistance">10</float>
+			<token name="RollOffMode">0</token>
+			<Ref name="SoundGroup">null</Ref>
+			<Content name="SoundId"><url>rbxassetid://138169063</url></Content>
+			<double name="TimePosition">0</double>
+			<float name="Volume">0.5</float>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">elevator_ding</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+	</Item>
+</roblox>
