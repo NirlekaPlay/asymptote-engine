@@ -31,7 +31,7 @@ local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
 local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
-local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
+local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
@@ -173,11 +173,9 @@ function Level.initializeLevel(): ()
 			index = index - 1
 
 			if current:IsA("BoolValue") then
-				-- Oh God.
-				if current.Name == "NpcStateTracker" then
-					stateComponentsSet[NpcStateTracker.fromInstance(current)] = true
-				elseif current.Name == "MusicController" then
-					stateComponentsSet[MusicController.fromInstance(current, Level.getExpressionContext())] = true
+				local component = StateComponentFactory.create(current, Level.getExpressionContext())
+				if component then
+					stateComponentsSet[component] = true
 				end
 			end
 

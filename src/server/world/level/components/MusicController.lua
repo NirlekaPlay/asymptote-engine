@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local SoundService = game:GetService("SoundService")
+local StateComponent = require(ServerScriptService.server.world.level.components.registry.StateComponent)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
@@ -37,7 +38,7 @@ local worldMusicControllers: { MusicController } = {}
 local MusicController = {}
 MusicController.__index = MusicController
 
-export type MusicController = typeof(setmetatable({} :: {
+export type MusicController = StateComponent.StateComponent & typeof(setmetatable({} :: {
 	parsedActivePriority: ExpressionParser.ASTNode,
 	soundInst: Sound,
 	varsChangedConn: RBXScriptConnection,
@@ -86,7 +87,7 @@ function MusicController.fromInstance(inst: Instance, context: ExpressionContext
 	local newMusicController = setmetatable(self, MusicController)
 	table.insert(worldMusicControllers, newMusicController :: MusicController)
 
-	return newMusicController
+	return newMusicController :: MusicController
 end
 
 function MusicController.onLevelRestart(self: MusicController): ()
