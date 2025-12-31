@@ -8636,6 +8636,14 @@ function ClassicCamera.new()
 	self.lastUpdate = tick()
 	self.cameraToggleSpring = Util.Spring.new(5, 0)
 
+	local player = PlayersService.LocalPlayer
+	if player then
+		self.charAddedConn = player.CharacterAdded:Connect(function()
+			print("Added")
+			self.resetCameraAngle = true
+		end)
+	end
+
 	return self
 end
 
@@ -8678,12 +8686,7 @@ function ClassicCamera:Update(dt)
 
 	local overrideCameraLookVector = nil
 	if self.resetCameraAngle then
-		local rootPart: BasePart = self:GetHumanoidRootPart()
-		if rootPart then
-			overrideCameraLookVector = (rootPart.CFrame * INITIAL_CAMERA_ANGLE).lookVector
-		else
-			overrideCameraLookVector = INITIAL_CAMERA_ANGLE.lookVector
-		end
+		overrideCameraLookVector = INITIAL_CAMERA_ANGLE.lookVector
 		self.resetCameraAngle = false
 	end
 
