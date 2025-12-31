@@ -206,17 +206,18 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 
 		-- Position Cloned Handles (Non-Door Parts) - CORRECTION
 		for orig, clone in nonDoorPartsClones do
-			-- Calculate the original handle's position relative to the BASE, not the door
+			-- Get handle position relative to the base
 			local relToBase = baseCF:ToObjectSpace(orig.CFrame)
 			
-			-- MIRROR POSITION: Flip X, Keep Y, **Keep Z** (This keeps it on the Front face)
+			-- Flip the X position to move it to the other side of the door set
 			local mirroredPos = Vector3.new(-relToBase.X, relToBase.Y, relToBase.Z)
 			
-			-- MIRROR ROTATION: Convert to Euler, Flip Y and Z to mirror across X-Axis
+			-- To mirror the rotation properly for a handle at 90 degrees:
+			-- we take the original rotation and add a 180-degree turn around the Y-axis
+			-- then we invert the Z-axis rotation to account for the flip
 			local rx, ry, rz = relToBase:ToEulerAnglesYXZ()
-			local mirroredRot = CFrame.fromEulerAnglesYXZ(rx, -ry, -rz)
+			local mirroredRot = CFrame.fromEulerAnglesYXZ(rx, -ry + math.pi, -rz)
 			
-			-- Apply to World Space
 			clone.CFrame = baseCF * CFrame.new(mirroredPos) * mirroredRot
 			
 			weld(clone, part1)
