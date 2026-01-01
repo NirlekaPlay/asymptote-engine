@@ -154,3 +154,11 @@ instances then set the attributes to dictate its functions.
     "!Mission_AlarmRaised && Mission_AlertLevel >= 1", an attribute named
     "Variable" that sets a global or client state that is set to `true` when
     an entity enters.
+
+6. Elevator Shaft Manager
+ a. Current Development Circumstances and Goals. 3 Elevators under one shaft.
+    1st Floor, 2nd, Floor, and 3rd Floor. the Players are in the 1st floor and
+    cannot go to the 2nd or 3rd floor because it is restricted for public access.
+    The Players able to get to the 2nd floor and hack the elevators, now they have
+    access to the 2nd and 3rd elevator, and can move the elevator freely between
+    the 3 floors.
