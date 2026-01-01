@@ -5,7 +5,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 local Bounds = require(ReplicatedStorage.shared.math.geometry.Bounds)
-local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 
@@ -17,7 +16,8 @@ local STATES = {
 	DOORS_OPENED = 1,
 	DOORS_OPENING = 2,
 	DOORS_CLOSED = 3,
-	DOORS_CLOSING = 4
+	DOORS_CLOSING = 4,
+	MOVING = 5
 }
 
 local function weld(part0: BasePart, part1: BasePart): WeldConstraint
@@ -57,6 +57,7 @@ end
 	@class Elevator
 ]=]
 local Elevator = {}
+Elevator.States = STATES
 Elevator.__index = Elevator
 
 export type Elevator = Prop.Prop & typeof(setmetatable({} :: {
@@ -68,8 +69,11 @@ export type Elevator = Prop.Prop & typeof(setmetatable({} :: {
 	--
 	openDoorsTimer: number,
 	currentState: number,
+	cartPresent: boolean,
 	--
-	soundDing: Sound
+	soundDing: Sound,
+	id: number,
+	shaftId: number
 }, Elevator))
 
 function Elevator.createFromPlaceholder(
@@ -77,6 +81,16 @@ function Elevator.createFromPlaceholder(
 	model: Model?,
 	serverLevel: ServerLevel.ServerLevel
 ): Prop.Prop
+
+	local elevatorId = placeholder:GetAttribute("ElevatorId") :: number?
+	if not elevatorId then
+		error(`Attempt to create Elevator with no id`)
+	end
+
+	local shaftId = placeholder:GetAttribute("ShaftId") :: number?
+	if not elevatorId then
+		error(`Attempt to create Elevator with no shaft id`)
+	end
 
 	if not model then
 		error(`Attempt to create Elevator with no passed model`)
@@ -112,12 +126,24 @@ function Elevator.createFromPlaceholder(
 		--
 		openDoorsTimer = TIME_TO_OPEN_DOORS,
 		currentState = STATES.DOORS_CLOSED,
-		soundDing = dingSound
+		soundDing = dingSound,
+		cartPresent = false,
+		--
+		id = elevatorId,
+		shaftId = shaftId
 	}, Elevator) :: Elevator
 
 	self:turnOnCeilingLight()
 
 	return self
+end
+
+function Elevator.setState(self: Elevator, state: number): ()
+	self.currentState = state
+end
+
+function Elevator.getState(self: Elevator): number
+	return self.currentState
 end
 
 function Elevator.turnOnCeilingLight(self: Elevator): ()
@@ -191,33 +217,37 @@ end
 function Elevator.update(self: Elevator, deltaTime: number, serverLevel: ServerLevel.ServerLevel): ()
 	local isAnyPlayersInElev = false
 
-	for _, player in Players:GetPlayers() do
-		local plrChar = player.Character 
-		if not plrChar then
-			continue
-		end
+	if self.cartPresent then
+		for _, player in Players:GetPlayers() do
+			local plrChar = player.Character 
+			if not plrChar then
+				continue
+			end
 
-		local humanoidRootPart = plrChar:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if not humanoidRootPart then
-			continue
-		end
+			local humanoidRootPart = plrChar:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if not humanoidRootPart then
+				continue
+			end
 
-		-- No check for humanoid, let dead players be counted as well,
-		-- so that when the elevator opens all they find is a dead body >:D
+			-- No check for humanoid, let dead players be counted as well,
+			-- so that when the elevator opens all they find is a dead body >:D
 
-		local isInBounds = Bounds.isPosInBounds(
-			humanoidRootPart.Position,
-			self.bounds.cframe,
-			self.bounds.size
-		)
+			local isInBounds = Bounds.isPosInBounds(
+				humanoidRootPart.Position,
+				self.bounds.cframe,
+				self.bounds.size
+			)
 
-		if isInBounds then
-			isAnyPlayersInElev = true
-			break
+			if isInBounds then
+				isAnyPlayersInElev = true
+				break
+			end
 		end
 	end
 
-	if isAnyPlayersInElev then
+	local shouldOpen = self.cartPresent or (self.cartPresent and isAnyPlayersInElev)
+
+	if shouldOpen then
 		if self.openDoorsTimer > 0 then
 			self.openDoorsTimer -= deltaTime
 		end
@@ -241,6 +271,25 @@ end
 
 function Elevator.onLevelRestart(self: Elevator, serverLevel: ServerLevel.ServerLevel): ()
 	self:forceCloseDoors()
+end
+
+function Elevator.teleportPlayersToSelf(self: Elevator, players: {Player}, sourceCFrame: CFrame): ()
+	local targetCFrame = self.bounds.cframe
+
+	for _, player in players do
+		local character = player.Character
+		local rootPart = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		
+		if rootPart then
+			-- CFrame black magic.
+			local relativeOffset = sourceCFrame:PointToObjectSpace(rootPart.Position)
+			local newWorldPos = targetCFrame:PointToWorldSpace(relativeOffset)
+			
+
+			local rotation = rootPart.CFrame - rootPart.CFrame.Position
+			rootPart.CFrame = rotation + newWorldPos
+		end
+	end
 end
 
 return Elevator
