@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
+local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local UIGradientWipe = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UIGradientWipe)
 
 local LocalPlayer = Players.LocalPlayer
@@ -507,8 +508,8 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 		local edgeMargin = 12 -- The gap on the far left (before the icon)
 		local iconToTextGap = 50 -- The space the icon occupies (62 - 12)
 		
-		local actionStr = prompt.ActionText or ""
-		local objectStr = prompt.ObjectText or ""
+		local actionStr = ClientLanguage.getOrDefault(prompt.ActionText, prompt.ActionText)
+		local objectStr = ClientLanguage.getOrDefault(prompt.ObjectText, prompt.ObjectText)
 		local hasAction = actionStr ~= ""
 		local hasObject = objectStr ~= ""
 
