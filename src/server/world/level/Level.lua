@@ -25,11 +25,13 @@ local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
 local Elevator = require(ServerScriptService.server.world.level.clutter.props.Elevator)
+local ElevatorCallButton = require(ServerScriptService.server.world.level.clutter.props.ElevatorCallButton)
 local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
 local MissionEndZone = require(ServerScriptService.server.world.level.clutter.props.MissionEndZone)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
+local ElevatorShaftController = require(ServerScriptService.server.world.level.components.ElevatorShaftController)
 local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
 local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
@@ -633,6 +635,15 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
 					prop:AddTag(tagAtt)
 				end
+
+				local turnTransparent = prop:GetAttribute("Transparent") == true
+				if turnTransparent then
+					for _, child in prop:GetDescendants() do
+						if child:IsA("BasePart") then
+							child.Transparency = 1
+						end
+					end
+				end
 			else
 				local tagAtt = placeholder:GetAttribute("Tag")
 				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
@@ -847,7 +858,19 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if (placeholder.Name == "Elevator" or placeholder.Name == "FunctionalElevator") and prop then
-				propsInLevelSetThrottledUpdate[Elevator.createFromPlaceholder(placeholder, prop, Level)] = true
+				-- TODO: This abomination.
+				local elev = Elevator.createFromPlaceholder(placeholder, prop, Level)
+				propsInLevelSetThrottledUpdate[elev] = true
+				for component in stateComponentsSet do
+					if getmetatable(component) == ElevatorShaftController then
+						(component :: ElevatorShaftController.ElevatorShaftController):processElevator(elev)
+					end
+				end
+				return true
+			end
+
+			if placeholder.Name == "ElevatorCallButton" and prop then
+				propsInLevelSet[ElevatorCallButton.createFromPlaceholder(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -1022,6 +1045,8 @@ function Level.restartLevel(): ()
 		end
 	end
 
+	MusicController.evaluateStack()
+
 	task.wait(1)
 
 	levelIsRestarting = false
@@ -1069,6 +1094,11 @@ function Level.doUpdate(deltaTime: number): ()
 	soundDispatcher:update(deltaTime)
 	for prop in propsInLevelSetThrottledUpdate do
 		prop:update(deltaTime, Level)
+	end
+	for component in stateComponentsSet do
+		if component.update then
+			component:update(deltaTime, Level)
+		end
 	end
 	objectiveManager:update(context)
 end

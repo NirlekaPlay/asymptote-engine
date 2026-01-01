@@ -61,8 +61,11 @@ function ElevatorShaftManager.requestToId(
 	elevatorId: number
 ): ()
 	local target = self.elevators[elevatorId]
-	if not target or target == self.currentElevator then
+	if not target or target == self.currentElevator or self.targetElevator == target then
 		print("returned")
+		if not target then
+			warn(`Attempt to move elevator cart to elevator id {target} that is not registered`)
+		end
 		return
 	end
 
@@ -115,6 +118,23 @@ function ElevatorShaftManager.update(self: ElevatorShaftManager, deltaTime: numb
 			self.targetElevator = nil
 			self.currentState = STATES.DOORS_CLOSED
 		end
+	end
+end
+
+function ElevatorShaftManager.onLevelRestart(self: ElevatorShaftManager, initElevId: number): ()
+	self.currentState = STATES.DOORS_CLOSED
+	self.moveTimer = 0
+	self.targetElevator = nil
+
+	for _, elevator in self.elevators do
+		elevator.cartPresent = false
+	end
+
+	local startingElev = self.elevators[initElevId]
+	if initElevId then
+		self:setCurrentElevator(startingElev)
+	else
+		self.currentElevator = nil
 	end
 end
 

@@ -63,6 +63,8 @@ Elevator.__index = Elevator
 export type Elevator = Prop.Prop & typeof(setmetatable({} :: {
 	doorLeft: Model,
 	doorRight: Model,
+	doorLeftOrigin: CFrame,
+	doorRightOrigin: CFrame,
 	ceilingLightPart: BasePart,
 	ceilingPointLight: PointLight,
 	bounds: { cframe: CFrame, size: Vector3 },
@@ -73,7 +75,8 @@ export type Elevator = Prop.Prop & typeof(setmetatable({} :: {
 	--
 	soundDing: Sound,
 	id: number,
-	shaftId: number
+	shaftId: number,
+	currentTweens: {Tween}
 }, Elevator))
 
 function Elevator.createFromPlaceholder(
@@ -111,8 +114,6 @@ function Elevator.createFromPlaceholder(
 	local ceilingPointLight = Instance.new("PointLight")
 	ceilingPointLight.Parent = ceilingLightPart
 
-	
-
 	local dingSound = ReplicatedStorage.shared.assets.sounds.props.elevator_ding:Clone()
 	dingSound.Volume = 0.1
 	dingSound.Parent = doorLeft.PrimaryPart :: BasePart
@@ -123,6 +124,8 @@ function Elevator.createFromPlaceholder(
 		ceilingLightPart = ceilingLightPart,
 		ceilingPointLight = ceilingPointLight,
 		bounds = bounds,
+		doorLeftOrigin = doorLeft:GetPivot(),
+		doorRightOrigin = doorRight:GetPivot(),
 		--
 		openDoorsTimer = TIME_TO_OPEN_DOORS,
 		currentState = STATES.DOORS_CLOSED,
@@ -130,7 +133,9 @@ function Elevator.createFromPlaceholder(
 		cartPresent = false,
 		--
 		id = elevatorId,
-		shaftId = shaftId
+		shaftId = shaftId,
+		--
+		currentTweens = {}
 	}, Elevator) :: Elevator
 
 	self:turnOnCeilingLight()
@@ -163,11 +168,14 @@ function Elevator.openDoors(self: Elevator): ()
 
 	self.currentState = STATES.DOORS_OPENING
 
-	local leftTarget = self.doorLeft:GetPivot() * CFrame.new(-DOOR_OFFSET)
-	local rightTarget = self.doorRight:GetPivot() * CFrame.new(DOOR_OFFSET)
+	local leftTarget = self.doorLeftOrigin * CFrame.new(-DOOR_OFFSET)
+	local rightTarget = self.doorRightOrigin * CFrame.new(DOOR_OFFSET)
 
 	local tweenL = TweenService:Create(self.doorLeft.PrimaryPart, TWEEN_INFO, {CFrame = leftTarget})
 	local tweenR = TweenService:Create(self.doorRight.PrimaryPart, TWEEN_INFO, {CFrame = rightTarget})
+
+	table.insert(self.currentTweens, tweenL)
+	table.insert(self.currentTweens, tweenR)
 
 	tweenL:Play()
 	tweenR:Play()
@@ -175,6 +183,7 @@ function Elevator.openDoors(self: Elevator): ()
 	tweenL.Completed:Once(function()
 		if self.currentState == STATES.DOORS_OPENING then
 			self.currentState = STATES.DOORS_OPENED
+			table.clear(self.currentTweens)
 		end
 	end)
 end
@@ -186,11 +195,14 @@ function Elevator.closeDoors(self: Elevator): ()
 
 	self.currentState = STATES.DOORS_CLOSING
 
-	local leftTarget = self.doorLeft:GetPivot() * CFrame.new(DOOR_OFFSET)
-	local rightTarget = self.doorRight:GetPivot() * CFrame.new(-DOOR_OFFSET)
+	local leftTarget = self.doorLeftOrigin * CFrame.new(DOOR_OFFSET)
+	local rightTarget = self.doorRightOrigin * CFrame.new(-DOOR_OFFSET)
 
 	local tweenL = TweenService:Create(self.doorLeft.PrimaryPart, TWEEN_INFO, {CFrame = leftTarget})
 	local tweenR = TweenService:Create(self.doorRight.PrimaryPart, TWEEN_INFO, {CFrame = rightTarget})
+
+	table.insert(self.currentTweens, tweenL)
+	table.insert(self.currentTweens, tweenR)
 
 	tweenL:Play()
 	tweenR:Play()
@@ -198,18 +210,16 @@ function Elevator.closeDoors(self: Elevator): ()
 	tweenL.Completed:Once(function()
 		if self.currentState == STATES.DOORS_CLOSING then
 			self.currentState = STATES.DOORS_CLOSED
+			table.clear(self.currentTweens)
 		end
 	end)
 end
 
 function Elevator.forceCloseDoors(self: Elevator): ()
-	self.currentState = STATES.DOORS_CLOSED
+	self.currentState = STATES.DOORS_CLOSED;
 
-	local leftTarget = self.doorLeft:GetPivot() * CFrame.new(DOOR_OFFSET)
-	local rightTarget = self.doorRight:GetPivot() * CFrame.new(-DOOR_OFFSET);
-
-	(self.doorLeft.PrimaryPart :: BasePart).CFrame = leftTarget;
-	(self.doorRight.PrimaryPart :: BasePart).CFrame = rightTarget
+	(self.doorLeft.PrimaryPart :: BasePart).CFrame = self.doorLeftOrigin;
+	(self.doorRight.PrimaryPart :: BasePart).CFrame = self.doorRightOrigin;
 
 	self.openDoorsTimer = TIME_TO_OPEN_DOORS
 end
@@ -270,6 +280,9 @@ function Elevator.update(self: Elevator, deltaTime: number, serverLevel: ServerL
 end
 
 function Elevator.onLevelRestart(self: Elevator, serverLevel: ServerLevel.ServerLevel): ()
+	for _, tween in self.currentTweens do
+		tween:Cancel()
+	end
 	self:forceCloseDoors()
 end
 
