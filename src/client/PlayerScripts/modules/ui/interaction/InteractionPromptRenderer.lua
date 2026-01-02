@@ -546,7 +546,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 
 		if hasAction and hasObject then
 			actionText.Position = UDim2.new(0, textXStart, 0.35, 0)
-			objectText.Position = UDim2.new(0, textXStart, 0.65, 0)
+			objectText.Position = UDim2.new(0, textXStart, 0.70, 0)
 			actionText.Visible = true
 			objectText.Visible = true
 		elseif hasAction or hasObject then
