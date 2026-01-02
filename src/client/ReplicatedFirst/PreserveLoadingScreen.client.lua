@@ -9,7 +9,7 @@ local arrivedBackgroundId: number? = nil
 local arriveTime = os.clock()
 local loadedTime: number
 
-local MIN_PRESERVE_TIME = 5
+local MIN_PRESERVE_TIME = 1
 
 local customLoadingScreen = TeleportService:GetArrivingTeleportGui()
 if customLoadingScreen then
