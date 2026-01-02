@@ -195,8 +195,8 @@ function Elevator.closeDoors(self: Elevator): ()
 
 	self.currentState = STATES.DOORS_CLOSING
 
-	local leftTarget = self.doorLeftOrigin * CFrame.new(DOOR_OFFSET)
-	local rightTarget = self.doorRightOrigin * CFrame.new(-DOOR_OFFSET)
+	local leftTarget = self.doorLeftOrigin
+	local rightTarget = self.doorRightOrigin
 
 	local tweenL = TweenService:Create(self.doorLeft.PrimaryPart, TWEEN_INFO, {CFrame = leftTarget})
 	local tweenR = TweenService:Create(self.doorRight.PrimaryPart, TWEEN_INFO, {CFrame = rightTarget})
