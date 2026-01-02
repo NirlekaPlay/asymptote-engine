@@ -102,6 +102,17 @@ return {
 		ButtonText = "Disguises"
 	},
 	{
+		Title = "Electronically Locked Doors",
+		Body = [=[
+			Ah doors. As simple as they are, those "are those walls or part of a wall???"
+			philosophical conundrums, they play an important role in in this game.
+
+			\n\nLocked doors prevents you from accessing restricted areas. Electronically locked
+			doors require the correct keycard to be swiped into the card reader.
+		]=],
+		ButtonText = "Doors — Electronic"
+	},
+	{
 		Title = "Radio Calls",
 		Body = [=[
 			Before the alert level can be raised when someone witnessed something suspicious
