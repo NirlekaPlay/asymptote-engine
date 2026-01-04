@@ -17,6 +17,10 @@
       }
     },
     "StarterPlayer": {
+      "$properties": {
+        "HealthDisplayDistance": 0,
+        "NameDisplayDistance": 0 
+      },
       "StarterPlayerScripts": {
         "client": {
           "$path": "src/client/PlayerScripts"
