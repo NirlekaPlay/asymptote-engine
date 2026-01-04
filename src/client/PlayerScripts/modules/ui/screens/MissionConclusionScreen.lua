@@ -12,6 +12,7 @@ local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local DialogueController = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueController)
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
@@ -114,6 +115,8 @@ end
 function MissionConclusionScreen.updateMissionConclusionScreen(
 	cameraSocket: CameraSocket.CameraSocket, failed: boolean
 ): ()
+	DialogueController.forceClose()
+
 	local blurcc = MissionConclusionScreen.getBlurCc()
 	local missionConclusionGui = MissionConclusionScreen.getScreenGui()
 	local retryButton = missionConclusionGui.Root.Buttons.RetryButton

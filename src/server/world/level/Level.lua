@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
+local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
@@ -319,6 +320,16 @@ function Level.initializeLevel(): ()
 
 	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
 	MusicController.evaluateStack()
+
+	-- Dialogue
+
+
+	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
+
+	-- TODO: This might lead to inconsistencies...
+	task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER")
+	end)
 end
 
 -- TODO: THIS SHIT TOO.
@@ -589,6 +600,7 @@ function Level.onPlayerJoined(player: Player): ()
 			charAppearancesPayloads[i] = payload
 		end
 	end
+	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
 
 	objectiveManager:sendCurrentObjectivesToPlayer(player)
 end
@@ -1046,6 +1058,10 @@ function Level.restartLevel(): ()
 	end
 
 	MusicController.evaluateStack()
+
+	task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER")
+	end)
 
 	task.wait(1)
 

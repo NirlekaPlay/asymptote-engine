@@ -7,14 +7,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local StarterPlayer = game:GetService("StarterPlayer")
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
+local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
+local DialogueController = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueController)
+local DialogueSequenceEvaluator = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueSequenceEvaluator)
 local MissionConclusionScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.MissionConclusionScreen)
 local LocalPlayer = Players.LocalPlayer
 
@@ -65,6 +70,24 @@ if DEBUG_LOCALIZATION_INIT then
 end
 
 ClientLanguage.load()
+
+local context = ExpressionContext.new(ReplicatedGlobalStates.getAllStates())
+
+TypedRemotes.ClientBoundRegisterDialogueConcepts.OnClientEvent:Connect(function(concepts)
+	for speakerId, nameComponent in concepts.speakers do
+		local deserializedComponent = MutableTextComponent.deserialize(nameComponent)
+		DialogueController.registerSpeakerId(speakerId, deserializedComponent)
+	end
+
+	DialogueSequenceEvaluator.setRegistry(concepts.concepts)
+end)
+
+TypedRemotes.ClientBoundDialogueConceptEvaluate.OnClientEvent:Connect(function(conceptName)
+	local concept = DialogueSequenceEvaluator.getBestConceptResponse(conceptName, context)
+	if concept then
+		DialogueController.typeOutDialogueSequences(concept.dialogueSequence)
+	end
+end)
 
 RunService.PreRender:Connect(function(deltaTime)
 	MouseManager.update()

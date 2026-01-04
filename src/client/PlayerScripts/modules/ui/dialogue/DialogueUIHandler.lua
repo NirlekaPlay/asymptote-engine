@@ -35,7 +35,9 @@ dialogueFrame.Position = HIDE_POS
 
 dialogueSpeaker.BackgroundTransparency = 1
 dialogueSpeaker.TextTransparency = 1
+dialogueSpeaker.RichText = true
 dialogueText.TextTransparency = 1
+dialogueText.RichText = true
 
 local textTransTween: Tween? = nil
 
