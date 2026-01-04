@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 local QuoteOfTheDay = require(ReplicatedStorage.shared.quotes.QuoteOfTheDay)
 local QuoteOfTheDayList = require(ReplicatedStorage.shared.quotes.QuoteOfTheDayList)
-local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
+local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
 local UITextShadow = require(script.Parent.UITextShadow)
 
 local DEBUG_MODE_ATTRIBUTE_NAME = "QuoteOfTheDayDebugMode"

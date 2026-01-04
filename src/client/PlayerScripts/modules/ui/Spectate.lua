@@ -4,7 +4,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
-local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
+local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
 
 local ACTION_NAME_LEFT = "ACTION_SPECTATE_CYCLE_LEFT"
 local ACTION_NAME_RIGHT = "ACTION_SPECTATE_CYCLE_RIGHT"
