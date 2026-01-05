@@ -165,3 +165,18 @@ ContextActionService:BindAction("BIND_MUSIC_TOGGLE", function(actionName: string
 	end
 	return Enum.ContextActionResult.Sink
 end, false, Enum.KeyCode.U)
+
+ContextActionService:BindAction("BIND_SIT_TOGGLE", function(actionName: string, inputState, inputObject): Enum.ContextActionResult?
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	local char = LocalPlayer.Character
+	if char then
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Sit = not humanoid.Sit
+		end
+	end
+	return Enum.ContextActionResult.Pass
+end, false, Enum.KeyCode.V)
+
