@@ -71,8 +71,6 @@ end
 
 ClientLanguage.load()
 
-local context = ExpressionContext.new(ReplicatedGlobalStates.getAllStates())
-
 TypedRemotes.ClientBoundRegisterDialogueConcepts.OnClientEvent:Connect(function(concepts)
 	for speakerId, nameComponent in concepts.speakers do
 		local deserializedComponent = MutableTextComponent.deserialize(nameComponent)
@@ -82,8 +80,8 @@ TypedRemotes.ClientBoundRegisterDialogueConcepts.OnClientEvent:Connect(function(
 	DialogueSequenceEvaluator.setRegistry(concepts.concepts)
 end)
 
-TypedRemotes.ClientBoundDialogueConceptEvaluate.OnClientEvent:Connect(function(conceptName)
-	local concept = DialogueSequenceEvaluator.getBestConceptResponse(conceptName, context)
+TypedRemotes.ClientBoundDialogueConceptEvaluate.OnClientEvent:Connect(function(conceptName, context)
+	local concept = DialogueSequenceEvaluator.getBestConceptResponse(conceptName, ExpressionContext.new(context))
 	if concept then
 		DialogueController.typeOutDialogueSequences(concept.dialogueSequence)
 	end

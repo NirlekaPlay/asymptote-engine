@@ -12,6 +12,7 @@ local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.Detec
 local LocalTweenPayload = require(ReplicatedStorage.shared.network.payloads.LocalTweenPayload)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 
 local _, RE = TypedRemote.parent()
 
@@ -60,6 +61,6 @@ return {
 	ClientBoundForeignChatMessage = RE("ClientBoundForeign") :: RE<Player, string>,
 	ServerBoundClientForeignChatted = RE("ServerBoundForeign") :: RE<string>,
 	--
-	ClientBoundDialogueConceptEvaluate = RE("ClientBoundDialogueConceptEvaluate") :: RE<string>,
+	ClientBoundDialogueConceptEvaluate = RE("ClientBoundDialogueConceptEvaluate") :: RE<string, {[string]:any}>,
 	ClientBoundRegisterDialogueConcepts = RE("ClientBoundRegisterConcepts") :: RE<ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload>
 }

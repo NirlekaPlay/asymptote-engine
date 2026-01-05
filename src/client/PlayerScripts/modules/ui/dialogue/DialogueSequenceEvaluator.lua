@@ -24,7 +24,8 @@ function DialogueSequenceEvaluator.getBestConceptResponse(conceptName: string, c
 
 	for _, rule in rules do
 		local success, result = pcall(function()
-			return ExpressionParser.parseAndEvalute(rule.condition, context)
+			local parsed = ExpressionParser.fromString(rule.condition):parse()
+			return ExpressionParser.evaluate(parsed, context)
 		end)
 
 		if success and result then

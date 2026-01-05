@@ -328,7 +328,7 @@ function Level.initializeLevel(): ()
 
 	-- TODO: This might lead to inconsistencies...
 	task.delay(3, function()
-		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER")
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
 end
 
@@ -1060,7 +1060,7 @@ function Level.restartLevel(): ()
 	MusicController.evaluateStack()
 
 	task.delay(3, function()
-		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER")
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
 
 	task.wait(1)
