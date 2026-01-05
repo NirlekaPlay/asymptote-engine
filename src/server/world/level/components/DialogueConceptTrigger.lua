@@ -21,9 +21,11 @@ DialogueConceptTrigger.__index = DialogueConceptTrigger
 
 export type DialogueConceptTrigger = StateComponent.StateComponent & typeof(setmetatable({} :: {
 	parsedActive: ExpressionParser.ASTNode,
+	activeUsedVars: { [string]: any },
 	triggerOnce: boolean,
 	conceptName: string,
 	statesChangedConn: RBXScriptConnection?,
+	context: ExpressionContext.ExpressionContext -- Fucking circular dependency bullshit
 }, DialogueConceptTrigger))
 
 function DialogueConceptTrigger.fromInstance(inst: Instance, context: ExpressionContext.ExpressionContext): DialogueConceptTrigger
@@ -45,25 +47,49 @@ function DialogueConceptTrigger.fromInstance(inst: Instance, context: Expression
 	local vars = ExpressionParser.getVariablesSet(parsedActive)
 	local triggerOnce = inst:GetAttribute("TriggerOnce") :: boolean? or DEFAULT_TRIGGER_ONCE
 
-	local conn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
-		if vars[stateName] then
-			local evaluated = ExpressionParser.evaluate(parsedActive, context)
-			if evaluated then
-				TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients(conceptName, GlobalStatesHolder.getAllStatesReference())
-			end
-		end
-	end)
-
-	return setmetatable({
+	local self = setmetatable({
 		parsedActive = parsedActive,
 		triggerOnce = triggerOnce,
 		conceptName = conceptName,
-		statesChangedConn = conn
+		statesChangedConn = nil :: RBXScriptConnection?,
+		activeUsedVars = vars,
+		context = context
 	}, DialogueConceptTrigger) :: DialogueConceptTrigger
+
+	self.statesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
+		self:onStatesChanged(stateName, stateValue)
+	end)
+
+	return self
 end
 
 function DialogueConceptTrigger.onLevelRestart(self: DialogueConceptTrigger): ()
-	return
+	if self.triggerOnce and not self.statesChangedConn then
+		self.statesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(stateName, stateValue)
+			self:onStatesChanged(stateName, stateValue)
+		end)
+	end
+end
+
+function DialogueConceptTrigger.onStatesChanged(self: DialogueConceptTrigger, varName: string, varValue: any): ()
+	if self.activeUsedVars[varName] then
+		local evaluated = ExpressionParser.evaluate(self.parsedActive, self.context)
+		if evaluated then
+			local vars = GlobalStatesHolder.getAllStatesReference()
+			TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients(self.conceptName, vars)
+
+			if not self.triggerOnce then
+				return
+			end
+
+			if not self.statesChangedConn then
+				return
+			end
+
+			(self.statesChangedConn :: RBXScriptConnection):Disconnect()
+			self.statesChangedConn = nil
+		end
+	end
 end
 
 return DialogueConceptTrigger
