@@ -49,6 +49,13 @@ local textTransTween: Tween? = nil
 local DialogueUIHandler = {}
 
 --[=[
+	Returns the dialogue TextLabel instance.
+]=]
+function DialogueUIHandler.getDialogueTextLabel(): TextLabel
+	return dialogueText
+end
+
+--[=[
 	Sets the speaker text which appears above the dialogue text.
 	`str` can also include Rich text.
 ]=]

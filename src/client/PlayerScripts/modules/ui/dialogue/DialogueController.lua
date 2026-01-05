@@ -7,10 +7,9 @@ local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.Mutab
 local DialogueUIHandler = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueUIHandler)
 local UString = require(ReplicatedStorage.shared.util.string.UString)
 
-local RICH_TEXT_TRANSPARENCY_TAG = '<font transparency="100">%s</font>'
 local WORD_PER_SEC = 300 / 60
 local AVG_CHARS_PER_WORD = 12
-local WAIT_TIME_AFTER_TYPE_ANIM = 3
+local WAIT_TIME_AFTER_TYPE_ANIM = 1
 local INITIAL_DELAY = 0.3
 local DEFAULT_WAIT_TIME_BETWEEN_LINES = 1
 local NIL_SPEAKER_ID_FALLBACK = "UNREGISTERED_SPEAKER_ID"
@@ -36,60 +35,37 @@ local DialogueController = {}
 type DialogueSequences = DialogueSequences.DialogueSequences
 
 local function typeOut(dialogue: string)
+	-- This is to handler rich text tags to be rendered correctly.
+	DialogueUIHandler.setDialogueText(dialogue)
+
+	local label = DialogueUIHandler.getDialogueTextLabel()
+	label.MaxVisibleGraphemes = 0
+	
 	local msgCount = #dialogue
 	local totalWords = msgCount / AVG_CHARS_PER_WORD
 	local totalDuration = totalWords / WORD_PER_SEC
-	local charCount = msgCount
-	local delayPerChar = totalDuration / charCount
-	local defaultDelay = math.max(0.01, delayPerChar)
+	local delayPerChar = math.max(0.01, totalDuration / msgCount)
 	
 	local explodedText = UString.explodeString(dialogue)
 	local explodedTextCount = #explodedText
-	local finalString = ""
-	local revealedCount = 0
 	
 	local i = 1
 	while i <= explodedTextCount do
 		local char = explodedText[i]
-		local currentWait: number = defaultDelay
+		local currentWait = PUNCTUATION_WAITS[char] or delayPerChar
 		
-		local punctuationWait = PUNCTUATION_WAITS[char]
-		if punctuationWait then
-			currentWait = punctuationWait
-			
-			-- Consume all consecutive related punctuation marks
-			-- This handles "!?!?!??!?" as one event.
+		-- Handle punctuation clusters
+		--- e.g. "!?!?!!"
+		if PUNCTUATION_WAITS[char] then
 			local j = i + 1
-			while j <= explodedTextCount do
-				local nextChar = explodedText[j]
-				if PUNCTUATION_WAITS[nextChar] then
-					-- Continue as long as the next character is also punctuation
-					j = j + 1
-				else
-					break
-				end
+			while j <= explodedTextCount and PUNCTUATION_WAITS[explodedText[j]] do
+				j = j + 1
 			end
-			
-			-- Update the revealed text to include all consumed characters
-			-- i is the start of the punctuation block, j-1 is the end.
-			revealedCount = j - 1
-			i = j -- Set 'i' to the character AFTER the block for the next loop iteration
-		else
-			revealedCount = i
-			i += 1
-		end
-
-		local visiblePart = table.concat(explodedText, "", 1, revealedCount)
-		local transparentPart = ""
-		
-		if revealedCount < explodedTextCount then
-			local hiddenCharacters = table.concat(explodedText, "", revealedCount + 1, #explodedText)
-			transparentPart = (string.format :: any)(RICH_TEXT_TRANSPARENCY_TAG, hiddenCharacters) 
+			i = j - 1
 		end
 		
-		finalString = visiblePart .. transparentPart
-
-		DialogueUIHandler.setDialogueText(finalString)
+		label.MaxVisibleGraphemes = i
+		i += 1
 		
 		task.wait(currentWait)
 	end
