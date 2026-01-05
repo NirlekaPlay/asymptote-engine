@@ -15,13 +15,13 @@ local DEFAULT_WAIT_TIME_BETWEEN_LINES = 1
 local NIL_SPEAKER_ID_FALLBACK = "UNREGISTERED_SPEAKER_ID"
 
 local PUNCTUATION_WAITS = {
-	[","] = 0.08,
-	["."] = 0.20,
-	["?"] = 0.25,
-	["!"] = 0.25,
-	[":"] = 0.15,
-	[";"] = 0.15,
-	["-"] = 0.05,
+	[","] = 0.5,
+	["."] = 0.8,
+	["?"] = 0.5,
+	["!"] = 0.8,
+	[":"] = 0.25,
+	[";"] = 0.25,
+	["-"] = 0.25,
 }
 
 local currentTypeThread: thread? = nil
