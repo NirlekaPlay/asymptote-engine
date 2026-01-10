@@ -6,6 +6,7 @@ local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local SoundListener = require(ServerScriptService.server.world.sound.SoundListener)
 local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
 
 local DEBUG_LAST_VISITED_NODE = false
 local DEBUG_INDIVIDUAL_COMPUTE_TIME = true
@@ -34,11 +35,10 @@ type SoundListener = SoundListener.SoundListener
 
 type PendingSound = {
 	position: Vector3,
-	soundType: string,
+	soundType: DetectableSound.DetectableSound,
 	maxTravelRadius: number,
 	timestamp: number
 }
-
 
 local function getSqrDistance(vec1: Vector3, vec2: Vector3): number
 	local offset = vec1 - vec2
@@ -69,16 +69,15 @@ end
 
 function SoundDispatcher.emitSound(
 	self: SoundDispatcher,
-	position: Vector3,
-	soundType: string,
-	maxTravelRadius: number
+	profile: DetectableSound.DetectableSound,
+	position: Vector3
 ): ()
 	local count = self.pendingCount + 1
 	self.pendingCount = count
 	self.pendingSounds[count] = {
 		position = position,
-		soundType = soundType,
-		maxTravelRadius = maxTravelRadius,
+		soundType = profile,
+		maxTravelRadius = profile.suspiciousRange,
 		timestamp = os.clock()
 	}
 end
@@ -113,8 +112,6 @@ function SoundDispatcher.update(self: SoundDispatcher, deltaTime: number): ()
 end
 
 function SoundDispatcher.dispatchToListener(self: SoundDispatcher, listener: SoundListener, sound: PendingSound)
-	-- If threads are full, this specific listener just misses the sound this frame.
-	-- Re-emitting the whole sound would cause the duplication you saw.
 	if self.activeThreads >= MAX_CONCURRENT_THREADS then 
 		return 
 	end

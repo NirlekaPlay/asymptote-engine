@@ -10,6 +10,9 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
+local StarterPlayer = game:GetService("StarterPlayer")
+local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
+local UIGradientWipe = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UIGradientWipe)
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")
@@ -75,6 +78,7 @@ local KeyCodeToTextMapping = {
 }
 
 local CFRAME_FLIP_ROT = CFrame.Angles(0, math.rad(180), 0)
+local PIXELS_PER_STUD = 65
 
 local promptParts: { [BasePart]: true } = {}
 
@@ -185,8 +189,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	local tweenInfoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local tweenInfoExpoQuick = TweenInfo.new(0.06, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
 
-	local tweensForButtonHoldBeginTransparency = 0.5
-
 	local promptParentAttatchment = prompt.Parent :: Attachment
 
 	-- To know if the ProximityPrompt can be the normal one or the flat one.
@@ -213,7 +215,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	promptUI.AlwaysOnTop = true
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromScale(0.5, 1)
+	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
 	frame.BackgroundColor3 = Color3.new(0.07, 0.07, 0.07)
 	frame.Parent = promptUI
@@ -245,20 +247,23 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	)
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(inputFrameScaler, tweenInfoFast, { Scale = 1 }))
 
-	local actionTextFontSize = 32
+	local actionTextFontSize = 30
 	local objectTextFontSize = 15
+
+	local fontZekton = Font.fromName("Zekton")
+	local actionTextFont = fontZekton
+	local objectTextFont = fontZekton
 
 	local actionText = Instance.new("TextLabel")
 	actionText.Name = "ActionText"
 	actionText.Size = UDim2.fromScale(1, 1)
-	actionText.FontFace = Font.fromName("Zekton")
+	actionText.FontFace = actionTextFont
 	actionText.TextSize = actionTextFontSize
 	actionText.BackgroundTransparency = 1
 	actionText.TextTransparency = 1
 	actionText.TextColor3 = Color3.new(1, 1, 1)
 	actionText.TextXAlignment = Enum.TextXAlignment.Left
 	actionText.Parent = frame
-	table.insert(tweensForButtonHoldBegin, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = tweensForButtonHoldBeginTransparency }))
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
 	table.insert(tweensForFadeOut, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
@@ -266,7 +271,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	local objectText = Instance.new("TextLabel")
 	objectText.Name = "ObjectText"
 	objectText.Size = UDim2.fromScale(1, 1)
-	objectText.FontFace = Font.fromName("Zekton")
+	objectText.FontFace = objectTextFont
 	objectText.TextSize = objectTextFontSize
 	objectText.BackgroundTransparency = 1
 	objectText.TextTransparency = 1
@@ -274,18 +279,24 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	objectText.TextXAlignment = Enum.TextXAlignment.Left
 	objectText.Parent = frame
 
-	table.insert(tweensForButtonHoldBegin, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = tweensForButtonHoldBeginTransparency }))
+	local tweenInfoStylish = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local fadeInTweens, fadeOutTweens = UIGradientWipe.createFromGuiObjects({actionText, objectText}, tweenInfoStylish)
+
+	for _, tween in fadeInTweens do
+		table.insert(tweensForFadeIn, tween)
+	end
+
+	for _, tween in fadeOutTweens do
+		table.insert(tweensForFadeOut, tween)
+	end
+
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
 	table.insert(tweensForFadeOut, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
 
 	table.insert(
-		tweensForButtonHoldBegin,
-		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = tweensForButtonHoldBeginTransparency })
-	)
-	table.insert(
 		tweensForButtonHoldEnd,
-		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 0.2 })
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = 0.2 })
 	)
 	table.insert(
 		tweensForFadeOut,
@@ -293,7 +304,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	)
 	table.insert(
 		tweensForFadeIn,
-		TweenService:Create(frame, tweenInfoFast, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 0.2 })
+		TweenService:Create(frame, tweenInfoFast, { BackgroundTransparency = 0.2 })
 	)
 
 	if prompt.HoldDuration > 0 then
@@ -477,8 +488,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 
 	local holdBeganConnection
 	local holdEndedConnection
-	local triggeredConnection
-	local triggerEndedConnection
 
 	if prompt.HoldDuration > 0 then
 		holdBeganConnection = prompt.PromptButtonHoldBegan:Connect(function()
@@ -494,85 +503,84 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 		end)
 	end
 
-	triggeredConnection = prompt.Triggered:Connect(function()
-		for _, tween in ipairs(tweensForFadeOut) do
-			tween:Play()
-		end
-	end)
-
-	triggerEndedConnection = prompt.TriggerEnded:Connect(function()
-		for _, tween in ipairs(tweensForFadeIn) do
-			tween:Play()
-		end
-	end)
-
 	local function updateUIFromPrompt()
-		-- todo: Use AutomaticSize instead of GetTextSize when that feature becomes available
-		local actionTextSize =
-			TextService:GetTextSize(prompt.ActionText, actionTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
-		local objectTextSize =
-			TextService:GetTextSize(prompt.ObjectText, objectTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
-		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
 		local promptHeight = 60
+		local edgeMargin = 12 -- The gap on the far left (before the icon)
+		local iconToTextGap = 50 -- The space the icon occupies (62 - 12)
+		
+		local actionStr = ClientLanguage.getOrDefault(prompt.ActionText, prompt.ActionText)
+		local objectStr = ClientLanguage.getOrDefault(prompt.ObjectText, prompt.ObjectText)
+		local hasAction = actionStr ~= ""
+		local hasObject = objectStr ~= ""
+
+		-- Why the fuck??????
+		local actionTextFetchParam = Instance.new("GetTextBoundsParams")
+		actionTextFetchParam.Text = actionStr
+		actionTextFetchParam.RichText = actionText.RichText
+		actionTextFetchParam.Font = actionTextFont
+		actionTextFetchParam.Size = actionTextFontSize
+
+		local actionTextSize = TextService:GetTextBoundsAsync(actionTextFetchParam)
+
+		local objectTextFetchParam = Instance.new("GetTextBoundsParams")
+		objectTextFetchParam.Text = objectStr
+		objectTextFetchParam.RichText = objectText.RichText
+		objectTextFetchParam.Font = objectTextFont
+		objectTextFetchParam.Size = objectTextFontSize
+
+		local objectTextSize = TextService:GetTextBoundsAsync(objectTextFetchParam)
+
+		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
+		
+		-- Symmetry calculation: Left Margin + Icon Space + Text + Right Margin (same as left)
 		local promptWidth = 60
-		local textPaddingLeft = 62
-		local textPaddingRight = 5
-
-		if
-			(prompt.ActionText ~= nil and prompt.ActionText ~= "")
-			or (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
-		then
-			promptWidth = maxTextWidth + textPaddingLeft + textPaddingRight
+		if hasAction or hasObject then
+			promptWidth = edgeMargin + iconToTextGap + maxTextWidth + edgeMargin
 		end
 
-		local isObjectTextPresent = (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
+		-- Force alignment to the start of the text area
+		actionText.AnchorPoint = Vector2.new(0, 0.5)
+		objectText.AnchorPoint = Vector2.new(0, 0.5)
+		
+		local textXStart = edgeMargin + iconToTextGap
 
-		-- If object text is present, calculate the Y offset (9) for objectText
-		local actionTextYOffset = 0
-		if isObjectTextPresent then
-			actionTextYOffset = 12
+		if hasAction and hasObject then
+			actionText.Position = UDim2.new(0, textXStart, 0.35, 0)
+			objectText.Position = UDim2.new(0, textXStart, 0.70, 0)
+			actionText.Visible = true
+			objectText.Visible = true
+		elseif hasAction or hasObject then
+			local target = hasAction and actionText or objectText
+			local hidden = hasAction and objectText or actionText
+			
+			target.Position = UDim2.new(0, textXStart, 0.5, 0)
+			target.Visible = true
+			hidden.Visible = false
+		else
+			actionText.Visible = false
+			objectText.Visible = false
 		end
-		
-		objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
-		
-		local actionTextYPosition = -10 -- Default position for actionText when both are displayed
-		
-		if not isObjectTextPresent then
-			-- Calculate the offset needed to vertically center the text label
-			-- Container center (15) - half of the actionText label's calculated height
-			actionTextYPosition = 15 - (actionTextSize.Y / 2)
-		end
-		
-		-- The resulting Y position must be a UDim2 offset, not scale (0)
-		actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYPosition)
 
-		actionText.Text = prompt.ActionText
-		objectText.Text = prompt.ObjectText
+		actionText.Text = actionStr
+		objectText.Text = objectStr
+		
 		actionText.AutoLocalize = prompt.AutoLocalize
 		actionText.RootLocalizationTable = prompt.RootLocalizationTable
 
 		objectText.AutoLocalize = prompt.AutoLocalize
 		objectText.RootLocalizationTable = prompt.RootLocalizationTable
 
-		--[[if isOmniDir and promptUI:IsA("BillboardGui") then
-			promptUI.Size = UDim2.fromOffset(promptWidth, promptHeight)
-			promptUI.SizeOffset =
-				Vector2.new(prompt.UIOffset.X / promptUI.Size.Width.Offset, prompt.UIOffset.Y / promptUI.Size.Height.Offset)
-		else]]
-		local pixelsPerStud = 55
-
-		-- Convert pixels to studs
 		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
-		local partWidth = promptWidth / pixelsPerStud
-		local partHeight = promptHeight / pixelsPerStud
+
+		local partWidth = promptWidth / PIXELS_PER_STUD
+		local partHeight = promptHeight / PIXELS_PER_STUD
 		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
-		--end
 	end
 
 	local changedConnection = prompt.Changed:Connect(updateUIFromPrompt)
 	updateUIFromPrompt()
 
-	--[[if isOmniDir then 
+	--[[if isOmniDir then
 		promptUI.Adornee = prompt.Parent
 		promptUI.Parent = gui
 	else]]
@@ -593,8 +601,6 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			holdEndedConnection:Disconnect()
 		end
 
-		triggeredConnection:Disconnect()
-		triggerEndedConnection:Disconnect()
 		changedConnection:Disconnect()
 
 		for _, tween in ipairs(tweensForFadeOut) do
@@ -731,12 +737,12 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 		--objectText.AutoLocalize = prompt.AutoLocalize
 		--objectText.RootLocalizationTable = prompt.RootLocalizationTable
 
-		local pixelsPerStud = 55
+		local PIXELS_PER_STUD = 55
 
 		-- Convert pixels to studs
 		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
-		local partWidth = promptWidth / pixelsPerStud
-		local partHeight = promptHeight / pixelsPerStud
+		local partWidth = promptWidth / PIXELS_PER_STUD
+		local partHeight = promptHeight / PIXELS_PER_STUD
 		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
 	end
 

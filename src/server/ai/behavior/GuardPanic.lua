@@ -14,6 +14,7 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
 
 --[=[
 	@class GuardPanic
@@ -113,7 +114,7 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 		reportDialogueSeg = GuardGenericDialogues["entity.c4"]
 	elseif agent.hearingSounds[entity.uuid] then
 		local sound = agent.hearingSounds[entity.uuid]
-		if sound.soundType == "GUN_SHOT" then
+		if sound.soundType == DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED then
 			reportDur = 2
 			reportType = ReportType.SHOTS_FIRED
 			reportDialogueSeg = GuardGenericDialogues["sound.gun_shot"]

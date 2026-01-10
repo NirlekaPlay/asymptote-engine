@@ -1,18 +1,25 @@
 --!strict
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local LocalizationService = game:GetService("LocalizationService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
 local StarterPlayer = game:GetService("StarterPlayer")
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
+local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
+local DialogueController = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueController)
+local DialogueSequenceEvaluator = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueSequenceEvaluator)
 local MissionConclusionScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.MissionConclusionScreen)
 local LocalPlayer = Players.LocalPlayer
 
@@ -63,6 +70,22 @@ if DEBUG_LOCALIZATION_INIT then
 end
 
 ClientLanguage.load()
+
+TypedRemotes.ClientBoundRegisterDialogueConcepts.OnClientEvent:Connect(function(concepts)
+	for speakerId, nameComponent in concepts.speakers do
+		local deserializedComponent = MutableTextComponent.deserialize(nameComponent)
+		DialogueController.registerSpeakerId(speakerId, deserializedComponent)
+	end
+
+	DialogueSequenceEvaluator.setRegistry(concepts.concepts)
+end)
+
+TypedRemotes.ClientBoundDialogueConceptEvaluate.OnClientEvent:Connect(function(conceptName, context)
+	local concept = DialogueSequenceEvaluator.getBestConceptResponse(conceptName, ExpressionContext.new(context))
+	if concept then
+		DialogueController.typeOutDialogueSequences(concept.dialogueSequence)
+	end
+end)
 
 RunService.PreRender:Connect(function(deltaTime)
 	MouseManager.update()
@@ -128,3 +151,32 @@ LocalPlayer.Chatted:Connect(function(msg)
 
 	TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(msg))
 end)
+
+-- TODO: iajsoduhofe
+local currentMusicToggle = true
+ContextActionService:BindAction("BIND_MUSIC_TOGGLE", function(actionName: string, inputState, inputObject): Enum.ContextActionResult?
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	currentMusicToggle = not currentMusicToggle
+	local musicSoundGroup = SoundService:FindFirstChild("Music")
+	if musicSoundGroup and musicSoundGroup:IsA("SoundGroup") then
+		musicSoundGroup.Volume = currentMusicToggle and 1 or 0 -- TODO: Might fuck up if volume is controlled by another system.
+	end
+	return Enum.ContextActionResult.Sink
+end, false, Enum.KeyCode.U)
+
+ContextActionService:BindAction("BIND_SIT_TOGGLE", function(actionName: string, inputState, inputObject): Enum.ContextActionResult?
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	local char = LocalPlayer.Character
+	if char then
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Sit = not humanoid.Sit
+		end
+	end
+	return Enum.ContextActionResult.Pass
+end, false, Enum.KeyCode.V)
+

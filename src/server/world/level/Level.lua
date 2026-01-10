@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
+local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
@@ -24,12 +25,16 @@ local CellManager = require(ServerScriptService.server.world.level.cell.CellMana
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
+local Elevator = require(ServerScriptService.server.world.level.clutter.props.Elevator)
+local ElevatorCallButton = require(ServerScriptService.server.world.level.clutter.props.ElevatorCallButton)
 local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
 local MissionEndZone = require(ServerScriptService.server.world.level.clutter.props.MissionEndZone)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
-local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
+local ElevatorShaftController = require(ServerScriptService.server.world.level.components.ElevatorShaftController)
+local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
+local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
@@ -37,6 +42,7 @@ local ObjectiveManager = require(ServerScriptService.server.world.level.objectiv
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
 local SoundDispatcher = require(ServerScriptService.server.world.sound.SoundDispatcher)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
@@ -153,7 +159,7 @@ function Level.initializeLevel(): ()
 				return
 			end
 			print("TEMP: LEVEL :: BULLET SHOT")
-			soundDispatcher:emitSound(origin, "GUN_SHOT", 100)
+			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED, origin)
 		end
 	})
 
@@ -170,8 +176,9 @@ function Level.initializeLevel(): ()
 			index = index - 1
 
 			if current:IsA("BoolValue") then
-				if current.Name == "NpcStateTracker" then
-					stateComponentsSet[NpcStateTracker.fromInstance(current)] = true
+				local component = StateComponentFactory.create(current, Level.getExpressionContext())
+				if component then
+					stateComponentsSet[component] = true
 				end
 			end
 
@@ -312,6 +319,17 @@ function Level.initializeLevel(): ()
 	-- Objectives
 
 	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
+	MusicController.evaluateStack()
+
+	-- Dialogue
+
+
+	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
+
+	-- TODO: This might lead to inconsistencies...
+	task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+	end)
 end
 
 -- TODO: THIS SHIT TOO.
@@ -582,6 +600,7 @@ function Level.onPlayerJoined(player: Player): ()
 			charAppearancesPayloads[i] = payload
 		end
 	end
+	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
 
 	objectiveManager:sendCurrentObjectivesToPlayer(player)
 end
@@ -628,6 +647,15 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
 					prop:AddTag(tagAtt)
 				end
+
+				local turnTransparent = prop:GetAttribute("Transparent") == true
+				if turnTransparent then
+					for _, child in prop:GetDescendants() do
+						if child:IsA("BasePart") then
+							child.Transparency = 1
+						end
+					end
+				end
 			else
 				local tagAtt = placeholder:GetAttribute("Tag")
 				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
@@ -649,6 +677,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				newSpawnLocation.CanQuery = false
 				newSpawnLocation.CanTouch = false
 				newSpawnLocation.AudioCanCollide = false
+				newSpawnLocation.Duration = 0
 				newSpawnLocation.Parent = placeholder.Parent
 				placeholder:Destroy()
 				return true
@@ -840,6 +869,23 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if (placeholder.Name == "Elevator" or placeholder.Name == "FunctionalElevator") and prop then
+				-- TODO: This abomination.
+				local elev = Elevator.createFromPlaceholder(placeholder, prop, Level)
+				propsInLevelSetThrottledUpdate[elev] = true
+				for component in stateComponentsSet do
+					if getmetatable(component) == ElevatorShaftController then
+						(component :: ElevatorShaftController.ElevatorShaftController):processElevator(elev)
+					end
+				end
+				return true
+			end
+
+			if placeholder.Name == "ElevatorCallButton" and prop then
+				propsInLevelSet[ElevatorCallButton.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
 			return false
 		end)
 	end
@@ -938,6 +984,10 @@ function Level.restartLevel(): ()
 		prop:onLevelRestart(Level)
 	end
 
+	for prop in propsInLevelSetThrottledUpdate do
+		prop:onLevelRestart(Level)
+	end
+
 	if DEBUG_STATE_CHANGES then
 		print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
 	end
@@ -971,7 +1021,7 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 
 	missionManager:onLevelRestart()
@@ -1007,6 +1057,12 @@ function Level.restartLevel(): ()
 		end
 	end
 
+	MusicController.evaluateStack()
+
+	task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+	end)
+
 	task.wait(1)
 
 	levelIsRestarting = false
@@ -1018,7 +1074,7 @@ end
 
 function Level.startMission(): ()
 	for _, player in Players:GetPlayers() do
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 end
 
@@ -1054,6 +1110,11 @@ function Level.doUpdate(deltaTime: number): ()
 	soundDispatcher:update(deltaTime)
 	for prop in propsInLevelSetThrottledUpdate do
 		prop:update(deltaTime, Level)
+	end
+	for component in stateComponentsSet do
+		if component.update then
+			component:update(deltaTime, Level)
+		end
 	end
 	objectiveManager:update(context)
 end

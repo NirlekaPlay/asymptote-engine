@@ -1,6 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
 local DisguiseConfig = require(ServerScriptService.server.disguise.DisguiseConfig)
 local EnforceClass = require(ServerScriptService.server.disguise.EnforceClass)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
@@ -21,7 +23,8 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	lightingSettings: LightingSettings?,
 	colors: { [string]: Color3 },
 	objectives: any, -- TODO: FOR NOW
-	globalsExpressionStrs: { [string]: string }
+	globalsExpressionStrs: { [string]: string },
+	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -34,7 +37,8 @@ function MissionSetup.new(
 	lightingSettings: LightingSettings?,
 	colors: { [string]: Color3 },
 	objectives: any,
-	globalsExpressionStrs: { [string]: string }
+	globalsExpressionStrs: { [string]: string },
+	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
@@ -44,7 +48,8 @@ function MissionSetup.new(
 		lightingSettings = lightingSettings,
 		colors = colors,
 		objectives = objectives,
-		globalsExpressionStrs = globalsExpressionStrs
+		globalsExpressionStrs = globalsExpressionStrs,
+		dialogueConceptsPayload = dialogueConceptsPayload
 	}, MissionSetup)
 end
 

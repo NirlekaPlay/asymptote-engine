@@ -127,6 +127,34 @@ function UString.damerauLevenshteinDistance(str1: string, str2: string): number
 	return d[str1Length][str2Length]
 end
 
+--[=[
+	Checks if a string is empty or contains only whitespace characters.
+
+	A string is considered blank if its length is zero or if every
+	Unicode character within it is classified as whitespace.
+
+	```lua
+	UString.isBlank("") -- true
+	UString.isBlank("   ") -- true
+	UString.isBlank("  \n  ") -- true
+	UString.isBlank("  .  ") -- false
+	```
+]=]
+function UString.isBlank(str: string): boolean
+	if str == "" then
+		return true
+	end
+
+	for _, codepoint in utf8.codes(str) do
+		local char = utf8.char(codepoint)
+		if not UString.isWhitespace(char) then
+			return false
+		end
+	end
+
+	return true
+end
+
 function UString.isWhitespace(char: string): boolean
 	if #char == 0 then
 		return false

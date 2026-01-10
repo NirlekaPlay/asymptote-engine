@@ -2,7 +2,7 @@
 
 local StarterPlayer = game:GetService("StarterPlayer")
 local DeanHaunt = require(StarterPlayer.StarterPlayerScripts.client.modules.character.DeanHaunt)
-local IsHalloween = require(StarterPlayer.StarterPlayerScripts.client.modules.misc.IsHalloween)
+local IsHalloween = require(StarterPlayer.StarterPlayerScripts.client.modules.util.IsHalloween)
 
 local CHECK_INTERVAL = 60
 

@@ -20,6 +20,7 @@ local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavi
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
 local SoundListener = require(ServerScriptService.server.world.sound.SoundListener)
 
 local DEFAULT_SIGHT_RADIUS = 50
@@ -180,7 +181,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		return true
 	end
 
-	function soundListener:onReceiveSound(soundPosition: Vector3, cost: number, lastPos: Vector3, soundType: string): ()
+	function soundListener:onReceiveSound(soundPosition: Vector3, cost: number, lastPos: Vector3, soundType: DetectableSound.DetectableSound): ()
 		--print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
 		local entityUuid = EntityManager.newStatic("Sound", soundPosition) -- Kill me.
 		this.hearingSounds[entityUuid] = {
