@@ -74,7 +74,6 @@ function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boo
 		brain:checkMemory(MemoryModuleTypes.IS_PANICKING, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.IS_COMBAT_MODE, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.IS_CURIOUS, MemoryStatus.VALUE_PRESENT)
-		or brain:checkMemory(MemoryModuleTypes.SPOTTED_TRESPASSER, MemoryStatus.VALUE_PRESENT)
 		or brain:checkMemory(MemoryModuleTypes.PRIORITIZED_ENTITY, MemoryStatus.VALUE_PRESENT)
 	)
 end

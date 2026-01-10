@@ -219,7 +219,6 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 	if self.trespassingCheckTimeAccum >= self.trespassingUpdateTime then
 		self.trespassingCheckTimeAccum = 0
 		print(trespasserPlayer.Name, "No longer trespassing. Erasing memory.")
-		brain:eraseMemory(MemoryModuleTypes.SPOTTED_TRESPASSER)
 		trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 
 		local detectionManager = agent:getDetectionManager()
