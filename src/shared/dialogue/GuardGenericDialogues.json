@@ -4,7 +4,8 @@
     ["Got a trespasser here."],
     ["I got a trespasser over here."],
     ["Control, got a wanderer here."],
-    ["Control, I've for a wanderer over here."]
+    ["Control, I've got for a wanderer over here."],
+    ["Control, I've found for a wanderer over here."]
   ],
   "trespassing.minor.report.area.known": [
     ["Trespasser in %s."],
@@ -51,7 +52,7 @@
     ["Just found a guy that shouldn't be where they are!"]
   ],
   "trespassing.major.report.area.known": [
-    ["Control, theres someone snooping around in %s!"],
+    ["Control, there's someone snooping around in %s!"],
     ["Dangerous trespasser in %s."]
   ],
   "status.armed": [
@@ -60,7 +61,7 @@
     ["I see someone with a gun!"]
   ],
   "status.sus_criminal.area.known": [
-    ["Found someones doing sketchy stuff in %s!"],
+    ["Found someone's doing sketchy stuff in %s!"],
     ["Criminal spotted in %s!"],
     ["Dangerous criminal spotted in %s!"],
     ["I've found a dangerous guy in %s!"],
@@ -119,7 +120,7 @@
   "entity.dead_body_unknown": [
     ["Control, I just found someone's corpse!"],
     ["Control! I've got a dead body over here!"],
-    ["Found someone's unresponsive!"]
+    ["Found someone unresponsive!"]
   ],
   "entity.dead_body_known": [
     ["Control! Someone took down %s!"],
@@ -130,5 +131,16 @@
     ["I found %s unresponsive! I need backup!"],
     ["%s is lying on the ground!", "Got no pulse!"],
     ["Found %s on the floor! I think %s is dead!"]
+  ],
+  "sound.gun_shot": [
+    ["Control! I think I'm hearing gunshots!"],
+    ["Control! I'm hearing gunshots!!"],
+    ["I'm hearing gunshots over here!!"],
+    ["I think I'm hearing gunshots!!"],
+    ["Control! Someone's shooting here!!"],
+    ["Control! Shots fired!"],
+    ["Control! Shots fired! Shots fired!"],
+    ["Control! Someone's shooting over here!"],
+    ["I hear someone shooting!!"]
   ]
 }

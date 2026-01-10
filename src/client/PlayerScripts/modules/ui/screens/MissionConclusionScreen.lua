@@ -6,12 +6,13 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
-local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.core.CoreCall)
+local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local DialogueController = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueController)
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
@@ -114,6 +115,8 @@ end
 function MissionConclusionScreen.updateMissionConclusionScreen(
 	cameraSocket: CameraSocket.CameraSocket, failed: boolean
 ): ()
+	DialogueController.forceClose()
+
 	local blurcc = MissionConclusionScreen.getBlurCc()
 	local missionConclusionGui = MissionConclusionScreen.getScreenGui()
 	local retryButton = missionConclusionGui.Root.Buttons.RetryButton
@@ -128,6 +131,12 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 	else
 		missionTitle.Text = "Mission Complete"
 		missionTitleShadow.Text = "Mission Complete"
+	end
+	-- TODO: This is bad. Choose a different logic...
+	if ReplicatedStorage:FindFirstChild("IsLobby") and ReplicatedStorage:FindFirstChild("IsLobby").Value then
+		homeButton.Visible = false
+	else
+		homeButton.Visible = true
 	end
 	retryButton.Text = "Replay Mission"
 	retryButton.Interactable = true

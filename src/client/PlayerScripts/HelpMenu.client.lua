@@ -3,9 +3,11 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
+local HelpMenu = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.menus.HelpMenu)
 local help_menu_en_us = require(ReplicatedStorage.shared.assets.lang.helpmenu["help-menu-en-us"])
 
 local LocalPlayer = Players.LocalPlayer
@@ -42,6 +44,11 @@ local function getScreenGui(): typeof(HelpMenuGui)
 	local existing = PlayerGui:FindFirstChild(HelpMenuGui.Name)
 	if not existing then
 		local new = HelpMenuGui:Clone()
+		new.Root.UIPadding.PaddingLeft = UDim.new(0.07, 0)
+		new.Root.UIPadding.PaddingRight = UDim.new(0.07, 0)
+		new.Root.UIPadding.PaddingBottom = UDim.new(0.07, 0)
+		new.Root.UIPadding.PaddingTop = UDim.new(0.07, 0)
+		new.Root.SafeArea.Chapters.Size = UDim2.fromScale(0.2, 0.947)
 		new.Enabled = true
 		new.Parent = PlayerGui
 		return new
@@ -127,6 +134,7 @@ end
 
 for index, chapterData in HelpContent do
 	local newButton = ReferenceButton:Clone()
+	newButton.Size = UDim2.fromScale(1, 0.03)
 	newButton.Name = "Chapter" .. index
 	newButton.Text = chapterData.ButtonText
 	newButton.Visible = true
@@ -209,9 +217,12 @@ local function onInputPress(actionName: string, inputState: Enum.UserInputState,
 	end
 	
 	if not isVisible then
+		HelpMenu.setIsEnabled(true)
 		MouseManager.addUnuseableMouseOverride(MOUSE_OVERRIDE_ID)
 		slideInMenu()
+		StarterGui:SetCore("ChatActive", false)
 	else
+		HelpMenu.setIsEnabled(false)
 		MouseManager.removeUnuseableMouseOverride(MOUSE_OVERRIDE_ID)
 		slideOutMenu()
 	end

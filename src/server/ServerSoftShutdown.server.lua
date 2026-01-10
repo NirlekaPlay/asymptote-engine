@@ -18,8 +18,9 @@
 
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-if ((game :: any).VIPServerId ~= "" and (game :: any).VIPServerOwnerId == 0) then
+if not RunService:IsStudio() and (((game :: any).VIPServerId ~= "" and (game :: any).VIPServerOwnerId == 0)) then
 	-- This is a reserved server without a VIP server owner
 	local m = Instance.new("Message")
 	m.Text = "This is a temporary lobby. Teleporting back in a moment."

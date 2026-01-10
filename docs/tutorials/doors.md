@@ -1,7 +1,6 @@
 # Doors
-Doors. As insignifficant as they are, those litte "*are they walls or part of a a wall??*"
-philosophical conundrums, they play the most important role in all
-of games. If your level doesn't have any kind of doors, is it even a mission anymore?
+Doors. As insignificant as they are, those litte "*are they walls or part of a wall??*"
+philosophical conundrums, they play the most important role in all games. If your level doesn't have any kind of doors, is it even a mission anymore?
 
 <figure markdown="span">
   ![Disguise props](/asymptote-engine/assets/images/screenshots/doors-showcase.png){ width="10000" }
@@ -10,8 +9,8 @@ of games. If your level doesn't have any kind of doors, is it even a mission any
 
 ## Setup
 Doors are props using parts as placeholders that you put in the level `Props` folder.
-You should've know this by now.
-It is recommended that you your part's `X` and `Y` sizes should be `5` and `7`.
+You should've known this by now.
+It is recommended that your part's `X` and `Y` sizes should be `5` and `7`.
 
 ### Sides
 You need to know how the *"sides"* of a door are defined. The `Front` is the positive `Z` axis
@@ -41,7 +40,7 @@ used to unlock doors.
 
 ### Attributes
  * `LightLevel` (number) This is a number from 1 to 4. This basically sets the LEDs of the
- reader. For example, if the light level is 2, 2 LEDs will be on.
+ reader. For example, if the light level is 2 then 2 LEDs will be on.
 
 <figure markdown="span">
   ![Disguise props](/asymptote-engine/assets/images/screenshots/keycard-reader-l4.png){ width="300" }

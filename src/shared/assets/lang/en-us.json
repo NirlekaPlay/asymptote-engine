@@ -9,6 +9,7 @@
   "ui.prompt.has_fbb": "You already have an FB Beryl",
   "ui.prompt.inventory_no_fbb": "You don't have an FB Beryl",
   "ui.prompt.take": "Take",
+  "ui.prompt.call": "Call",
   "ui.objectives.stealth": "Stealth",
   "ui.objectives.mission": "Mission",
   "ui.objectives.loud": "Loud",
@@ -24,5 +25,6 @@
   "ui.status.suspicious": "Suspicious",
   "ui.status.suspicious_criminal": "Suspicious",
   "ui.status.armed": "Armed",
-  "ui.status.dangerous_item": "Dangerous Item"
+  "ui.status.dangerous_item": "Dangerous Item",
+  "object.generic.elevator": "Elevator"
 }

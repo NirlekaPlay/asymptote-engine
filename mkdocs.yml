@@ -118,19 +118,24 @@ plugins:
 
 nav:
   - Home: index.md
+  - AI:
+    - How Entity AI Works: articles/ai/ai.md
   - Tutorials:
     - Disguises: tutorials/disguises.md
     - Doors: tutorials/doors.md
     - Setting up your NPCs: tutorials/npcs.md
-  - Level:
-    - Level Setup: level/level-setup.md
-    - Props: level/props.md
-    - Props Reference: level/props-reference.md
-  - Engine:
+    - Commands: tutorials/commands.md
+    - Objectives: tutorials/objectives.md
+  - Reference:
+    - Engine:
+      - Level:
+        - Level Setup: level/level-setup.md
+        - Props: level/props.md
+        - Props Reference: level/props-reference.md
     - Conditional Expressions: engine/conditional-expressions.md
   - Contributing:
     - Bugs: contributing/bugs.md
     - Conventions: contributing/conventions.md
-  - Planning:
-    - Huh?: planning/planning.md
-    - Proximity prompts: planning/proximity-prompts.md
+    - Planning:
+      - Huh?: planning/planning.md
+      - Proximity prompts: planning/proximity-prompts.md

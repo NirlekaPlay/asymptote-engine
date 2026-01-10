@@ -8607,7 +8607,7 @@ local tweenSpeed = math.rad(0)          -- Radians/Second
 local tweenMaxSpeed = math.rad(250)     -- Radians/Second
 local TIME_BEFORE_AUTO_ROTATE = 2       -- Seconds, used when auto-aligning camera with vehicles
 
-local INITIAL_CAMERA_ANGLE = CFrame.fromOrientation(math.rad(-15), 0, 0)
+local INITIAL_CAMERA_ANGLE = CFrame.fromOrientation(math.rad(-15), math.rad(180), 0)
 local ZOOM_SENSITIVITY_CURVATURE = 0.5
 local FIRST_PERSON_DISTANCE_MIN = 0.5
 
@@ -8635,6 +8635,14 @@ function ClassicCamera.new()
 	self.isCameraToggle = false
 	self.lastUpdate = tick()
 	self.cameraToggleSpring = Util.Spring.new(5, 0)
+
+	local player = PlayersService.LocalPlayer
+	if player then
+		self.charAddedConn = player.CharacterAdded:Connect(function()
+			print("Added")
+			self.resetCameraAngle = true
+		end)
+	end
 
 	return self
 end
@@ -8678,12 +8686,7 @@ function ClassicCamera:Update(dt)
 
 	local overrideCameraLookVector = nil
 	if self.resetCameraAngle then
-		local rootPart: BasePart = self:GetHumanoidRootPart()
-		if rootPart then
-			overrideCameraLookVector = (rootPart.CFrame * INITIAL_CAMERA_ANGLE).lookVector
-		else
-			overrideCameraLookVector = INITIAL_CAMERA_ANGLE.lookVector
-		end
+		overrideCameraLookVector = INITIAL_CAMERA_ANGLE.lookVector
 		self.resetCameraAngle = false
 	end
 

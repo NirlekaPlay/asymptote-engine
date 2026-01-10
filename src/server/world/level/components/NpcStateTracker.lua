@@ -2,6 +2,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local ServerScriptService = game:GetService("ServerScriptService")
+local StateComponent = require(ServerScriptService.server.world.level.components.registry.StateComponent)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local function isEmptyString(str: string?): boolean
@@ -20,7 +21,7 @@ end
 local NpcStateTracker = {}
 NpcStateTracker.__index = NpcStateTracker
 
-export type NpcStateTracker = typeof(setmetatable({} :: {
+export type NpcStateTracker = StateComponent.StateComponent & typeof(setmetatable({} :: {
 	npcServerTag: string,
 	deathCountVariable: string?
 }, NpcStateTracker))
@@ -73,7 +74,7 @@ function NpcStateTracker.fromInstance(inst: Instance): NpcStateTracker
 	return setmetatable({
 		npcServerTag = npcServerTag,
 		deathCountVariable = deathCountVariable :: string?
-	}, NpcStateTracker)
+	}, NpcStateTracker) :: NpcStateTracker
 end
 
 function NpcStateTracker.onLevelRestart(self: NpcStateTracker): ()

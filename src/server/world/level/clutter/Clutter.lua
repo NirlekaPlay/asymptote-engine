@@ -1,6 +1,8 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 
 local ASSETS_FOLDER_NAME = "Assets"
 local PROPS_FOLDER_NAME = "Props"
@@ -53,7 +55,7 @@ function Clutter.initialize(): boolean
 	return true
 end
 
-function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, callback: ((placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart }) -> boolean)?): ()
+function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, colorsMap: { [string]: Color3 }?, context: ExpressionContext.ExpressionContext, callback: ((placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart }) -> boolean)?): ()
 	local stack = {levelPropsFolder} :: {Instance}
 	local index = 1
 
@@ -67,6 +69,19 @@ function Clutter.replacePlaceholdersWithProps(levelPropsFolder: Model | Folder, 
 		end
 
 		if current:IsA("Folder") then
+			if current ~= levelPropsFolder :: any then
+				local conditionAttribute = current:GetAttribute("Condition")
+				if conditionAttribute and type(conditionAttribute) == "string" and conditionAttribute ~= "" then
+					local result = ExpressionParser.parseAndEvalute(conditionAttribute, context)
+					if not result then
+						-- Destroy the folder and skip traversal
+						-- TODO: Maybe save the folder somewhere in case of restarts?
+
+						current:Destroy()
+						continue
+					end
+				end
+			end
 			local children = current:GetChildren()
 			
 			local spawnCountValue = current:GetAttribute("PickCount") :: number?

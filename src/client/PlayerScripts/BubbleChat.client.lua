@@ -5,6 +5,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
 local UString = require(ReplicatedStorage.shared.util.string.UString)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
@@ -42,7 +44,8 @@ type BubbleChat = {
 		msgTextLabel: TextLabel,
 		msgTextLabelShadow: TextLabel
 	},
-	typeThread: thread
+	typeThread: thread,
+	typeFinished: boolean
 }
 
 local bubbleChatsSet: { [BasePart]: BubbleChat } = {}
@@ -148,6 +151,8 @@ local function newBubbleChat(directedTo: number, message: string, parent: BasePa
 	msgTextLabel_shadow.Text = msg
 	msgTextLabel.RichText = true
 	msgTextLabel_shadow.RichText = true
+	msgTextLabel.AutomaticSize = Enum.AutomaticSize.XY
+	msgTextLabel_shadow.AutomaticSize = Enum.AutomaticSize.XY
 	
 	-- Ensure the Frame is center-anchored for easier clamping logic
 	newFrame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -184,18 +189,21 @@ local function updateBubbleChats(deltaTime: number): ()
 	local safeAreaPadding = Vector2.new(10, 10)
 
 	for part, bubbleChat in bubbleChatsSet do
-		bubbleChat.ttl -= deltaTime
+		if bubbleChat.typeFinished or coroutine.status(bubbleChat.typeThread) == "dead" then
+			bubbleChat.typeFinished = true
+			bubbleChat.ttl -= deltaTime
 		
-		local shouldRemove = false
-		if bubbleChat.ttl <= 0 then
-			shouldRemove = true
-		elseif not part or not part:IsDescendantOf(workspace) then
-			shouldRemove = true
-		end
+			local shouldRemove = false
+			if bubbleChat.ttl <= 0 then
+				shouldRemove = true
+			elseif not part or not part:IsDescendantOf(workspace) then
+				shouldRemove = true
+			end
 
-		if shouldRemove then
-			deleteBubbleChat(bubbleChat)
-			continue
+			if shouldRemove then
+				deleteBubbleChat(bubbleChat)
+				continue
+			end
 		end
 
 		local frame = bubbleChat.uiInstances.frame
@@ -252,6 +260,31 @@ local function updateBubbleChats(deltaTime: number): ()
 end
 
 TypedBubbleChatRemote.OnClientEvent:Connect(function(part, text)
+	if not text and part then
+		local existing = bubbleChatsSet[part]
+		if existing then
+			deleteBubbleChat(existing)
+		end
+		return
+	end
+	newBubbleChat(0, text :: string, part)
+end)
+
+TypedRemotes.ClientBoundForeignChatMessage.OnClientEvent:Connect(function(player, text)
+	if player == localPlayer then
+		return
+	end
+
+	if not player.Character then
+		return
+	end
+
+	if not player.Character.PrimaryPart then
+		return
+	end
+
+	local part = player.Character.PrimaryPart
+	text = Base64.decode(text)
 	if not text and part then
 		local existing = bubbleChatsSet[part]
 		if existing then

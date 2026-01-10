@@ -37,8 +37,8 @@ Available attributes for **Biopsy 095** include:
 * **`Outfit`**
   A string that defines what your NPC's wearing. Because yes, apparently we need to spell this out. Available outfits include:
 
-  * `PsdPlainColourable`: The PSD uniform that matches the NPC's limb colors.
-  * `PsdPlain`: The basic PSD uniform, for when you've completely given up on fashion.
+    * `PsdPlainColourable`: The PSD uniform that matches the NPC's limb colors.
+    * `PsdPlain`: The basic PSD uniform, for when you've completely given up on fashion.
 
 * **`SkinColor`**
   ~~racism~~

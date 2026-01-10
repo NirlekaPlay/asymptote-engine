@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
+local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
@@ -15,6 +16,7 @@ local ExpressionParser = require(ReplicatedStorage.shared.util.expression.Expres
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
+local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
@@ -23,18 +25,25 @@ local CellManager = require(ServerScriptService.server.world.level.cell.CellMana
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
+local Elevator = require(ServerScriptService.server.world.level.clutter.props.Elevator)
+local ElevatorCallButton = require(ServerScriptService.server.world.level.clutter.props.ElevatorCallButton)
 local ItemSpawn = require(ServerScriptService.server.world.level.clutter.props.ItemSpawn)
 local MissionEndZone = require(ServerScriptService.server.world.level.clutter.props.MissionEndZone)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
-local NpcStateTracker = require(ServerScriptService.server.world.level.components.NpcStateTracker)
+local ElevatorShaftController = require(ServerScriptService.server.world.level.components.ElevatorShaftController)
+local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
+local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
 local MissionSetupReaderV1 = require(ServerScriptService.server.world.level.mission.reading.readers.MissionSetupReaderV1)
 local ObjectiveManager = require(ServerScriptService.server.world.level.objectives.ObjectiveManager)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
+local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
+local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
+local SoundDispatcher = require(ServerScriptService.server.world.sound.SoundDispatcher)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
 local HIDE_CELLS = true
@@ -63,6 +72,8 @@ local stateComponentsSet: { [any]: true } = {}
 local globalVariablesTopolicalOrder = {}
 local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
+local soundDispatcher: SoundDispatcher.SoundDispatcher
+local voxelWorld: VoxelWorld.VoxelWorld
 
 Players.CharacterAutoLoads = false
 
@@ -72,6 +83,13 @@ end
 
 local function isEmptyStr(str: string): boolean
 	return string.match(str, "%S") == nil
+end
+
+local function setIsHalloweenVar(): ()
+	local currentMonth = tonumber(os.date("%m")) -- Returns month as number (1-12)
+	local isHalloween = currentMonth == 10
+
+	GlobalStatesHolder.setState("IsHalloween", isHalloween)
 end
 
 --[=[
@@ -109,7 +127,8 @@ function Level.initializeLevel(): ()
 	levelInstancesAccessor = LevelInstancesAccessor.new(
 		missionSetupObj,
 		cellsFolder and cellsFolder:GetChildren() :: { Model} or {},
-		levelFolder:FindFirstChild("Nodes") :: Folder?
+		levelFolder:FindFirstChild("Nodes") :: Folder?,
+		levelFolder:FindFirstChild("Geometry") or error("ERR_NO_GEOMETRY_FOLDER")
 	)
 
 	cellManager = CellManager.new(levelInstancesAccessor)
@@ -117,6 +136,34 @@ function Level.initializeLevel(): ()
 	if missionSetupObj:hasLightingSettings() then
 		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
 	end
+
+	local size = 1024
+	local halfSize = size / 2
+
+	-- Calculate the corners
+	local minPoint = Vector3.new(-halfSize, -halfSize, -halfSize)
+	local maxPoint = Vector3.new(halfSize, halfSize, halfSize)
+
+	voxelWorld = VoxelWorld.new(minPoint, maxPoint)
+	voxelWorld:voxelize(Level.getServerLevelInstancesAccessor():getGeometriesFolder())
+
+	soundDispatcher = SoundDispatcher.new(voxelWorld)
+
+	-- TODO: You know what to do.
+	-- Do you?
+
+	-- Man do I love tight coupling!
+	BulletSimulation.addConsumer({
+		onBulletCreated = function(_, origin: Vector3, char: Model): ()
+			if not Players:GetPlayerFromCharacter(char) then
+				return
+			end
+			print("TEMP: LEVEL :: BULLET SHOT")
+			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED, origin)
+		end
+	})
+
+	-- That's sarcasm.
 
 	local stateComponentsFolder = levelFolder:FindFirstChild("StateComponents") :: Folder?
 	if stateComponentsFolder then
@@ -129,8 +176,9 @@ function Level.initializeLevel(): ()
 			index = index - 1
 
 			if current:IsA("BoolValue") then
-				if current.Name == "NpcStateTracker" then
-					stateComponentsSet[NpcStateTracker.fromInstance(current)] = true
+				local component = StateComponentFactory.create(current, Level.getExpressionContext())
+				if component then
+					stateComponentsSet[component] = true
 				end
 			end
 
@@ -145,6 +193,8 @@ function Level.initializeLevel(): ()
 	end
 
 	-- Global variables
+
+	setIsHalloweenVar()
 
 	local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference(), true)
 
@@ -269,6 +319,17 @@ function Level.initializeLevel(): ()
 	-- Objectives
 
 	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
+	MusicController.evaluateStack()
+
+	-- Dialogue
+
+
+	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
+
+	-- TODO: This might lead to inconsistencies...
+	task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+	end)
 end
 
 -- TODO: THIS SHIT TOO.
@@ -539,6 +600,7 @@ function Level.onPlayerJoined(player: Player): ()
 			charAppearancesPayloads[i] = payload
 		end
 	end
+	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
 
 	objectiveManager:sendCurrentObjectivesToPlayer(player)
 end
@@ -548,7 +610,7 @@ function Level.onPlayerDied(player: Player): ()
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
-	for _, part in ipairs(folder:GetChildren()) do
+	for _, part in ipairs(folder:GetDescendants()) do
 		if not part:IsA("BasePart") then
 			continue
 		end
@@ -572,7 +634,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 		-- Luau you stupid bastard fix this shit, `placeholder` is of type `unknown`.
 
 		-- TODO: If you cant see it already, this is bad. make it better.
-		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
+		Clutter.replacePlaceholdersWithProps(levelPropsFolder, colorsMap, Level.getExpressionContext(), function(placeholder: BasePart, passed: boolean, prop: Model & { Base: BasePart })
 			if passed and prop then
 				for attName, v in pairs(placeholder:GetAttributes()) do
 					prop:SetAttribute(attName, v);
@@ -584,6 +646,15 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				local tagAtt = prop:GetAttribute("Tag")
 				if tagAtt and type(tagAtt) == "string" and not isEmptyStr(tagAtt) then
 					prop:AddTag(tagAtt)
+				end
+
+				local turnTransparent = prop:GetAttribute("Transparent") == true
+				if turnTransparent then
+					for _, child in prop:GetDescendants() do
+						if child:IsA("BasePart") then
+							child.Transparency = 1
+						end
+					end
 				end
 			else
 				local tagAtt = placeholder:GetAttribute("Tag")
@@ -606,6 +677,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				newSpawnLocation.CanQuery = false
 				newSpawnLocation.CanTouch = false
 				newSpawnLocation.AudioCanCollide = false
+				newSpawnLocation.Duration = 0
 				newSpawnLocation.Parent = placeholder.Parent
 				placeholder:Destroy()
 				return true
@@ -797,6 +869,23 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				return true
 			end
 
+			if (placeholder.Name == "Elevator" or placeholder.Name == "FunctionalElevator") and prop then
+				-- TODO: This abomination.
+				local elev = Elevator.createFromPlaceholder(placeholder, prop, Level)
+				propsInLevelSetThrottledUpdate[elev] = true
+				for component in stateComponentsSet do
+					if getmetatable(component) == ElevatorShaftController then
+						(component :: ElevatorShaftController.ElevatorShaftController):processElevator(elev)
+					end
+				end
+				return true
+			end
+
+			if placeholder.Name == "ElevatorCallButton" and prop then
+				propsInLevelSet[ElevatorCallButton.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
 			return false
 		end)
 	end
@@ -836,6 +925,10 @@ function Level.initializeCells(cellsFolder: Folder): ()
 
 		table.insert(cellsList, cellModel)
 	end
+end
+
+function Level.getSoundDispatcher(_): SoundDispatcher.SoundDispatcher
+	return soundDispatcher
 end
 
 function Level.getServerLevelInstancesAccessor(_): LevelInstancesAccessor.LevelInstancesAccessor
@@ -891,9 +984,15 @@ function Level.restartLevel(): ()
 		prop:onLevelRestart(Level)
 	end
 
+	for prop in propsInLevelSetThrottledUpdate do
+		prop:onLevelRestart(Level)
+	end
+
 	if DEBUG_STATE_CHANGES then
 		print("Variables after prop resets:", GlobalStatesHolder.getAllStatesReference())
 	end
+
+	setIsHalloweenVar()
 
 	local registeredGlobals = levelInstancesAccessor:getMissionSetup().globalsExpressionStrs
 	GlobalStatesHolder.resetAllStates(function(stateName)
@@ -922,7 +1021,7 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 
 	missionManager:onLevelRestart()
@@ -958,6 +1057,12 @@ function Level.restartLevel(): ()
 		end
 	end
 
+	MusicController.evaluateStack()
+
+	task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+	end)
+
 	task.wait(1)
 
 	levelIsRestarting = false
@@ -969,7 +1074,7 @@ end
 
 function Level.startMission(): ()
 	for _, player in Players:GetPlayers() do
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 end
 
@@ -1002,8 +1107,14 @@ local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()
 
 function Level.doUpdate(deltaTime: number): ()
 	Level.updateCells()
+	soundDispatcher:update(deltaTime)
 	for prop in propsInLevelSetThrottledUpdate do
 		prop:update(deltaTime, Level)
+	end
+	for component in stateComponentsSet do
+		if component.update then
+			component:update(deltaTime, Level)
+		end
 	end
 	objectiveManager:update(context)
 end

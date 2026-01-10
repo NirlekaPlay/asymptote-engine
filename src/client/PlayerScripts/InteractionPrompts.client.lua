@@ -1,6 +1,7 @@
 --!strict
 
 local Debris = game:GetService("Debris")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,6 +13,7 @@ local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client
 local InteractionPrompt = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.InteractionPrompt)
 local InteractionPromptConfiguration = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.InteractionPromptConfiguration)
 local InteractionPromptRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.interaction.InteractionPromptRenderer)
+local HelpMenu = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.menus.HelpMenu)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
@@ -26,6 +28,7 @@ local currentPrompt: InteractionPrompt? = nil
 local DEBUG_PROMPTS = false
 local DEBUG_OCCLUSION_RAYS = false
 local DEBUG_OCCLUSION_RAYS_LIFETIME = 0.1
+local DEFAULT_OMNI_DIR_VALUE = false
 local INF = math.huge
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
@@ -151,7 +154,7 @@ local function setupInteractionPromptFromProxPrompt(
 
 	local config: InteractionPromptConfiguration = {
 		activationDistance = originalMaxActivationDistance,
-		omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or true
+		omniDirectional = (proxPrompt.Parent:GetAttribute("OmniDir") :: boolean?) or DEFAULT_OMNI_DIR_VALUE
 	}
 
 	local newInteractionPrompt: InteractionPrompt = InteractionPrompt.new(
@@ -230,9 +233,35 @@ local function evaluatePromptShowCondition(prompt: InteractionPrompt): any
 	return parseCondition(conditionAtt)
 end
 
+local function canRenderAndEnableIntPrompts(): boolean
+	if HelpMenu.isEnabled() then
+		return false
+	end
+
+	if GuiService.MenuIsOpen then
+		return false
+	end
+
+	local plrChar = localPlayer.Character
+	if not plrChar or not plrChar.PrimaryPart then
+		return false
+	end
+
+	local humanoid = plrChar:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
+		return false
+	end
+
+	return true
+end
+
 local function update(deltaTime: number): ()
 	-- TODO: Handle multiple prompts of different exclusivity types
-	if not localPlayer.Character or not localPlayer.Character.PrimaryPart then
+	if not canRenderAndEnableIntPrompts() then
+		if currentPrompt then
+			hideAndDisablePrompt(currentPrompt)
+			currentPrompt = nil
+		end
 		return
 	end
 

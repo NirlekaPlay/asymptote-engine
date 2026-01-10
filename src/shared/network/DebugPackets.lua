@@ -1,15 +1,16 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
+--local ServerScriptService = game:GetService("ServerScriptService")
 
 local DebugEntityNameGenerator = require(ReplicatedStorage.shared.network.DebugEntityNameGenerator)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
-local Agent = require(ServerScriptService.server.Agent)
+--local Agent = require(ServerScriptService.server.Agent) -- Circular dependency motherfucking bullshit.
 
 local PACKETS = {
-	DEBUG_BRAIN = "DEBUG_BRAIN"
+	DEBUG_BRAIN = "DEBUG_BRAIN",
+	DEBUG_COMPUTED_VOXELS = "DEBUG_COMPUTED_VOXELS"
 }
 
 local FORMAT_NUMBER_EPSILON = 1e-6
@@ -73,6 +74,10 @@ end
 
 --
 
+function DebugPackets.sendDynamicDebugPayloadToClients(debugName: string, payload: any): ()
+	TypedRemotes.ClientBoundDynamicDebugDump:FireAllClients(debugName, payload)
+end
+
 function DebugPackets.hasListeningClients(debugName: string): boolean
 	if not activeClientListeners[debugName] then
 		activeClientListeners[debugName] = {}
@@ -116,6 +121,15 @@ function DebugPackets.flushBrainDumpsToListeningClients(): ()
 	end
 
 	DebugPackets.clearBatch(DebugPackets.Packets.DEBUG_BRAIN)
+end
+
+function DebugPackets.onReceiveSubscription(player: Player, debugName: string, subscribe: boolean): ()
+	if not activeClientListeners[debugName] then
+		activeClientListeners[debugName] = {}
+	end
+
+	local value = if subscribe then true else nil
+	activeClientListeners[debugName][player] = value
 end
 
 function DebugPackets.createBrainDump(agent: Agent.Agent): BrainDebugPayload.BrainDump
@@ -228,14 +242,5 @@ function DebugPackets.getTableShortDescription<K, V>(t: { [K]: V }): string
 end
 
 --
-
-TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(function(player, debugName, subscribe)
-	if not activeClientListeners[debugName] then
-		activeClientListeners[debugName] = {}
-	end
-
-	local value = if subscribe then true else nil
-	activeClientListeners[debugName][player] = value
-end)
 
 return DebugPackets

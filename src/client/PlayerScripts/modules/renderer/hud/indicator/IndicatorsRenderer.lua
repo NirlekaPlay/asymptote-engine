@@ -75,6 +75,7 @@ function IndicatorsRenderer.removeIndicator(indicator: Indicator): ()
 
 		worldIndicatorsSet[indicator] = nil
 		indicator.ui:Destroy()
+		indicator.attachment:Destroy()
 	end)
 end
 
