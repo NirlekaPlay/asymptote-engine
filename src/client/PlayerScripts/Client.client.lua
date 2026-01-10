@@ -180,3 +180,19 @@ ContextActionService:BindAction("BIND_SIT_TOGGLE", function(actionName: string, 
 	return Enum.ContextActionResult.Pass
 end, false, Enum.KeyCode.V)
 
+local mouseToggle = false
+ContextActionService:BindAction("ACTION_UNLOCK_MOUSE", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	
+	mouseToggle = not mouseToggle
+
+	if mouseToggle then
+		MouseManager.addUnuseableMouseOverride("MANUAL_UNLOCK")
+	else
+		MouseManager.removeUnuseableMouseOverride("MANUAL_UNLOCK")
+	end
+
+	return Enum.ContextActionResult.Pass
+end, false, Enum.KeyCode.L)

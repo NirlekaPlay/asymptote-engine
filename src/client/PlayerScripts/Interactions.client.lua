@@ -43,5 +43,6 @@ end
 onLoad()
 
 createNewPair("H", "Help")
+createNewPair("L", "Toggle Mouse Unlock")
 createNewPair("N", "Debug brain")
 createNewPair("B", "Debug tracers")
