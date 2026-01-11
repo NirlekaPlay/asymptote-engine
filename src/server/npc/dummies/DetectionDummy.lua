@@ -260,7 +260,7 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	self.reportControl:update(deltaTime)
 
 	-- TODO: Legacy walking animation code.
-	if self.pathNavigation.pathfinder.Status == "Active" then
+	if self.pathNavigation:isMoving() then
 		self.character.isPathfinding.Value = true
 		if self.character.Humanoid.WalkSpeed >= 18 then
 			self.character.isRunning.Value = true

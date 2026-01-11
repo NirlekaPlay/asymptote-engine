@@ -1,143 +1,129 @@
 --!strict
 
 local PathfindingService = game:GetService("PathfindingService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SimplePath = require(ReplicatedStorage.shared.thirdparty.SimplePath)
+local ServerScriptService = game:GetService("ServerScriptService")
+local RblxAgentParameters = require(ServerScriptService.server.ai.navigation.RblxAgentParameters)
+local NodePath = require(ServerScriptService.server.world.level.pathfinding.NodePath)
 
-local DIST_THRESHOLD = 3
-local RUNNING_SPEED = 30
-local WALKING_SPEED = 16
-
+--[=[
+	@class PathNavigation
+]=]
 local PathNavigation = {}
 PathNavigation.__index = PathNavigation
 
 export type PathNavigation = typeof(setmetatable({} :: {
-	pathfinder: SimplePath.SimplePath,
+	path: NodePath.NodePath?,
+	rblxPath: Path,
+	humanoid: Humanoid,
 	character: Model,
-	agentParams: AgentParameters?,
-	reachedConnection: RBXScriptConnection?,
-	pathConnections: { [string]: RBXScriptConnection },
-	finished: boolean
+	--
+	currentMoveToThread: thread?,
+	moveToFinishedConn: RBXScriptConnection?,
 }, PathNavigation))
 
-type AgentParameters = SimplePath.AgentParameters
-
-function PathNavigation.new(character: Model, agentParams: AgentParameters?): PathNavigation
+function PathNavigation.new(character: Model, agentParams: RblxAgentParameters.AgentParameters): PathNavigation
 	return setmetatable({
+		path = nil :: NodePath.NodePath?,
+		rblxPath = PathfindingService:CreatePath(agentParams :: any),
+		humanoid = (character :: any).Humanoid :: Humanoid,
 		character = character,
-		pathfinder = SimplePath.new(character, agentParams),
-		agentParams = agentParams,
-		reachedConnection = nil :: RBXScriptConnection?,
-		pathConnections = {},
-		finished = false
+		--
+		currentMoveToThread = nil :: thread?,
+		moveToFinishedConn = nil :: RBXScriptConnection?
 	}, PathNavigation)
 end
 
-function PathNavigation.getPath(self: PathNavigation): Path
-	return (self.pathfinder :: SimplePath.SimplePathInternal)._path
-end
-
-function PathNavigation.setToRunningSpeed(self: PathNavigation): ()
-	self:setWalkSpeed(RUNNING_SPEED)
-end
-
-function PathNavigation.setToWalkingSpeed(self: PathNavigation): ()
-	self:setWalkSpeed(WALKING_SPEED)
-end
-
-function PathNavigation.generatePath(self: PathNavigation, to: Vector3): (Path?, string?)
-	if not self.character:FindFirstChild("HumanoidRootPart") then
-		error(`Cannot generate path: {self.character} has no HumanoidRootPart!`)
-	end
-
-	local path = PathfindingService:CreatePath(self.agentParams :: any)
-	local success, errorMessage = pcall(function()
-		return path:ComputeAsync(self.character.HumanoidRootPart.Position, to)
-	end)
-
-	if success and path.Status == Enum.PathStatus.Success then
-		return path, nil
-	else
-		return nil, errorMessage
-	end
-end
-
-function PathNavigation.setWalkSpeed(self: PathNavigation, speed: number): ()
-	local humanoid = self.character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		error(`{self.character} does not have a Humanoid!`)
-	else
-		humanoid.WalkSpeed = speed
-	end
-end
-
-function PathNavigation.moveTo(self: PathNavigation, toPos: Vector3): ()
-	self:stop()
-
-	--[[if (self.pathfinder :: SimplePath.SimplePathInternal)._agent.Name == "Bob" then
-		local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
-		warn("Attempt to move to", toPos)
-		Draw.point(toPos)
-	end]]
-
-	local character = (self.pathfinder :: SimplePath.SimplePathInternal)._agent
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not (rootPart and rootPart:IsA("BasePart")) then
-		warn("PathNavigation: character missing HumanoidRootPart")
-		return
-	end
-
-	local currentPos = rootPart.Position
-	local distance = (currentPos - toPos).Magnitude
-
-	--warn("distance:", distance)
-
-	if distance < DIST_THRESHOLD then
-		self.finished = true
-		return
-	end
-
-	self.pathfinder:Run(toPos)
-
-	if not self.pathConnections["err"] then
-		self.pathConnections["err"] = self.pathfinder.Error:Connect(function(...)
-			warn("What?! Looks like pathfinding threw an error for:", ...)
-		end)
-	end
-
-	if not self.pathConnections["blocked"] then
-		self.pathConnections["blocked"] = self.pathfinder.Blocked:Connect(function(model, waypoint)
-			warn("Hmm.. Looks like pathfinding got blocked for", model:GetFullName(), "for waypoint:", waypoint)
-		end)
-	end
-
-	self.reachedConnection = self.pathfinder.Reached:Once(function()
-		self.finished = true
-	end)
-end
-
 function PathNavigation.isMoving(self: PathNavigation): boolean
-	return self.pathfinder.Status == "Active"
+	return self.path ~= nil
 end
 
-function PathNavigation.stop(self: PathNavigation)
-	self:disconnectAndClearConnections()
-	self.finished = false
-	if self.pathfinder.Status == "Active" then
-		self.pathfinder:Stop()
+function PathNavigation.moveToPos(self: PathNavigation, pos: Vector3, minDist: number): ()
+	if self.currentMoveToThread then
+		task.cancel(self.currentMoveToThread)
+		self:stop()
+	end
+
+	self.currentMoveToThread = task.spawn(function()
+		local path = self.rblxPath
+		if not path then
+			error("ERR_NO_PATH")
+		end
+		
+		local success, errorMessage = pcall(function()
+			return path:ComputeAsync(self:getCharacterPosition(), pos)
+		end)
+		
+		if success and path.Status == Enum.PathStatus.Success then
+			local nodePath = NodePath.new(path:GetWaypoints(), pos, 1)
+			self.path = nodePath
+			nodePath:advance()
+			self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
+				self:onMoveToFinished(reached)
+			end)
+			self:humanoidMoveToPos(nodePath:getNextNode().Position)
+		else
+			warn("Pathfinding failed:", errorMessage)
+			self:stop()
+		end
+	end)
+end
+
+function PathNavigation.stop(self: PathNavigation): ()
+	self:disconnectOnMoveToFinishedConnection()
+	self.path = nil
+end
+
+function PathNavigation.getCharacterPosition(self: PathNavigation): Vector3
+	local char = self.character
+	if not char then
+		error("ERR_NO_CHAR")
+	end
+
+	local humanoidRootPart = char:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not humanoidRootPart then
+		error("ERR_NO_HUMANOID_ROOT_PART")
+	end
+
+	return humanoidRootPart.Position
+end
+
+--
+
+function PathNavigation.onMoveToFinished(self: PathNavigation, reached: boolean): ()
+	if self.path == nil then
+		self:disconnectOnMoveToFinishedConnection()
+		return
+	end
+
+	if not reached then
+		warn("Failed to reach waypoint")
+		self:stop()
+		return
+	end
+
+	if not self.path:isDone() then
+		self.path:advance()
+		local nextNode = self.path:getNextNode()
+
+		self:humanoidMoveToPos(nextNode.Position)
+
+		if nextNode.Action == Enum.PathWaypointAction.Jump then
+			self.humanoid.Jump = true
+		end
+	else
+		print("Path complete")
+		self:stop()
 	end
 end
 
-function PathNavigation.disconnectAndClearConnections(self: PathNavigation): ()
-	if self.reachedConnection then
-		self.reachedConnection:Disconnect()
-		self.reachedConnection = nil
+function PathNavigation.disconnectOnMoveToFinishedConnection(self: PathNavigation): ()
+	if self.moveToFinishedConn then
+		self.moveToFinishedConn:Disconnect()
 	end
+end
 
-	for name, connection in pairs(self.pathConnections) do
-		connection:Disconnect()
-		self.pathConnections[name] = nil
-	end
+function PathNavigation.humanoidMoveToPos(self: PathNavigation, pos: Vector3): ()
+	self.humanoid:MoveTo(pos)
 end
 
 return PathNavigation
