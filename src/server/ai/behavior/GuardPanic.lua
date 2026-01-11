@@ -42,7 +42,6 @@ local MEMORY_REQUIREMENTS = {
 	[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.PANIC_POSITION] = MemoryStatus.REGISTERED,
-	[MemoryModuleTypes.FOLLOW_TARGET] = MemoryStatus.REGISTERED,
 	[MemoryModuleTypes.PRIORITIZED_ENTITY] = MemoryStatus.VALUE_PRESENT
 }
 
@@ -98,7 +97,6 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 	local entity = EntityManager.getEntityByUuid(panicSource:getUuid())
 
 	brain:setMemory(MemoryModuleTypes.IS_PANICKING, true)
-	brain:eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
 	brain:setMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID, panicSource:getUuid())
 	brain:setMemory(MemoryModuleTypes.PANIC_POSITION, EntityUtils.getPos(entity))
 	agent:getBodyRotationControl():setRotateTowards(nil)
@@ -148,7 +146,6 @@ end
 
 function GuardPanic.doStop(self: GuardPanic, agent: Agent): ()
 	agent:getBrain():eraseMemory(MemoryModuleTypes.IS_PANICKING)
-	agent:getNavigation():setToWalkingSpeed()
 end
 
 function GuardPanic.doUpdate(self: GuardPanic, agent: Agent, deltaTime: number): ()

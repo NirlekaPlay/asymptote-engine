@@ -3,7 +3,9 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
 local PrioritizedEntity = require(ServerScriptService.server.ai.memory.PrioritizedEntity)
+local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
+local NodePath = require(ServerScriptService.server.world.level.pathfinding.NodePath)
 
 --[=[
 	@class MemoryModuleTypes
@@ -27,7 +29,9 @@ local MemoryModuleTypes = {
 	TARGETABLE_ENTITIES = register("targetable_entities") :: MemoryModuleType< { [Player]: true }>,
 	LOOK_TARGET = register("look_target") :: MemoryModuleType<string>,
 	KILL_TARGET = register("kill_target") :: MemoryModuleType<Player>,
-	FOLLOW_TARGET = register("follow_target") :: MemoryModuleType<Player>,
+	WALK_TARGET = register("walk_target") :: MemoryModuleType<WalkTarget.WalkTarget>,
+	PATH = register("path") :: MemoryModuleType<NodePath.NodePath>,
+	CANT_REACH_WALK_TARGET_SINCE = register("cant_reach_walk_target_since") :: MemoryModuleType<number>,
 	PANIC_SOURCE_ENTITY_UUID = register("panic_source_entity_uuid"):: MemoryModuleType<string>,
 	CURRENT_POST = register("current_post") :: MemoryModuleType<Node.Node>,
 	TARGET_POST = register("target_post") :: MemoryModuleType<Node.Node>,

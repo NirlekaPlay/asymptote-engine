@@ -8,7 +8,6 @@ local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorW
 local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
 local EnterCombatActivity = require(ServerScriptService.server.ai.behavior.EnterCombatActivity)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
-local FollowPlayerSink = require(ServerScriptService.server.ai.behavior.FollowPlayerSink)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
 local KillCaughtOrThreateningPlayers = require(ServerScriptService.server.ai.behavior.KillCaughtOrThreateningPlayers)
 local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
@@ -25,6 +24,7 @@ local SetIsCuriousMemory = require(ServerScriptService.server.ai.behavior.SetIsC
 local SetPanicFace = require(ServerScriptService.server.ai.behavior.SetPanicFace)
 local ValidatePrioritizedEntity = require(ServerScriptService.server.ai.behavior.ValidatePrioritizedEntity)
 local WalkToRandomPost = require(ServerScriptService.server.ai.behavior.WalkToRandomPost)
+local WalkToTargetSink = require(ServerScriptService.server.ai.behavior.WalkToTargetSink)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local SensorFactories = require(ServerScriptService.server.ai.sensing.SensorFactories)
@@ -38,7 +38,6 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.TARGETABLE_ENTITIES,
 	MemoryModuleTypes.LOOK_TARGET,
 	MemoryModuleTypes.KILL_TARGET,
-	MemoryModuleTypes.FOLLOW_TARGET,
 	MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID,
 	MemoryModuleTypes.PRIORITIZED_ENTITY,
 	MemoryModuleTypes.IS_INVESTIGATING,
@@ -59,7 +58,10 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.REPORTING_ON,
 	MemoryModuleTypes.PANIC_POSITION,
 	MemoryModuleTypes.HAS_FLED,
-	MemoryModuleTypes.HAS_RETREATED
+	MemoryModuleTypes.HAS_RETREATED,
+	MemoryModuleTypes.WALK_TARGET,
+	MemoryModuleTypes.PATH,
+	MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE
 }
  
 local SENSOR_FACTORIES = {
@@ -94,7 +96,7 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(ConfrontTrespasser.new()),
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
 		BehaviorWrapper.new(ReportSuspiciousPlayer.new()),
-		BehaviorWrapper.new(FollowPlayerSink.new())
+		BehaviorWrapper.new(WalkToTargetSink.new())
 	})
 end
 

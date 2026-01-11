@@ -11,6 +11,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local Level = require(ServerScriptService.server.world.level.Level)
@@ -69,9 +70,8 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), Level.getGuardCombatNodes())
 	if post then
 		agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
-		agent:getNavigation():setToRunningSpeed()
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
-		agent:getNavigation():moveTo(post.cframe.Position)
+		agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, 2, 0))
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
 		if DEBUG_MODE then
 			Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
@@ -120,7 +120,7 @@ function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()
 	end
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, false)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.HAS_FLED, true)
-	agent:getNavigation():stop()
+	agent:getBrain():eraseMemory(MemoryModuleTypes.WALK_TARGET)
 	agent:getFaceControl():setFace("Angry")
 
 	--[[local maxDistance = 25
@@ -200,16 +200,16 @@ function FleeToEscapePoints.chooseEscapePoint(
 	local choosenEscapePoint: Node.Node? = nil
 
 	for _, post in escapePoints do
-		local path = agent:getNavigation():generatePath(post.cframe.Position)
+		local path = agent:getNavigation():createPathAsync(post.cframe.Position)
 		if not path then
 			continue
 		end
 
-		local waypoints = path:GetWaypoints()
+		local waypoints = path:getWaypoints()
 
 		local distance = (post.cframe.Position - panicSourcePos).Magnitude
 		local threatExposure = FleeToEscapePoints.getWaypointsThreatExposure(waypoints, panicSourcePos)
-		local pathCost = FleeToEscapePoints.getWaypointsPathLength(waypoints)
+		local pathCost = path:getTotalLength()
 		local randomSalt = rng:NextInteger(1, 5)
 
 		local score = WEIGHT_DISTANCE * distance - WEIGHT_THREAT_EXPOSURE * threatExposure - WEIGHT_PATH_COST * pathCost + randomSalt
@@ -232,14 +232,6 @@ function FleeToEscapePoints.getWaypointsThreatExposure(waypoints: {PathWaypoint}
 	end
 
 	return 1 / (minDistToThreat + 0.001) -- closer paths get higher threat
-end
-
-function FleeToEscapePoints.getWaypointsPathLength(waypoints: {PathWaypoint}): number
-	local pathCost = 0
-	for i = 2, #waypoints do
-		pathCost = pathCost + (waypoints[i].Position - waypoints[i-1].Position).Magnitude
-	end
-	return pathCost
 end
 
 return FleeToEscapePoints

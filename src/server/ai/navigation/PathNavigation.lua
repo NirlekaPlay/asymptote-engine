@@ -37,35 +37,69 @@ function PathNavigation.isMoving(self: PathNavigation): boolean
 	return self.path ~= nil
 end
 
-function PathNavigation.moveToPos(self: PathNavigation, pos: Vector3, minDist: number): ()
-	if self.currentMoveToThread then
+function PathNavigation.isDone(self: PathNavigation): boolean
+	return self.path == nil or self.path:isDone()
+end
+
+function PathNavigation.getPath(self: PathNavigation): NodePath.NodePath?
+	return self.path
+end
+
+function PathNavigation.createPathAsync(self: PathNavigation, pos: Vector3): NodePath.NodePath?
+	local path = self.rblxPath
+	if not path then
+		error("ERR_NO_PATH")
+	end
+	
+	local success: boolean, errorMessage: string = (pcall :: any)(function()
+		path:ComputeAsync(self:getCharacterPosition(), pos)
+	end)
+
+	if success and path.Status == Enum.PathStatus.Success then
+		local nodePath = NodePath.new(path:GetWaypoints(), pos, 1)
+		return nodePath
+	else
+		warn("Pathfinding failed:", errorMessage)
+		return nil
+	end
+end
+
+function PathNavigation.moveToPos(self: PathNavigation, pos: Vector3, speedModifier: number?): ()
+	if self.currentMoveToThread ~= nil then
 		task.cancel(self.currentMoveToThread)
 		self:stop()
 	end
 
 	self.currentMoveToThread = task.spawn(function()
-		local path = self.rblxPath
-		if not path then
-			error("ERR_NO_PATH")
-		end
-		
-		local success, errorMessage = pcall(function()
-			return path:ComputeAsync(self:getCharacterPosition(), pos)
-		end)
-		
-		if success and path.Status == Enum.PathStatus.Success then
-			local nodePath = NodePath.new(path:GetWaypoints(), pos, 1)
-			self.path = nodePath
-			nodePath:advance()
-			self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
-				self:onMoveToFinished(reached)
-			end)
-			self:humanoidMoveToPos(nodePath:getNextNode().Position)
+		local nodePath = self:createPathAsync(pos)
+		self.currentMoveToThread = nil
+		if nodePath then
+			self:moveToFromPath(nodePath, speedModifier)
 		else
-			warn("Pathfinding failed:", errorMessage)
 			self:stop()
 		end
 	end)
+end
+
+function PathNavigation.moveToFromPath(self: PathNavigation, path: NodePath.NodePath?, speedModifier: number?): boolean
+	if self.currentMoveToThread ~= nil then
+		task.cancel(self.currentMoveToThread)
+		self:stop()
+	end
+
+	if path == nil then
+		self:stop()
+		return false
+	end
+
+	self.path = path
+	path:advance()
+	self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
+		self:onMoveToFinished(reached)
+	end)
+	self:humanoidMoveToPos(path:getNextNode().Position)
+
+	return true
 end
 
 function PathNavigation.stop(self: PathNavigation): ()
@@ -111,7 +145,6 @@ function PathNavigation.onMoveToFinished(self: PathNavigation, reached: boolean)
 			self.humanoid.Jump = true
 		end
 	else
-		print("Path complete")
 		self:stop()
 	end
 end

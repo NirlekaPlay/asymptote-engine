@@ -54,7 +54,6 @@ function EnterCombatActivity.doStart(self: EnterCombatActivity, agent: Agent): (
 		Mission.getAlertLevel() == AlertLevels.LOCKDOWN then
 		
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_COMBAT_MODE, true)
-		agent:getBrain():eraseMemory(MemoryModuleTypes.FOLLOW_TARGET)
 		agent:getFaceControl():setFace("Angry")
 		agent:getGunControl():equipGun()
 		agent:getDetectionManager():blockAllDetection()

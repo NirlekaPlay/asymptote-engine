@@ -6,6 +6,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local PatrolState = require(ServerScriptService.server.ai.behavior.patrol.PatrolState)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 
 local REACH_THRESHOLD = 3
@@ -85,7 +86,7 @@ end
 
 function WalkToRandomPost.doStop(self: WalkToRandomPost, agent: Agent): ()
 	agent:getBodyRotationControl():setRotateToDirection(nil)
-	agent:getNavigation():stop();
+	agent:getBrain():eraseMemory(MemoryModuleTypes.WALK_TARGET); -- NOTES: May cause problems. FIx this shit later by storing a path instance.
 	-- TODO: Instances of this are to be replaced with propper animation handling.
 	(agent :: any).character.isGuarding.Value = false
 end
@@ -132,8 +133,7 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 		return -- prevent further logic this frame
 	end
 	
-	if patrolState == PatrolState.WALKING and nav.finished and not self.isAtTargetPost then
-		nav.finished = false
+	if patrolState == PatrolState.WALKING and nav:isDone() and not self.isAtTargetPost then
 		self.isAtTargetPost = true
 		self.timeToReleasePost = agent:getRandom():NextNumber(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
 
@@ -206,15 +206,15 @@ function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post:
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.TARGET_POST, post)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.CURRENT_POST, nil)
 	agent:getBrain():setNullableMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.WALKING)
-	agent:getNavigation():moveTo(post.cframe.Position)
-	self.pathToPost = agent:getNavigation():getPath()
+	agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, 1, 0))
+	self.pathToPost = nil
 end
 
 function WalkToRandomPost.getRandomUnoccupiedPost(self: WalkToRandomPost, agent: Agent): Node?
 	local unoccupied = {}
 	local count = 0
 
-	for _, post in ipairs(agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get()) do
+	for _, post in agent:getBrain():getMemory(MemoryModuleTypes.DESIGNATED_POSTS):get() do
 		if not post:isOccupied() then
 			count += 1
 			unoccupied[count] = post
