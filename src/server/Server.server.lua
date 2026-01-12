@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
@@ -202,7 +203,7 @@ local function update(deltaTime: number): ()
 	Level.update(deltaTime)
 
 	-- this frame, is there any listening clients?
-	local hasListeningClients = DebugPackets.hasListeningClients(DebugPackets.Packets.DEBUG_BRAIN)
+	local hasListeningClients = DebugPackets.hasListeningClients(DebugPacketTypes.DEBUG_BRAIN)
 	for model, guard in pairs(guards) do
 		if not model.PrimaryPart then
 			guards[model] = nil
@@ -220,7 +221,7 @@ local function update(deltaTime: number): ()
 
 		guard:update(deltaTime)
 		if hasListeningClients then
-			DebugPackets.queueDataToBatch(DebugPackets.Packets.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
+			DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
 		end
 	end
 
