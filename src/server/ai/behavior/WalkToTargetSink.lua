@@ -142,9 +142,10 @@ function WalkToTargetSink.tryComputePath(self: WalkToTargetSink, agent: Agent, w
 	local path = agent:getNavigation():createPathAsync(targetPos)
 
 	self.isComputing = false
+	self.currentPath = path
+	self.speedModifier = walkTarget:getSpeedModifier()
 
 	if path then
-		self.currentPath = path
 		brain:eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)
 		return true
 	else

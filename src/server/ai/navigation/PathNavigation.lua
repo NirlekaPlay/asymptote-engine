@@ -2,8 +2,11 @@
 
 local PathfindingService = game:GetService("PathfindingService")
 local ServerScriptService = game:GetService("ServerScriptService")
+local MoveControl = require(ServerScriptService.server.ai.control.MoveControl)
 local RblxAgentParameters = require(ServerScriptService.server.ai.navigation.RblxAgentParameters)
 local NodePath = require(ServerScriptService.server.world.level.pathfinding.NodePath)
+
+local DEFAULT_SPEED_MODIFIER = 1
 
 --[=[
 	@class PathNavigation
@@ -12,21 +15,29 @@ local PathNavigation = {}
 PathNavigation.__index = PathNavigation
 
 export type PathNavigation = typeof(setmetatable({} :: {
+	moveControl: MoveControl.MoveControl,
 	path: NodePath.NodePath?,
 	rblxPath: Path,
 	humanoid: Humanoid,
 	character: Model,
+	speedModifier: number,
 	--
 	currentMoveToThread: thread?,
 	moveToFinishedConn: RBXScriptConnection?,
 }, PathNavigation))
 
-function PathNavigation.new(character: Model, agentParams: RblxAgentParameters.AgentParameters): PathNavigation
+function PathNavigation.new(
+	character: Model,
+	moveControl: MoveControl.MoveControl,
+	agentParams: RblxAgentParameters.AgentParameters
+): PathNavigation
 	return setmetatable({
+		moveControl = moveControl,
 		path = nil :: NodePath.NodePath?,
 		rblxPath = PathfindingService:CreatePath(agentParams :: any),
 		humanoid = (character :: any).Humanoid :: Humanoid,
 		character = character,
+		speedModifier = DEFAULT_SPEED_MODIFIER,
 		--
 		currentMoveToThread = nil :: thread?,
 		moveToFinishedConn = nil :: RBXScriptConnection?
@@ -43,6 +54,10 @@ end
 
 function PathNavigation.getPath(self: PathNavigation): NodePath.NodePath?
 	return self.path
+end
+
+function PathNavigation.setSpeedModifier(self: PathNavigation, speedModifier: number): ()
+	self.speedModifier = speedModifier
 end
 
 function PathNavigation.createPathAsync(self: PathNavigation, pos: Vector3): NodePath.NodePath?
@@ -93,6 +108,7 @@ function PathNavigation.moveToFromPath(self: PathNavigation, path: NodePath.Node
 	end
 
 	self.path = path
+	self.speedModifier = speedModifier or DEFAULT_SPEED_MODIFIER -- TODO: May cause problems. Idk why but it may.
 	path:advance()
 	self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
 		self:onMoveToFinished(reached)
@@ -156,7 +172,7 @@ function PathNavigation.disconnectOnMoveToFinishedConnection(self: PathNavigatio
 end
 
 function PathNavigation.humanoidMoveToPos(self: PathNavigation, pos: Vector3): ()
-	self.humanoid:MoveTo(pos)
+	self.moveControl:setWantedPosition(pos, self.speedModifier)
 end
 
 return PathNavigation

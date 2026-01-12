@@ -10,6 +10,7 @@ local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleCh
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local MoveControl = require(ServerScriptService.server.ai.control.MoveControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local ReportControl = require(ServerScriptService.server.ai.control.ReportControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
@@ -48,6 +49,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	reportControl: ReportControl.ReportControl,
+	moveControl: MoveControl.MoveControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
@@ -71,9 +73,14 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
+	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.JumpHeight = 0
+	humanoid.JumpPower = 0
+	
 	self.characterName = charName or ""
 	self.alive = true
-	self.pathNavigation = PathNavigation.new(character, {
+	self.moveControl = MoveControl.new(humanoid)
+	self.pathNavigation = PathNavigation.new(character, self.moveControl, {
 		AgentRadius = 2,
 		AgentHeight = 2,
 		AgentCanJump = false,
@@ -91,9 +98,6 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or tick())
 
-	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
-	humanoid.JumpHeight = 0
-	humanoid.JumpPower = 0
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
 		self:onDied()
