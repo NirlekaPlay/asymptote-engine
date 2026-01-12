@@ -19,6 +19,7 @@ local Level = require(ServerScriptService.server.world.level.Level)
 local DEBUG_MODE = false
 local MIN_DISTANCE_TO_ESCAPE_POS = 5
 local DIST_CHECK_UPDATE_INTERVAL = 0.5
+local RUN_SPEED_MODIFIER = 2.5
 
 local rng = Random.new(tick())
 
@@ -71,7 +72,7 @@ function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
 	if post then
 		agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_FLEEING, true)
-		agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, 2, 0))
+		agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, RUN_SPEED_MODIFIER, 0))
 		agent:getBrain():setNullableMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
 		if DEBUG_MODE then
 			Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)

@@ -1,6 +1,7 @@
 --!strict
 
 local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerPosTracker = require(ServerScriptService.server.ai.behavior.pathfinding.PlayerPosTracker)
 local PositionTracker = require(ServerScriptService.server.ai.behavior.pathfinding.PositionTracker)
 local Vec3PosTracker = require(ServerScriptService.server.ai.behavior.pathfinding.Vec3PosTracker)
 
@@ -32,8 +33,8 @@ function WalkTarget.fromVector3(pos: Vector3, speedModifier: number, minDist: nu
 	return WalkTarget.new(Vec3PosTracker.new(pos), speedModifier, minDist)
 end
 
-function WalkTarget.fromEntity(entity: Player): WalkTarget
-	return
+function WalkTarget.fromPlayer(entity: Player, speedModifier: number, minDist: number): WalkTarget
+	return WalkTarget.new(PlayerPosTracker.new(entity), speedModifier, minDist)
 end
 
 function WalkTarget.getTarget(self: WalkTarget): PositionTracker.PositionTracker

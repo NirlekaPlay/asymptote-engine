@@ -113,7 +113,7 @@ function PathNavigation.moveToFromPath(self: PathNavigation, path: NodePath.Node
 	self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
 		self:onMoveToFinished(reached)
 	end)
-	self:humanoidMoveToPos(path:getNextNode().Position)
+	self.moveControl:setWantedPosition(path:getNextNode().Position, self.speedModifier)
 
 	return true
 end
@@ -155,7 +155,7 @@ function PathNavigation.onMoveToFinished(self: PathNavigation, reached: boolean)
 		self.path:advance()
 		local nextNode = self.path:getNextNode()
 
-		self:humanoidMoveToPos(nextNode.Position)
+		self.moveControl:setWantedPosition(nextNode.Position, self.speedModifier)
 
 		if nextNode.Action == Enum.PathWaypointAction.Jump then
 			self.humanoid.Jump = true
@@ -169,10 +169,6 @@ function PathNavigation.disconnectOnMoveToFinishedConnection(self: PathNavigatio
 	if self.moveToFinishedConn then
 		self.moveToFinishedConn:Disconnect()
 	end
-end
-
-function PathNavigation.humanoidMoveToPos(self: PathNavigation, pos: Vector3): ()
-	self.moveControl:setWantedPosition(pos, self.speedModifier)
 end
 
 return PathNavigation
