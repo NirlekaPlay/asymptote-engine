@@ -1,6 +1,7 @@
 --!strict
 
 local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local MoveControl = require(ServerScriptService.server.ai.control.MoveControl)
 local RblxAgentParameters = require(ServerScriptService.server.ai.navigation.RblxAgentParameters)
@@ -71,8 +72,7 @@ function PathNavigation.createPathAsync(self: PathNavigation, pos: Vector3): Nod
 	end)
 
 	if success and path.Status == Enum.PathStatus.Success then
-		local nodePath = NodePath.new(path:GetWaypoints(), pos, 1)
-		return nodePath
+		return NodePath.new(path:GetWaypoints(), pos, 1)
 	else
 		warn("Pathfinding failed:", errorMessage)
 		return nil
@@ -106,13 +106,15 @@ function PathNavigation.moveToFromPath(self: PathNavigation, path: NodePath.Node
 		self:stop()
 		return false
 	end
-
+	
 	self.path = path
 	self.speedModifier = speedModifier or DEFAULT_SPEED_MODIFIER -- TODO: May cause problems. Idk why but it may.
 	path:advance()
 	self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
 		self:onMoveToFinished(reached)
 	end)
+	
+	self:reclaimCharNetworkOwner()
 	self.moveControl:setWantedPosition(path:getNextNode().Position, self.speedModifier)
 
 	return true
@@ -155,6 +157,7 @@ function PathNavigation.onMoveToFinished(self: PathNavigation, reached: boolean)
 		self.path:advance()
 		local nextNode = self.path:getNextNode()
 
+		self:reclaimCharNetworkOwner()
 		self.moveControl:setWantedPosition(nextNode.Position, self.speedModifier)
 
 		if nextNode.Action == Enum.PathWaypointAction.Jump then
@@ -168,6 +171,18 @@ end
 function PathNavigation.disconnectOnMoveToFinishedConnection(self: PathNavigation): ()
 	if self.moveToFinishedConn then
 		self.moveToFinishedConn:Disconnect()
+		self.moveToFinishedConn = nil
+	end
+end
+
+function PathNavigation.reclaimCharNetworkOwner(self: PathNavigation): ()
+	-- Prevents janky movements by the parts of the character to have network owner of a player
+	-- We don't know the exact performance impact of GetChildren()
+	-- So leave this for now.
+	for _, child in self.character:GetChildren() do
+		if child:IsA("BasePart") and child:GetNetworkOwner() ~= nil then
+			child:SetNetworkOwner(nil)
+		end
 	end
 end
 
