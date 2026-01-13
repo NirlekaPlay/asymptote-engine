@@ -1,7 +1,6 @@
 --!strict
 
 local PathfindingService = game:GetService("PathfindingService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local MoveControl = require(ServerScriptService.server.ai.control.MoveControl)
 local RblxAgentParameters = require(ServerScriptService.server.ai.navigation.RblxAgentParameters)
@@ -97,25 +96,44 @@ function PathNavigation.moveToPos(self: PathNavigation, pos: Vector3, speedModif
 end
 
 function PathNavigation.moveToFromPath(self: PathNavigation, path: NodePath.NodePath?, speedModifier: number?): boolean
-	if self.currentMoveToThread ~= nil then
-		task.cancel(self.currentMoveToThread)
-		self:stop()
-	end
+	-- Critical logic for smooth follow. Don't fuck with this.
 
 	if path == nil then
 		self:stop()
 		return false
 	end
+
+	-- Disconnect old listener to prevent it from interfering with the new path
+	if self.moveToFinishedConn then
+		self.moveToFinishedConn:Disconnect()
+		self.moveToFinishedConn = nil
+	end
 	
 	self.path = path
-	self.speedModifier = speedModifier or DEFAULT_SPEED_MODIFIER -- TODO: May cause problems. Idk why but it may.
-	path:advance()
+	self.speedModifier = speedModifier or DEFAULT_SPEED_MODIFIER
+	
+	-- Skip waypoints that are already reached or behind the NPC
+	local characterPos = self:getCharacterPosition()
+	path:advance() -- Reminder that paths node cursor starts at 0
+
+	-- Check if the first node is closer than 4 studs, if yes skip it to maintain momentum
+	local nextNode = path:getNextNode()
+	if nextNode and (nextNode.Position - characterPos).Magnitude < 4 then
+		if not path:isDone() then
+			path:advance()
+			nextNode = path:getNextNode()
+		end
+	end
+	
 	self.moveToFinishedConn = self.humanoid.MoveToFinished:Connect(function(reached)
 		self:onMoveToFinished(reached)
 	end)
-	
+
 	self:reclaimCharNetworkOwner()
-	self.moveControl:setWantedPosition(path:getNextNode().Position, self.speedModifier)
+
+	if nextNode then
+		self.moveControl:setWantedPosition(nextNode.Position, self.speedModifier)
+	end
 
 	return true
 end

@@ -63,10 +63,11 @@ function NodePath.getTotalLength(self: NodePath): number
 
 	local pathCost = 0
 	for i = 2, self:getWaypointCount() do
-		pathCost = pathCost + (self.waypoints[i].Position - self.waypoints[i-1].Position).Magnitude
+		pathCost += (self.waypoints[i].Position - self.waypoints[i-1].Position).Magnitude
 	end
 
 	self.totalLengthCache = pathCost
+
 	return pathCost
 end
 
