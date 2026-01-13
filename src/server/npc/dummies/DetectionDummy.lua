@@ -100,7 +100,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
-		self:onDied()
+		self:onDied(false)
 	end)
 
 	self.uuid = HttpService:GenerateGUID(false)
@@ -151,6 +151,9 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 			humanoidDiedConnection = nil
 		end
 		descendantAddedConnection:Disconnect()
+		if self ~= nil and self.alive ~= false then
+			self:onDied(true)
+		end
 	end)
 
 	self.hearingSounds = {}
@@ -351,10 +354,12 @@ end
 
 --
 
-function DummyAgent.onDied(self: DummyAgent): ()
+function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
-	self:getFaceControl():setFace("Unconscious")
+	if not isCharDestroying then
+		self:getFaceControl():setFace("Unconscious")
+	end
 end
 
 --
