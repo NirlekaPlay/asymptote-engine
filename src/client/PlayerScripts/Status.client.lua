@@ -17,6 +17,9 @@ local playerStatusesPerUi = {
 	[PlayerStatusTypes.ARMED.name] = GUI.Frame.G_Armed
 }
 
+GUI.Frame.B_Trespassing.LayoutOrder += 1
+GUI.Frame.C_Suspicious.LayoutOrder -= 1
+
 local currentPlayerStatusTypes: { [string]: true } = {}
 
 REMOTE.OnClientEvent:Connect(function(playerStatusesMap)
