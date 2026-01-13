@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
 local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local ReportType = require(ReplicatedStorage.shared.report.ReportType)
@@ -12,17 +13,17 @@ local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 
 local DEFAULT_TRESPASSING_UPDATE_TIME = 3
-local WARNING_INTERVAL = 3 -- seconds between warnings
+local WARNING_INTERVAL = 3
+local LOST_THRESHOLD = 5 -- Time in seconds before giving up search
 local ATTRIBUTE_CONFRONTED_BY = "TrespassingConfrontedBy"
 
---[=[
-	@class ConfrontTrespasser
-]=]
 local ConfrontTrespasser = {}
 ConfrontTrespasser.__index = ConfrontTrespasser
 ConfrontTrespasser.ClassName = "ConfrontTrespasser"
@@ -30,7 +31,11 @@ ConfrontTrespasser.ClassName = "ConfrontTrespasser"
 export type ConfrontTrespasser = typeof(setmetatable({} :: {
 	timeSinceLastDialogue: number,
 	trespassingCheckTimeAccum: number,
-	trespassingUpdateTime: number
+	trespassingUpdateTime: number,
+	timeSinceLastSeen: number,
+	isReportingLost: boolean,
+	lastKnownPosition: Vector3?,
+	selfDiedConn: RBXScriptConnection?
 }, ConfrontTrespasser))
 
 type MemoryModuleType<T> = MemoryModuleTypes.MemoryModuleType<T>
@@ -43,7 +48,11 @@ function ConfrontTrespasser.new(): ConfrontTrespasser
 		maxDuration = math.huge,
 		timeSinceLastDialogue = 0,
 		trespassingCheckTimeAccum = 0,
-		trespassingUpdateTime = DEFAULT_TRESPASSING_UPDATE_TIME
+		trespassingUpdateTime = DEFAULT_TRESPASSING_UPDATE_TIME,
+		timeSinceLastSeen = 0,
+		isReportingLost = false,
+		lastKnownPosition = nil :: Vector3?,
+		selfDiedConn = nil :: RBXScriptConnection?
 	}, ConfrontTrespasser)
 end
 
@@ -63,8 +72,17 @@ function ConfrontTrespasser.checkExtraStartConditions(self: ConfrontTrespasser, 
 	return agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
 		:filter(function(priorityEntity)
 			local forStatus = PlayerStatusTypes.getStatusFromName(priorityEntity:getStatus())
+			local isTrespassing = forStatus == PlayerStatusTypes.MINOR_TRESPASSING
+			if not isTrespassing then
+				return false
+			end
 
-			return forStatus == PlayerStatusTypes.MINOR_TRESPASSING
+			local entity = EntityManager.getEntityByUuid(priorityEntity:getUuid())
+			local player = EntityUtils.getPlayerOrThrow(entity)
+			local att = player:GetAttribute(ATTRIBUTE_CONFRONTED_BY)
+			local isNotConfrontedByAnotherGuard = att == nil or att == agent:getUuid()
+
+			return isNotConfrontedByAnotherGuard
 		end)
 		:isPresent()
 end
@@ -75,13 +93,14 @@ function ConfrontTrespasser.canStillUse(self: ConfrontTrespasser, agent: Agent):
 end
 
 function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
-	print("Called")
 	local brain = agent:getBrain()
 	local faceControl = agent:getFaceControl()
 	local talkControl = agent:getTalkControl()
 	local reportContrl = agent:getReportControl()
 
 	self.timeSinceLastDialogue = 0
+	self.timeSinceLastSeen = 0
+	self.isReportingLost = false
 
 	local trespasserWarns = brain:getMemory(MemoryModuleTypes.TRESPASSERS_WARNS):orElse({})
 	local trespasserEncounters = brain:getMemory(MemoryModuleTypes.TRESPASSERS_ENCOUNTERS):orElse({})
@@ -102,19 +121,14 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	local doReport = false
 	local reportType
 	local reportDialogue
-	local reportDialogueSpeechDur: number
+	local reportDialogueSpeechDur: number = 0
 	local reportRegisterDur = 2.5
 
 	if currentEncounters == 1 then
 		doReport = true
 		reportType = ReportType.TRESPASSER_SPOTTED
 		local trespasserAreaName = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(trespasserPlayer)
-		
-		if trespasserAreaName then
-			reportDialogue = GuardGenericDialogues["trespassing.minor.report.area.known"]
-		else
-			reportDialogue = GuardGenericDialogues["trespassing.minor.report.area.unknown"]
-		end
+		reportDialogue = trespasserAreaName and GuardGenericDialogues["trespassing.minor.report.area.known"] or GuardGenericDialogues["trespassing.minor.report.area.unknown"]
 
 		local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
 		reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
@@ -122,7 +136,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	elseif currentEncounters == 2 then
 		local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(GuardGenericDialogues["trespassing.minor.second_encounter"])
 		talkControl:saySequences(choosenDialogue)
-	elseif currentEncounters == 3 then
+	elseif currentEncounters >= 3 then
 		doReport = true
 		reportType = ReportType.CRIMINAL_SPOTTED
 		reportDialogue = GuardGenericDialogues["trespassing.minor.non_cooperative"]
@@ -133,83 +147,138 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 
 	if doReport and reportType then
 		local delayBeforeRadioUnequip = math.max(0, reportDialogueSpeechDur - reportRegisterDur) + 1
-		reportContrl:reportWithCustomDur(
-			reportType,
-			reportRegisterDur,
-			delayBeforeRadioUnequip
-		)
+		reportContrl:reportWithCustomDur(reportType, reportRegisterDur, delayBeforeRadioUnequip)
+		trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, agent:getUuid())
+		if not self.selfDiedConn then
+			self.selfDiedConn = (agent.character.Humanoid :: Humanoid).Died:Once(function()
+				local trespasserMemory = agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+				if trespasserMemory:isPresent() then
+					local player = trespasserMemory:get()
+					if player:GetAttribute(ATTRIBUTE_CONFRONTED_BY) == agent:getUuid() then
+						player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+					end
+				end
+			end)
+		end
 	end
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
+	agent:getBrain():eraseMemory(MemoryModuleTypes.WALK_TARGET)
 	agent:getReportControl():interruptReport()
 	agent:getTalkControl():stopTalking()
-
 	self.timeSinceLastDialogue = 0
+
+	local trespasserMemory = agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
+	if trespasserMemory:isPresent() then
+		local player = trespasserMemory:get()
+		if player:GetAttribute(ATTRIBUTE_CONFRONTED_BY) == agent:getUuid() then
+			player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+		end
+	end
 end
 
 function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, deltaTime: number): ()
 	local brain = agent:getBrain()
-	local trespasserUuid = brain:getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get():getUuid()
-	local trespasserPlayer = EntityUtils.getPlayerOrThrow(EntityManager.getEntityByUuid(trespasserUuid))
+	local prioritizedEntity = brain:getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get()
+	local trespasserUuid = prioritizedEntity:getUuid()
+	local trespasserEntity = EntityManager.getEntityByUuid(trespasserUuid)
+	
+	if not trespasserEntity then return end
+	
+	local trespasserPlayer = EntityUtils.getPlayerOrThrow(trespasserEntity)
 	local trespasserStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(trespasserPlayer)
-	local isTrespasserTrespassing = trespasserStatusHolder:getHighestPriorityStatus() == PlayerStatusTypes.MINOR_TRESPASSING -- to be or not to be?
+	local isTrespasserTrespassing = trespasserStatusHolder:getHighestPriorityStatus() == PlayerStatusTypes.MINOR_TRESPASSING
 	local isTalking = agent:getTalkControl():isTalking() or agent:getReportControl():isReporting()
+	local canSee = brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS):map(function(plrs)
+		return plrs[trespasserPlayer] ~= nil
+	end):isPresent()
 
-	-- TODO: Handle circumstances where player cannot be confronted when not in view
-	-- for example, stop chasing and report it.
-
+	-- Handle Dialogue Timer
 	if isTalking then
 		self.timeSinceLastDialogue = 0
 	else
 		self.timeSinceLastDialogue += deltaTime
 	end
 
-	if isTrespasserTrespassing and not isTalking and self.timeSinceLastDialogue >= WARNING_INTERVAL then
+	-- Visibility and Movement Logic
+	if canSee then
+		self.timeSinceLastSeen = 0
+		self.lastKnownPosition = trespasserPlayer.Character.HumanoidRootPart.Position
+		
+		-- Edge Case: Player returned while guard was reporting them lost
+		if self.isReportingLost then
+			self.isReportingLost = false
+			agent:getReportControl():interruptReport()
+			agent:getTalkControl():stopTalking()
+		end
+
+		local distance = (self.lastKnownPosition - agent:getPrimaryPart().Position).Magnitude
+		if isTrespasserTrespassing and distance > 10 then
+			brain:setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromPlayer(trespasserPlayer, 1.5, 7))
+		end
+	else
+		self.timeSinceLastSeen += deltaTime
+		
+		-- Edge Case: Set walk target to last known position once out of sight
+		if self.lastKnownPosition and not brain:hasMemoryValue(MemoryModuleTypes.WALK_TARGET) then
+			brain:setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(self.lastKnownPosition, 2, 7))
+		end
+	end
+
+	-- Logic for giving up and returning to original duties
+	if self.timeSinceLastSeen >= LOST_THRESHOLD and not self.isReportingLost then
+		self.isReportingLost = true
+		local talkControl = agent:getTalkControl()
+		local reportControl = agent:getReportControl()
+		local lostDialogues
+		if Mission.getAlertLevel() == AlertLevels.ALERT then
+			lostDialogues = GuardGenericDialogues["trespassing.minor.lost_near_lockdown"]
+		else
+			lostDialogues = GuardGenericDialogues["trespassing.minor.lost"]
+		end
+		
+		if lostDialogues then
+			local chosen = talkControl.randomlyChosoeDialogueSequences(lostDialogues)
+			local speechDur = talkControl.getDialoguesTotalSpeechDuration(chosen)
+			talkControl:saySequences(chosen)
+			reportControl:reportWithCustomDur(ReportType.TRESPASSER_LOST, 2.0, speechDur)
+			
+			task.delay(speechDur + 0.5, function()
+				if self.isReportingLost then
+					self:cleanupAndReturn(agent, trespasserUuid)
+				end
+			end)
+		else
+			self:cleanupAndReturn(agent, trespasserUuid)
+		end
+		return
+	end
+
+	-- Standard Warning Logic
+	if isTrespasserTrespassing and canSee and not isTalking and self.timeSinceLastDialogue >= WARNING_INTERVAL then
 		local talkControl = agent:getTalkControl()
 		local trespasserWarns = brain:getMemory(MemoryModuleTypes.TRESPASSERS_WARNS):get()
-		local trespasserEncounters = brain:getMemory(MemoryModuleTypes.TRESPASSERS_ENCOUNTERS):get()
-		local currentWarnings = trespasserWarns[trespasserUuid] + 1
-		local currentEncounters = trespasserEncounters[trespasserUuid]
-
+		local currentWarnings = (trespasserWarns[trespasserUuid] or 0) + 1
 		trespasserWarns[trespasserUuid] = currentWarnings
-
 		brain:setMemory(MemoryModuleTypes.TRESPASSERS_WARNS, trespasserWarns)
 
-		local doReport = false
-		local reportDur = 0
-		local reportType: ReportType.ReportType
-		local dialogues: any
-
-		print("For", trespasserPlayer ,"Current warnings:", currentWarnings, "Current encounters:", currentEncounters)
-
-		if currentWarnings == 1 and currentEncounters == 2 then
-			dialogues = GuardGenericDialogues["trespassing.minor.warn.2.second_encounter"]
-		elseif currentWarnings == 1 then
+		local dialogues
+		if currentWarnings == 1 then
 			dialogues = GuardGenericDialogues["trespassing.minor.warn.1"]
 		elseif currentWarnings == 2 then
 			dialogues = GuardGenericDialogues["trespassing.minor.warn.2"]
 		elseif currentWarnings >= 3 then
-			doReport = true
-			reportDur = 2.5
-			reportType = ReportType.CRIMINAL_SPOTTED
 			dialogues = GuardGenericDialogues["trespassing.minor.non_cooperative"]
+			agent:getReportControl():reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2.5, talkControl.getDialoguesTotalSpeechDuration(talkControl.randomlyChosoeDialogueSequences(dialogues)))
 		end
 
 		if dialogues then
-			local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(dialogues)
-			talkControl:saySequencesWithDelay(choosenDialogue, (doReport and reportDur) and 0.5 or 0)
-			if doReport and reportType then
-				agent:getReportControl():reportWithCustomDur(
-					reportType,
-					reportDur,
-					talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
-				)
-			end
+			talkControl:saySequences(talkControl.randomlyChosoeDialogueSequences(dialogues))
 		end
 	end
 
-	-- Check if player stopped trespassing (debounce logic)
+	-- Trespassing Debounce/Check
 	if not isTrespasserTrespassing then
 		self.trespassingCheckTimeAccum += deltaTime
 	else
@@ -217,16 +286,23 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 	end
 
 	if self.trespassingCheckTimeAccum >= self.trespassingUpdateTime then
-		self.trespassingCheckTimeAccum = 0
-		print(trespasserPlayer.Name, "No longer trespassing. Erasing memory.")
-		trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
-
-		local detectionManager = agent:getDetectionManager()
-		detectionManager:eraseEntityStatusEntry(trespasserUuid, PlayerStatusTypes.MINOR_TRESPASSING)
+		self:cleanupAndReturn(agent, trespasserUuid)
 	end
 end
 
---
+function ConfrontTrespasser.cleanupAndReturn(self: ConfrontTrespasser, agent: Agent, uuid: string)
+	local brain = agent:getBrain()
+	local player = EntityUtils.getPlayerOrThrow(EntityManager.getEntityByUuid(uuid))
+	player:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+	
+	brain:eraseMemory(MemoryModuleTypes.WALK_TARGET)
+	brain:eraseMemory(MemoryModuleTypes.PRIORITIZED_ENTITY)
+	agent:getDetectionManager():eraseEntityStatusEntry(uuid, PlayerStatusTypes.MINOR_TRESPASSING)
+	
+	self.isReportingLost = false
+	self.timeSinceLastSeen = 0
+	self.lastKnownPosition = nil
+end
 
 function ConfrontTrespasser.getReactionTime(self: ConfrontTrespasser, agent: Agent, deltaTime: number): number
 	return agent:getRandom():NextInteger(1, 1.5)

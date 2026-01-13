@@ -273,8 +273,14 @@ function DetectionManagement.getEntityPriorityInfo(
 	local distance = (self.agent:getPrimaryPart().Position - entityPos).Magnitude
 
 	if entityObject.name == "Player" then
-		
 		entityObject = entityObject :: EntityManager.DynamicEntity
+		local playerInstance = entityObject.instance :: Player
+
+		-- TODO: THis is stupid. But hey, it does its job.
+		if playerInstance:GetAttribute("TrespassingConfrontedBy") then
+			return results 
+		end
+
 		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(entityObject.instance :: Player)
 
 		local statuses: { PlayerStatus.PlayerStatus }
@@ -430,27 +436,27 @@ function DetectionManagement.update(self: DetectionManagement, deltaTime: number
 end
 
 function DetectionManagement.updateDetectionPerEntities(self: DetectionManagement, deltaTime: number): ()
-    local currentlyDetectedKeys: { [string]: true } = {}
-    
-    if not self.allDetectionBlocked then
-        local focusTarget = self:findHighestPriorityEntity()
-        self.focusingTarget = focusTarget
+	local currentlyDetectedKeys: { [string]: true } = {}
+	
+	if not self.allDetectionBlocked then
+		local focusTarget = self:findHighestPriorityEntity()
+		self.focusingTarget = focusTarget
 
-        for entityUuid, detectionProfile in pairs(self.detectedEntities) do
-            local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
-            local entity = EntityManager.getEntityByUuid(entityUuid)
-            
-            if entity and entity.name == "Player" then
-                local highestPriorityInfo = nil
+		for entityUuid, detectionProfile in pairs(self.detectedEntities) do
+			local infos = self:getEntityPriorityInfo(entityUuid, detectionProfile)
+			local entity = EntityManager.getEntityByUuid(entityUuid)
+			
+			if entity and entity.name == "Player" then
+				local highestPriorityInfo = nil
 				for _, info in ipairs(infos) do
-                    if not highestPriorityInfo or info.priority > highestPriorityInfo.priority then
-                        highestPriorityInfo = info
-                    end
-                end
-                
-                if highestPriorityInfo then
-                    local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
-                    
+					if not highestPriorityInfo or info.priority > highestPriorityInfo.priority then
+						highestPriorityInfo = info
+					end
+				end
+				
+				if highestPriorityInfo then
+					local currentKey = entityUuid .. ":" .. highestPriorityInfo.status
+					
 					-- Step 1: Check for any maxed higher priority status, override highestPriorityInfo if found
 					local highestPriority = highestPriorityInfo.priority
 					for key, level in pairs(self.detectionLevels) do
@@ -525,49 +531,49 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 							if keyPriority < highestPriority and level < 1.0 then
 								-- Transfer detection to highestPriorityInfo before removing
 								self.detectionLevels[currentKey] = math.max(self.detectionLevels[currentKey] or 0, level)
-                                self.detectionLevels[key] = nil
-                            end
-                        end
-                    end
+								self.detectionLevels[key] = nil
+							end
+						end
+					end
 
 					-- Step 5: Ensure highestPriorityInfo detection level initialized
-                    if self.detectionLevels[currentKey] == nil then
-                        self.detectionLevels[currentKey] = 0
-                    end
-                    
-                    currentlyDetectedKeys[currentKey] = true
-                    
+					if self.detectionLevels[currentKey] == nil then
+						self.detectionLevels[currentKey] = 0
+					end
+					
+					currentlyDetectedKeys[currentKey] = true
+					
 					-- Step 6: Raise detection on highestPriorityInfo
 					if focusTarget
 						and focusTarget.entityUuid == highestPriorityInfo.entityUuid
 						and focusTarget.status == highestPriorityInfo.status
 					then
-                        self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
-                    else
-                        self:lowerDetection(currentKey, deltaTime)
-                    end
-                end
-            else
+						self:raiseDetection(currentKey, deltaTime, highestPriorityInfo)
+					else
+						self:lowerDetection(currentKey, deltaTime)
+					end
+				end
+			else
 				-- Non-player entities (DeadBody, C4, etc.) - no stacking rules apply
-                for _, info in ipairs(infos) do
-                        local key = entityUuid .. ":" .. info.status
-                        currentlyDetectedKeys[key] = true
+				for _, info in ipairs(infos) do
+						local key = entityUuid .. ":" .. info.status
+						currentlyDetectedKeys[key] = true
 					if focusTarget
 						and focusTarget.entityUuid == info.entityUuid
 						and focusTarget.status == info.status
 					then
-                            self:raiseDetection(key, deltaTime, info)
-                        else
-                            self:lowerDetection(key, deltaTime)
-                    end
-                end
-            end
-        end
-    end
+							self:raiseDetection(key, deltaTime, info)
+						else
+							self:lowerDetection(key, deltaTime)
+					end
+				end
+			end
+		end
+	end
 
 	-- Clean up detection levels that are no longer being tracked
 	for key, _ in pairs(self.detectionLevels) do
-        if not currentlyDetectedKeys[key] then
+		if not currentlyDetectedKeys[key] then
 			local entityUuid = string.match(key, "^(.-):") :: string
 			local entity = EntityManager.getEntityByUuid(entityUuid)
 			if entity and entity.name == "Player" then
@@ -580,14 +586,14 @@ function DetectionManagement.updateDetectionPerEntities(self: DetectionManagemen
 				end
 				if not hasCurrentDetection then
 					self:lowerDetection(key, deltaTime)
-            else
+			else
 					self:lowerDetection(key, deltaTime)
-            end
+			end
 			else
 				self:lowerDetection(key, deltaTime)
 			end
-        end
-    end
+		end
+	end
 end
 
 function DetectionManagement.updateCuriousState(self: DetectionManagement, deltaTime: number): ()
