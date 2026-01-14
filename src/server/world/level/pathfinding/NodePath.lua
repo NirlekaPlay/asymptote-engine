@@ -2,6 +2,8 @@
 
 --[=[
 	@class NodePath
+
+	Represents a stateful path.
 ]=]
 local NodePath = {}
 NodePath.__index = NodePath
@@ -44,8 +46,16 @@ function NodePath.isDone(self: NodePath): boolean
 	return self.nextWaypointIndex >= self.waypointCount
 end
 
+function NodePath.getNode(self: NodePath, index: number): PathWaypoint
+	return self.waypoints[index] or error(`Attempt to access node in path at index {index}: Index out of bounds`)
+end
+
 function NodePath.getNextNode(self: NodePath): PathWaypoint
 	return self.waypoints[self.nextWaypointIndex]
+end
+
+function NodePath.getNextNodeIndex(self: NodePath): number
+	return self.nextWaypointIndex
 end
 
 function NodePath.getWaypoints(self: NodePath): {PathWaypoint}

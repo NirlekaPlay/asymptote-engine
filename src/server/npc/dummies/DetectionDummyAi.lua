@@ -9,6 +9,7 @@ local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.Confro
 local EnterCombatActivity = require(ServerScriptService.server.ai.behavior.EnterCombatActivity)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
 local GuardPanic = require(ServerScriptService.server.ai.behavior.GuardPanic)
+local InteractWithDoor = require(ServerScriptService.server.ai.behavior.InteractWithDoor)
 local KillCaughtOrThreateningPlayers = require(ServerScriptService.server.ai.behavior.KillCaughtOrThreateningPlayers)
 local KillTarget = require(ServerScriptService.server.ai.behavior.KillTarget)
 local KillTargetableEntities = require(ServerScriptService.server.ai.behavior.KillTargetableEntities)
@@ -96,7 +97,8 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(ConfrontTrespasser.new()),
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
 		BehaviorWrapper.new(ReportSuspiciousPlayer.new()),
-		BehaviorWrapper.new(WalkToTargetSink.new())
+		BehaviorWrapper.new(WalkToTargetSink.new()),
+		BehaviorWrapper.new(InteractWithDoor.new())
 	})
 end
 

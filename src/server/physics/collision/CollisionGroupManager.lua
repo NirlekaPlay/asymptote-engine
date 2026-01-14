@@ -27,6 +27,11 @@ function CollisionGroupManager.register()
 	CollisionGroupBuilder.new(CollisionGroupTypes.PATHFINDING_BLOCKER)
 		:notCollideWithAnything()
 		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.CLIENT_TARGET_OBSTRUCTED_RAY)
+		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
+		:notCollideWith(CollisionGroupTypes.BULLET)
+		:register()
 end
 
 return CollisionGroupManager

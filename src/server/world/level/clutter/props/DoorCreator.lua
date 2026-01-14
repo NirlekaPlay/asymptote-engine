@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Door = require(ServerScriptService.server.world.level.clutter.props.Door)
 local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
@@ -11,6 +12,7 @@ local GlobalStatesHolder = require(ServerScriptService.server.world.level.states
 local DEBUG_INST_INIT = false
 local DEBUG_DIR = false
 local DEBUG_SIDES_TRIGGER = false
+local DEBUG_PATH_MOD_BOX = true
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local PROMPT_ACTIVATION_DIST = 5
@@ -66,6 +68,26 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 
 	local part0 = model:FindFirstChild("Part0") :: BasePart
 	local nonMainDoorParts: {BasePart} = {}
+
+	local pathReqPart = Instance.new("Part")
+	pathReqPart.Name = "DoorBounds"
+	pathReqPart.CanCollide = false
+	pathReqPart.AudioCanCollide = false
+	pathReqPart.Anchored = true
+	pathReqPart.Transparency = 1
+	pathReqPart.CFrame = base.CFrame
+	pathReqPart.Size = base.Size --Vector3.new(base.Size.X - 1, base.Size.Y, base.Size.Z - 1)
+	pathReqPart.CollisionGroup = CollisionGroupTypes.PATHFINDING_PART
+	pathReqPart.Parent = workspace
+
+	local pathMod = Instance.new("PathfindingModifier")
+	pathMod.Label = "Door"
+	pathMod.PassThrough = true
+	pathMod.Parent = pathReqPart
+
+	if DEBUG_PATH_MOD_BOX then
+		Draw.box(pathReqPart, pathReqPart.Size)
+	end
 
 	for _, part in model:GetChildren() do
 		if not part:IsA("BasePart") then
@@ -337,6 +359,8 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		},
 		DoorPromptComponent.new(prompts, isDoubleDoor or false),
 		(isDoubleDoor and hingePart2) and DoorHingeComponent.double(hingePart, hingePart2) or DoorHingeComponent.single(hingePart),
+		pathReqPart,
+		lookVec,
 		doorParts,
 		lockFront,
 		lockBack,
@@ -400,8 +424,11 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		end
 		GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
 			if v then
-				newDoor:unlockBothSides()
-				soundUnlock:Play()
+				task.wait(1)
+				if GlobalStatesHolder.getState(remoteUnlock) then
+					newDoor:unlockBothSides()
+					soundUnlock:Play()
+				end
 			end
 		end)
 	end

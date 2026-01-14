@@ -8,5 +8,7 @@ return {
 	VISION_RAYCAST = "VisionRaycast",
 	IGNORE_VISION_RAYCAST = "IgnoreVisionRaycast",
 	BLOCK_VISION_RAYCAST = "BlockVisionRaycast",
-	PATHFINDING_BLOCKER = "PathfindingBlocker"
+	PATHFINDING_BLOCKER = "PathfindingBlocker",
+	CLIENT_TARGET_OBSTRUCTED_RAY = "ClientTargetObstructedRay",
+	PATHFINDING_PART = "PathfindingPart"
 }

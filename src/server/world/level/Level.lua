@@ -935,6 +935,10 @@ function Level.getServerLevelInstancesAccessor(_): LevelInstancesAccessor.LevelI
 	return levelInstancesAccessor
 end
 
+function Level.getProps(_)
+	return propsInLevelSet
+end
+
 function Level.getCellModels(): {Model}
 	return cellsList
 end
