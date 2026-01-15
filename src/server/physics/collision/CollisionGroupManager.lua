@@ -32,6 +32,10 @@ function CollisionGroupManager.register()
 		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
 		:notCollideWith(CollisionGroupTypes.BULLET)
 		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.NPC_VISION_RAY)
+		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
+		:register()
 end
 
 return CollisionGroupManager

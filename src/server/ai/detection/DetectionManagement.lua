@@ -8,6 +8,7 @@ local DetectionPayload = require(ReplicatedStorage.shared.network.payloads.Detec
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
@@ -277,7 +278,8 @@ function DetectionManagement.getEntityPriorityInfo(
 		local playerInstance = entityObject.instance :: Player
 
 		-- TODO: THis is stupid. But hey, it does its job.
-		if playerInstance:GetAttribute("TrespassingConfrontedBy") then
+		local tresAtt = playerInstance:GetAttribute("TrespassingConfrontedBy") :: string?
+		if (tresAtt and not UString.isBlank(tresAtt)) and tresAtt ~= self.agent:getUuid() then
 			return results 
 		end
 
