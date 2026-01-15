@@ -128,7 +128,7 @@ function InteractWithDoor.doUpdate(self: InteractWithDoor, agent: Agent, deltaTi
 
 							-- Sigh.
 							if not self.sanityInduceThread then
-								self.sanityInduceThread = task.delay(1.5, function()
+								self.sanityInduceThread = task.delay(2, function()
 									local shouldClose = true
 									if not part then
 										self.sanityInduceThread = nil

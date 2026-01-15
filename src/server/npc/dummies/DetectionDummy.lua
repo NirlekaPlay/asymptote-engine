@@ -81,10 +81,14 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.alive = true
 	self.moveControl = MoveControl.new(humanoid)
 	self.pathNavigation = PathNavigation.new(character, self.moveControl, {
-		AgentRadius = 2.3,
-		AgentHeight = 2,
+		AgentRadius = 2.5,
+		AgentHeight = 6,
 		AgentCanJump = false,
-		WaypointSpacing = 1
+		WaypointSpacing = 1,
+		Costs = {
+			Door = 0.1,
+			DoorPerpendicularPart = 25
+		}
 	})
 	self.detectionManager = DetectionManagement.new(self)
 	self.lookControl = LookControl.new(character)

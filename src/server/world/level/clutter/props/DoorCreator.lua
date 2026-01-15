@@ -12,7 +12,8 @@ local GlobalStatesHolder = require(ServerScriptService.server.world.level.states
 local DEBUG_INST_INIT = false
 local DEBUG_DIR = false
 local DEBUG_SIDES_TRIGGER = false
-local DEBUG_PATH_MOD_BOX = true
+local DEBUG_PATH_MOD_BOX = false
+local DEBUG_PERPENDICULAR_MOD_BOX = false
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local PROMPT_ACTIVATION_DIST = 5
@@ -22,6 +23,28 @@ local RESERVED_DOOR_PARTS_NAMES = {
 }
 
 local DoorCreator = {}
+
+local function createPerpendicularParts(basePart: BasePart, sideWidth: number, sideHeight: number, sideThickness: number): {BasePart}
+	-- -1 for left side, 1 for right side
+	local directions = {-1, 1}
+	local parts: {BasePart} = {}
+
+	for _, dir in directions do
+		local sidePart = Instance.new("Part")
+		sidePart.Name = "SideCap"
+		sidePart.Size = Vector3.new(sideThickness, sideHeight, sideWidth)
+		sidePart.Transparency = 1
+		sidePart.Anchored = true
+		sidePart.Parent = workspace
+
+		local xOffset = (basePart.Size.X / 2 + sideThickness / 2) * dir
+
+		sidePart.CFrame = basePart.CFrame * CFrame.new(xOffset, 0, 0)
+		table.insert(parts, sidePart)
+	end
+
+	return parts
+end
 
 local function createUprightAttachment(parentPart: BasePart, localPosition: Vector3, lookDirection: Vector3): Attachment
 	local att = Instance.new("Attachment")
@@ -76,7 +99,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	pathReqPart.Anchored = true
 	pathReqPart.Transparency = 1
 	pathReqPart.CFrame = base.CFrame
-	pathReqPart.Size = base.Size --Vector3.new(base.Size.X - 1, base.Size.Y, base.Size.Z - 1)
+	pathReqPart.Size = Vector3.new(base.Size.X - 1, base.Size.Y, base.Size.Z + 4)
 	pathReqPart.CollisionGroup = CollisionGroupTypes.PATHFINDING_PART
 	pathReqPart.Parent = workspace
 
@@ -84,6 +107,27 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	pathMod.Label = "Door"
 	pathMod.PassThrough = true
 	pathMod.Parent = pathReqPart
+
+	
+	local edgeParts = createPerpendicularParts(base, 10, base.Size.Y, 1)
+	for _, part in edgeParts do
+		part.Name = "DoorPerpendicularPart"
+		part.CanCollide = false
+		part.AudioCanCollide = false
+		part.Anchored = true
+		part.Transparency = 1
+		part.CollisionGroup = CollisionGroupTypes.PATHFINDING_PART
+		part.Parent = base
+
+		if DEBUG_PERPENDICULAR_MOD_BOX then
+			Draw.box(part, part.Size)
+		end
+
+		local pathMod1 = Instance.new("PathfindingModifier")
+		pathMod1.Label = "DoorPerpendicularPart"
+		pathMod1.PassThrough = true
+		pathMod1.Parent = part
+	end
 
 	if DEBUG_PATH_MOD_BOX then
 		Draw.box(pathReqPart, pathReqPart.Size)
@@ -424,7 +468,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		end
 		GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
 			if v then
-				task.wait(1)
+				task.wait(0.3)
 				if GlobalStatesHolder.getState(remoteUnlock) then
 					newDoor:unlockBothSides()
 					soundUnlock:Play()
