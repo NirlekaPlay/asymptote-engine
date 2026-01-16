@@ -111,7 +111,6 @@ function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Ag
 	local rayParams = self.rayParams
 	if not rayParams then
 		rayParams = RaycastParams.new()
-		rayParams.CollisionGroup = CollisionGroupTypes.NPC_VISION_RAY
 		rayParams.FilterType = Enum.RaycastFilterType.Exclude
 		rayParams.FilterDescendantsInstances = { agent.character }
 		rayParams.CollisionGroup = CollisionGroupTypes.VISION_RAYCAST
