@@ -46,13 +46,15 @@ VoxelWorld.__index = VoxelWorld
 
 export type VoxelWorld = typeof(setmetatable({} :: {
 	chunks: { [any]: any },
-	min: Vector3
+	min: Vector3,
+	max: Vector3
 }, VoxelWorld))
 
 function VoxelWorld.new(min: Vector3, max: Vector3): VoxelWorld
 	local self = setmetatable({}, VoxelWorld)
 	self.chunks = {}
 	self.min = min
+	self.max = max
 	return self
 end
 
@@ -279,10 +281,15 @@ function VoxelWorld.voxelize(self: VoxelWorld, parent: Instance)
 	self.chunks = {}
 
 	local parts: { BasePart } = {}
-	for _, descendant in parent:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			table.insert(parts, descendant)
-		end
+	local partsCount = 0
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Include
+	overlapParams.FilterDescendantsInstances = {parent}
+
+	local region3 = Region3.new(self.min, self.max)
+	for _, queriedPart in workspace:GetPartBoundsInBox(region3.CFrame, region3.Size, overlapParams) do
+		partsCount += 1
+		parts[partsCount] = queriedPart
 	end
 
 	local processedCount = 0
