@@ -81,7 +81,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.alive = true
 	self.moveControl = MoveControl.new(humanoid)
 	self.pathNavigation = PathNavigation.new(character, self.moveControl, {
-		AgentRadius = 2.5,
+		AgentRadius = 2,
 		AgentHeight = 6,
 		AgentCanJump = false,
 		WaypointSpacing = 1,
