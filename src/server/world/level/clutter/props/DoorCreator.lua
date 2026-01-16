@@ -99,7 +99,9 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	pathReqPart.Anchored = true
 	pathReqPart.Transparency = 1
 	pathReqPart.CFrame = base.CFrame
-	pathReqPart.Size = Vector3.new(base.Size.X - 1, base.Size.Y, base.Size.Z + 4)
+	-- Why -1?
+	-- It all started here: https://discord.com/channels/1023187658370990131/1090992851011252314/1461748604124401960
+	pathReqPart.Size = Vector3.new(base.Size.X - 1, base.Size.Y - 1, base.Size.Z + 4)
 	pathReqPart.CollisionGroup = CollisionGroupTypes.PATHFINDING_PART
 	pathReqPart.Parent = workspace
 
