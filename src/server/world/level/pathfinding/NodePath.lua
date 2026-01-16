@@ -81,4 +81,8 @@ function NodePath.getTotalLength(self: NodePath): number
 	return pathCost
 end
 
+function NodePath.__tostring(self: NodePath): string
+	return `Path(length={self:getTotalLength()})`
+end
+
 return NodePath
