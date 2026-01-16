@@ -116,7 +116,7 @@ function Door.unlockBothSides(self: Door): ()
 	self.lockBack = false
 end
 
-function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
+function Door.onPromptTriggered(self: Door, promptSide: DoorSides, overrideLock: boolean?): ()
 	if self:isTurning() then
 		return
 	end
@@ -140,9 +140,10 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 	end
 	
 	-- Check locks ONLY if the door is currently CLOSED and the target is OPENING (i.e., this is an OPEN attempt)
-	if self:isClosed() and newTargetDegree ~= TARGET_DEGREES.CLOSED then
+	if overrideLock ~= true and self:isClosed() and newTargetDegree ~= TARGET_DEGREES.CLOSED then
 		if (promptSide == Door.Sides.FRONT and self.lockFront) or
 			(promptSide == Door.Sides.BACK and self.lockBack) then
+			warn("Cannot open. Override lock:", overrideLock)
 			return
 		end
 	end

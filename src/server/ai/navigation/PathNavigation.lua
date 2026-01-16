@@ -1,10 +1,10 @@
 --!strict
 
-local PathfindingService = game:GetService("PathfindingService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local MoveControl = require(ServerScriptService.server.ai.control.MoveControl)
 local RblxAgentParameters = require(ServerScriptService.server.ai.navigation.RblxAgentParameters)
 local NodePath = require(ServerScriptService.server.world.level.pathfinding.NodePath)
+local Pathfinder = require(ServerScriptService.server.world.level.pathfinding.Pathfinder)
 
 local DEFAULT_SPEED_MODIFIER = 1
 
@@ -17,10 +17,11 @@ PathNavigation.__index = PathNavigation
 export type PathNavigation = typeof(setmetatable({} :: {
 	moveControl: MoveControl.MoveControl,
 	path: NodePath.NodePath?,
-	rblxPath: Path,
+	pathParams: RblxAgentParameters.AgentParameters,
 	humanoid: Humanoid,
 	character: Model,
 	speedModifier: number,
+	pathfinder: Pathfinder.Pathfinder,
 	--
 	currentMoveToThread: thread?,
 	moveToFinishedConn: RBXScriptConnection?,
@@ -34,10 +35,11 @@ function PathNavigation.new(
 	return setmetatable({
 		moveControl = moveControl,
 		path = nil :: NodePath.NodePath?,
-		rblxPath = PathfindingService:CreatePath(agentParams :: any),
+		pathParams = agentParams,
 		humanoid = (character :: any).Humanoid :: Humanoid,
 		character = character,
 		speedModifier = DEFAULT_SPEED_MODIFIER,
+		pathfinder = Pathfinder.new(),
 		--
 		currentMoveToThread = nil :: thread?,
 		moveToFinishedConn = nil :: RBXScriptConnection?
@@ -61,21 +63,8 @@ function PathNavigation.setSpeedModifier(self: PathNavigation, speedModifier: nu
 end
 
 function PathNavigation.createPathAsync(self: PathNavigation, pos: Vector3): NodePath.NodePath?
-	local path = self.rblxPath
-	if not path then
-		error("ERR_NO_PATH")
-	end
-	
-	local success: boolean, errorMessage: string = (pcall :: any)(function()
-		path:ComputeAsync(self:getCharacterPosition(), pos)
-	end)
-
-	if success and path.Status == Enum.PathStatus.Success then
-		return NodePath.new(path:GetWaypoints(), pos, 1)
-	else
-		warn("Pathfinding failed:", errorMessage)
-		return nil
-	end
+	local path = self.pathfinder:findPathAsync(self:getCharacterPosition(), pos, self.pathParams)
+	return path
 end
 
 function PathNavigation.moveToPos(self: PathNavigation, pos: Vector3, speedModifier: number?): ()
