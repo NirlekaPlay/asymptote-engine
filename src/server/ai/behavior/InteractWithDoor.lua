@@ -100,7 +100,6 @@ function InteractWithDoor.doUpdate(self: InteractWithDoor, agent: Agent, deltaTi
 			-- Slightly position it up the Y axis so cuz its so paper thin, and due to precision
 			-- errors the waypoints have a chance to not be within the door bounds even if it is.
 			local isCorrectDoor = Bounds.isPosInPart(nextNode.Position + Vector3.yAxis, part)
-			print("Door found?", isCorrectDoor)
 
 			if not isCorrectDoor then
 				continue
@@ -110,7 +109,6 @@ function InteractWithDoor.doUpdate(self: InteractWithDoor, agent: Agent, deltaTi
 			local propsInLevel = Level.getProps()
 			for prop in propsInLevel do
 				if getmetatable(prop) == Door and (prop :: Door.Door).doorPathReqPart == part then
-					print("Door found")
 					local door = prop :: Door.Door
 					if door:isClosed() or door.state == Door.States.CLOSING then
 						local basePos = part.Position
