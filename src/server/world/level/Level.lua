@@ -442,11 +442,6 @@ function Level.initializeNpc(inst: Instance): ()
 	local characterRigClone = RIG_TO_CLONE:Clone()
 	characterRigClone.Name = inst.Name
 
-	local charAppSeed = tonumber(inst:GetAttribute("CharAppSeed") :: (string | number)?) or tick()
-	if charAppSeed then
-		-- char shit.
-	end
-
 	local outfitName = inst:GetAttribute("Outfit") :: string?
 	if (outfitName and OUTFITS[outfitName] == nil) then
 		warn(`It seems like the outfit '{outfitName}' doesnt exist!`)
@@ -603,7 +598,7 @@ function Level.onPlayerJoined(player: Player): ()
 	print("Server: Player added " .. `'{player.Name}'`)
 	missionManager:onPlayerJoined(player)
 	if not Level:getMissionManager():isConcluded() then
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 	if next(charsAppearancePayloads) ~= nil then
 		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
@@ -825,7 +820,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				placeholder.CanQuery = false
 				placeholder.CanTouch = false
 				placeholder.AudioCanCollide = false
-				table.insert(guardCombatNodes, Node.fromPart(placeholder))
+				table.insert(guardCombatNodes, Node.fromPart(placeholder, false))
 				return true
 			end
 

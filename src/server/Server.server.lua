@@ -74,39 +74,50 @@ end
 
 local function getNodes(char: Model): { Node.Node }
 	local nodesName = char:GetAttribute("Nodes") :: string
+
 	if not nodeGroups[nodesName] then
 		nodeGroups[nodesName] = {}
+		
+		-- Find the root folder for this group (e.g., "LowerOfficePatrol")
 		local nodesFolder = Level:getServerLevelInstancesAccessor():getNodesFolder():FindFirstChild(nodesName, true) :: Folder
+		if not nodesFolder then return {} end
 
 		local nodesCount = 0
 		local stack = { nodesFolder }
 		local index = 1
-		local seenParts = {}
+		
+		-- We use this to ensure that if a node is physically duplicated 
+		-- inside the SAME folder tree, we don't add it twice to THIS group.
+		local seenInThisGroup = {}
 
 		while index > 0 do
 			local current = stack[index]
 			stack[index] = nil
 			index -= 1
 
-			if current:IsA("BasePart") and current.Name == "Node" and not seenParts[current] then
-				nodesCount += 1
-				local newNode
-				-- to prevent duplicated nodes
-				if allNodes[current] then
-					newNode = allNodes[current]
-				else
-					current.Anchored = true
-					current.Transparency = 1
-					current.CanCollide = false
-					current.CanQuery = false
-					current.CanTouch = false
-					current.AudioCanCollide = false
-					newNode = Node.fromPart(current, false)
-					allNodes[current] = newNode
+			if current:IsA("BasePart") and current.Name == "Node" then
+				if not seenInThisGroup[current] then
+					nodesCount += 1
+					
+					local newNode
+					-- Check the GLOBAL cache to ensure ONE reference
+					if allNodes[current] then
+						newNode = allNodes[current]
+					else
+						current.Anchored = true
+						current.Transparency = 1
+						current.CanCollide = false
+						current.CanQuery = false
+						current.CanTouch = false
+						
+						newNode = Node.fromPart(current, true)
+						allNodes[current] = newNode
+					end
+					
+					nodeGroups[nodesName][nodesCount] = newNode
+					seenInThisGroup[current] = true
 				end
-				nodeGroups[nodesName][nodesCount] = newNode
-				seenParts[current] = true
-			elseif current:IsA("Folder") then
+			elseif current:IsA("Folder") or current:IsA("Model") then
 				local children = current:GetChildren()
 				for i = #children, 1, -1 do
 					index += 1

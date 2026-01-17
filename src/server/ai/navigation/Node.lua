@@ -1,5 +1,13 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
+
+local DEBUG_MODE = true
+local DEBUG_PART_SIZE = Vector3.new(4, 0.2, 2)
+local DEBUG_UNOCCUPIED_COLOR = Color3.new(0, 1, 0)
+local DEBUG_OCCUPIED_COLOR = Color3.new(1, 0, 0)
+
 --[=[
 	@class Node
 
@@ -12,22 +20,20 @@ Node.__index = Node
 
 export type Node = typeof(setmetatable({} :: {
 	cframe: CFrame,
-	occupied: boolean
+	occupied: boolean,
+	_debugPart: BasePart?
 }, Node))
 
-function Node.new(cframe: CFrame): Node
+function Node.new(cframe: CFrame, doDebug: boolean?): Node
 	return setmetatable({
 		cframe = cframe,
-		occupied = false
+		occupied = false,
+		_debugPart = (DEBUG_MODE and doDebug) and Draw.box(cframe, DEBUG_PART_SIZE, DEBUG_UNOCCUPIED_COLOR) or nil
 	}, Node)
 end
 
-function Node.fromPart(part: BasePart, doDestroy: boolean?): Node
-	local newPost = Node.new(part.CFrame)
-	if doDestroy then
-		part:Destroy()
-	end
-	return newPost
+function Node.fromPart(part: BasePart, doDebug: boolean?): Node
+	return Node.new(part.CFrame, doDebug)
 end
 
 --
@@ -46,10 +52,18 @@ end
 
 function Node.occupy(self: Node): ()
 	self.occupied = true
+	if DEBUG_MODE and self._debugPart then
+		(self._debugPart :: BasePart).Transparency = 1
+		(self._debugPart :: any).BoxHandleAdornment.Color3 = DEBUG_OCCUPIED_COLOR
+	end
 end
 
 function Node.vacate(self: Node): ()
 	self.occupied = false
+	if DEBUG_MODE and self._debugPart then
+		(self._debugPart :: BasePart).Transparency = 1
+		(self._debugPart :: any).BoxHandleAdornment.Color3 = DEBUG_UNOCCUPIED_COLOR
+	end
 end
 
 function Node.__tostring(self: Node): string
