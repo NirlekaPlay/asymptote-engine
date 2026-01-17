@@ -165,11 +165,15 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
-	print("Do stop called")
 	agent:getBrain():eraseMemory(MemoryModuleTypes.WALK_TARGET)
 	agent:getReportControl():interruptReport()
 	agent:getTalkControl():stopTalking()
 	self.timeSinceLastDialogue = 0
+
+	if not (agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
+		or agent:getBrain():hasMemoryValue(MemoryModuleTypes.IS_PANICKING)) then
+		agent:getFaceControl():setFace("Neutral")
+	end
 
 	local trespasserMemory = agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 	if trespasserMemory:isPresent() then
@@ -178,6 +182,8 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 			player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 		end
 	end
+
+	agent:getBrain():eraseMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
 end
 
 function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, deltaTime: number): ()
@@ -186,15 +192,19 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 	local trespasserUuid = prioritizedEntity:getUuid()
 	local trespasserEntity = EntityManager.getEntityByUuid(trespasserUuid)
 	
-	if not trespasserEntity then return end
-	
+	if not trespasserEntity then
+		return
+	end
+
 	local trespasserPlayer = EntityUtils.getPlayerOrThrow(trespasserEntity)
 	local trespasserStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(trespasserPlayer)
-	local isTrespasserTrespassing = trespasserStatusHolder:getHighestPriorityStatus() == PlayerStatusTypes.MINOR_TRESPASSING
-	local isTalking = agent:getTalkControl():isTalking() or agent:getReportControl():isReporting()
 	local canSee = brain:getMemory(MemoryModuleTypes.VISIBLE_PLAYERS):map(function(plrs)
 		return plrs[trespasserPlayer] ~= nil
 	end):isPresent()
+
+	local trespasserHighestStatus = trespasserStatusHolder:getHighestPriorityStatus()
+	local isTrespasserTrespassing = trespasserHighestStatus == PlayerStatusTypes.MINOR_TRESPASSING or trespasserHighestStatus == PlayerStatusTypes.MAJOR_TRESPASSING
+	local isTalking = agent:getTalkControl():isTalking() or agent:getReportControl():isReporting()
 
 	-- Handle Dialogue Timer
 	if isTalking then

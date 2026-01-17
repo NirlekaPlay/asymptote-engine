@@ -125,7 +125,6 @@ end
 
 function GuardAi.initConfrontActivity(brain: Brain<Agent>): ()
 	brain:addActivityWithConditions(Activity.CONFRONT, 3, {
-		BehaviorWrapper.new(ConfrontTrespasser.new()),
 		BehaviorWrapper.new(ReportMajorTrespasser.new())
 	}, {
 		[MemoryModuleTypes.IS_PANICKING] = MemoryStatus.VALUE_ABSENT,
