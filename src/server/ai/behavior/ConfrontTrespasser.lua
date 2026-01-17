@@ -149,6 +149,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 		local delayBeforeRadioUnequip = math.max(0, reportDialogueSpeechDur - reportRegisterDur) + 1
 		reportContrl:reportWithCustomDur(reportType, reportRegisterDur, delayBeforeRadioUnequip)
 		trespasserPlayer:SetAttribute(ATTRIBUTE_CONFRONTED_BY, agent:getUuid())
+		agent:getBrain():setMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER, trespasserPlayer)
 		if not self.selfDiedConn then
 			self.selfDiedConn = (agent.character.Humanoid :: Humanoid).Died:Once(function()
 				local trespasserMemory = agent:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER)
@@ -164,6 +165,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 end
 
 function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
+	print("Do stop called")
 	agent:getBrain():eraseMemory(MemoryModuleTypes.WALK_TARGET)
 	agent:getReportControl():interruptReport()
 	agent:getTalkControl():stopTalking()

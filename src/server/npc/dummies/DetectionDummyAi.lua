@@ -158,6 +158,10 @@ function GuardAi.onDiedOrDestroyed(guard: Agent): ()
 	guard:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):ifPresent(function(node)
 		node:vacate()
 	end)
+
+	guard:getBrain():getMemory(MemoryModuleTypes.CONFRONTING_TRESPASSER):ifPresent(function(player)
+		player:SetAttribute("TrespassingConfrontedBy", nil)
+	end)
 end
 
 return GuardAi
