@@ -9,17 +9,25 @@ local DEFAULT_ALWAYS_ON_TOP = true
 local DEFAULT_LIGHT_INFLUENCE = 1
 local DEFAULT_TEXT_COLOR = Color3.fromRGB(255, 255, 255)
 local DEFAULT_SHADOW_COLOR = Color3.fromRGB(0, 0, 0)
+local DEFAULT_SHADOW_TRANSPARENCY = 0.3
+local DEFAULT_FONT = Font.fromName("Zekton")
 
 local ATTRIBUTE_ALWAYS_ON_TOP = "AlwaysOnTop"
 local ATTRIBUTE_LIGHT_INFLUENCE = "LightInfluence"
 local ATTRIBUTE_CONTENT = "Content"
 local ATTRIBUTE_TEXT_COLOR = "TextColor"
 local ATTRIBUTE_SHADOW_COLOR = "ShadowColor"
+local ATTRIBUTE_FONT = "Font"
+local ATTRIBUTE_SHADOW_TRANS = "ShadowTransparency"
 
 local UNLOCALIZED_STRING_TEXT = "UNLOCALIZED_STRING"
 
 local localPlayer = Players.LocalPlayer
 local surfaceTextScreenGui: ScreenGui
+
+local function stringToFont(str: string | Font): Font
+	return typeof(str) == "Font" and str or Font.fromName(str)
+end
 
 local SurfaceText = {}
 
@@ -33,7 +41,7 @@ function SurfaceText.createFromPart(part: BasePart): ()
 
 	local newTextLabel = Instance.new("TextLabel")
 	newTextLabel.Size = UDim2.fromScale(1, 1)
-	newTextLabel.FontFace = Font.fromName("Zekton")
+	newTextLabel.FontFace = stringToFont(SurfaceText.getAttributeOrDefault(part, ATTRIBUTE_FONT, DEFAULT_FONT))
 
 	local contentKey = SurfaceText.getAttributeOrDefault(part, ATTRIBUTE_CONTENT, UNLOCALIZED_STRING_TEXT)
 	local localizedText = SurfaceText.getLocalizedString(contentKey) or UNLOCALIZED_STRING_TEXT
@@ -45,7 +53,7 @@ function SurfaceText.createFromPart(part: BasePart): ()
 	newTextLabel.Parent = newSurfaceGui
 
 	local shadowColor = SurfaceText.getAttributeOrDefault(part, ATTRIBUTE_SHADOW_COLOR, DEFAULT_SHADOW_COLOR)
-	UITextShadow.createTextShadow(newTextLabel, nil, nil, shadowColor, 0.3)
+	UITextShadow.createTextShadow(newTextLabel, nil, nil, shadowColor, SurfaceText.getAttributeOrDefault(part, ATTRIBUTE_SHADOW_TRANS, DEFAULT_SHADOW_TRANSPARENCY))
 
 	newSurfaceGui.Parent = SurfaceText.getScreenGui()
 end
