@@ -372,6 +372,9 @@ end
 --
 
 function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
+	if self.alive then
+		DetectionDummyAi.onDiedOrDestroyed(self)
+	end
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
 	if not isCharDestroying then

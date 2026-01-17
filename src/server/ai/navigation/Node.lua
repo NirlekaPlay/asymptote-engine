@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
-local DEBUG_MODE = true
+local DEBUG_MODE = false
 local DEBUG_PART_SIZE = Vector3.new(4, 0.2, 2)
 local DEBUG_UNOCCUPIED_COLOR = Color3.new(0, 1, 0)
 local DEBUG_OCCUPIED_COLOR = Color3.new(1, 0, 0)
@@ -21,6 +21,7 @@ Node.__index = Node
 export type Node = typeof(setmetatable({} :: {
 	cframe: CFrame,
 	occupied: boolean,
+	cachedBlockPos: Vector3?,
 	_debugPart: BasePart?
 }, Node))
 
@@ -28,6 +29,7 @@ function Node.new(cframe: CFrame, doDebug: boolean?): Node
 	return setmetatable({
 		cframe = cframe,
 		occupied = false,
+		cachedBlockPos = nil :: Vector3?,
 		_debugPart = (DEBUG_MODE and doDebug) and Draw.box(cframe, DEBUG_PART_SIZE, DEBUG_UNOCCUPIED_COLOR) or nil
 	}, Node)
 end
@@ -44,6 +46,21 @@ end
 
 function Node.getPosition(self: Node): Vector3
 	return self.cframe.Position
+end
+
+function Node.getBlockPosition(self: Node): Vector3
+	if self.cachedBlockPos then
+		return self.cachedBlockPos
+	end
+
+	local pos = self.cframe.Position
+	self.cachedBlockPos = Vector3.new(
+		math.floor(pos.X),
+		math.floor(pos.Y),
+		math.floor(pos.Z)
+	)
+
+	return self.cachedBlockPos
 end
 
 function Node.isOccupied(self: Node): boolean

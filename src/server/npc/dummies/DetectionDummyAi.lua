@@ -150,4 +150,14 @@ function GuardAi.updateActivity(guard: Agent): ()
 	})
 end
 
+function GuardAi.onDiedOrDestroyed(guard: Agent): ()
+	guard:getBrain():getMemory(MemoryModuleTypes.CURRENT_POST):ifPresent(function(node)
+		node:vacate()
+	end)
+
+	guard:getBrain():getMemory(MemoryModuleTypes.TARGET_POST):ifPresent(function(node)
+		node:vacate()
+	end)
+end
+
 return GuardAi
