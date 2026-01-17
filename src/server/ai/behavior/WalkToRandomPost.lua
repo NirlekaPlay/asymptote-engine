@@ -192,7 +192,7 @@ function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post:
 	agent:getBrain():eraseMemory(MemoryModuleTypes.CURRENT_POST)
 	agent:getBrain():setMemory(MemoryModuleTypes.TARGET_POST, post)
 	agent:getBrain():setMemory(MemoryModuleTypes.PATROL_STATE, PatrolState.WALKING)
-	agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, 1, 2))
+	agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, 1, REACH_THRESHOLD))
 end
 
 function WalkToRandomPost.isAtTargetPost(agent: Agent, targetPost: Node.Node?): boolean
