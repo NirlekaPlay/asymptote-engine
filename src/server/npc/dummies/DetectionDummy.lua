@@ -210,6 +210,10 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	serverLevel:getPersistentInstanceManager():register(character)
 	serverLevel:getSoundDispatcher():registerListener(soundListener)
 
+	-- DEBUG SECTIONS
+
+	--self.detectionManager:blockAllDetection()
+
 	return self
 end
 
@@ -282,6 +286,15 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		self.character.isPathfinding.Value = false
 		self.character.isRunning.Value = false
 	end
+end
+
+function DummyAgent.getBlockPosition(self: DummyAgent): Vector3
+	local currentPos = self.character.HumanoidRootPart.Position :: Vector3
+	return Vector3.new(
+		math.floor(currentPos.X),
+		math.floor(currentPos.Y) - 2,
+		math.floor(currentPos.Z)
+	)
 end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean

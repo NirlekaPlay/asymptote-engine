@@ -39,4 +39,13 @@ function PlayerPosTracker.getCurrentPosition(self: PlayerPosTracker): Vector3
 	return self.lastPos
 end
 
+function PlayerPosTracker.getBlockPosition(self: PlayerPosTracker): Vector3
+	local currentPos = self:getCurrentPosition()
+	return Vector3.new(
+		math.floor(currentPos.X),
+		math.floor(currentPos.Y - 2),
+		math.floor(currentPos.Z)
+	)
+end
+
 return PlayerPosTracker

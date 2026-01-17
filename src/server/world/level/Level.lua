@@ -437,7 +437,6 @@ function Level.initializeNpc(inst: Instance): ()
 
 	local randomNodeIndex = rng:NextInteger(1, nodesCount)
 	local selectedRandomNode = nodesArray[randomNodeIndex] :: BasePart
-	print("Selected random node:", randomNodeIndex)
 	local nodeCframe = selectedRandomNode.CFrame
 
 	local characterRigClone = RIG_TO_CLONE:Clone()

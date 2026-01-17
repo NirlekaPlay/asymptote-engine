@@ -157,10 +157,9 @@ function WalkToTargetSink.tryComputePath(self: WalkToTargetSink, agent: Agent, w
 end
 
 function WalkToTargetSink.hasReachedTarget(agent: Agent, walkTarget: WalkTarget.WalkTarget): boolean
-	return Vec3.distManhattan(
-		walkTarget:getTarget():getCurrentPosition(),
-		((agent :: any).character.HumanoidRootPart :: BasePart).Position
-	) <= walkTarget:getCloseEnoughDist()
+	local targetPos = walkTarget:getTarget():getBlockPosition()
+	local npcPos = agent:getBlockPosition()
+	return Vec3.distManhattan(targetPos, npcPos) <= walkTarget:getCloseEnoughDist()
 end
 
 return WalkToTargetSink
