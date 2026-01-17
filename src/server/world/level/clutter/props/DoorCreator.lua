@@ -89,7 +89,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 
 	local isDoubleDoor = base:GetAttribute("DoubleDoor") :: boolean?
 
-	local part0 = model:FindFirstChild("Part0") :: BasePart
+	local part0 = if placeholder.Name == "DoorGlassFramed" then model:FindFirstChild("Part1") :: BasePart else model:FindFirstChild("Part0") :: BasePart
 	local nonMainDoorParts: {BasePart} = {}
 
 	local pathReqPart = Instance.new("Part")
@@ -140,7 +140,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 			continue
 		end
 
-		if RESERVED_DOOR_PARTS_NAMES[part.Name] then
+		if part == base or part == part0 then
 			continue
 		end
 
