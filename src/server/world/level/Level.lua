@@ -173,7 +173,7 @@ function Level.initializeLevel(): ()
 			if not Players:GetPlayerFromCharacter(char) then
 				return
 			end
-			print("TEMP: LEVEL :: BULLET SHOT")
+			--print("TEMP: LEVEL :: BULLET SHOT")
 			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED, origin)
 		end
 	})
