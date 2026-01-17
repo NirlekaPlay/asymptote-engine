@@ -257,7 +257,7 @@ function LoadingScreen.selectBackgroundId(): number
 		return LOADING_SCREEN_BACKGROUND_IDS[1].id
 	end
 
-	local random = Random.new(tick())
+	local random = Random.new()
 	local index: number
 	local background: { name: string, id: number }
 	repeat

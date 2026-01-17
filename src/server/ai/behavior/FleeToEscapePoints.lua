@@ -21,7 +21,7 @@ local MIN_DISTANCE_TO_ESCAPE_POS = 5
 local DIST_CHECK_UPDATE_INTERVAL = 0.5
 local RUN_SPEED_MODIFIER = 2.5
 
-local rng = Random.new(tick())
+local rng = Random.new()
 
 --[=[
 	@class FleeToEscapePoints

@@ -100,7 +100,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl, self.faceControl)
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self, serverLevel)
-	self.random = Random.new(seed or tick())
+	self.random = Random.new(seed or nil)
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
