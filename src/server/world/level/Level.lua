@@ -92,6 +92,21 @@ local function setIsHalloweenVar(): ()
 	GlobalStatesHolder.setState("IsHalloween", isHalloween)
 end
 
+local function getRandomSeed(): number
+	local pointerString = tostring({})
+	local address = tonumber(pointerString:sub(8), 16) or 0
+	local entropy = (address + (os.clock() * 1000000)) % 4294967296
+	local function mix(x)
+		x = bit32.bxor(x, bit32.rshift(x, 16))
+		x = (x * 0x85ebca6b) % 4294967296
+		x = bit32.bxor(x, bit32.rshift(x, 13))
+		x = (x * 0xc2b2ae35) % 4294967296
+		x = bit32.bxor(x, bit32.rshift(x, 16))
+		return x
+	end
+	return mix(entropy)
+end
+
 --[=[
 	@class Level
 ]=]
@@ -158,7 +173,7 @@ function Level.initializeLevel(): ()
 			if not Players:GetPlayerFromCharacter(char) then
 				return
 			end
-			print("TEMP: LEVEL :: BULLET SHOT")
+			--print("TEMP: LEVEL :: BULLET SHOT")
 			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED, origin)
 		end
 	})
@@ -375,7 +390,7 @@ function Level.initializeNpc(inst: Instance): ()
 	end
 	local charName = inst:GetAttribute("CharName") :: string?
 
-	local seed =( inst:GetAttribute("Seed") or tick() ) :: number
+	local seed = ( inst:GetAttribute("Seed") or getRandomSeed() ) :: number
 	local rng = Random.new(seed)
 
 	local nodesFolder
@@ -400,39 +415,32 @@ function Level.initializeNpc(inst: Instance): ()
 	local nodesArray: { BasePart } = {}
 	local nodesCount = 0
 
-	-- all descendant nodes of the folder are all part of a singular node.
-	local stack = nodesFolderChildren
-	local index = 1
+	local stack = nodesFolder:GetChildren() 
+	local index = #stack
 
 	while index > 0 do
 		local current = stack[index]
 		stack[index] = nil
-		index = index - 1
+		index -= 1
 
 		if current:IsA("BasePart") and current.Name == "Node" then
 			nodesCount += 1
 			nodesArray[nodesCount] = current
-		end
-
-		if current:IsA("Folder") then
+		elseif current:IsA("Folder") or current:IsA("Model") then
 			local children = current:GetChildren()
-			for i = #children, 1, -1 do
-				index = index + 1
+			for i = 1, #children do
+				index += 1
 				stack[index] = children[i]
 			end
 		end
 	end
 
-	local selectedRandomNode = nodesArray[rng:NextInteger(1, nodesCount)] :: BasePart
+	local randomNodeIndex = rng:NextInteger(1, nodesCount)
+	local selectedRandomNode = nodesArray[randomNodeIndex] :: BasePart
 	local nodeCframe = selectedRandomNode.CFrame
 
 	local characterRigClone = RIG_TO_CLONE:Clone()
 	characterRigClone.Name = inst.Name
-
-	local charAppSeed = tonumber(inst:GetAttribute("CharAppSeed") :: (string | number)?) or tick()
-	if charAppSeed then
-		-- char shit.
-	end
 
 	local outfitName = inst:GetAttribute("Outfit") :: string?
 	if (outfitName and OUTFITS[outfitName] == nil) then
@@ -590,7 +598,7 @@ function Level.onPlayerJoined(player: Player): ()
 	print("Server: Player added " .. `'{player.Name}'`)
 	missionManager:onPlayerJoined(player)
 	if not Level:getMissionManager():isConcluded() then
-		player:LoadCharacter()
+		player:LoadCharacterAsync()
 	end
 	if next(charsAppearancePayloads) ~= nil then
 		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
@@ -812,7 +820,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				placeholder.CanQuery = false
 				placeholder.CanTouch = false
 				placeholder.AudioCanCollide = false
-				table.insert(guardCombatNodes, Node.fromPart(placeholder))
+				table.insert(guardCombatNodes, Node.fromPart(placeholder, false))
 				return true
 			end
 
@@ -933,6 +941,10 @@ end
 
 function Level.getServerLevelInstancesAccessor(_): LevelInstancesAccessor.LevelInstancesAccessor
 	return levelInstancesAccessor
+end
+
+function Level.getProps(_)
+	return propsInLevelSet
 end
 
 function Level.getCellModels(): {Model}

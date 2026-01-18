@@ -30,6 +30,8 @@ export type Door = Prop.Prop & typeof(setmetatable({} :: {
 	turningTimeAccum: number,
 	promptComponent: DoorPromptComponent.DoorPromptComponent,
 	hingeComponent: DoorHingeComponent.DoorHingeComponent,
+	doorPathReqPart: BasePart,
+	forwardDir: Vector3,
 	openingSide: DoorSides,
 	doorParts: {BasePart},
 	lockFront: boolean,
@@ -63,6 +65,8 @@ function Door.new(
 	prompts: DoorPrompts,
 	promptComponent: DoorPromptComponent.DoorPromptComponent,
 	hingeComponent: DoorHingeComponent.DoorHingeComponent,
+	doorPathReqPart: BasePart,
+	forwardDir: Vector3,
 	doorParts: {BasePart}?,
 	lockFront: boolean?,
 	lockBack: boolean?,
@@ -75,6 +79,8 @@ function Door.new(
 		turningTimeAccum = 0,
 		promptComponent = promptComponent,
 		hingeComponent = hingeComponent,
+		doorPathReqPart = doorPathReqPart,
+		forwardDir = forwardDir,
 		openingSide = Door.Sides.MIDDLE,
 		doorParts = doorParts or {},
 		lockFront = lockFront or false,
@@ -86,6 +92,10 @@ function Door.new(
 	}, Door)
 
 	return self :: Door
+end
+
+function Door.getForwardDir(self: Door): Vector3
+	return self.forwardDir
 end
 
 function Door.isOpen(self: Door): boolean
@@ -106,7 +116,7 @@ function Door.unlockBothSides(self: Door): ()
 	self.lockBack = false
 end
 
-function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
+function Door.onPromptTriggered(self: Door, promptSide: DoorSides, overrideLock: boolean?): ()
 	if self:isTurning() then
 		return
 	end
@@ -130,9 +140,10 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides): ()
 	end
 	
 	-- Check locks ONLY if the door is currently CLOSED and the target is OPENING (i.e., this is an OPEN attempt)
-	if self:isClosed() and newTargetDegree ~= TARGET_DEGREES.CLOSED then
+	if overrideLock ~= true and self:isClosed() and newTargetDegree ~= TARGET_DEGREES.CLOSED then
 		if (promptSide == Door.Sides.FRONT and self.lockFront) or
 			(promptSide == Door.Sides.BACK and self.lockBack) then
+			warn("Cannot open. Override lock:", overrideLock)
 			return
 		end
 	end

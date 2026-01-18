@@ -10,6 +10,7 @@ local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleCh
 local FaceControl = require(ServerScriptService.server.ai.control.FaceControl)
 local GunControl = require(ServerScriptService.server.ai.control.GunControl)
 local LookControl = require(ServerScriptService.server.ai.control.LookControl)
+local MoveControl = require(ServerScriptService.server.ai.control.MoveControl)
 local RagdollControl = require(ServerScriptService.server.ai.control.RagdollControl)
 local ReportControl = require(ServerScriptService.server.ai.control.ReportControl)
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
@@ -48,6 +49,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	lookControl: LookControl.LookControl,
 	faceControl: FaceControl.FaceControl,
 	reportControl: ReportControl.ReportControl,
+	moveControl: MoveControl.MoveControl,
 	pathNavigation: PathNavigation.PathNavigation,
 	random: Random,
 	detectionManager: DetectionManagement.DetectionManagement,
@@ -71,13 +73,22 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
+	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.JumpHeight = 0
+	humanoid.JumpPower = 0
+	
 	self.characterName = charName or ""
 	self.alive = true
-	self.pathNavigation = PathNavigation.new(character, {
+	self.moveControl = MoveControl.new(humanoid)
+	self.pathNavigation = PathNavigation.new(character, self.moveControl, {
 		AgentRadius = 2,
-		AgentHeight = 2,
+		AgentHeight = 6,
 		AgentCanJump = false,
-		WaypointSpacing = 1
+		WaypointSpacing = 1,
+		Costs = {
+			Door = 0.1,
+			DoorPerpendicularPart = 25
+		}
 	})
 	self.detectionManager = DetectionManagement.new(self)
 	self.lookControl = LookControl.new(character)
@@ -89,14 +100,11 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.talkControl = TalkControl.new(character, self.bubbleChatControl, self.faceControl)
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self, serverLevel)
-	self.random = Random.new(seed or tick())
+	self.random = Random.new(seed or nil)
 
-	local humanoid = self.character:FindFirstChildOfClass("Humanoid") :: Humanoid
-	humanoid.JumpHeight = 0
-	humanoid.JumpPower = 0
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
-		self:onDied()
+		self:onDied(false)
 	end)
 
 	self.uuid = HttpService:GenerateGUID(false)
@@ -147,6 +155,9 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 			humanoidDiedConnection = nil
 		end
 		descendantAddedConnection:Disconnect()
+		if self ~= nil and self.alive ~= false then
+			self:onDied(true)
+		end
 	end)
 
 	self.hearingSounds = {}
@@ -198,6 +209,10 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 
 	serverLevel:getPersistentInstanceManager():register(character)
 	serverLevel:getSoundDispatcher():registerListener(soundListener)
+
+	-- DEBUG SECTIONS
+
+	--self.detectionManager:blockAllDetection()
 
 	return self
 end
@@ -260,7 +275,7 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	self.reportControl:update(deltaTime)
 
 	-- TODO: Legacy walking animation code.
-	if self.pathNavigation.pathfinder.Status == "Active" then
+	if self.pathNavigation:isMoving() then
 		self.character.isPathfinding.Value = true
 		if self.character.Humanoid.WalkSpeed >= 18 then
 			self.character.isRunning.Value = true
@@ -271,6 +286,15 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		self.character.isPathfinding.Value = false
 		self.character.isRunning.Value = false
 	end
+end
+
+function DummyAgent.getBlockPosition(self: DummyAgent): Vector3
+	local currentPos = self.character.HumanoidRootPart.Position :: Vector3
+	return Vector3.new(
+		math.floor(currentPos.X),
+		math.floor(currentPos.Y) - 2,
+		math.floor(currentPos.Z)
+	)
 end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean
@@ -347,10 +371,15 @@ end
 
 --
 
-function DummyAgent.onDied(self: DummyAgent): ()
+function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
+	if self.alive then
+		DetectionDummyAi.onDiedOrDestroyed(self)
+	end
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
-	self:getFaceControl():setFace("Unconscious")
+	if not isCharDestroying then
+		self:getFaceControl():setFace("Unconscious")
+	end
 end
 
 --

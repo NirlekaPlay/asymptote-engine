@@ -39,6 +39,10 @@ function Agent.isAlive(self: Agent): boolean
 	return self.alive
 end
 
+function Agent.getBlockPosition(self: Agent): Vector3
+	return Vector3.zero
+end
+
 function Agent.getCharacterName(self: Agent): string
 	return self.characterName
 end

@@ -92,12 +92,10 @@ function DummyBehavior.doUpdate(self: DummyBehavior, agent: Agent, deltaTime: nu
 	-- among other stuff, you should probably learn Java optionals.
 
 	-- though we do have what is known as Controls on the Agent:
-	agent:getNavigation():moveTo(Vector3.zero) -- and stuff
+	local optionalSpeedModifier = 1.2
+	agent:getNavigation():moveToPos(Vector3.zero, optionalSpeedModifier) -- and stuff
 	-- it is often recommended to set memories so that other behaviors, known as "sinks" for their
 	-- roles, actually do the stuff. for example:
-
-	-- will make the agent follow the player
-	brain:setNullableMemory(MemoryModuleTypes.FOLLOW_TARGET, playerInst)
 
 	-- Expressions, so your Agent wont be so soulless.
 

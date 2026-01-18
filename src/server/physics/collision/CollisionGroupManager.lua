@@ -22,10 +22,20 @@ function CollisionGroupManager.register()
 	PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.BLOCK_VISION_RAYCAST, true)
 	PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.IGNORE_VISION_RAYCAST, false)
 	PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.VISION_RAYCAST, CollisionGroupTypes.PATHFINDING_BLOCKER, false)
-	PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.BULLET, CollisionGroupTypes.PLAYER_COLLIDER, false)
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.BULLET)
+		:notCollideWith(CollisionGroupTypes.PLAYER_COLLIDER)
+		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
+		:notCollideWith(CollisionGroupTypes.BULLET)
+		:register()
 
 	CollisionGroupBuilder.new(CollisionGroupTypes.PATHFINDING_BLOCKER)
 		:notCollideWithAnything()
+		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.CLIENT_TARGET_OBSTRUCTED_RAY)
+		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
+		:notCollideWith(CollisionGroupTypes.BULLET)
 		:register()
 end
 

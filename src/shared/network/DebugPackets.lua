@@ -4,14 +4,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --local ServerScriptService = game:GetService("ServerScriptService")
 
 local DebugEntityNameGenerator = require(ReplicatedStorage.shared.network.DebugEntityNameGenerator)
+local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 --local Agent = require(ServerScriptService.server.Agent) -- Circular dependency motherfucking bullshit.
 
-local PACKETS = {
-	DEBUG_BRAIN = "DEBUG_BRAIN",
-	DEBUG_COMPUTED_VOXELS = "DEBUG_COMPUTED_VOXELS"
-}
+local PACKETS = DebugPacketTypes
 
 local FORMAT_NUMBER_EPSILON = 1e-6
 
@@ -22,7 +20,6 @@ local debugBatches: { [string]: { any } } = {}
 	@class DebugPackets
 ]=]
 local DebugPackets = {}
-DebugPackets.Packets = PACKETS
 
 local function isArray<K, V>(t: { [K]: V }): boolean
 	if type(t) ~= "table" then
@@ -120,7 +117,7 @@ function DebugPackets.flushBrainDumpsToListeningClients(): ()
 		TypedRemotes.BrainDebugDump:FireClient(player, debugBatches[PACKETS.DEBUG_BRAIN])
 	end
 
-	DebugPackets.clearBatch(DebugPackets.Packets.DEBUG_BRAIN)
+	DebugPackets.clearBatch(PACKETS.DEBUG_BRAIN)
 end
 
 function DebugPackets.onReceiveSubscription(player: Player, debugName: string, subscribe: boolean): ()

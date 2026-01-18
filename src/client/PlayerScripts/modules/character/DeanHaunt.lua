@@ -7,7 +7,7 @@ local BoundingBox = require(ReplicatedStorage.shared.math.geometry.BoundingBox)
 
 local DeanHaunt = {}
 
-local rng = Random.new(os.clock() + tick())
+local rng = Random.new()
 local CHARACTER = ReplicatedStorage:FindFirstChild("Dean") :: Model
 local SPAWN_CHANCE = 0.001
 local MIN_SPAWN_COOLDOWN = 30

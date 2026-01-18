@@ -8,11 +8,13 @@ local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 
+local DEFAULT_BEHAVIOR_NAME = "UntitledBehavior"
+
 local BehaviorWrapper = {}
 BehaviorWrapper.__index = BehaviorWrapper
 
 export type BehaviorWrapper = typeof(setmetatable({} :: {
-	status: Status,
+	status: BehaviorControl.Status,
 	behavior: Behavior,
 	endTimesStamp: number,
 	reactionTimer: number?,
@@ -27,17 +29,17 @@ type Agent = Agent.Agent
 
 function BehaviorWrapper.new(behavior: Behavior): BehaviorWrapper
 	return setmetatable({
-		status = BehaviorControl.Status.STOPPED :: Status,
+		status = BehaviorControl.Status.STOPPED :: BehaviorControl.Status,
 		behavior = behavior,
 		minDuration = behavior.minDuration or 60,
 		maxDuration = behavior.maxDuration or 60,
 		reactionTimer = nil :: number?,
 		endTimesStamp = 0,
-		name = behavior.ClassName or "UntitledBehavior"
+		name = behavior.ClassName or DEFAULT_BEHAVIOR_NAME
 	}, BehaviorWrapper)
 end
 
-function BehaviorWrapper.getStatus(self: BehaviorWrapper): Status
+function BehaviorWrapper.getStatus(self: BehaviorWrapper): BehaviorControl.Status
 	return self.status
 end
 

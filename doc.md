@@ -64,3 +64,27 @@ end
 
 `SensorWrapper` right now just wraps around a `Sensor` class so it doesnt have to manually accumulate time.
 For example one sensor updates 20 times per second, while the other updates only once per second.
+
+___
+
+MeadowNodes
+
+Expected behavior:
+
+Say we have a Nodes tree like this:
+
+.
+└── LowerOfficePatrol
+   ├── ArmoryPatrol
+   │   ├── Node
+   │   ├── Node
+   │   └── Node
+   └── RoomAPatrol
+       ├── Node
+       ├── Node
+       └── Node
+
+All of these Nodes placeholder parts should always have ONE reference of an actual Node object.
+If an NPC states that their node group is "ArmoryPatrol" then return all nodes who are descendants
+of ArmoryPatrol folder. If LowerOfficePatrol, then all nodes in ArmoryPatrol and RoomAPatrol
+are included and returned.

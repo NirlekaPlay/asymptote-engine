@@ -46,6 +46,14 @@
     ["Agitative trespasser, I need backup here!"],
     ["This trespasser is not cooperating! possibly armed!"]
   ],
+  "trespassing.minor.lost": [
+    ["I just lost a trespasser.", "Keep your eyes open, lads."],
+    ["Control, I've lost a trespasser.", "Keep your eyes on the monitors."],
+    ["Guys, I lost 'em.", "Stay vigilant."]
+  ],
+  "trespassing.minor.lost_near_lockdown": [
+    ["We just lost a trespasser!", "He could be anywhere! I request a lockdown!"]
+  ],
   "trespassing.major.report.area.unknown": [
     ["Control, I've got a guy snooping around here!"],
     ["Hey! Found a guy that's off-limits!"],

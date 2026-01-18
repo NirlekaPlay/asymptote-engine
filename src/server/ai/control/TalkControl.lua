@@ -23,7 +23,7 @@ local RANDOM_DEATH_DIALOGUES = {
 	"SHI-"
 }
 local RANDOM_DEATH_DIALOGUES_SIZE = #RANDOM_DEATH_DIALOGUES
-local rng = Random.new(tick())
+local rng = Random.new()
 
 --[=[
 	@class TalkControl

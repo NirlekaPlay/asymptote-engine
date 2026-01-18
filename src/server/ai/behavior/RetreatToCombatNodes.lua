@@ -6,6 +6,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
+local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local Level = require(ServerScriptService.server.world.level.Level)
 
@@ -83,8 +84,7 @@ function RetreatToCombatNodes.doUpdate(self: RetreatToCombatNodes, agent: Agent,
 	local hasRetreated = brain:hasMemoryValue(MemoryModuleTypes.HAS_RETREATED)
 
 	if not hasRetreated then
-		if nav.finished then
-			nav.finished = false
+		if nav:isDone() then
 
 			brain:setNullableMemory(MemoryModuleTypes.HAS_RETREATED, true)
 			brain:eraseMemory(MemoryModuleTypes.LOOK_TARGET)
@@ -120,7 +120,7 @@ end
 
 function RetreatToCombatNodes.retreatToNode(self: RetreatToCombatNodes, node: Node.Node, agent: Agent): ()
 	node:occupy()
-	agent:getNavigation():moveTo(node.cframe.Position)
+	agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(node.cframe.Position, 1, 0))
 end
 
 function RetreatToCombatNodes.getNearestUnoccupiedCombatNode(self: RetreatToCombatNodes, agent: Agent): Node.Node?
@@ -134,12 +134,12 @@ function RetreatToCombatNodes.getNearestUnoccupiedCombatNode(self: RetreatToComb
 		end
 
 		local nodePos = node.cframe.Position
-		local path = agent:getNavigation():generatePath(nodePos)
+		local path = agent:getNavigation():createPathAsync(nodePos)
 		if not path then
 			continue
 		end
 
-		local distance = RetreatToCombatNodes.getWaypointsPathLength(path:GetWaypoints())
+		local distance = path:getTotalLength()
 
 		if distance < nearestDistance then
 			nearestDistance = distance
@@ -148,14 +148,6 @@ function RetreatToCombatNodes.getNearestUnoccupiedCombatNode(self: RetreatToComb
 	end
 
 	return nearestNode
-end
-
-function RetreatToCombatNodes.getWaypointsPathLength(waypoints: {PathWaypoint}): number
-	local pathCost = 0
-	for i = 2, #waypoints do
-		pathCost = pathCost + (waypoints[i].Position - waypoints[i-1].Position).Magnitude
-	end
-	return pathCost
 end
 
 return RetreatToCombatNodes

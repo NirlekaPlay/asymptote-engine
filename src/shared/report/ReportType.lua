@@ -14,6 +14,7 @@ end
 
 local REPORT_TYPES = {
 	TRESPASSER_SPOTTED = register("trespasser_spotted", 1),
+	TRESPASSER_LOST = register("trespasser_lost", 1),
 	INTRUDER_SPOTTED = register("intruder_spotted", 4),
 	CRIMINAL_SPOTTED = register("criminal_spotted", 4),
 	DANGEROUS_ITEM_SPOTTED = register("dangerous_item_spotted", 4),

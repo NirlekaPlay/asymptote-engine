@@ -44,6 +44,7 @@ type InteractionPromptConfiguration = InteractionPromptConfiguration.Interaction
 
 local function isTargetObstructed(camera: Camera, castPoints: {Vector3}, ignoreList: {Instance}): boolean
 	local raycastParams = RaycastParams.new()
+	raycastParams.CollisionGroup = "ClientTargetObstructedRay"
 	raycastParams.FilterDescendantsInstances = ignoreList or {}
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 
