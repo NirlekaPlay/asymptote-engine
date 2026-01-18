@@ -9,6 +9,7 @@ local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
 
 local TerminalGui = ReplicatedStorage.shared.assets.gui.Terminal
 local currentTerminalGui = TerminalGui:Clone()
+currentTerminalGui.ResetOnSpawn = false
 currentTerminalGui.Parent = Players.LocalPlayer.PlayerGui
 
 local inputField = currentTerminalGui.Root.SafeArea.TextBox
