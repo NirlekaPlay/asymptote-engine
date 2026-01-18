@@ -14,7 +14,7 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
-local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
+local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 
 --[=[
 	@class GuardPanic

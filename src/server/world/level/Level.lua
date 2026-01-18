@@ -42,8 +42,8 @@ local ObjectiveManager = require(ServerScriptService.server.world.level.objectiv
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 local LightingSetter = require(ServerScriptService.server.world.lighting.LightingSetter)
-local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
-local SoundDispatcher = require(ServerScriptService.server.world.sound.SoundDispatcher)
+local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
+local SoundDispatcher = require(ServerScriptService.server.world.level.sound.SoundDispatcher)
 
 local INITIALIZE_NPCS_ONLY_WHEN_ENABLED = false
 local HIDE_CELLS = true

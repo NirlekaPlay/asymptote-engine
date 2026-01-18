@@ -7,7 +7,7 @@ local LevelInstancesAccessor = require(ServerScriptService.server.world.level.Le
 local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
 local CellManager = require(ServerScriptService.server.world.level.cell.CellManager)
 local MissionManagerInterface = require(ServerScriptService.server.world.level.mission.MissionManagerInterface)
-local SoundDispatcher = require(ServerScriptService.server.world.sound.SoundDispatcher)
+local SoundDispatcher = require(ServerScriptService.server.world.level.sound.SoundDispatcher)
 
 export type ServerLevel = {
 	getExpressionContext: (self: ServerLevel) -> ExpressionContext.ExpressionContext,

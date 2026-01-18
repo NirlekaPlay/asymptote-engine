@@ -4,9 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
-local SoundListener = require(ServerScriptService.server.world.sound.SoundListener)
+local SoundListener = require(ServerScriptService.server.world.level.sound.SoundListener)
 local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
-local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
+local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 
 local DEBUG_LAST_VISITED_NODE = false
 local DEBUG_INDIVIDUAL_COMPUTE_TIME = true

@@ -13,7 +13,7 @@ local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
-local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
+local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 
 local DEBUG_MODE = false
 local DEBUG_DET_LEVELS = false

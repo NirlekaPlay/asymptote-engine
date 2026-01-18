@@ -21,8 +21,8 @@ local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavi
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
-local DetectableSound = require(ServerScriptService.server.world.sound.DetectableSound)
-local SoundListener = require(ServerScriptService.server.world.sound.SoundListener)
+local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
+local SoundListener = require(ServerScriptService.server.world.level.sound.SoundListener)
 
 local DEFAULT_SIGHT_RADIUS = 50
 local DEFAULT_HEARING_RADIUS = 10
