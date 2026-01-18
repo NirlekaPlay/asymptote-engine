@@ -1,0 +1,25 @@
+1. Inventory System and Gun System
+ a. Items. Items have atleast these basic functionalities:
+      i. They can be dropped;
+     ii. They can be picked up and kept; and
+    iii. And can be used.
+ b. Guns. Guns must have the functionalities of items, and also the following:
+      i. They can shoot, reload, aim, and takedown other living entities.
+
+So I'm thingking of this, we need a declarative and data driven item and inventory
+system, easy to create items, and not be a fucked up mess like other Roblox tools / items.
+It can also be seamlessly used by other living entities besides players.
+
+Item class
+
+onDropped: When its dropped
+onPickedUp: When its picked up by a living entity
+updateInventory: Calls every frame while inside the entity's inventory
+
+And other things idk
+
+The thing is, we should atleast define the client and server logic to one module
+so im thingking we pass something like an ItemContext, and provide methods like
+:isClient() and :isServer() then :getClientContext() and :getServerContext()
+
+but even with that idk how to deal with viewmodels, etc.
