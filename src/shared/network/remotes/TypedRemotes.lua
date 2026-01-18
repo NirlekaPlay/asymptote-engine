@@ -62,5 +62,7 @@ return {
 	ServerBoundClientForeignChatted = RE("ServerBoundForeign") :: RE<string>,
 	--
 	ClientBoundDialogueConceptEvaluate = RE("ClientBoundDialogueConceptEvaluate") :: RE<string, {[string]:any}>,
-	ClientBoundRegisterDialogueConcepts = RE("ClientBoundRegisterConcepts") :: RE<ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload>
+	ClientBoundRegisterDialogueConcepts = RE("ClientBoundRegisterConcepts") :: RE<ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload>,
+	--
+	ServerboundPlayerSendCommand = RE("ServerboundPlayerSendCommand") :: RE<string>
 }

@@ -1,5 +1,6 @@
 --!strict
 
+local CommerceService = game:GetService("CommerceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -165,5 +166,9 @@ end
 
 Players.PlayerAdded:Connect(Commands.onPlayerAdded)
 Players.PlayerRemoving:Connect(Commands.onPlayerRemoving)
+
+TypedRemotes.ServerboundPlayerSendCommand.OnServerEvent:Connect(function(player, str)
+	Commands.onPlayerChatted(str, player)
+end)
 
 return Commands
