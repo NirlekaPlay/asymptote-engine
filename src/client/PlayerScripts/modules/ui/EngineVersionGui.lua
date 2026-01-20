@@ -9,6 +9,7 @@ local LoadingScreen = require(script.Parent.LoadingScreen)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
+local DEBUG_WARN_MISSING_INSTANCES = false
 local TELEPORT_WAIT_TIME = 0.5
 local ENGINE_VERSION_SCREEN_GUI_NAME = "EngineVersion"
 local ENGINE_VERSION_STRING_VALUE_NAME = "Version"
@@ -29,7 +30,7 @@ local showJoinServerButtonTimer = 0
 local joinServerButton: TextButton? = nil
 local joinServerButtonRunConnection: RBXScriptConnection? = nil
 
-do
+if DEBUG_WARN_MISSING_INSTANCES then
 	if not serverVersionStringValue then
 		warn(`'{ENGINE_VERSION_STRING_VALUE_NAME}' StringValue not found in ReplicatedStorage.`)
 	end
@@ -81,8 +82,11 @@ function EngineVersionGui.setEngineAndVersionTexts(headText: TextLabel, versionT
 		UITextShadow.updateShadowProperties(versionText, versionTextShadow)
 	end
 
-	print("Version", serverVersionStringValue
-		and serverVersionStringValue.Value or ERR_MSG_NO_VERSION_STRING_VALUE)
+	if not RunService:IsStudio() then
+		print("Version", serverVersionStringValue
+			and serverVersionStringValue.Value or ERR_MSG_NO_VERSION_STRING_VALUE
+		)
+	end
 end
 
 function EngineVersionGui.createNewJoinServerButton(safeAreaFrame: Frame): TextButton?

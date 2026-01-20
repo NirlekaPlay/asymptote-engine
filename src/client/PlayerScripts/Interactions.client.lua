@@ -15,6 +15,8 @@ local REF_ACTION = ui_actionSideFrame.REF
 local PREFIX = "- "
 local BLACK = Color3.new(0, 0, 0)
 
+ui.Enabled = true
+
 local function createNewPair(keyStr: string, actionStr: string): ()
 	local keyTextFrame = REF_KEY:Clone()
 	local keyTextLabel = keyTextFrame.REF

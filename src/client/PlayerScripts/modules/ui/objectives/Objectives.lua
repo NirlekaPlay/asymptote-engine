@@ -15,6 +15,8 @@ local playerGui = localPlayer.PlayerGui
 local objectivesUi = playerGui:WaitForChild("Objectives")
 local referenceUi = objectivesUi.Root.SafeAreaFrame.Frame.REF
 
+objectivesUi.Enabled = true
+
 local bodyTextsTweensForHide: { [string]: {Tween} } = {}
 local bodyTextsTweensForShow: { [string]: {Tween} } = {}
 

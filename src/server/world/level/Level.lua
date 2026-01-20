@@ -74,6 +74,10 @@ local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
 local soundDispatcher: SoundDispatcher.SoundDispatcher
 local voxelWorld: VoxelWorld.VoxelWorld
+--
+local canUpdateLevel = false
+
+local DEBUG_VEBOSITY_LEVEL = 0
 
 Players.CharacterAutoLoads = false
 
@@ -113,6 +117,7 @@ end
 local Level = {}
 
 function Level.initializeLevel(): ()
+	missionManager = MissionManager.new(Level)
 	levelFolder = workspace:FindFirstChild("Level") :: Folder
 	if not levelFolder or next(levelFolder:GetChildren()) == nil then
 		levelFolder = workspace:FindFirstChild("DebugMission") :: Folder
@@ -121,6 +126,8 @@ function Level.initializeLevel(): ()
 		warn("Unable to initialize Level: Level or DebugMission not found in Workspace or is not a Folder.")
 		return
 	end
+
+	canUpdateLevel = true
 
 	local missionSetupObj
 
@@ -281,7 +288,7 @@ function Level.initializeLevel(): ()
 
 	-- Mission
 
-	missionManager = MissionManager.new(Level)
+	--missionManager = MissionManager.new(Level)
 
 	TypedRemotes.ServerBoundPlayerWantRestart.OnServerEvent:Connect(function(player)
 		missionManager:onPlayerWantRetry(player)
@@ -345,6 +352,8 @@ function Level.initializeLevel(): ()
 	task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
+
+	canUpdateLevel = true
 end
 
 -- TODO: THIS SHIT TOO.
@@ -595,10 +604,14 @@ function Level.initializeNpc(inst: Instance): ()
 end
 
 function Level.onPlayerJoined(player: Player): ()
-	print("Server: Player added " .. `'{player.Name}'`)
+	if DEBUG_VEBOSITY_LEVEL > 0 then
+		print("Server: Player added " .. `'{player.Name}'`)
+	end
 	missionManager:onPlayerJoined(player)
 	if not Level:getMissionManager():isConcluded() then
-		player:LoadCharacterAsync()
+		if not player.Character then
+			player:LoadCharacterAsync()
+		end
 	end
 	if next(charsAppearancePayloads) ~= nil then
 		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
@@ -1086,7 +1099,9 @@ end
 
 function Level.startMission(): ()
 	for _, player in Players:GetPlayers() do
-		player:LoadCharacterAsync()
+		if not player.Character then
+			player:LoadCharacterAsync()
+		end
 	end
 end
 
@@ -1095,6 +1110,9 @@ function Level.setDestroyNpcsCallback(f: () -> ()): ()
 end
 
 function Level.update(deltaTime: number): ()
+	if not canUpdateLevel then
+		return
+	end
 	Level.onSimulationStepped(deltaTime)
 
 	timeAccum += deltaTime

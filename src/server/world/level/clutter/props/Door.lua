@@ -143,7 +143,6 @@ function Door.onPromptTriggered(self: Door, promptSide: DoorSides, overrideLock:
 	if overrideLock ~= true and self:isClosed() and newTargetDegree ~= TARGET_DEGREES.CLOSED then
 		if (promptSide == Door.Sides.FRONT and self.lockFront) or
 			(promptSide == Door.Sides.BACK and self.lockBack) then
-			warn("Cannot open. Override lock:", overrideLock)
 			return
 		end
 	end

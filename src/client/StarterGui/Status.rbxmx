@@ -10,7 +10,7 @@
 			<bool name="ClipToDeviceSafeArea">true</bool>
 			<bool name="DefinesCapabilities">false</bool>
 			<int name="DisplayOrder">0</int>
-			<bool name="Enabled">true</bool>
+			<bool name="Enabled">false</bool>
 			<string name="Name">Status</string>
 			<bool name="ResetOnSpawn">false</bool>
 			<Ref name="RootLocalizationTable">null</Ref>

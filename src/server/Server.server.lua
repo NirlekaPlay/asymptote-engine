@@ -286,7 +286,7 @@ replicationFocusPart.Position = Vector3.zero
 replicationFocusPart.Name = "ReplicationFocus"
 replicationFocusPart.Parent = workspace
 
-Players.PlayerAdded:Connect(function(player)
+local function proccessPlayer(player: Player): ()
 	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
 	-- Localization:
@@ -296,6 +296,7 @@ Players.PlayerAdded:Connect(function(player)
 	end
 	-- entity reg here:
 	EntityManager.newDynamic("Player", player, tostring(player.UserId))
+
 	--
 	local charConn
 	charConn = player.CharacterAppearanceLoaded:Connect(function(character)
@@ -316,7 +317,15 @@ Players.PlayerAdded:Connect(function(player)
 	end)
 
 	playerConnections[player] = charConn
-end)
+end
+
+Players.PlayerAdded:Connect(proccessPlayer)
+
+for _, player in Players:GetPlayers() do
+	if EntityManager.Entities[tostring(player.UserId)] == nil then
+		proccessPlayer(player)
+	end
+end
 
 Players.PlayerRemoving:Connect(function(player)
 	Level.onPlayerRemoving(player)

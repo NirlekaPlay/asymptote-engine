@@ -1,54 +1,63 @@
---!nocheck
+--!strict
 
 local SmoothDamp = require(script.Parent.SmoothDamp)
 
+--[=[
+	@class SmoothValue
+]=]
 local SmoothValue = {}
 SmoothValue.__index = SmoothValue
 
-function SmoothValue.new(vec3: Vector3, smoothTime: number)
-	assert(typeof(vec3) == "Vector3", "initialValue should be Vector3")
-	assert(typeof(smoothTime) == "number", "smoothTime should be a number")
+export type SmoothValue = typeof(setmetatable({} :: {
+	value: Vector3,
+	goal: Vector3,
+	smoothTime: number,
+	_smoothDamp: SmoothDamp.SmoothDamp
+}, SmoothValue))
+
+function SmoothValue.new(vec3: Vector3, smoothTime: number): SmoothValue
 	assert(smoothTime >= 0, "smoothTime must be a positive number")
 
-	local v2 = setmetatable({
-		Value = vec3, 
-		Goal = vec3,
-		SmoothTime = smoothTime
+	return setmetatable({
+		value = vec3,
+		goal = vec3,
+		smoothTime = smoothTime,
+		_smoothDamp = SmoothDamp.new()
 	}, SmoothValue)
-	v2._smoothDamp = SmoothDamp.new()
-	return v2
 end
 
-function SmoothValue.Update(p3, p4)
-	if p4 then
-		p3.Goal = p4
+function SmoothValue.getMaxSpeed(self: SmoothValue)
+	return self._smoothDamp.maxSpeed
+end
+
+function SmoothValue.setMaxSpeed(self: SmoothValue, maxSpeed: number)
+	self._smoothDamp.maxSpeed = maxSpeed
+end
+
+function SmoothValue.update(self: SmoothValue, target: Vector3?): Vector3
+	if target then
+		self.goal = target
 	else
-		p4 = p3.Goal
+		target = self.goal
 	end
 
-	local v3 = p3._smoothDamp:Update(p3.Value, p4, p3.SmoothTime)
-	p3.Value = v3
+	local smoothVec3 = self._smoothDamp:update(self.value, target :: Vector3, self.smoothTime)
+	self.value = smoothVec3
 
-	return v3
+	return smoothVec3
 end
 
-function SmoothValue.UpdateAngle(p5, p6)
-	if p6 then
-		p5.Goal = p6
+function SmoothValue.updateAngle(self: SmoothValue, target: Vector3)
+	if target then
+		self.goal = target
 	else
-		p6 = p5.Goal
+		target = self.goal
 	end
-	local v4 = p5._smoothDamp:UpdateAngle(p5.Value, p6, p5.SmoothTime)
-	p5.Value = v4
-	return v4
+
+	local smoothVec3 = self._smoothDamp:updateAngle(self.value, target, self.smoothTime)
+	self.value = smoothVec3
+
+	return smoothVec3
 end
 
-function SmoothValue.SetMaxSpeed(p7, p8)
-	p7._smoothDamp.MaxSpeed = p8
-end
-
-function SmoothValue.GetMaxSpeed(p9)
-	return p9._smoothDamp.MaxSpeed
-end
-
-return SmoothValue :: any
+return SmoothValue

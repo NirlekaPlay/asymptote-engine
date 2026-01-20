@@ -8,7 +8,7 @@
 			<int name="DisplayOrder">99</int>
 			<token name="SafeAreaCompatibility">1</token>
 			<token name="ScreenInsets">1</token>
-			<bool name="Enabled">true</bool>
+			<bool name="Enabled">false</bool>
 			<bool name="ResetOnSpawn">false</bool>
 			<token name="ZIndexBehavior">1</token>
 			<bool name="AutoLocalize">true</bool>

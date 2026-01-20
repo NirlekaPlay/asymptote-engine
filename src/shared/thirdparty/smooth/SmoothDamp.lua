@@ -1,34 +1,45 @@
---!nocheck
-
--- Smooth Damp
--- Nirleka Dev / Setephen Leitnick
--- March 31, 2024
+--!strict
 
 ----------------------------------------------------------------------------------------------------------------
 
-local function DeltaAngle(current, target)
-	local n = ((target - current) % 6.2831853071796)
-	return (n > 3.1415926535898 and (n - 6.2831853071796) or n)
+local PI = math.pi
+local TAU = math.pi * 2
+
+local function deltaAngle(current: number, target: number): number
+	local n = (target - current) % TAU
+	return (n > PI and (n - TAU) or n)
 end
 
-local function DeltaAngleV3(p1, p2)
-	return Vector3.new(DeltaAngle(p1.X, p2.X), DeltaAngle(p1.Y, p2.Y), DeltaAngle(p1.Z, p2.Z))
+local function deltaAngleVec3(p1: Vector3, p2: Vector3)
+	return Vector3.new(deltaAngle(p1.X, p2.X), deltaAngle(p1.Y, p2.Y), deltaAngle(p1.Z, p2.Z))
 end
 
 ----------------------------------------------------------------------------------------------------------------
 
+--[=[
+	@class SmoothDamp
+
+	A module for smooth damping. Orignally created by Stephen Leitnick.
+	Original module can be found [here](https://github.com/Sleitnick/AeroGameFramework/blob/3b83b84f3fd8ed4684876594b0e232884f988de7/src/StarterPlayer/StarterPlayerScripts/Aero/Modules/Smooth/SmoothDamp.lua#).
+]=]
 local SmoothDamp = {}
 SmoothDamp.__index = SmoothDamp
 
-function SmoothDamp.new()
+export type SmoothDamp = typeof(setmetatable({} :: {
+	maxSpeed: number,
+	_update: number,
+	_velocity: Vector3
+}, SmoothDamp))
+
+function SmoothDamp.new(): SmoothDamp
 	return setmetatable({
-		MaxSpeed = math.huge;
-		_update = time();
-		_velocity = Vector3.new();
+		maxSpeed = math.huge,
+		_update = time(),
+		_velocity = Vector3.new()
 	}, SmoothDamp)
 end
 
-function SmoothDamp:Update(current, target, smoothTime)
+function SmoothDamp.update(self: SmoothDamp, current: Vector3, target: Vector3, smoothTime: number): Vector3
 	local currentVelocity = self._velocity
 	local now = time()
 	local deltaTime = (now - self._update)
@@ -41,7 +52,7 @@ function SmoothDamp:Update(current, target, smoothTime)
 	local vector = (current - target)
 	local vector2 = target
 
-	local maxLength = (self.MaxSpeed * smoothTime)
+	local maxLength = (self.maxSpeed * smoothTime)
 	vector = vector.Magnitude > maxLength and (vector.Unit * maxLength) or vector -- Clamp magnitude.
 	target = (current - vector)
 
@@ -56,11 +67,12 @@ function SmoothDamp:Update(current, target, smoothTime)
 
 	self._velocity = currentVelocity
 	self._update = now
+
 	return vector4
 end
 
-function SmoothDamp:UpdateAngle(current, target, smoothTime)
-	return self:Update(current, (current + DeltaAngleV3(current, target)), smoothTime)
+function SmoothDamp.updateAngle(self: SmoothDamp, current: Vector3, target: Vector3, smoothTime: number)
+	return self:update(current, (current + deltaAngleVec3(current, target)), smoothTime)
 end
 
 return SmoothDamp

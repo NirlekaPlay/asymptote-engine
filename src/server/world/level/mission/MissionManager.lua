@@ -9,6 +9,7 @@ local GlobalStatesHolder = require(ServerScriptService.server.world.level.states
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 
+local DEBUG_VERBOSITY_LEVEL = 0
 local MISSION_FAILED_VARIABLE = "Mission_Failed"
 
 GlobalStatesHolder.setState(MISSION_FAILED_VARIABLE, false)
@@ -124,13 +125,17 @@ function MissionManager.onPlayerWantRetry(self: MissionManager, player: Player):
 end
 
 function MissionManager.onPlayerJoined(self: MissionManager, player: Player): ()
-	print("MissionManager: Player joined:", `'{player.Name}'`)
+	if DEBUG_VERBOSITY_LEVEL > 0 then
+		print("MissionManager: Player joined:", `'{player.Name}'`)
+	end
 	TypedRemotes.ClientBoundServerMatchInfo:FireClient(player, "MATCH_INFO", {
 		cameraSocket = self.cameraSocket,
 		isConcluded = self.missionConcluded,
 		isFailed = GlobalStatesHolder.getState(MISSION_FAILED_VARIABLE)
 	})
-	print("Match info fired for", player.Name)
+	if DEBUG_VERBOSITY_LEVEL > 0 then
+		print("Match info fired for", player.Name)
+	end
 
 	local playersInGame = #Players:GetPlayers()
 		

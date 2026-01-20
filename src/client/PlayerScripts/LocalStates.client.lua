@@ -9,6 +9,7 @@ local LocalStatesHolder = require(StarterPlayer.StarterPlayerScripts.client.modu
 local ReplicatedGlobalStates = require(StarterPlayer.StarterPlayerScripts.client.modules.states.ReplicatedGlobalStates)
 
 local DEBUG_LOCAL_STATE_CHANGES = false
+local DEBUG_PRINT_REPLICATION_TRAFFIC = false
 local LOCAL_STATES = {
 	HAS_DISGUISE = "HasDisguise",
 	INVENTORY_HAS_FBB = "Inventory_HasFBB",
@@ -31,14 +32,18 @@ TypedRemotes.ClientBoundReplicateIndividualGlobalStates.OnClientEvent:Connect(fu
 end)
 
 TypedRemotes.ClientBoundReplicateAllGlobalStates.OnClientEvent:Connect(function(states)
-	print("Global states replication from server received.")
+	if DEBUG_PRINT_REPLICATION_TRAFFIC then
+		print("Global states replication from server received.")
+	end
 	for stateName, stateValue in states do
 		ReplicatedGlobalStates.setState(stateName, stateValue)
 	end
 end)
 
 TypedRemotes.ServerBoundGlobalStatesReplicateRequest:FireServer()
-print("Client: Request to give all global states in the server fired.")
+if DEBUG_PRINT_REPLICATION_TRAFFIC then
+	print("Client: Request to give all global states in the server fired.")
+end
 
 local backpackChildAddedConn: RBXScriptConnection?
 local backpackChildRemovedConn: RBXScriptConnection?

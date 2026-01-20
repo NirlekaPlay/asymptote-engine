@@ -347,21 +347,38 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	end
 
 	-- Attatchments
-	local frontAttatchment = Instance.new("Attachment")
+	local zOffset = isDoubleDoor and (base.Size.Z / 2 + attatchmentAddDist) or (doorSizeZ / 2 + attatchmentAddDist)
+	local attachmentParent = isDoubleDoor and base or part0
+
+	local frontAttatchment = createUprightAttachment(
+		attachmentParent,
+		Vector3.new(0, 0, -zOffset),
+		Vector3.new(0, 0, -1)
+	)
+	frontAttatchment.Name = "Front"
+
+	local backAttatchment = createUprightAttachment(
+		attachmentParent,
+		Vector3.new(0, 0, zOffset),
+		Vector3.new(0, 0, 1)
+	)
+	backAttatchment.Name = "Back"
+
+	--[[local frontAttatchment = Instance.new("Attachment")
 	frontAttatchment.Name = "Front"
 	frontAttatchment.Position = isDoubleDoor and Vector3.new(0, 0, (-base.Size.Z / 2) + -attatchmentAddDist) or Vector3.new(0, 0, (-doorSizeZ / 2) + -attatchmentAddDist)
-	frontAttatchment.Parent = isDoubleDoor and base or part0
+	frontAttatchment.Parent = isDoubleDoor and base or part0]]
 
 	local frontProxPrompt = Instance.new("ProximityPrompt")
 	frontProxPrompt.Style = Enum.ProximityPromptStyle.Custom
 	frontProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
 	frontProxPrompt.Parent = frontAttatchment
 
-	local backAttatchment = Instance.new("Attachment")
+	--[[local backAttatchment = Instance.new("Attachment")
 	backAttatchment.Name = "Back"
 	backAttatchment.Position = isDoubleDoor and Vector3.new(0, 0, (base.Size.Z / 2) + attatchmentAddDist) or Vector3.new(0, 0, (doorSizeZ / 2) + attatchmentAddDist)
 	backAttatchment.Orientation = Vector3.new(0, 180, 0)
-	backAttatchment.Parent = isDoubleDoor and base or part0
+	backAttatchment.Parent = isDoubleDoor and base or part0]]
 
 	local backProxPrompt = Instance.new("ProximityPrompt")
 	backProxPrompt.Style = Enum.ProximityPromptStyle.Custom

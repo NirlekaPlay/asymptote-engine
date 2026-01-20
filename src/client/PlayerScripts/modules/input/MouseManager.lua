@@ -9,11 +9,21 @@ local StarterGui = game:GetService("StarterGui")
 ]=]
 local MouseManager = {}
 
-local mouseDefaultLocked = if RunService:IsStudio() then false else true
+local NO_MOUSE_LOCK_IN_STUDIO = true
+
+local mouseDefaultLocked = if NO_MOUSE_LOCK_IN_STUDIO and RunService:IsStudio() then false else true
 local mouseLocked = mouseDefaultLocked
-local mouseDefaultIconEnabled = if RunService:IsStudio() then true else false
+local mouseDefaultIconEnabled = if NO_MOUSE_LOCK_IN_STUDIO and RunService:IsStudio() then true else false
 local mouseIconEnabled = mouseDefaultIconEnabled
 local mouseUnusableOverrides: { [string]: true } = {}
+
+local function isDevConsoleVisible(): boolean
+	local success, value = pcall(function()
+		return StarterGui:GetCore("DevConsoleVisible")
+	end)
+
+	return success and value
+end
 
 function MouseManager.addUnuseableMouseOverride(name: string): ()
 	mouseUnusableOverrides[name] = true
@@ -40,7 +50,7 @@ function MouseManager.setIconEnabled(enabled: boolean): ()
 end
 
 function MouseManager.update(): ()
-	local isConsoleVisible = StarterGui:GetCore("DevConsoleVisible") :: boolean
+	local isConsoleVisible = isDevConsoleVisible()
 	if isConsoleVisible or next(mouseUnusableOverrides) ~= nil then
 		mouseIconEnabled = true
 		mouseLocked = false
@@ -51,7 +61,7 @@ function MouseManager.update(): ()
 
 	if mouseLocked then
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-	elseif RunService:IsStudio() then -- For some reason you cant move the camera correctly with RMB.
+	elseif NO_MOUSE_LOCK_IN_STUDIO and RunService:IsStudio() then -- For some reason you cant move the camera correctly with RMB.
 		return
 	else
 		if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
