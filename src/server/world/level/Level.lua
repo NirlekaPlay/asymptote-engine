@@ -352,6 +352,8 @@ function Level.initializeLevel(): ()
 	task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
+
+	canUpdateLevel = true
 end
 
 -- TODO: THIS SHIT TOO.
@@ -607,7 +609,9 @@ function Level.onPlayerJoined(player: Player): ()
 	end
 	missionManager:onPlayerJoined(player)
 	if not Level:getMissionManager():isConcluded() then
-		player:LoadCharacterAsync()
+		if not player.Character then
+			player:LoadCharacterAsync()
+		end
 	end
 	if next(charsAppearancePayloads) ~= nil then
 		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
@@ -1095,7 +1099,9 @@ end
 
 function Level.startMission(): ()
 	for _, player in Players:GetPlayers() do
-		player:LoadCharacterAsync()
+		if not player.Character then
+			player:LoadCharacterAsync()
+		end
 	end
 end
 
