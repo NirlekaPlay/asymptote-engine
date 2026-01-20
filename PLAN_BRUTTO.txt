@@ -1,8 +1,9 @@
 1. Inventory System and Gun System
  a. Items. Items have atleast these basic functionalities:
-      i. They can be dropped;
-     ii. They can be picked up and kept; and
-    iii. And can be used.
+      (1) They can be dropped;
+      (2) They can be picked up and kept;
+      (3) Can be used;
+      (4) If its a player, drop the item;
  b. Guns. Guns must have the functionalities of items, and also the following:
       i. They can shoot, reload, aim, and takedown other living entities.
 
@@ -23,3 +24,10 @@ so im thingking we pass something like an ItemContext, and provide methods like
 :isClient() and :isServer() then :getClientContext() and :getServerContext()
 
 but even with that idk how to deal with viewmodels, etc.
+
+___
+
+If an item is on the ground, the pick up proximity prompt is enabled
+
+If its inside an entity's inventory, it is disabled
+
