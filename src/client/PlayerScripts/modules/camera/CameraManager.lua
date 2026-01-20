@@ -100,8 +100,8 @@ function CameraManager.tiltCameraToMouse()
 		local goalTiltX = (((mouseLocation.Y - viewSizeY / 2) / viewSizeY) * -maxTilt)
 		local goalTiltY = (((mouseLocation.X - viewSizeX / 2) / viewSizeX) * -maxTilt)
 
-		local smoothX = smoothTiltX:Update(Vector3.new(math.rad(goalTiltX), 0, 0))
-		local smoothY = smoothTiltY:Update(Vector3.new(0, math.rad(goalTiltY), 0))
+		local smoothX = smoothTiltX:update(Vector3.new(math.rad(goalTiltX), 0, 0))
+		local smoothY = smoothTiltY:update(Vector3.new(0, math.rad(goalTiltY), 0))
 
 		camera.CFrame = currentSocket.cframe * CFrame.Angles(
 			smoothX.X,
