@@ -127,6 +127,8 @@ function Level.initializeLevel(): ()
 		return
 	end
 
+	canUpdateLevel = true
+
 	local missionSetupObj
 
 	local missionSetupModule = levelFolder:FindFirstChild("MissionSetup") :: ModuleScript?
@@ -350,8 +352,6 @@ function Level.initializeLevel(): ()
 	task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
-
-	canUpdateLevel = true
 end
 
 -- TODO: THIS SHIT TOO.
