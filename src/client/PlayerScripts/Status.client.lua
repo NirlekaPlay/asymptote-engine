@@ -5,7 +5,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local REMOTE = require(game.ReplicatedStorage.shared.network.remotes.TypedRemotes).Status
-local GUI = Players.LocalPlayer.PlayerGui:WaitForChild("Status").Frame1
+local StatusGui = Players.LocalPlayer.PlayerGui:WaitForChild("Status")
+local GUI = StatusGui.Frame1
+
+StatusGui.Enabled = true
 
 local playerStatusesPerUi = {
 	[PlayerStatusTypes.DISGUISED.name] = GUI.Frame.A_Disguised,
