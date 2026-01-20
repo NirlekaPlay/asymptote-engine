@@ -146,6 +146,28 @@ local function setupDummy(dummyChar: Model): ()
 		end
 	end
 
+	local charName = newDummy:getCharacterName()
+	local dummyUuid = newDummy:getUuid()
+	local humanoid = ((dummyChar :: any).Humanoid :: Humanoid)
+
+	local diedConn = humanoid.Died:Once(function()
+		if not dummyChar or dummyChar.Parent == nil then
+			return
+		end
+
+		EntityManager.newDynamic("DeadBody", dummyChar, dummyUuid)
+		humanoid.DisplayName = charName
+	end)
+
+	dummyChar.Destroying:Once(function()
+		if diedConn then
+			diedConn:Disconnect()
+			diedConn = nil :: any
+		end
+
+		EntityManager.Entities[dummyUuid] = nil
+	end)
+
 	guards[dummyChar] = newDummy
 end
 
