@@ -154,6 +154,8 @@ function DetectionManagement.getHighestFullyDetectedEntity(self: DetectionManage
 				distance = (entity.position - self.agent:getPrimaryPart().Position).Magnitude
 			elseif entity.name == "Player" then
 				distance = ((entity.instance :: Player).Character.PrimaryPart.Position - self.agent:getPrimaryPart().Position).Magnitude
+			elseif entity.name == "DeadBody" then
+				distance = ((entity.instance :: any).HumanoidRootPart.Position - self.agent:getPrimaryPart().Position).Magnitude
 			else
 				distance = ((entity.instance :: BasePart).Position - self.agent:getPrimaryPart().Position).Magnitude
 			end
@@ -268,6 +270,8 @@ function DetectionManagement.getEntityPriorityInfo(
 		entityPos = entityObject.position
 	elseif entityObject.name == "Player" then
 		entityPos = (entityObject.instance :: any).Character.PrimaryPart.Position
+	elseif entityObject.name == "DeadBody" then
+		entityPos = (entityObject.instance :: any).HumanoidRootPart.Position
 	else
 		entityPos = (entityObject.instance :: BasePart).Position
 	end
