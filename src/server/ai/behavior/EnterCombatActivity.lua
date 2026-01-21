@@ -52,10 +52,17 @@ end
 function EnterCombatActivity.doStart(self: EnterCombatActivity, agent: Agent): ()
 	if Mission.getAlertLevel() == AlertLevels.SEARCHING or
 		Mission.getAlertLevel() == AlertLevels.LOCKDOWN then
+
+		agent.character:SetAttribute("HearingRadius", 30)
+		agent.character:SetAttribute("PeriphAngle", 360)
+		agent.character:SetAttribute("SightRadius", 1024)
 		
-		agent:getBrain():setNullableMemory(MemoryModuleTypes.IS_COMBAT_MODE, true)
+		agent:getBrain():setMemory(MemoryModuleTypes.IS_COMBAT_MODE, true)
 		agent:getFaceControl():setFace("Angry")
 		agent:getGunControl():equipGun()
+		if agent:getGunControl():isEmpty() then
+			agent:getGunControl():reload()
+		end
 		agent:getDetectionManager():blockAllDetection()
 	end
 end
