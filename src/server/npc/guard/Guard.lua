@@ -17,7 +17,6 @@ local ReportControl = require(ServerScriptService.server.ai.control.ReportContro
 local TalkControl = require(ServerScriptService.server.ai.control.TalkControl)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
-local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 
 local DEFAULT_CAN_DETECT_THROUGH_DISGUISES = false
 local DEFAULT_CAN_BE_INTIMIDATED = false

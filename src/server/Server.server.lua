@@ -11,7 +11,6 @@ local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
-local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local Commands = require(ServerScriptService.server.commands.registry.Commands)
@@ -264,7 +263,6 @@ local function update(deltaTime: number): ()
 
 	-- oh god
 	DetectionManagement.flushBatchToClients()
-	SuspicionManagement.flushBatchToClients()
 
 	BulletSimulation.update(deltaTime)
 end

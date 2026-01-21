@@ -1,7 +1,5 @@
 --!nonstrict
 
-local ServerScriptService = game:GetService("ServerScriptService")
-local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local Goal = require("./Goal")
 
 local LookAtSuspectGoal = {}
@@ -21,7 +19,7 @@ function LookAtSuspectGoal.new(agent): LookAtSuspectGoal
 end
 
 function LookAtSuspectGoal.canUse(self: LookAtSuspectGoal): boolean
-	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
+	local susMan = self.agent:getSuspicionManager()
 	return susMan:isCurious()
 end
 
@@ -38,7 +36,7 @@ function LookAtSuspectGoal.getFlags(self: LookAtSuspectGoal): {Flag}
 end
 
 function LookAtSuspectGoal.start(self: LookAtSuspectGoal): ()
-	local susMan = self.agent:getSuspicionManager() :: SuspicionManagement.SuspicionManagement
+	local susMan = self.agent:getSuspicionManager()
 	if self.agent.character.Head.QuestionMarkIcon then
 		self.agent.character.Head.QuestionMarkIcon.Enabled = true
 	end
