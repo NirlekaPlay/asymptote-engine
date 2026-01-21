@@ -35,7 +35,7 @@ function Node.new(cframe: CFrame, doDebug: boolean?): Node
 end
 
 function Node.fromPart(part: BasePart, doDebug: boolean?): Node
-	return Node.new(part.CFrame, doDebug)
+	return Node.new(part.CFrame + Vector3.new(0, 1, 0), doDebug)
 end
 
 --

@@ -135,7 +135,9 @@ function WalkToRandomPost.doUpdate(self: WalkToRandomPost, agent: Agent, deltaTi
 	elseif targetPost and patrolState == PatrolState.WALKING and not brain:hasMemoryValue(MemoryModuleTypes.WALK_TARGET) then
 		self:moveToPost(agent, targetPost)
 	elseif targetPost and patrolState == PatrolState.WALKING then
-		if brain:hasMemoryValue(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE) then
+		if brain:hasMemoryValue(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE) and not brain:hasMemoryValue(MemoryModuleTypes.PATH) then
+			brain:eraseMemory(MemoryModuleTypes.WALK_TARGET)
+			brain:eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)
 			local post = self:getRandomUnoccupiedPost(agent, targetPost)
 			if post then
 				targetPost:vacate()
