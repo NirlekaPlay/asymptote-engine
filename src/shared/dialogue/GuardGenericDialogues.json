@@ -118,6 +118,10 @@
     ["That's not one of ours...", "they're trying to blend in!"],
     ["We've got a fraud here, Control. Repeat, fake personnel identified."]
   ],
+  "status.disguised.employee": [
+    ["There's someone pretending to work here!"],
+    ["Hey! This guy is pretending to work here!"]
+  ],
   "entity.c4": [
     ["Control! I found a bomb!"],
     ["Control! I just found a bomb!"],

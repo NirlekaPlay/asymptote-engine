@@ -20,7 +20,8 @@ export type PropDisguiseGiver = typeof(setmetatable({} :: {
 	disguiseName: string,
 	disguiseId: string,
 	disguiseClothings: DisguiseClothings,
-	disguiseUpperColor: BrickColor?
+	disguiseUpperColor: BrickColor?,
+	disguiseClass: number
 }, PropDisguiseGiver))
 
 export type DisguiseClothings = {
@@ -28,13 +29,14 @@ export type DisguiseClothings = {
 	Pants: Content
 }
 
-function PropDisguiseGiver.new(model: Model, disguiseId: string, disguiseName: string, disguiseClothings: DisguiseClothings, disguiseUpperColor: BrickColor?): PropDisguiseGiver
+function PropDisguiseGiver.new(model: Model, disguiseId: string, disguiseName: string, disguiseClothings: DisguiseClothings, disguiseUpperColor: BrickColor?, disguiseClass: number?): PropDisguiseGiver
 	return setmetatable({
 		model = model,
 		disguiseName = disguiseName,
 		disguiseId = disguiseId,
 		disguiseClothings = disguiseClothings,
-		disguiseUpperColor = disguiseUpperColor
+		disguiseUpperColor = disguiseUpperColor,
+		disguiseClass = disguiseClass or 0
 	}, PropDisguiseGiver)
 end
 
@@ -53,7 +55,7 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 
 	-- TODO: Make a Proximity Prompt builder or some shit.
 	triggerAttachment:SetAttribute("OmniDir", false)
-	triggerAttachment:SetAttribute("PrimaryHoldClientShowCondition", "!HasDisguise")
+	triggerAttachment:SetAttribute("PrimaryHoldClientShowCondition", `!(CurrentPlayerDisguise == '{self.disguiseId}')`)
 	triggerAttachment:SetAttribute("PrimaryHoldConditionFailTitle", "ui.prompt.already_disguised")
 
 	local proximityPrompt = triggerAttachment:FindFirstChildOfClass("ProximityPrompt") :: ProximityPrompt
@@ -86,11 +88,15 @@ function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
 end
 
 function PropDisguiseGiver.applyDisguiseToPlayer(self: PropDisguiseGiver, player: Player): ()
-	local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
-	local isDisguised = playerStatus:hasStatus(PlayerStatusTypes.DISGUISED) -- for some fucking reason, placing it directly to an if statement makes a "unknown" type error bullshit
-	if isDisguised then
+	local curDisAtt = (player.Character :: Model):GetAttribute("CurrentPlayerDisguise")
+	if curDisAtt and curDisAtt == self.disguiseId then
 		return
 	end
+
+	(player.Character :: Model):SetAttribute("CurrentDisguiseClass", self.disguiseClass);
+	(player.Character :: Model):SetAttribute("CurrentPlayerDisguise", self.disguiseId)
+
+	local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
 
 	playerStatus:setDisguise(self.disguiseId)
 

@@ -15,6 +15,7 @@ local ExpressionEvaluationSorter = require(ReplicatedStorage.shared.util.express
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
+local DisguiseConfig = require(ServerScriptService.server.disguise.DisguiseConfig)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
@@ -765,7 +766,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				local newDisguiser = PropDisguiseGiver.new(model, disguiseName, localizedDisguiseName, {
 					Shirt = Content.fromAssetId(shirtId),
 					Pants = Content.fromAssetId(pantsId)
-				})
+				}, nil, disguiseProfile.DisguiseClass)
 
 				newDisguiser:setupProximityPrompt()
 
@@ -805,7 +806,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 				local newDisguiser = PropDisguiseGiver.new(prop, disguiseName, localizedDisguiseName, {
 					Shirt = Content.fromAssetId(shirtId),
 					Pants = Content.fromAssetId(pantsId)
-				}, disguiseProfile.BrickColor)
+				}, disguiseProfile.BrickColor, disguiseProfile.DisguiseClass)
 
 				newDisguiser:setupProximityPrompt()
 				return true
