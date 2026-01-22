@@ -40,6 +40,8 @@ type PendingSound = {
 	timestamp: number
 }
 
+local listenerBuffer = table.create(100)
+
 local function getSqrDistance(vec1: Vector3, vec2: Vector3): number
 	local offset = vec1 - vec2
 	return offset.X^2 + offset.Y^2 + offset.Z^2
@@ -94,7 +96,6 @@ function SoundDispatcher.update(self: SoundDispatcher, deltaTime: number): ()
 		if self.activeThreads >= MAX_CONCURRENT_THREADS then break end
 		
 		local sound = self.pendingSounds[i]
-		local radiusSqr = sound.maxTravelRadius^2
 
 		self.pendingSounds[i] = self.pendingSounds[self.pendingCount]
 		self.pendingSounds[self.pendingCount] = nil
@@ -104,7 +105,7 @@ function SoundDispatcher.update(self: SoundDispatcher, deltaTime: number): ()
 			if not listener:canReceiveSound() then continue end
 			
 			local listenerPos = listener:getPosition()
-			if isInRadius(listenerPos, sound.position, radiusSqr) then
+			if isInRadius(listenerPos, sound.position, sound.maxTravelRadius^2) then
 				self:dispatchToListener(listener, sound)
 			end
 		end
