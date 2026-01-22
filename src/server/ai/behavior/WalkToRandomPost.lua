@@ -70,6 +70,8 @@ function WalkToRandomPost.canStillUse(self: WalkToRandomPost, agent: Agent): boo
 	return not (
 		brain:hasMemoryValue(MemoryModuleTypes.IS_CURIOUS)
 		or brain:hasMemoryValue(MemoryModuleTypes.PRIORITIZED_ENTITY)
+		or brain:hasMemoryValue(MemoryModuleTypes.IS_PANICKING)
+		or brain:hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE)
 	)
 end
 
