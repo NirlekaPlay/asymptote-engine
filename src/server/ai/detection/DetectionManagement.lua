@@ -348,6 +348,13 @@ function DetectionManagement.getEntityPriorityInfo(
 		if soundType == DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED then
 			priority = STATUS_PRIORITIES["GunShot"]
 			multiplier = 100
+		elseif soundType == DetectableSound.Profiles.GUN_SHOT_SUPPRESSED then
+			if cost >= soundType.alarmingRange then
+				priority = STATUS_PRIORITIES["GunShot"]
+				multiplier = 100
+			else
+				return results
+			end
 		end
 		table.insert(results, {
 			entityUuid = entityUuid,
