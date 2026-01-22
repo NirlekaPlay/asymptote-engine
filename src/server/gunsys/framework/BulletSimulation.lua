@@ -255,6 +255,12 @@ function BulletSimulation.stepBullets(deltaTime: number): ()
 			local npcPos = part.Position
 			local relativePos = npcPos - pathStart
 
+			-- Check if the NPC is actually ahead of the starting point of this ray
+			-- If the dot product is negative, the NPC is "behind" the shot's origin
+			if relativePos:Dot(pathVector) < 0 then
+				continue
+			end
+
 			local t = math.clamp(relativePos:Dot(pathVector) / pathVector.Magnitude ^ 2, 0, 1)
 			local closestPoint = pathStart + (t * pathVector)
 			local distance = (npcPos - closestPoint).Magnitude
