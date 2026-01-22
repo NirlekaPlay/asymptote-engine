@@ -3,7 +3,6 @@
 local PhysicsService = game:GetService("PhysicsService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CollisionGroupBuilder = require(ServerScriptService.server.physics.collision.CollisionGroupBuilder)
-local CollisionGroupRegistry = require(ServerScriptService.server.physics.collision.CollisionGroupRegistry)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 
 --[=[
@@ -14,7 +13,7 @@ local CollisionGroupTypes = require(ServerScriptService.server.physics.collision
 local CollisionGroupManager = {}
 
 function CollisionGroupManager.register()
-	CollisionGroupRegistry.registerCollisionGroupsFromDict(CollisionGroupTypes :: any)
+	CollisionGroupManager.registerCollisionGroupsFromDict(CollisionGroupTypes :: any)
 
 	PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, false)
 	PhysicsService:CollisionGroupSetCollidable(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER, CollisionGroupTypes.PLAYER, false)
@@ -37,6 +36,14 @@ function CollisionGroupManager.register()
 		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
 		:notCollideWith(CollisionGroupTypes.BULLET)
 		:register()
+end
+
+function CollisionGroupManager.registerCollisionGroupsFromDict(collisionGroups: { [any]: string }): ()
+	for _, collisionGroupName in collisionGroups do
+		if not PhysicsService:IsCollisionGroupRegistered(collisionGroupName) then
+			PhysicsService:RegisterCollisionGroup(collisionGroupName)
+		end
+	end
 end
 
 return CollisionGroupManager
