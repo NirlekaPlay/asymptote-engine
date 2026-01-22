@@ -182,7 +182,7 @@ function Level.initializeLevel(): ()
 				return
 			end
 			--print("TEMP: LEVEL :: BULLET SHOT")
-			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED, origin)
+			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_SUPPRESSED, origin)
 		end
 	})
 
@@ -967,6 +967,14 @@ end
 
 function Level.getCellManager(_): CellManager.CellManager
 	return cellManager
+end
+
+function Level.setCanUpdateWorld(can: boolean): ()
+	canUpdateLevel = can
+end
+
+function Level.canUpdateLevel(): boolean
+	return canUpdateLevel
 end
 
 function Level.hideCell(cellModel: Model): ()

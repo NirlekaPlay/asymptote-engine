@@ -184,7 +184,9 @@ local function update(deltaTime: number): ()
 		return
 	end
 
-	Level.update(deltaTime)
+	if Level.canUpdateLevel() then
+		Level.update(deltaTime)
+	end
 
 	-- this frame, is there any listening clients?
 	local hasListeningClients = DebugPackets.hasListeningClients(DebugPacketTypes.DEBUG_BRAIN)
@@ -203,7 +205,9 @@ local function update(deltaTime: number): ()
 			end)
 		end
 
-		guard:update(deltaTime)
+		if Level.canUpdateLevel() then
+			guard:update(deltaTime)
+		end
 		if hasListeningClients then
 			DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
 		end
@@ -216,7 +220,9 @@ local function update(deltaTime: number): ()
 	-- oh god
 	DetectionManagement.flushBatchToClients()
 
-	BulletSimulation.update(deltaTime)
+	if Level.canUpdateLevel() then
+		BulletSimulation.update(deltaTime)
+	end
 end
 
 RunService.PostSimulation:Connect(update)
