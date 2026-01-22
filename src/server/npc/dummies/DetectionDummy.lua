@@ -197,7 +197,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	end
 
 	function soundListener:onReceiveSound(soundPosition: Vector3, cost: number, lastPos: Vector3, soundType: DetectableSound.DetectableSound): ()
-		--print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
+		print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
 		local entityUuid = EntityManager.newStatic("Sound", soundPosition) -- Kill me.
 		this.hearingSounds[entityUuid] = {
 			pos = soundPosition,
@@ -206,7 +206,6 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 			uuid = entityUuid,
 			lastVisitedNodePos = lastPos
 		}
-
 	end
 
 	self.soundListener = soundListener

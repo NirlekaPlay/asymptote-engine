@@ -349,10 +349,13 @@ function DetectionManagement.getEntityPriorityInfo(
 			priority = STATUS_PRIORITIES["GunShot"]
 			multiplier = 100
 		elseif soundType == DetectableSound.Profiles.GUN_SHOT_SUPPRESSED then
-			if cost >= soundType.alarmingRange then
+			if cost <= soundType.alarmingRange then
 				priority = STATUS_PRIORITIES["GunShot"]
 				multiplier = 100
 			else
+				-- TODO: Someone make this bullshit not a crime thank you.
+				self.agent.hearingSounds[entityObject.uuid] = nil
+				EntityManager.Entities[entityObject.uuid] = nil
 				return results
 			end
 		end
