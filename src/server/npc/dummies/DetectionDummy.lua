@@ -115,7 +115,11 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
-			part.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
+			if part.Parent == character then
+				part.CollisionGroup = CollisionGroupTypes.NPC_CHAR
+			else
+				part.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
+			end
 		end
 	end
 

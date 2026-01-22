@@ -36,6 +36,18 @@ function CollisionGroupManager.register()
 		:notCollideWith(CollisionGroupTypes.PATHFINDING_PART)
 		:notCollideWith(CollisionGroupTypes.BULLET)
 		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.NPC_CHAR)
+		:notCollideWith(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
+		:notCollideWith(CollisionGroupTypes.PLAYER)
+		:notCollideWithSelf()
+		:collidesWith(CollisionGroupTypes.QUERY_CHECK_NPC_CHARS)
+		:register()
+	
+	CollisionGroupBuilder.new(CollisionGroupTypes.QUERY_CHECK_NPC_CHARS)
+		:notCollideWithAnything()
+		:collidesWith(CollisionGroupTypes.NPC_CHAR)
+		:register()
 end
 
 function CollisionGroupManager.registerCollisionGroupsFromDict(collisionGroups: { [any]: string }): ()

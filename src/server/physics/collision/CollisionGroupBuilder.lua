@@ -45,6 +45,11 @@ function CollisionGroupBuilder.notCollideWith(self: CollisionGroupBuilder, other
 	return self
 end
 
+function CollisionGroupBuilder.notCollideWithSelf(self: CollisionGroupBuilder): CollisionGroupBuilder
+	self.collisionDict[self.collisionGroupName] = false
+	return self
+end
+
 function CollisionGroupBuilder.notCollideWithAnything(self: CollisionGroupBuilder): CollisionGroupBuilder
 	for _, collisionGroupName in getRegisteredCollisionGroupsArray() do
 		self.collisionDict[collisionGroupName] = false
