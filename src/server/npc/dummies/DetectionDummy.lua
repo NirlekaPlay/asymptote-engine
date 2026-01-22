@@ -270,6 +270,16 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		}
 	end
 
+	-- TODO: This is stupid. But hey, keeping moving forward
+	local recentShotAtOrigin = self.character:GetAttribute("RecentShotAtOrigin") :: Vector3?
+	if recentShotAtOrigin then
+		self.character:SetAttribute("RecentShotAtOrigin", nil)
+		local entityUuid = EntityManager.newStatic("ShootingOrigin", recentShotAtOrigin) -- Kill me
+		detectionProfiles[entityUuid] = {
+			isVisible = false,
+			isHeard = true
+		}
+	end
 	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
 	self.detectionManager:update(deltaTime)
 	DetectionDummyAi.updateActivity(self)

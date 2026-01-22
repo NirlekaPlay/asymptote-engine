@@ -356,6 +356,14 @@ function DetectionManagement.getEntityPriorityInfo(
 			distance = distance,
 			speedMultiplier = multiplier
 		})
+	elseif entityObject.name == "ShootingOrigin" then
+		table.insert(results, {
+			entityUuid = entityUuid,
+			status = "ShootingOrigin",
+			priority = STATUS_PRIORITIES.GunShot,
+			distance = distance,
+			speedMultiplier = 1000
+		})
 	else
 		warn(`DetectionManagement :: UNRECOGNISED_ENTITY : {entityObject}`)
 	end

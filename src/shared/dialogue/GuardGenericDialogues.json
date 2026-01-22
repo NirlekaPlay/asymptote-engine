@@ -144,6 +144,15 @@
     ["%s is lying on the ground!", "Got no pulse!"],
     ["Found %s on the floor! I think %s is dead!"]
   ],
+  "event.on_shot_at": [
+    ["Control! Someone's shooting at me!!"],
+    ["Someone is shooting at me!!"],
+    ["Someone's trying to kill me!!"],
+    ["There's someone shooting at me!"],
+    ["I'm being shot at!"],
+    ["There's someone shooting!"],
+    ["Control! Shots fired! Shots fired!"]
+  ],
   "sound.gun_shot": [
     ["Control! I think I'm hearing gunshots!"],
     ["Control! I'm hearing gunshots!!"],

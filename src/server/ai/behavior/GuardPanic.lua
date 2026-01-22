@@ -65,6 +65,10 @@ function GuardPanic.checkExtraStartConditions(self: GuardPanic, agent: Agent): b
 			local forStatus = priorityEntity:getStatus()
 			local entityObj = EntityManager.getEntityByUuid(entityUuid)
 
+			if forStatus == "ShootingOrigin" then
+				return true
+			end
+
 			if EntityUtils.isPlayer(entityObj) then
 				local statusObj = PlayerStatusTypes.getStatusFromName(forStatus)
 				if statusObj and ALARMING_STATUSES[statusObj] then
@@ -76,7 +80,8 @@ function GuardPanic.checkExtraStartConditions(self: GuardPanic, agent: Agent): b
 				end
 			end
 
-			if entityObj.isStatic and agent.hearingSounds[entityUuid] then -- TODO: This.
+			local heardSound = entityObj.isStatic and agent.hearingSounds[entityUuid] or nil
+			if heardSound then
 				return true
 			end
 
@@ -107,13 +112,21 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 
 	-- TODO: intimidation handling
 	if entity.name == "C4" then
-		reportDur = 2.37
+		reportDur = 1.3
 		reportType = ReportType.DANGEROUS_ITEM_SPOTTED
 		reportDialogueSeg = GuardGenericDialogues["entity.c4"]
+	elseif entity.name == "ShootingOrigin" then
+		reportDur = 1.5
+		reportType = ReportType.SHOTS_FIRED
+		reportDialogueSeg = GuardGenericDialogues["event.on_shot_at"]
 	elseif agent.hearingSounds[entity.uuid] then
 		local sound = agent.hearingSounds[entity.uuid]
 		if sound.soundType == DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED then
-			reportDur = 2
+			reportDur = 1.3
+			reportType = ReportType.SHOTS_FIRED
+			reportDialogueSeg = GuardGenericDialogues["sound.gun_shot"]
+		elseif sound.soundType == DetectableSound.Profiles.GUN_SHOT_SUPPRESSED then
+			reportDur = 1.5
 			reportType = ReportType.SHOTS_FIRED
 			reportDialogueSeg = GuardGenericDialogues["sound.gun_shot"]
 		end
@@ -123,14 +136,14 @@ function GuardPanic.doStart(self: GuardPanic, agent: Agent): ()
 		-- the Player has in this frame. This is also to avoid other race issues.
 		local status = PlayerStatusTypes.getStatusFromName(panicSource:getStatus())
 		if status == PlayerStatusTypes.ARMED then
-			reportDur = 2.5
+			reportDur = 1.8
 			reportType = ReportType.ARMED_PERSON
 			reportDialogueSeg = GuardGenericDialogues["status.armed"]
 			local targetableEntitiesMemory = brain:getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES):orElse({})
 			targetableEntitiesMemory[EntityUtils.getPlayerOrThrow(entity)] = true
 			brain:setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntitiesMemory)
 		elseif status == PlayerStatusTypes.DANGEROUS_ITEM then
-			reportDur = 2.3
+			reportDur = 2
 			reportType = ReportType.PERSON_WITH_DANGEROUS_ITEM
 			reportDialogueSeg = GuardGenericDialogues["status.dangerous_item"]
 		else
@@ -155,7 +168,7 @@ end
 --
 
 function GuardPanic.getReactionTime(self: GuardPanic, agent: Agent, deltaTime: number): number
-	return agent:getRandom():NextNumber(0.3, 0.6)
+	return agent:getRandom():NextNumber(0.3, 1)
 end
 
 return GuardPanic

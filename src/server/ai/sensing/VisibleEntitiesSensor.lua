@@ -20,6 +20,13 @@ local RED = Color3.new(1, 0, 0)
 local GREEN = Color3.new(0, 1, 0)
 local ORANGE = BrickColor.Yellow().Color
 
+local SCAN_RATE = 1 / 20
+local REQUIRED_MEMORIES = {
+	MemoryModuleTypes.VISIBLE_PLAYERS,
+	MemoryModuleTypes.VISISBLE_C4,
+	MemoryModuleTypes.VISIBLE_ENTITIES
+}
+
 local VisibleEntitiesSensor = {}
 VisibleEntitiesSensor.__index = VisibleEntitiesSensor
 
@@ -36,11 +43,11 @@ function VisibleEntitiesSensor.new(): VisibleEntitiesSensor
 end
 
 function VisibleEntitiesSensor.getRequiredMemories(self: VisibleEntitiesSensor): { MemoryModuleTypes.MemoryModuleType<any> }
-	return { MemoryModuleTypes.VISIBLE_PLAYERS, MemoryModuleTypes.VISISBLE_C4, MemoryModuleTypes.VISIBLE_ENTITIES }
+	return REQUIRED_MEMORIES
 end
 
 function VisibleEntitiesSensor.getScanRate(self: VisibleEntitiesSensor): number
-	return 1 / 20
+	return SCAN_RATE
 end
 
 function VisibleEntitiesSensor.doUpdate(self: VisibleEntitiesSensor, agent: Agent, deltaTime: number)
@@ -107,8 +114,7 @@ function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Ag
 	local cosHalfAngle = math.cos(math.rad(agent:getPeripheralVisionAngle() / 2))
 	if dot < cosHalfAngle then return false end
 
-	-- Initialize raycast parameters
-	local rayParams = self.rayParams
+	local rayParams = self.rayParams :: RaycastParams
 	if not rayParams then
 		rayParams = RaycastParams.new()
 		rayParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -130,13 +136,6 @@ function VisibleEntitiesSensor.isInVision(self: VisibleEntitiesSensor, agent: Ag
 				Debris:AddItem(Draw.ray(Ray.new(origin, direction), GREEN), DEBUG_RAYCAST_LIFETIME)
 			end
 			return true
-		end
-
-		if rayResult.Instance.CollisionGroup == CollisionGroupTypes.BLOCK_VISION_RAYCAST then
-			if DEBUG_RAYCAST then
-				Debris:AddItem(Draw.line(agentPos, rayResult.Position, RED), DEBUG_RAYCAST_LIFETIME)
-			end
-			return false
 		end
 
 		local hitPart = rayResult.Instance
