@@ -83,6 +83,8 @@ local function proccessInput(str: string): ()
 	if string.sub(command, 1, 1) == "/" then
 		-- This is a command
 		TypedRemotes.ServerboundPlayerSendCommand:FireServer(str)
+		TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(str))
+		addEntry(localPlayer.Name, str)
 	else
 		-- A regular text
 		TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(str))
@@ -137,6 +139,12 @@ end, false, Enum.KeyCode.T)
 
 inputField.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
+		if UString.isBlank(inputField.Text) then
+			task.defer(function()
+				inputField:CaptureFocus()
+			end)
+			return
+		end
 		proccessInput(inputField.Text)
 		task.wait() -- Prevents an additional space character
 		inputField.Text = ""
