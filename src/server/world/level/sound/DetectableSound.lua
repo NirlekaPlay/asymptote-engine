@@ -38,7 +38,7 @@ end
 
 DetectableSound.Profiles = {
 	GUN_SHOT_UNSUPPRESSED = register("gun_shot_unsuppressed", 970, 920, 970),
-	GUN_SHOT_SUPPRESSED = register("gun_shot_suppressed", 80, 45, 80)
+	GUN_SHOT_SUPPRESSED = register("gun_shot_suppressed", 50, 25, 50)
 }
 
 return DetectableSound

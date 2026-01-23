@@ -13,10 +13,6 @@ local function register(tagName: string, predicate: (Instance) -> boolean): TagT
 end
 
 return {
-	NPC_GUARD = register("Guard", function(inst)
-		return inst:IsA("Model")
-	end) :: TagType<Model>,
-
 	NPC_DETECTION_DUMMY = register("DetectionDummy", function(inst)
 		return inst:IsA("Model")
 	end) :: TagType<Model>,

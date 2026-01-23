@@ -11,7 +11,6 @@ local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
-local SuspicionManagement = require(ServerScriptService.server.ai.suspicion.SuspicionManagement)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local Commands = require(ServerScriptService.server.commands.registry.Commands)
@@ -20,57 +19,13 @@ local BulletSimulation = require(ServerScriptService.server.gunsys.framework.Bul
 local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
 local CollisionGroupManager = require(ServerScriptService.server.physics.collision.CollisionGroupManager)
---local Guard = require(ServerScriptService.server.npc.guard.Guard)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
-local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWorld)
 
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
-
-local SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME = true
-
-local function setupGuard(guardChar: Model): ()
-	if SHOW_INITIALIZED_GUARD_CHARACTERS_FULL_NAME then
-		-- This is utterly fucking retarded.
-		-- (this is actually borrowed from an the onMapTaggedGuard function,
-		-- but i will leave this here to show how absurd Luau typechecking
-		-- can be.)
-		print(((guardChar :: any) :: Model):GetFullName())
-	end
-	local designatedPosts: { Node.Node }
-
-	if guardChar:GetAttribute("CanSeeThroughDisguises") then
-		designatedPosts = advancedNodes
-	else
-		designatedPosts = basicNodes
-	end
-
-	guards[guardChar] = Guard.new(guardChar, designatedPosts)
-end
-
-local function onMapTaggedGuard(guardChar: Model): ()
-	-- It seems like checking this condition results in the guardChar variable incorrectly refining
-	-- to a bullshit type. A table with the property 'Parent'. It should've stayed to be a Model type.
-	-- How utterly fucking inconvenient and heavily retarded.
-	if guardChar.Parent ~= workspace then
-		-- And you can't even cast a type as 'the types are unrelated'
-		-- so what the fuck do you expect me to do?
-		local connection: RBXScriptConnection
-		connection = guardChar:GetPropertyChangedSignal("Parent"):Connect(function()
-			if guardChar.Parent == workspace then
-				connection:Disconnect()
-				setupGuard(guardChar)
-			end
-		end)
-
-		return
-	end
-
-	setupGuard(guardChar)
-end
 
 local function getNodes(char: Model): { Node.Node }
 	local nodesName = char:GetAttribute("Nodes") :: string
@@ -209,10 +164,6 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onM
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
-CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
-
-CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_GUARD, onMapTaggedGuard)
-
 Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
 Level.initializeLevel()
 
@@ -233,7 +184,9 @@ local function update(deltaTime: number): ()
 		return
 	end
 
-	Level.update(deltaTime)
+	if Level.canUpdateLevel() then
+		Level.update(deltaTime)
+	end
 
 	-- this frame, is there any listening clients?
 	local hasListeningClients = DebugPackets.hasListeningClients(DebugPacketTypes.DEBUG_BRAIN)
@@ -252,7 +205,9 @@ local function update(deltaTime: number): ()
 			end)
 		end
 
-		guard:update(deltaTime)
+		if Level.canUpdateLevel() then
+			guard:update(deltaTime)
+		end
 		if hasListeningClients then
 			DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
 		end
@@ -264,33 +219,13 @@ local function update(deltaTime: number): ()
 
 	-- oh god
 	DetectionManagement.flushBatchToClients()
-	SuspicionManagement.flushBatchToClients()
 
-	BulletSimulation.update(deltaTime)
+	if Level.canUpdateLevel() then
+		BulletSimulation.update(deltaTime)
+	end
 end
 
 RunService.PostSimulation:Connect(update)
-
---[[local UPDATES_PER_SEC = 20
-local UPDATE_INTERVAL = 1 / UPDATES_PER_SEC
-local timeAccum = 0
-local lastUpdateTime = os.clock()
-
-task.spawn(function()
-	while true do
-		local deltaTime = os.clock() - lastUpdateTime
-		timeAccum += deltaTime
-
-		while timeAccum >= UPDATE_INTERVAL do
-			update(UPDATE_INTERVAL)
-			timeAccum -= UPDATE_INTERVAL
-		end
-
-		lastUpdateTime = os.clock()
-
-		task.wait()
-	end
-end)]]
 
 CollisionGroupManager.register()
 

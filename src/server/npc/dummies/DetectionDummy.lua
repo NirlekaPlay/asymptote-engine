@@ -82,7 +82,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.moveControl = MoveControl.new(humanoid)
 	self.pathNavigation = PathNavigation.new(character, self.moveControl, {
 		AgentRadius = 2,
-		AgentHeight = 6,
+		AgentHeight = 4,
 		AgentCanJump = false,
 		WaypointSpacing = 1,
 		Costs = {
@@ -115,7 +115,11 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 
 	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
-			part.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
+			if part.Parent == character then
+				part.CollisionGroup = CollisionGroupTypes.NPC_CHAR
+			else
+				part.CollisionGroup = CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER
+			end
 		end
 	end
 
@@ -193,7 +197,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	end
 
 	function soundListener:onReceiveSound(soundPosition: Vector3, cost: number, lastPos: Vector3, soundType: DetectableSound.DetectableSound): ()
-		--print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
+		print(`'{character.Name}' Received sound:`, soundPosition, `Cost: {cost}`, `Sound type: {soundType}`)
 		local entityUuid = EntityManager.newStatic("Sound", soundPosition) -- Kill me.
 		this.hearingSounds[entityUuid] = {
 			pos = soundPosition,
@@ -202,7 +206,6 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 			uuid = entityUuid,
 			lastVisitedNodePos = lastPos
 		}
-
 	end
 
 	self.soundListener = soundListener
@@ -266,6 +269,16 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		}
 	end
 
+	-- TODO: This is stupid. But hey, keeping moving forward
+	local recentShotAtOrigin = self.character:GetAttribute("RecentShotAtOrigin") :: Vector3?
+	if recentShotAtOrigin then
+		local entityUuid = EntityManager.newStatic("ShootingOrigin", recentShotAtOrigin) -- Kill me
+		detectionProfiles[entityUuid] = {
+			isVisible = false,
+			isHeard = true
+		}
+		self.character:SetAttribute("RecentShotAtOrigin", nil)
+	end
 	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
 	self.detectionManager:update(deltaTime)
 	DetectionDummyAi.updateActivity(self)

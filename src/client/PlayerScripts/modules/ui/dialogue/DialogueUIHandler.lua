@@ -8,6 +8,7 @@ local SHOW_POS = UDim2.fromScale(0, 0)
 local HIDE_POS = UDim2.fromScale(0, 0.05)
 
 local TWEEN_INFO_EXPO_IN = TweenInfo.new(1.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+local TWEEN_INFO_EXPO_IN_FAST = TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 
 local DIALOGUE_UI = ReplicatedStorage.shared.assets.gui.Dialogue
 
@@ -21,9 +22,14 @@ local dialogueSpeaker = ui.Root.DialogueFrame.SpeakerText
 
 gradientTransparencyNumValue.Value = 1
 
-gradientTransparencyNumValue.Changed:Connect(function(value)
+local function calculate(original: number, alpha: number): number
+	return original + (1 - original) * alpha
+end
+
+gradientTransparencyNumValue.Changed:Connect(function(alpha)
 	gradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, value),
+		NumberSequenceKeypoint.new(0, calculate(0, alpha)),
+		NumberSequenceKeypoint.new(0.150812, calculate(0.00624996, alpha)),
 		NumberSequenceKeypoint.new(1, 1)
 	})
 end)
@@ -79,12 +85,13 @@ end
 function DialogueUIHandler.transitionDialogue(show: boolean)
 	local targetPosition = show and SHOW_POS or HIDE_POS
 	local tweenInfo = show and TWEEN_INFO_EXPO_IN or TWEEN_INFO_EXPO_IN
+	local teenInfoText = show and TWEEN_INFO_EXPO_IN or TWEEN_INFO_EXPO_IN_FAST
 	
 	local targetTrans = show and 0 or 1
 	local targetTextTrans = show and 0 or 1
 	
-	TweenService:Create(dialogueSpeaker, tweenInfo, { BackgroundTransparency = targetTrans }):Play()
-	TweenService:Create(dialogueSpeaker, tweenInfo, { TextTransparency = targetTextTrans }):Play()
+	TweenService:Create(dialogueSpeaker, teenInfoText, { BackgroundTransparency = targetTrans }):Play()
+	TweenService:Create(dialogueSpeaker, teenInfoText, { TextTransparency = targetTextTrans }):Play()
 
 	TweenService:Create(dialogueFrame, tweenInfo, { Position = targetPosition }):Play()
 	
@@ -94,7 +101,7 @@ function DialogueUIHandler.transitionDialogue(show: boolean)
 		end
 		dialogueText.TextTransparency = 0
 	else
-		textTransTween = TweenService:Create(dialogueText, tweenInfo, { TextTransparency = 1 })
+		textTransTween = TweenService:Create(dialogueText, teenInfoText, { TextTransparency = 1 })
 		textTransTween:Play()
 	end
 

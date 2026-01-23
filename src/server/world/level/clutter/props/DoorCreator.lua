@@ -144,6 +144,11 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 			continue
 		end
 
+		local newPathMod = Instance.new("PathfindingModifier")
+		newPathMod.Label = "Door"
+		newPathMod.PassThrough = true
+		newPathMod.Parent = part
+
 		table.insert(nonMainDoorParts, part)
 	end
 

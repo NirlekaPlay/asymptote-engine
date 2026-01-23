@@ -348,6 +348,16 @@ function DetectionManagement.getEntityPriorityInfo(
 		if soundType == DetectableSound.Profiles.GUN_SHOT_UNSUPPRESSED then
 			priority = STATUS_PRIORITIES["GunShot"]
 			multiplier = 100
+		elseif soundType == DetectableSound.Profiles.GUN_SHOT_SUPPRESSED then
+			if cost <= soundType.alarmingRange then
+				priority = STATUS_PRIORITIES["GunShot"]
+				multiplier = 100
+			else
+				-- TODO: Someone make this bullshit not a crime thank you.
+				self.agent.hearingSounds[entityObject.uuid] = nil
+				EntityManager.Entities[entityObject.uuid] = nil
+				return results
+			end
 		end
 		table.insert(results, {
 			entityUuid = entityUuid,
@@ -355,6 +365,14 @@ function DetectionManagement.getEntityPriorityInfo(
 			priority = priority,
 			distance = distance,
 			speedMultiplier = multiplier
+		})
+	elseif entityObject.name == "ShootingOrigin" then
+		table.insert(results, {
+			entityUuid = entityUuid,
+			status = "ShootingOrigin",
+			priority = STATUS_PRIORITIES.GunShot,
+			distance = distance,
+			speedMultiplier = 1000
 		})
 	else
 		warn(`DetectionManagement :: UNRECOGNISED_ENTITY : {entityObject}`)

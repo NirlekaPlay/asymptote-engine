@@ -2,6 +2,8 @@
 
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.BulletTracerPayload)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
@@ -46,6 +48,7 @@ end
 local BulletSimulation = {}
 
 export type ServerBulletObject = {
+	fromChar: Instance,
 	cframe: CFrame,
 	currentSpeed: number,
 	currentYSpeed: number,
@@ -54,7 +57,8 @@ export type ServerBulletObject = {
 	rng: Random,
 	raycastParams: RaycastParams,
 	size: Vector3,
-	damageCallback: (humanoid: Humanoid?, limb: BasePart) -> Humanoid
+	damageCallback: (humanoid: Humanoid?, limb: BasePart) -> Humanoid,
+	intersectedNpcs: { [Instance]: true }
 }
 
 function BulletSimulation.addConsumer(consumer: any): ()
@@ -85,6 +89,7 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 	rayParams.FilterDescendantsInstances = filter :: any -- stfu
 
 	local bulletObj = {
+		fromChar = fromChar,
 		cframe = bulletCFrame,
 		currentSpeed = bulletData.speed,
 		currentYSpeed = 0,
@@ -93,7 +98,8 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 		rng = rng,
 		raycastParams = rayParams,
 		size = bulletData.size,
-		damageCallback = damageCallback
+		damageCallback = damageCallback,
+		intersectedNpcs = {}
 	}
 
 	table.insert(activeBullets, bulletObj)
@@ -206,6 +212,73 @@ function BulletSimulation.stepBullets(deltaTime: number): ()
 				bulletObj.cframe = bulletObj.cframe * CFrame.Angles(0, 0, (bulletObj.currentYSpeed / 10) * deltaTime * 30)
 			end
 		end
+
+		------------------------------------------------------------------------------------------------------------------------
+		-- Notify NPCs when a bullet passed them
+		------------------------------------------------------------------------------------------------------------------------
+
+		local pathStart = rayOrigin
+		local pathEnd = bulletObj.cframe.Position
+		local pathVector = pathEnd - pathStart
+
+		local overlapParams = OverlapParams.new()
+		overlapParams.CollisionGroup = CollisionGroupTypes.QUERY_CHECK_NPC_CHARS
+		overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+		overlapParams.FilterDescendantsInstances = { bulletObj.fromChar }
+
+		local whistleRadius = 25
+		local whistleRadiusDoubled = whistleRadius * 2
+		local boundsSize = Vector3.new(
+			math.abs(pathVector.X) + whistleRadiusDoubled,
+			math.abs(pathVector.Y) + whistleRadiusDoubled,
+			math.abs(pathVector.Z) + whistleRadiusDoubled
+		)
+		local boundsCenter = pathStart:Lerp(pathEnd, 0.5)
+
+		local nearbyParts = workspace:GetPartBoundsInBox(CFrame.new(boundsCenter), boundsSize, overlapParams)
+
+		local intersectedNpcs = bulletObj.intersectedNpcs
+		for _, part in nearbyParts do
+			if part.Parent and intersectedNpcs[part.Parent] then
+				continue
+			end
+
+			if part.Parent then
+				local humanoid = part.Parent:FindFirstChildOfClass("Humanoid")
+				if not humanoid or humanoid.Health <= 0 then
+					continue
+				end
+			else
+				continue
+			end
+
+			local npcPos = part.Position
+			local relativePos = npcPos - pathStart
+
+			-- Check if the NPC is actually ahead of the starting point of this ray
+			-- If the dot product is negative, the NPC is "behind" the shot's origin
+			if relativePos:Dot(pathVector) < 0 then
+				continue
+			end
+
+			local t = math.clamp(relativePos:Dot(pathVector) / pathVector.Magnitude ^ 2, 0, 1)
+			local closestPoint = pathStart + (t * pathVector)
+			local distance = (npcPos - closestPoint).Magnitude
+
+			if distance <= whistleRadius then
+				local rayResult = workspace:Raycast(closestPoint, (part.Position - closestPoint).Unit * distance)
+				if not rayResult or not rayResult.Instance:IsDescendantOf(part.Parent) then
+					continue
+				end
+				intersectedNpcs[part.Parent] = true
+				
+				part.Parent:SetAttribute("RecentShotAtOrigin", closestPoint)
+			end
+		end
+
+		------------------------------------------------------------------------------------------------------------------------
+		-- End
+		------------------------------------------------------------------------------------------------------------------------
 
 		-- Legacy per-frame decay and visual width scaling
 		bulletObj.currentSpeed -= (10 * deltaTime)

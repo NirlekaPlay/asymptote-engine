@@ -1,5 +1,8 @@
 --!strict
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
+
 --[=[
 	@class SoundListener
 	
@@ -10,8 +13,8 @@
 export type SoundListener = {
 	getPosition: (self: SoundListener) -> Vector3,
 	canReceiveSound: (self: SoundListener) -> boolean,
-	onReceiveSound: (self: SoundListener, soundPos: Vector3, cost: number, lastPos: Vector3, soundType: string) -> (),
-	checkExtraConditionsBeforeCalc: (self: SoundListener, origin: Vector3, soundType: string) -> boolean
+	onReceiveSound: (self: SoundListener, soundPos: Vector3, cost: number, lastPos: Vector3, sound: DetectableSound.DetectableSound) -> (),
+	checkExtraConditionsBeforeCalc: (self: SoundListener, origin: Vector3, sound: DetectableSound.DetectableSound) -> boolean
 }
 
 return nil

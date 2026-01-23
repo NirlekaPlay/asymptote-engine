@@ -1,7 +1,9 @@
 --!strict
 
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local SoundListener = require(ServerScriptService.server.world.level.sound.SoundListener)
@@ -9,7 +11,10 @@ local VoxelWorld = require(ServerScriptService.server.world.level.voxel.VoxelWor
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 
 local DEBUG_LAST_VISITED_NODE = false
-local DEBUG_INDIVIDUAL_COMPUTE_TIME = true
+local DEBUG_INDIVIDUAL_COMPUTE_TIME = false
+local DEBUG_REACHED_LISTENER = false
+local DEBUG_REACHED_LISTENER_COLOR = Color3.fromRGB(0, 0, 1)
+local DEBUG_REACHED_LISTENER_LIFETIME = 5
 local DEBUG_NODES = false
 local MAX_CONCURRENT_THREADS = 8
 local MAX_SOUNDS_PER_UPDATE = 5 -- Process fewer sounds but all their listeners
@@ -93,18 +98,32 @@ function SoundDispatcher.update(self: SoundDispatcher, deltaTime: number): ()
 		-- Only start processing if we aren't already pinned
 		if self.activeThreads >= MAX_CONCURRENT_THREADS then break end
 		
-		local sound = self.pendingSounds[i]
-		local radiusSqr = sound.maxTravelRadius^2
+		local sound = self.pendingSounds[i] :: PendingSound
 
 		self.pendingSounds[i] = self.pendingSounds[self.pendingCount]
 		self.pendingSounds[self.pendingCount] = nil
 		self.pendingCount -= 1
 
+		-- TODO: Might not be the most optimized way to do this
+		local sortedListenersByDist: { SoundListener } = {}
+		local listenerCount = 0
 		for listener in self.listeners do
+			listenerCount += 1
+			sortedListenersByDist[listenerCount] = listener
+		end
+
+		(table.sort :: any)(sortedListenersByDist, function(listener1: SoundListener, listener2: SoundListener)
+			return (listener1:getPosition() - sound.position).Magnitude < (listener2:getPosition() - sound.position).Magnitude
+		end)
+
+		for _, listener in sortedListenersByDist do
 			if not listener:canReceiveSound() then continue end
 			
 			local listenerPos = listener:getPosition()
-			if isInRadius(listenerPos, sound.position, radiusSqr) then
+			if isInRadius(listenerPos, sound.position, sound.maxTravelRadius^2) then
+				if DEBUG_REACHED_LISTENER then
+					Debris:AddItem(Draw.point(listenerPos, DEBUG_REACHED_LISTENER_COLOR), DEBUG_REACHED_LISTENER_LIFETIME)
+				end
 				self:dispatchToListener(listener, sound)
 			end
 		end
@@ -134,11 +153,15 @@ function SoundDispatcher.dispatchToListener(self: SoundDispatcher, listener: Sou
 				print("SoundDispatcher: Individual computation time took:", os.clock() - startTime)
 			end
 
+			print("Cost:", cost)
+			print("Travel radius:", sound.maxTravelRadius)
+
+
 			if cost < sound.maxTravelRadius then
 				listener:onReceiveSound(sound.position, cost, lastPos, sound.soundType)
 
 				if DEBUG_NODES then
-					DebugPackets.sendDynamicDebugPayloadToClients(DebugPackets.Packets.DEBUG_COMPUTED_VOXELS, debugNodes)
+					DebugPackets.sendDynamicDebugPayloadToClients(DebugPacketTypes.DEBUG_COMPUTED_VOXELS, debugNodes)
 				end
 			end
 		end

@@ -9,7 +9,7 @@ colorCorrectionEffect.Parent = currentCamera
 local currentCharacter: Model?
 local humanoidHealthChangedConnection: RBXScriptConnection?
 local vignetteScreenGui = localPlayer.PlayerGui:FindFirstChild("Vignette") :: ScreenGui?
-local DISABLE = true
+local DISABLE = false
 
 if DISABLE then
 	return
@@ -68,11 +68,6 @@ local function connectToCharacterHealth(character: Model)
 	end)
 end
 
-if localPlayer.Character then
-	currentCharacter = localPlayer.Character
-	connectToCharacterHealth(currentCharacter)
-end
-
 localPlayer.CharacterAdded:Connect(function(character)
 	currentCharacter = character
 	connectToCharacterHealth(character)
@@ -88,3 +83,8 @@ localPlayer.CharacterRemoving:Connect(function()
 	
 	currentCharacter = nil
 end)
+
+if localPlayer.Character then
+	currentCharacter = localPlayer.Character
+	connectToCharacterHealth(currentCharacter)
+end

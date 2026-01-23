@@ -67,7 +67,18 @@ function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: A
 	local reportCtrl = agent:getReportControl()
 	local faceCtrl = agent:getFaceControl()
 
-	local reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised"])
+	local disguisedPrioEntity = agent:getBrain():getMemory(MemoryModuleTypes.PRIORITIZED_ENTITY):get()
+	local player = EntityUtils.getPlayerOrThrow(EntityManager.getEntityByUuid(disguisedPrioEntity:getUuid()))
+	local playerDisguiseClass = (player.Character :: Model):GetAttribute("CurrentDisguiseClass") :: number
+
+	local reportDialogue
+	if playerDisguiseClass == 0 then
+		reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised"])
+	elseif playerDisguiseClass == 1 then
+		reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised.employee"])
+	else
+		error("ERR_INVALID_DISGUISE_CLASS")
+	end
 	local reportDialogueTotalDur = talkCtrl.getDialoguesTotalSpeechDuration(reportDialogue)
 
 	faceCtrl:setFace("Angry")

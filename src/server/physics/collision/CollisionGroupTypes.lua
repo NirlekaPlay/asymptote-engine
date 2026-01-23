@@ -11,5 +11,7 @@ return {
 	PATHFINDING_BLOCKER = "PathfindingBlocker",
 	CLIENT_TARGET_OBSTRUCTED_RAY = "ClientTargetObstructedRay",
 	PATHFINDING_PART = "PathfindingPart",
-	NPC_VISION_RAY = "NpcVisionRay"
+	NPC_VISION_RAY = "NpcVisionRay",
+	NPC_CHAR = "NpcCharacter",
+	QUERY_CHECK_NPC_CHARS = "QueryCheckNpcChars"
 }

@@ -13,22 +13,19 @@ export type NodePath = typeof(setmetatable({} :: {
 	waypointCount: number,
 	nextWaypointIndex: number,
 	target: Vector3,
-	distToTarget: number,
 	reached: boolean,
 	totalLengthCache: number?
 }, NodePath))
 
 function NodePath.new(
 	waypoints: { PathWaypoint },
-	target: Vector3,
-	distToTarget: number
+	target: Vector3
 ): NodePath
 	return setmetatable({
 		waypoints = waypoints,
 		waypointCount = #waypoints,
 		nextWaypointIndex = 0,
 		target = target,
-		distToTarget = distToTarget,
 		reached = false,
 		totalLengthCache = nil :: number?
 	}, NodePath)

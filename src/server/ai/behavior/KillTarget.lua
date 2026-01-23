@@ -79,9 +79,6 @@ function KillTarget.doStart(self: KillTarget, agent: Agent): ()
 		magazineRoundsCapacity = 30,
 		fireDelay = 0.15
 	})
-	agent:getGunControl():reload()
-	agent.character:SetAttribute("HearingRadius", 30)
-	agent.character:SetAttribute("PeriphAngle", 360)
 
 	if not self.selfHumanoidDiedConnection then
 		self.selfHumanoidDiedConnection = agent.character:FindFirstChildOfClass("Humanoid").Died:Once(function()
@@ -95,7 +92,7 @@ end
 
 function KillTarget.doStop(self: KillTarget, agent: Agent): ()
 	agent.character:FindFirstChildOfClass("Humanoid").AutoRotate = false
-	self.triggerFingerCooldown = 0.5
+	self.triggerFingerCooldown = math.random(10, 40) / 100
 	if self.targetHumanoidDiedConnection then
 		self.targetHumanoidDiedConnection:Disconnect()
 		self.targetHumanoidDiedConnection = nil
@@ -144,7 +141,6 @@ function KillTarget.doUpdate(self: KillTarget, agent: Agent, deltaTime: number):
 		if self.triggerFingerCooldown <= 0 then
 			agent:getTalkControl():sayRandomSequences({
 				{"Why won't you die?!?!"},
-				{"Oh, respawning's a thing?", "Good!", "Means I can do this over and over!!"},
 				{"Let's make this quick—!", "I've got paperwork after this!!"},
 			})
 		end
