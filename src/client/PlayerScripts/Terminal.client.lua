@@ -65,6 +65,14 @@ local function addEntry(by: string, content: string): ()
 	scrollingFrame.CanvasPosition = Vector2.new(0, scrollingFrame.AbsoluteCanvasSize.Y)
 end
 
+local function clearEntries(): ()
+	for _, child in scrollingFrame:GetChildren() do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+end
+
 local function proccessInput(str: string): ()
 	local command = str:gsub(CLEAN_PATTERN, "") -- Clean it first
 
@@ -83,6 +91,12 @@ local function proccessInput(str: string): ()
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if isTerminalVisible then
+		if UserInputService:IsKeyDown(Enum.KeyCode.F3) and UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			clearEntries()
+		end
+	end
+
 	if not inputField:IsFocused() then
 		return
 	end
