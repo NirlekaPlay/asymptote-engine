@@ -4,8 +4,12 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
+
+local localPlayer = Players.LocalPlayer
 
 local TerminalGui = ReplicatedStorage.shared.assets.gui.Terminal
 local currentTerminalGui = TerminalGui:Clone()
@@ -16,11 +20,50 @@ local inputField = currentTerminalGui.Root.SafeArea.TextBox
 inputField.Visible = false
 inputField.MultiLine = false
 
+local commandHistoryFrame = currentTerminalGui.Root.SafeArea.CommandHistory
+local scrollingFrame = commandHistoryFrame.ScrollingFrame
+local scrollingFrameUiListLayout = scrollingFrame.UIListLayout
+local commandHistoryEntryTextRef = scrollingFrame.REF
+commandHistoryFrame.Visible = false
+commandHistoryEntryTextRef.Visible = false
+commandHistoryEntryTextRef.RichText = true
+
 local CLEAN_PATTERN = "[%c%s]+$"
 
 local history: {string} = {}
 local historyIndex = 0
 local historyCount = 0
+
+local isTerminalVisible = false
+
+local function setTerminalVisibility(visible: boolean): ()
+	isTerminalVisible = visible
+
+	inputField.Visible = isTerminalVisible
+	commandHistoryFrame.Visible = isTerminalVisible
+end
+
+local function addEntry(by: string, content: string): ()
+	local formerParent = commandHistoryEntryTextRef.Parent
+	local newEntry = commandHistoryEntryTextRef:Clone()
+	newEntry.Parent = formerParent
+
+	local finalStr
+	if UString.isBlank(by) then
+		finalStr = content
+	else
+		finalStr = `<b>&lt;{by}&gt;</b> {content}`
+	end
+
+	newEntry.RichText = true
+	newEntry.Text = finalStr
+	newEntry.Visible = true
+
+	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, scrollingFrameUiListLayout.AbsoluteContentSize.Y)
+
+	-- Auto-scroll to the bottom
+	scrollingFrame.CanvasPosition = Vector2.new(0, scrollingFrame.AbsoluteCanvasSize.Y)
+end
 
 local function proccessInput(str: string): ()
 	local command = str:gsub(CLEAN_PATTERN, "") -- Clean it first
@@ -35,6 +78,7 @@ local function proccessInput(str: string): ()
 	else
 		-- A regular text
 		TypedRemotes.ServerBoundClientForeignChatted:FireServer(Base64.encode(str))
+		addEntry(localPlayer.Name, str)
 	end
 end
 
@@ -67,8 +111,8 @@ ContextActionService:BindAction("ACTION_TERMINAL", function(actionName: string, 
 		return Enum.ContextActionResult.Pass
 	end
 
-	inputField.Visible = not inputField.Visible
-	if inputField.Visible then
+	setTerminalVisibility(not isTerminalVisible)
+	if isTerminalVisible then
 		inputField:CaptureFocus()
 	else
 		inputField:ReleaseFocus()
@@ -91,7 +135,17 @@ inputField.FocusLost:Connect(function(enterPressed)
 			end)
 		else
 			inputField:ReleaseFocus()
-			inputField.Visible = false
+			setTerminalVisibility(false)
 		end
 	end
+end)
+
+--
+
+TypedRemotes.ClientBoundChatMessage.OnClientEvent:Connect(function(payload)
+	addEntry("", MutableTextComponent.deserialize(payload.content):buildRichTextMarkupString())
+end)
+
+TypedRemotes.ClientBoundForeignChatMessage.OnClientEvent:Connect(function(player, content)
+	addEntry(player.Name, Base64.decode(content))
 end)
