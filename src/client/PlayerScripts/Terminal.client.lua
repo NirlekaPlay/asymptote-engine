@@ -82,10 +82,16 @@ inputField.FocusLost:Connect(function(enterPressed)
 		proccessInput(inputField.Text)
 		task.wait() -- Prevents an additional space character
 		inputField.Text = ""
-		-- Click back into the box 
+
+		-- Click back into the box if shift is held
 		-- so they can keep typing without clicking again
-		task.defer(function()
-			inputField:CaptureFocus()
-		end)
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
+			task.defer(function()
+				inputField:CaptureFocus()
+			end)
+		else
+			inputField:ReleaseFocus()
+			inputField.Visible = false
+		end
 	end
 end)
