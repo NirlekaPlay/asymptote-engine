@@ -768,7 +768,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					Pants = Content.fromAssetId(pantsId)
 				}, nil, disguiseProfile.DisguiseClass)
 
-				newDisguiser:setupProximityPrompt()
+				newDisguiser:setupProximityPrompt(Level:getExpressionContext())
 
 				placeholder.Transparency = 1
 				placeholder.CanCollide = false
@@ -808,7 +808,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					Pants = Content.fromAssetId(pantsId)
 				}, disguiseProfile.BrickColor, disguiseProfile.DisguiseClass)
 
-				newDisguiser:setupProximityPrompt()
+				newDisguiser:setupProximityPrompt(Level:getExpressionContext())
 				return true
 			end
 
@@ -844,12 +844,12 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "CardReader" and passed then
-				CardReader.createFromModel(prop)
+				CardReader.createFromModel(placeholder, prop, Level)
 				return true
 			end
 
 			if startsWith(placeholder.Name, "Door") and passed and prop then
-				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop)] = true
+				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop, Level)] = true
 				return true
 			end
 

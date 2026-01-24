@@ -3,6 +3,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 
 local DISGUISE_ON_SOUND = ReplicatedStorage.shared.assets.sounds.disguise_equip
@@ -40,50 +42,30 @@ function PropDisguiseGiver.new(model: Model, disguiseId: string, disguiseName: s
 	}, PropDisguiseGiver)
 end
 
-function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver)
-	local primaryPart = self.model:FindFirstChild("Base") or self.model.PrimaryPart
+function PropDisguiseGiver.setupProximityPrompt(self: PropDisguiseGiver, expressionContext: ExpressionContext.ExpressionContext)
+	local primaryPart = (self.model:FindFirstChild("Base") or self.model.PrimaryPart) :: BasePart
 	if not primaryPart then
 		warn(`Failed to set disguise trigger: `, self.model, ` does not have a 'Base' or Primary part.`)
 		return
 	end
 
-	local triggerAttachment = primaryPart:FindFirstChild("Trigger")
-	if not (triggerAttachment and triggerAttachment:IsA("Attachment")) then
-		warn(`Failed to set disguise trigger: `, self.model, ` does not have a 'Trigger' attatchment.'`)
-		return
-	end
+	local prompt = InteractionPromptBuilder.new()
+		:withPrimaryInteractionKey()
+		:withTitleKey("ui.prompt.disguise")
+		:withSubtitleKey(self.disguiseName)
+		:withHoldDuration(5)
+		:withActivationDistance(5)
+		:withOmniDir(false)
+		:withHoldStatus("2") 
+		:withClientEnabledExpression(`!(CurrentPlayerDisguise == '{self.disguiseId}')`)
+		:withDisabledSubtitleExpr("'ui.prompt.already_disguised'")
+		:withPrimaryInteractionKey()
 
-	-- TODO: Make a Proximity Prompt builder or some shit.
-	triggerAttachment:SetAttribute("OmniDir", false)
-	triggerAttachment:SetAttribute("PrimaryHoldClientShowCondition", `!(CurrentPlayerDisguise == '{self.disguiseId}')`)
-	triggerAttachment:SetAttribute("PrimaryHoldConditionFailTitle", "ui.prompt.already_disguised")
+	local triggerAttachment = primaryPart:FindFirstChild("Trigger") :: Attachment?
+	local worldPrompt = prompt:create(primaryPart, expressionContext, triggerAttachment)
 
-	local proximityPrompt = triggerAttachment:FindFirstChildOfClass("ProximityPrompt") :: ProximityPrompt
-	if not proximityPrompt then
-		proximityPrompt = Instance.new("ProximityPrompt")
-		proximityPrompt.MaxActivationDistance = 5
-		proximityPrompt.ActionText = "Disguise"
-		proximityPrompt.ObjectText = self.disguiseName
-		proximityPrompt.ClickablePrompt = true
-		proximityPrompt.HoldDuration = 5
-		proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
-		proximityPrompt.RequiresLineOfSight = true
-		proximityPrompt.Style = Enum.ProximityPromptStyle.Custom
-		proximityPrompt.Parent = triggerAttachment
-	end
-	-- TODO: Clean up connections.
-	-- I dont know why cuz these props are always active in the map but eh
-	-- "just in case"
-	proximityPrompt.Triggered:Connect(function(player)
+	worldPrompt:getTriggeredEvent():Connect(function(player)
 		self:applyDisguiseToPlayer(player)
-	end)
-	proximityPrompt.PromptButtonHoldBegan:Connect(function(player)
-		local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
-		playerStatus:addStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
-	end)
-	proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
-		local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
-		playerStatus:removeStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
 	end)
 end
 

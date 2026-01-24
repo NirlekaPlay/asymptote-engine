@@ -1,6 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
@@ -33,23 +35,15 @@ function ElevatorCallButton.createFromPlaceholder(
 
 	local buttonPart = (model :: any).Button :: BasePart
 
-	local triggerAttachment = Instance.new("Attachment")
-	triggerAttachment.Name = "Trigger"
-	triggerAttachment.Parent = buttonPart
+	local prompt = InteractionPromptBuilder.new()
+		:withPrimaryInteractionKey()
+		:withOmniDir(false)
+		:withTitleKey("ui.prompt.call")
+		:withSubtitleKey("object.generic.elevator")
+		:withWorldOffsetBy(0.11)
+		:create(buttonPart, serverLevel:getExpressionContext())
 
-	local halfSize = buttonPart.Size.X / 2
-	local dist = 0.2
-	triggerAttachment.CFrame = CFrame.new(-(halfSize + dist), 0, 0) * CFrame.lookAt(Vector3.zero, -Vector3.new(1, 0, 0))
-
-	local proxPrompt = Instance.new("ProximityPrompt")
-	proxPrompt.ActionText = "ui.prompt.call" -- TODO: Localization
-	proxPrompt.ObjectText = "object.generic.elevator"
-	proxPrompt.HoldDuration = 0.3
-	proxPrompt.MaxActivationDistance = 5
-	proxPrompt.Style = Enum.ProximityPromptStyle.Custom
-	proxPrompt.Parent = triggerAttachment
-
-	local triggeredConn = proxPrompt.Triggered:Connect(function()
+	local triggeredConn = prompt:getTriggeredEvent():Connect(function()
 		GlobalStatesHolder.setState(requestVariableName, targetElevId)
 	end)
 

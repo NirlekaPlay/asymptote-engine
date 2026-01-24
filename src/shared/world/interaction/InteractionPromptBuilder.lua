@@ -40,6 +40,7 @@ local DEFAULT_DISABLED_SUBTITLE = "'ui.prompt.cant_interact'"
 local DEFAULT_DISABLED_TITLE = ""
 local DEFAULT_CLIENT_VISIBLE_EXPR = ""
 local DEFAULT_CLIENT_ENABLED_EXPR = ""
+local DEFAULT_WORLD_OFFSET_BY = 0
 local ATTACHMENT_NAME = "Trigger"
 
 --[=[
@@ -61,6 +62,7 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		tag: string?,
 		normalId: Enum.NormalId,
 		interactKey: number,
+		worldOffsetBy: number,
 		--
 		disabledTitleKey: string,
 		--
@@ -84,6 +86,7 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			normalId = DEFAULT_NORMAL_ID,
 			holdStatusExpr = DEFAULT_HOLD_STATUS_EXPR,
 			interactKey = ENUM_INTERACTION_KEY.PRIMARY,
+			worldOffsetBy = DEFAULT_WORLD_OFFSET_BY,
 			tag = nil :: string?,
 			--
 			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR,
@@ -95,6 +98,21 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			clientEnabledExpr = DEFAULT_CLIENT_ENABLED_EXPR
 		}
 	}, InteractionPromptBuilder)
+end
+
+--[=[
+	Returns a copy of this `InteractionPromptBuilder` instance.
+]=]
+function InteractionPromptBuilder.fork(self: InteractionPromptBuilder): InteractionPromptBuilder
+	local newAttributes = {}
+
+	for key, value in self.setAttributes :: { [string]: any } do
+		newAttributes[key] = value
+	end
+
+	return setmetatable({
+		setAttributes = newAttributes
+	}, InteractionPromptBuilder) :: InteractionPromptBuilder
 end
 
 --[=[
@@ -249,14 +267,23 @@ function InteractionPromptBuilder.withDisabledTitleKey(self: InteractionPromptBu
 	return self
 end
 
+--[=[
+	Sets the offset of the attachment from the prompt's parent part.
+	Defaults to 0.
+]=]
+function InteractionPromptBuilder.withWorldOffsetBy(self: InteractionPromptBuilder, offset: number): InteractionPromptBuilder
+	self.setAttributes.worldOffsetBy = offset
+	return self
+end
+
 --
 
 --[=[
 	Builds and creates and returns an instance of `WorldInteractionPrompt`.
 ]=]
-function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentPart: BasePart, expressionContext: ExpressionContext.ExpressionContext): WorldInteractionPrompt.WorldInteractionPrompt
+function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentPart: BasePart, expressionContext: ExpressionContext.ExpressionContext, givenAttachment: Attachment?): WorldInteractionPrompt.WorldInteractionPrompt
 	local setAttributes = self.setAttributes
-	local attachment = InteractionPromptBuilder.createAttachmentAtNormal(parentPart, ATTACHMENT_NAME, setAttributes.normalId)
+	local attachment = givenAttachment or InteractionPromptBuilder.createAttachmentAtNormal(parentPart, ATTACHMENT_NAME, setAttributes.normalId, setAttributes.worldOffsetBy)
 
 	local proximityPrompt = Instance.new("ProximityPrompt")
 	proximityPrompt.MaxActivationDistance = setAttributes.activationDist
@@ -347,13 +374,14 @@ end
 
 --
 
-function InteractionPromptBuilder.createAttachmentAtNormal(inst: BasePart, name: string, normalId: Enum.NormalId): Attachment
+function InteractionPromptBuilder.createAttachmentAtNormal(inst: BasePart, name: string, normalId: Enum.NormalId, frontOffset: number): Attachment
 	local attachment = Instance.new("Attachment")
 	attachment.Name = name
 	attachment.Parent = inst
 
 	local normalVector = Vector3.FromNormalId(normalId)
-	local offset = (inst.Size * normalVector) / 2
+	local surfacePosition = (inst.Size * normalVector) / 2
+	local offset = surfacePosition + (normalVector * frontOffset)
 
 	attachment.CFrame = CFrame.lookAt(offset, offset + normalVector)
 	

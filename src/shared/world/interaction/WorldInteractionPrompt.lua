@@ -21,6 +21,22 @@ function WorldInteractionPrompt.new(proxPrompt: ProximityPrompt): WorldInteracti
 	}, WorldInteractionPrompt)
 end
 
+function WorldInteractionPrompt.setTitleKey(self: WorldInteractionPrompt, titleKey: string): ()
+	self.proxPrompt.ActionText = titleKey
+end
+
+function WorldInteractionPrompt.setSubtitleKey(self: WorldInteractionPrompt, subtitleKey: string): ()
+	self.proxPrompt.ObjectText = subtitleKey
+end
+
+function WorldInteractionPrompt.enable(self: WorldInteractionPrompt): ()
+	self.proxPrompt.Enabled = true
+end
+
+function WorldInteractionPrompt.disable(self: WorldInteractionPrompt): ()
+	self.proxPrompt.Enabled = false
+end
+
 function WorldInteractionPrompt.setServerEnabled(self: WorldInteractionPrompt, enabled: boolean): ()
 	self.attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, enabled)
 end

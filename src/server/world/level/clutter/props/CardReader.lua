@@ -3,7 +3,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local LIGHT_TRUE = BrickColor.new("Slime green")
@@ -66,7 +68,7 @@ function CardReader.setLightPartColors(self: CardReader, color: BrickColor): ()
 	end
 end
 
-function CardReader.createFromModel(model: Model): CardReader
+function CardReader.createFromModel(placeholder: BasePart, model: Model, serverLevel: ServerLevel.ServerLevel): CardReader
 	local base = (model :: any).Base :: BasePart
 	local part0 = (model :: any).Part0 :: BasePart
 
@@ -74,21 +76,14 @@ function CardReader.createFromModel(model: Model): CardReader
 
 	-- Proximity prompt
 
-	local triggerAttachment = Instance.new("Attachment")
-	triggerAttachment:SetAttribute("PrimaryHoldClientShowCondition", `!{triggerVariable}`)
-	triggerAttachment.Name = "Trigger"
-	triggerAttachment.Parent = part0
-
-	local halfSize = part0.Size.X / 2
-	local smallDistance = 0.3
-	triggerAttachment.CFrame = CFrame.new(-(halfSize + smallDistance), 0, 0) * CFrame.lookAt(Vector3.zero, -Vector3.new(1, 0, 0))
-
-	local proxPrompt = Instance.new("ProximityPrompt")
-	proxPrompt.ActionText = "Unlock" -- localization? whats that?
-	proxPrompt.Style = Enum.ProximityPromptStyle.Custom
-	proxPrompt.HoldDuration = 0.5
-	proxPrompt.Parent = triggerAttachment
-	proxPrompt.MaxActivationDistance = 4
+	local prompt = InteractionPromptBuilder.new()
+		:withPrimaryInteractionKey()
+		:withTitleKey("ui.prompt.unlock")
+		:withHoldStatus(`1`)
+		:withHoldDuration(0.5)
+		:withActivationDistance(4)
+		:withOmniDir(false)
+		:create(part0, serverLevel:getExpressionContext())
 
 	-- Global states
 	if not GlobalStatesHolder.hasState(triggerVariable) then
@@ -186,25 +181,15 @@ function CardReader.createFromModel(model: Model): CardReader
 	local newReader = CardReader.new(validCards, triggerVariable, lightParts, acceptSound)
 
 	-- TODO: These may cause a memory leak. Fix this thank you.
-	proxPrompt.Triggered:Connect(function(player)
+	prompt:getTriggeredEvent():Connect(function(player)
 		newReader:onPromptTriggered(player)
-	end)
-
-	proxPrompt.PromptButtonHoldBegan:Connect(function(player)
-		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
-		playerStatusHolder:addStatus(PlayerStatusTypes.MINOR_SUSPICIOUS)
-	end)
-
-	proxPrompt.PromptButtonHoldEnded:Connect(function(player)
-		local playerStatusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
-		playerStatusHolder:removeStatus(PlayerStatusTypes.MINOR_SUSPICIOUS)
 	end)
 
 	GlobalStatesHolder.getStateChangedConnection(triggerVariable):Connect(function(v)
 		if v then
-			proxPrompt.Enabled = false
+			prompt:disable()
 		else
-			proxPrompt.Enabled = true
+			prompt:enable()
 		end
 		newReader:onTriggerVariableChanged(v)
 	end)

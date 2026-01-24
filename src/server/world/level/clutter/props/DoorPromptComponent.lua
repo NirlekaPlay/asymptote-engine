@@ -1,5 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
+
 -- Some enums from `Door` that I'm too lazy to port.
 local DoorTypes = {
 	SINGLE = 0,
@@ -29,6 +32,9 @@ local SINGLE_SIDE_TO_KEY = {
 	[DoorSides.MIDDLE] = "middle",
 }
 
+local LOCALIZED_STRING_OPEN = "ui.prompt.open"
+local LOCALIZED_STRING_CLOSE = "ui.prompt.close"
+
 --[=[
 	@class DoorPromptComponent
 
@@ -38,20 +44,22 @@ local SINGLE_SIDE_TO_KEY = {
 local DoorPromptComponent = {}
 DoorPromptComponent.__index = DoorPromptComponent
 
+type InteractionPrompt = WorldInteractionPrompt.WorldInteractionPrompt
+
 export type SingleDoorPrompts = {
-	front: {ProximityPrompt},
-	back: {ProximityPrompt},
-	middle: {ProximityPrompt}
+	front: {InteractionPrompt},
+	back: {InteractionPrompt},
+	middle: {InteractionPrompt}
 }
 
 export type DoubleDoorPrompts = {
-	opening: {ProximityPrompt},
-	closing: {ProximityPrompt},
-	doorLeftFront: {ProximityPrompt},
-	doorLeftBack: {ProximityPrompt},
-	doorRightFront: {ProximityPrompt},
-	doorRightBack: {ProximityPrompt},
-	middle: {ProximityPrompt}
+	opening: {InteractionPrompt},
+	closing: {InteractionPrompt},
+	doorLeftFront: {InteractionPrompt},
+	doorLeftBack: {InteractionPrompt},
+	doorRightFront: {InteractionPrompt},
+	doorRightBack: {InteractionPrompt},
+	middle: {InteractionPrompt}
 }
 
 export type Prompts = SingleDoorPrompts | DoubleDoorPrompts
@@ -79,10 +87,14 @@ function DoorPromptComponent.new(
 end
 
 function DoorPromptComponent._setEnabled(self: DoorPromptComponent, sideKey: string, enabled: boolean): ()
-	local prompts = (self.prompts :: any)[sideKey] :: { ProximityPrompt }
+	local prompts = (self.prompts :: any)[sideKey] :: { InteractionPrompt }
 	if prompts then
 		for _, prompt in prompts do
-			prompt.Enabled = enabled
+			if enabled then
+				(prompt :: InteractionPrompt):enable()
+			else
+				(prompt :: InteractionPrompt):disable()
+			end
 		end
 	end
 end
@@ -91,7 +103,7 @@ function DoorPromptComponent._setActionText(self: DoorPromptComponent, sideKey: 
 	local prompts = (self.prompts :: any)[sideKey]
 	if prompts then
 		for _, prompt in prompts do
-			prompt.ActionText = text
+			(prompt :: InteractionPrompt):setTitleKey(text)
 		end
 	end
 end
@@ -128,17 +140,17 @@ function DoorPromptComponent.updateForState(self: DoorPromptComponent, state: nu
 	if self.doorType == DoorTypes.SINGLE then
 		
 		-- Default text for the main sides is Close
-		self:_setActionText("front", "Close")
-		self:_setActionText("back", "Close")
-		self:_setActionText("middle", "Close")
+		self:_setActionText("front", LOCALIZED_STRING_CLOSE)
+		self:_setActionText("back", LOCALIZED_STRING_CLOSE)
+		self:_setActionText("middle", LOCALIZED_STRING_CLOSE)
 		
 		if state == DoorState.CLOSED then
-			-- CLOSED: Front, Back = true ("Open"), Middle = false ("Close")
+			-- CLOSED: Front, Back = true (LOCALIZED_STRING_OPEN), Middle = false (LOCALIZED_STRING_CLOSE)
 			self:_setEnabled("front", true)
 			self:_setEnabled("back", true)
 			self:_setEnabled("middle", false)
-			self:_setActionText("front", "Open")
-			self:_setActionText("back", "Open")
+			self:_setActionText("front", LOCALIZED_STRING_OPEN)
+			self:_setActionText("back", LOCALIZED_STRING_OPEN)
 			
 		elseif state == DoorState.OPEN then
 			-- OPEN: Selective enabling based on openingSide, Middle is always true
@@ -175,8 +187,8 @@ function DoorPromptComponent.updateForState(self: DoorPromptComponent, state: nu
 				self:_setEnabled(key, enabled)
 			end
 			
-			self:_setActionText("opening", "Open")
-			self:_setActionText("closing", "Open")
+			self:_setActionText("opening", LOCALIZED_STRING_OPEN)
+			self:_setActionText("closing", LOCALIZED_STRING_OPEN)
 			
 		elseif state == DoorState.OPEN then
 			-- OPEN: Selective enabling based on openingSide, Middle is always true
@@ -185,12 +197,12 @@ function DoorPromptComponent.updateForState(self: DoorPromptComponent, state: nu
 			self:_setEnabled("opening", false)
 			self:_setEnabled("closing", false)
 			
-			-- Set all active side/middle prompts to "Close"
-			self:_setActionText("doorLeftFront", "Close")
-			self:_setActionText("doorLeftBack", "Close")
-			self:_setActionText("doorRightFront", "Close")
-			self:_setActionText("doorRightBack", "Close")
-			self:_setActionText("middle", "Close")
+			-- Set all active side/middle prompts to LOCALIZED_STRING_CLOSE
+			self:_setActionText("doorLeftFront", LOCALIZED_STRING_CLOSE)
+			self:_setActionText("doorLeftBack", LOCALIZED_STRING_CLOSE)
+			self:_setActionText("doorRightFront", LOCALIZED_STRING_CLOSE)
+			self:_setActionText("doorRightBack", LOCALIZED_STRING_CLOSE)
+			self:_setActionText("middle", LOCALIZED_STRING_CLOSE)
 
 			-- Middle prompt is always enabled when open
 			self:_setEnabled("middle", true)
