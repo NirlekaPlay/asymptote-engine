@@ -8,7 +8,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local PlayerHeadRotation = require(StarterPlayer.StarterPlayerScripts.client.modules.character.PlayerHeadRotation)
 
-local HEAD_ROTATION_REMOTE_CLIENT = TypedRemotes.PlayerHeadRotationClient
+local HEAD_ROTATION_REMOTE_CLIENT = TypedRemotes.ClientboundPlayerHeadRotation
 local localPlayer = Players.LocalPlayer
 local currentCamera = workspace.CurrentCamera
 
