@@ -379,6 +379,8 @@ local function update(deltaTime: number): ()
 		local canShow = evaluatePromptShowCondition(currentPrompt)
 		if not canShow then
 			showNonInteractivePrompt(currentPrompt, getConditionFailMessage(currentPrompt))
+		else
+			showAndEnablePrompt(currentPrompt)
 		end
 	end
 
