@@ -1,6 +1,11 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
+local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
 local TriggerAttributes = require(ReplicatedStorage.shared.world.interaction.attributes.TriggerAttributes)
 
 local DEFAULT_ACTIVATION_DISTANCE = 5
@@ -10,6 +15,11 @@ local DEFAULT_TITLE_KEY = "ui.prompt.interact"
 local DEFAULT_SUBTITLE_KEY = ""
 local DEFAULT_NORMAL_ID = Enum.NormalId.Left
 local ATTACHMENT_NAME = "Trigger"
+local ENUM_HOLD_STATUS = {
+	NONE = 0,
+	MINOR_SUSPICIOUS = 1,
+	CRIMINAL_SUSPICIOUS = 2
+}
 
 --[=[
 	@class InteractionPromptBuilder
@@ -28,7 +38,8 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		titleKey: string,
 		subtitleKey: string,
 		tag: string?,
-		normalId: Enum.NormalId
+		normalId: Enum.NormalId,
+		holdStatusExpr: string
 	}
 }, InteractionPromptBuilder))
 
@@ -41,6 +52,7 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			titleKey = DEFAULT_TITLE_KEY,
 			subtitleKey = DEFAULT_SUBTITLE_KEY,
 			normalId = DEFAULT_NORMAL_ID,
+			holdStatusExpr = `{ENUM_HOLD_STATUS.NONE}`,
 			tag = nil :: string?
 		}
 	}, InteractionPromptBuilder)
@@ -86,6 +98,7 @@ end
 	`valueExpr` must be an **Expression** returning one of these numbers.
 ]=]
 function InteractionPromptBuilder.withHoldStatus(self: InteractionPromptBuilder, valueExpr: string): InteractionPromptBuilder
+	self.setAttributes.holdStatusExpr = valueExpr
 	return self
 end
 
@@ -131,7 +144,7 @@ end
 --[=[
 	Builds and creates and returns an instance of `WorldInteractionPrompt`.
 ]=]
-function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentPart: BasePart): ()
+function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentPart: BasePart): WorldInteractionPrompt.WorldInteractionPrompt
 	local setAttributes = self.setAttributes
 	local attachment = InteractionPromptBuilder.createAttachmentAtNormal(parentPart, ATTACHMENT_NAME, setAttributes.normalId)
 
@@ -151,9 +164,41 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 
 	attachment:SetAttribute(TriggerAttributes.OMNIDIRECTIONAL, setAttributes.omniDir)
 
+	local worldPrompt = WorldInteractionPrompt.new(proximityPrompt)
+
+	-- TODO: This should be handled in the WorldProximityPrompt itself
+	-- Considering it needs to evaluate an expression
+
+	local setHoldStatusValue = tonumber(setAttributes.holdStatusExpr) :: number
+	if setHoldStatusValue ~= ENUM_HOLD_STATUS.NONE then
+		-- NOTES: Maybe clean up connections?
+		-- I don't see why though, since most prompts are persistent and won't get destroyed anyway
+
+		local giveStatus: PlayerStatus.PlayerStatus
+		if setHoldStatusValue == ENUM_HOLD_STATUS.MINOR_SUSPICIOUS then
+			giveStatus = PlayerStatusTypes.MINOR_SUSPICIOUS
+		elseif setHoldStatusValue == ENUM_HOLD_STATUS.CRIMINAL_SUSPICIOUS then
+			giveStatus = PlayerStatusTypes.CRIMINAL_SUSPICIOUS
+		end
+
+		worldPrompt:getHoldBeganEvent():Connect(function(player)
+			local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+			if playerStatus then
+				playerStatus:addStatus(giveStatus)
+			end
+		end)
+
+		worldPrompt:getHoldEndedEvent():Connect(function(player)
+			local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+			if playerStatus then
+				playerStatus:removeStatus(giveStatus)
+			end
+		end)
+	end
+
 	proximityPrompt.Parent = attachment
 
-	return
+	return worldPrompt
 end
 
 --
