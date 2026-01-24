@@ -36,8 +36,7 @@ local BLUE = Color3.new(0, 0, 1)
 local GREEN = Color3.new(0, 1, 0)
 
 local ATTRIBUTES = {
-	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition",
-	PRIMARY_HOLD_CONDITION_FAIL_SUBTITLE = "PrimaryHoldConditionFailTitle" -- don't ask.
+	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition"
 }
 
 type InteractionPrompt = InteractionPrompt.InteractionPrompt
@@ -207,7 +206,7 @@ end
 
 local function getConditionFailMessage(prompt: InteractionPrompt): string
 	local attachment = prompt:getAttachment()
-	local failMsgAtt = attachment:GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CONDITION_FAIL_SUBTITLE) :: string?
+	local failMsgAtt = attachment:GetAttribute(TriggerAttributes.DISABLED_SUBTITLE) :: string?
 
 	return failMsgAtt and ClientLanguage.getOrDefault(failMsgAtt, failMsgAtt) or "NO_FAIL_SUBTITLE"
 end

@@ -16,10 +16,12 @@ local ENUM_HOLD_STATUS = {
 	MINOR_SUSPICIOUS = 1,
 	CRIMINAL_SUSPICIOUS = 2
 }
+
 local ENUM_INTERACTION_KEY = {
 	PRIMARY = 0,
 	SECONDARY = 1
 }
+
 local INTERACTION_KEYS_TO_KEYCODES = {
 	[ENUM_INTERACTION_KEY.PRIMARY] = Enum.KeyCode.F,
 	[ENUM_INTERACTION_KEY.SECONDARY] = Enum.KeyCode.G
@@ -33,6 +35,8 @@ local DEFAULT_SUBTITLE_KEY = ""
 local DEFAULT_NORMAL_ID = Enum.NormalId.Left
 local DEFAULT_HOLD_STATUS_EXPR = `{ENUM_HOLD_STATUS.NONE}`
 local DEFAULT_SERVER_VISIBLE_EXPR = `true`
+local DEFAULT_SERVER_ENABLED_EXPR = `true`
+local DEFAULT_DISABLED_SUBTITLE = "'ui.prompt.cant_interact'"
 local ATTACHMENT_NAME = "Trigger"
 
 --[=[
@@ -56,7 +60,9 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		interactKey: number,
 		--
 		serverVisibleExpr: string,
+		serverEnabledExpr: string,
 		holdStatusExpr: string,
+		disabledSubtitleExpr: string
 	}
 }, InteractionPromptBuilder))
 
@@ -73,7 +79,9 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			interactKey = ENUM_INTERACTION_KEY.PRIMARY,
 			tag = nil :: string?,
 			--
-			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR
+			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR,
+			serverEnabledExpr = DEFAULT_SERVER_ENABLED_EXPR,
+			disabledSubtitleExpr = DEFAULT_DISABLED_SUBTITLE
 		}
 	}, InteractionPromptBuilder)
 end
@@ -177,8 +185,29 @@ function InteractionPromptBuilder.withSecondaryInteractionKey(self: InteractionP
 	return self
 end
 
+--[=[
+	Sets an **expression** that dictates if the prompt should be visible. Evaluated from the server.
+]=]
 function InteractionPromptBuilder.withServerVisibleExpression(self: InteractionPromptBuilder, serverVisibleExpr: string): InteractionPromptBuilder
 	self.setAttributes.serverVisibleExpr = serverVisibleExpr
+	return self
+end
+
+--[=[
+	Sets an **expression** that dictates if the prompt should be enabled. If the prompt is disabled,
+	uses the prompt's disabled subtitle to tell the player why it is disabled.
+]=]
+function InteractionPromptBuilder.withServerEnabledExpression(self: InteractionPromptBuilder, serverEnabledExpr: string): InteractionPromptBuilder
+	self.setAttributes.serverEnabledExpr = serverEnabledExpr
+	return self
+end
+
+--[=[
+	Sets an **expression** returning a key to a localized string. If the prompt is disabled, the localized string
+	returned by this expression is used to tell the player why it is disabled.
+]=]
+function InteractionPromptBuilder.withDisabledSubtitleExpr(self: InteractionPromptBuilder, disabledSubtitleExpr: string): InteractionPromptBuilder
+	self.setAttributes.disabledSubtitleExpr = disabledSubtitleExpr
 	return self
 end
 
@@ -206,20 +235,34 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	end
 
 	attachment:SetAttribute(TriggerAttributes.OMNIDIRECTIONAL, setAttributes.omniDir)
-	attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, true)
 
 	--
 
 	local parsedServerVisibleExpr = ExpressionParser.fromString(setAttributes.serverVisibleExpr):parse() :: ExpressionParser.ASTNode
 	local serverVisibleExprUsedVars = ExpressionParser.getVariablesSet(parsedServerVisibleExpr)
+
+	local parsedServerEnabledExpr = ExpressionParser.fromString(setAttributes.serverEnabledExpr):parse() :: ExpressionParser.ASTNode
+	local serverEnabledExprUsedVars = ExpressionParser.getVariablesSet(parsedServerEnabledExpr)
+
+	local parsedDisabledSubtitleExpr = ExpressionParser.fromString(setAttributes.disabledSubtitleExpr):parse() :: ExpressionParser.ASTNode
+	local disabledSubtitleUsedVars = ExpressionParser.getVariablesSet(parsedDisabledSubtitleExpr)
+
 	attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
+	attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, ExpressionParser.evaluate(parsedServerEnabledExpr, expressionContext))
+	attachment:SetAttribute(TriggerAttributes.DISABLED_SUBTITLE, ExpressionParser.evaluate(parsedDisabledSubtitleExpr, expressionContext))
 
 	GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
-		if not serverVisibleExprUsedVars[variableName] then
-			return
+		if serverVisibleExprUsedVars[variableName] then
+			attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
 		end
 
-		attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
+		if serverEnabledExprUsedVars[variableName] then
+			attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, ExpressionParser.evaluate(parsedServerEnabledExpr, expressionContext))
+		end
+
+		if disabledSubtitleUsedVars[variableName] then
+			attachment:SetAttribute(TriggerAttributes.DISABLED_SUBTITLE, ExpressionParser.evaluate(parsedDisabledSubtitleExpr, expressionContext))
+		end
 	end)
 
 	--
