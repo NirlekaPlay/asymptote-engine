@@ -20,6 +20,14 @@ local ENUM_HOLD_STATUS = {
 	MINOR_SUSPICIOUS = 1,
 	CRIMINAL_SUSPICIOUS = 2
 }
+local ENUM_INTERACTION_KEY = {
+	PRIMARY = 0,
+	SECONDARY = 1
+}
+local INTERACTION_KEYS_TO_KEYCODES = {
+	[0] = Enum.KeyCode.F,
+	[1] = Enum.KeyCode.G
+}
 
 --[=[
 	@class InteractionPromptBuilder
@@ -39,7 +47,8 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		subtitleKey: string,
 		tag: string?,
 		normalId: Enum.NormalId,
-		holdStatusExpr: string
+		holdStatusExpr: string,
+		interactKey: number
 	}
 }, InteractionPromptBuilder))
 
@@ -53,6 +62,7 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			subtitleKey = DEFAULT_SUBTITLE_KEY,
 			normalId = DEFAULT_NORMAL_ID,
 			holdStatusExpr = `{ENUM_HOLD_STATUS.NONE}`,
+			interactKey = ENUM_INTERACTION_KEY.PRIMARY,
 			tag = nil :: string?
 		}
 	}, InteractionPromptBuilder)
@@ -139,6 +149,24 @@ function InteractionPromptBuilder.withSubtitleKey(self: InteractionPromptBuilder
 	return self
 end
 
+--[=[
+	Sets the key to interact with this prompt the **Primary Key**.<p>
+	Defaults to the **Primary Key**.
+]=]
+function InteractionPromptBuilder.withPrimaryInteractionKey(self: InteractionPromptBuilder): InteractionPromptBuilder
+	self.setAttributes.interactKey = ENUM_INTERACTION_KEY.PRIMARY
+	return self
+end
+
+--[=[
+	Sets the key to interact with this prompt the **Secondary Key**.<p>
+	Defaults to the **Primary Key**.
+]=]
+function InteractionPromptBuilder.withSecondaryInteractionKey(self: InteractionPromptBuilder): InteractionPromptBuilder
+	self.setAttributes.interactKey = ENUM_INTERACTION_KEY.SECONDARY
+	return self
+end
+
 --
 
 --[=[
@@ -154,7 +182,7 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	proximityPrompt.ObjectText = setAttributes.subtitleKey
 	proximityPrompt.ClickablePrompt = true
 	proximityPrompt.HoldDuration = setAttributes.holdDur
-	proximityPrompt.KeyboardKeyCode = Enum.KeyCode.F -- TODO: Too based on Primary interaction
+	proximityPrompt.KeyboardKeyCode = INTERACTION_KEYS_TO_KEYCODES[setAttributes.interactKey]
 	proximityPrompt.RequiresLineOfSight = true
 	proximityPrompt.Style = Enum.ProximityPromptStyle.Custom
 
