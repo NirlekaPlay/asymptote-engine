@@ -10,6 +10,7 @@
   "ui.prompt.inventory_no_fbb": "You don't have an FB Beryl",
   "ui.prompt.take": "Take",
   "ui.prompt.call": "Call",
+  "ui.prompt.interact": "Interact",
   "ui.objectives.stealth": "Stealth",
   "ui.objectives.mission": "Mission",
   "ui.objectives.loud": "Loud",
