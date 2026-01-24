@@ -38,6 +38,8 @@ local DEFAULT_SERVER_VISIBLE_EXPR = `true`
 local DEFAULT_SERVER_ENABLED_EXPR = `true`
 local DEFAULT_DISABLED_SUBTITLE = "'ui.prompt.cant_interact'"
 local DEFAULT_DISABLED_TITLE = ""
+local DEFAULT_CLIENT_VISIBLE_EXPR = ""
+local DEFAULT_CLIENT_ENABLED_EXPR = ""
 local ATTACHMENT_NAME = "Trigger"
 
 --[=[
@@ -65,7 +67,9 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		serverVisibleExpr: string,
 		serverEnabledExpr: string,
 		holdStatusExpr: string,
-		disabledSubtitleExpr: string
+		disabledSubtitleExpr: string,
+		clientVisibleExpr: string,
+		clientEnabledExpr: string
 	}
 }, InteractionPromptBuilder))
 
@@ -85,8 +89,10 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR,
 			serverEnabledExpr = DEFAULT_SERVER_ENABLED_EXPR,
 			disabledSubtitleExpr = DEFAULT_DISABLED_SUBTITLE,
+			clientVisibleExpr = DEFAULT_CLIENT_VISIBLE_EXPR,
 			--
-			disabledTitleKey = DEFAULT_DISABLED_TITLE
+			disabledTitleKey = DEFAULT_DISABLED_TITLE,
+			clientEnabledExpr = DEFAULT_CLIENT_ENABLED_EXPR
 		}
 	}, InteractionPromptBuilder)
 end
@@ -217,6 +223,24 @@ function InteractionPromptBuilder.withDisabledSubtitleExpr(self: InteractionProm
 end
 
 --[=[
+	Sets an expression that is evaluated on the client and dictates if the prompt should be shown or not.<p>
+	Defaults to an empty string.
+]=]
+function InteractionPromptBuilder.withClientVisibleExpression(self: InteractionPromptBuilder, clientVisibleExpr: string): InteractionPromptBuilder
+	self.setAttributes.clientVisibleExpr = clientVisibleExpr
+	return self
+end
+
+--[=[
+	Sets an expression that is evaluated on the client and dictates if the prompt should be interactable.<p>
+	Defaults to an empty string.
+]=]
+function InteractionPromptBuilder.withClientEnabledExpression(self: InteractionPromptBuilder, clientEnabledExpr: string): InteractionPromptBuilder
+	self.setAttributes.clientEnabledExpr = clientEnabledExpr
+	return self
+end
+
+--[=[
 	Sets the bigger text that shows when this prompt is disabled. `disabledTitleKey` must be a localised string.<p>
 	Defaults to an empty string.
 ]=]
@@ -265,6 +289,8 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, ExpressionParser.evaluate(parsedServerEnabledExpr, expressionContext))
 	attachment:SetAttribute(TriggerAttributes.DISABLED_SUBTITLE, ExpressionParser.evaluate(parsedDisabledSubtitleExpr, expressionContext))
 	attachment:SetAttribute(TriggerAttributes.DISABLED_TITLE, setAttributes.disabledTitleKey)
+	attachment:SetAttribute(TriggerAttributes.CLIENT_VISIBLE, setAttributes.clientVisibleExpr)
+	attachment:SetAttribute(TriggerAttributes.CLIENT_ENABLED, setAttributes.clientEnabledExpr)
 
 	GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
 		if serverVisibleExprUsedVars[variableName] then

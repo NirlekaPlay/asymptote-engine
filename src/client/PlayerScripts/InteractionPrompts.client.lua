@@ -35,10 +35,6 @@ local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local GREEN = Color3.new(0, 1, 0)
 
-local ATTRIBUTES = {
-	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition"
-}
-
 type InteractionPrompt = InteractionPrompt.InteractionPrompt
 type InteractionPromptConfiguration = InteractionPromptConfiguration.InteractionPromptConfiguration
 
@@ -234,8 +230,8 @@ local function evaluatePromptShowCondition(prompt: InteractionPrompt): any
 		return false
 	end
 
-	local conditionAtt = prompt:getAttachment():GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CLIENT_CONDITION) :: string?
-	if not conditionAtt or type(conditionAtt) ~= "string" then
+	local conditionAtt = prompt:getAttachment():GetAttribute(TriggerAttributes.CLIENT_ENABLED) :: string?
+	if not conditionAtt or type(conditionAtt) ~= "string" or conditionAtt == "" then
 		return true -- It doesn't have a condition, so let it show anyway
 	end
 
@@ -289,6 +285,16 @@ local function update(deltaTime: number): ()
 
 		if interactionPrompt:getAttachment():GetAttribute(TriggerAttributes.SERVER_VISIBLE) == false then
 			continue
+		end
+
+		local clientVisibleAtt = interactionPrompt:getAttachment():GetAttribute(TriggerAttributes.CLIENT_VISIBLE) :: string?
+		if clientVisibleAtt then
+			if clientVisibleAtt ~= "" then
+				local evaluated = parseCondition(clientVisibleAtt)
+				if not evaluated then
+					continue
+				end
+			end
 		end
 
 		local promptAttachment = interactionPrompt:getAttachment()
