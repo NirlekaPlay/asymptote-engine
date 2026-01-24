@@ -37,6 +37,7 @@ local DEFAULT_HOLD_STATUS_EXPR = `{ENUM_HOLD_STATUS.NONE}`
 local DEFAULT_SERVER_VISIBLE_EXPR = `true`
 local DEFAULT_SERVER_ENABLED_EXPR = `true`
 local DEFAULT_DISABLED_SUBTITLE = "'ui.prompt.cant_interact'"
+local DEFAULT_DISABLED_TITLE = ""
 local ATTACHMENT_NAME = "Trigger"
 
 --[=[
@@ -58,6 +59,8 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		tag: string?,
 		normalId: Enum.NormalId,
 		interactKey: number,
+		--
+		disabledTitleKey: string,
 		--
 		serverVisibleExpr: string,
 		serverEnabledExpr: string,
@@ -81,7 +84,9 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			--
 			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR,
 			serverEnabledExpr = DEFAULT_SERVER_ENABLED_EXPR,
-			disabledSubtitleExpr = DEFAULT_DISABLED_SUBTITLE
+			disabledSubtitleExpr = DEFAULT_DISABLED_SUBTITLE,
+			--
+			disabledTitleKey = DEFAULT_DISABLED_TITLE
 		}
 	}, InteractionPromptBuilder)
 end
@@ -211,6 +216,15 @@ function InteractionPromptBuilder.withDisabledSubtitleExpr(self: InteractionProm
 	return self
 end
 
+--[=[
+	Sets the bigger text that shows when this prompt is disabled. `disabledTitleKey` must be a localised string.<p>
+	Defaults to an empty string.
+]=]
+function InteractionPromptBuilder.withDisabledTitleKey(self: InteractionPromptBuilder, disabledTitleKey: string): InteractionPromptBuilder
+	self.setAttributes.disabledTitleKey = disabledTitleKey
+	return self
+end
+
 --
 
 --[=[
@@ -250,6 +264,7 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
 	attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, ExpressionParser.evaluate(parsedServerEnabledExpr, expressionContext))
 	attachment:SetAttribute(TriggerAttributes.DISABLED_SUBTITLE, ExpressionParser.evaluate(parsedDisabledSubtitleExpr, expressionContext))
+	attachment:SetAttribute(TriggerAttributes.DISABLED_TITLE, setAttributes.disabledTitleKey)
 
 	GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
 		if serverVisibleExprUsedVars[variableName] then

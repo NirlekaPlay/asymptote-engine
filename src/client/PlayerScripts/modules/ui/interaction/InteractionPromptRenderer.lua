@@ -10,7 +10,9 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local TriggerAttributes = require(ReplicatedStorage.shared.world.interaction.attributes.TriggerAttributes)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local UIGradientWipe = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UIGradientWipe)
 
@@ -616,14 +618,12 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	return cleanup
 end
 
-function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityPrompt, message: string, gui: ScreenGui): ()
+function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityPrompt, titleKey: string, subtitleKey: string, gui: ScreenGui): ()
 	local tweensForFadeOut: { Tween } = {}
 	local tweensForFadeIn: { Tween } = {}
 	local tweenInfoFast = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local promptParentAttatchment = prompt.Parent :: Attachment
-
-	-- To know if the ProximityPrompt can be the normal one or the flat one.
-	local isOmniDir = promptParentAttatchment:GetAttribute("OmniDir")
+	local isOmniDir = promptParentAttatchment:GetAttribute(TriggerAttributes.OMNIDIRECTIONAL)
 
 	local promptPart
 	promptPart = Instance.new("Part")
@@ -654,36 +654,48 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	local roundedCorner = Instance.new("UICorner")
 	roundedCorner.Parent = frame
 
-	local actionTextFontSize = 15
+	local actionTextFontSize = 25
 	local objectTextFontSize = 15
+
+	local fontZekton = Font.fromName("Zekton")
+	local actionTextFont = fontZekton
+	local objectTextFont = fontZekton
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, -0.5)
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Parent = frame
 
 	local actionText = Instance.new("TextLabel")
 	actionText.Name = "ActionText"
-	actionText.Position = UDim2.fromScale(0.5, 0.5)
-	actionText.AnchorPoint = Vector2.new(0.5, 0.5)
 	actionText.Size = UDim2.fromScale(1, 1)
-	actionText.FontFace = Font.fromName("Zekton")
+	actionText.FontFace = actionTextFont
 	actionText.TextSize = actionTextFontSize
 	actionText.BackgroundTransparency = 1
 	actionText.TextTransparency = 1
-	actionText.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+	actionText.TextColor3 = Color3.new(1, 1, 1)
 	actionText.TextXAlignment = Enum.TextXAlignment.Center
 	actionText.Parent = frame
 	table.insert(tweensForFadeOut, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 1 }))
 	table.insert(tweensForFadeIn, TweenService:Create(actionText, tweenInfoFast, { TextTransparency = 0 }))
 
-	--[[local objectText = Instance.new("TextLabel")
+	local objectText = Instance.new("TextLabel")
 	objectText.Name = "ObjectText"
 	objectText.Size = UDim2.fromScale(1, 1)
-	objectText.FontFace = Font.fromName("Zekton")
+	objectText.FontFace = objectTextFont
 	objectText.TextSize = objectTextFontSize
 	objectText.BackgroundTransparency = 1
 	objectText.TextTransparency = 1
 	objectText.TextColor3 = Color3.new(0.7, 0.7, 0.7)
-	objectText.TextXAlignment = Enum.TextXAlignment.Left
+	objectText.TextXAlignment = Enum.TextXAlignment.Center
 	objectText.Parent = frame
 	table.insert(tweensForFadeOut, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 1 }))
-	table.insert(tweensForFadeIn, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))]]
+	table.insert(tweensForFadeIn, TweenService:Create(objectText, tweenInfoFast, { TextTransparency = 0 }))
+
+	actionText.AnchorPoint = Vector2.new(0.5, 0.5)
+	objectText.AnchorPoint = Vector2.new(0.5, 0.5)
 
 	table.insert(
 		tweensForFadeOut,
@@ -697,50 +709,65 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	--
 
 	local function updateUIFromPrompt()
-		-- TODO: Use AutomaticSize instead of GetTextSize when that feature becomes available
-		local actionTextSize =
-			TextService:GetTextSize(message, actionTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
-		local objectTextSize =
-			TextService:GetTextSize(prompt.ObjectText, objectTextFontSize, Enum.Font.GothamMedium, Vector2.new(1000, 1000))
-		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
 		local promptHeight = 60
-		local promptWidth = 60
-		local textPaddingLeft = 10
-		local textPaddingRight = 10
+		local edgeMargin = 12 -- The gap on the far left (before the icon)
+		local iconToTextGap = 0 -- The space the icon occupies (62 - 12)
+		
+		local actionStr = ClientLanguage.getOrDefault(titleKey, titleKey)
+		local objectStr = ClientLanguage.getOrDefault(subtitleKey, subtitleKey)
+		local hasAction = actionStr ~= ""
+		local hasObject = objectStr ~= ""
 
-		if
-			(message ~= nil and prompt.ActionText ~= "")
-			or (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
-		then
-			promptWidth = maxTextWidth + textPaddingLeft + textPaddingRight
+		-- Why the fuck??????
+		local actionTextFetchParam = Instance.new("GetTextBoundsParams")
+		actionTextFetchParam.Text = actionStr
+		actionTextFetchParam.RichText = actionText.RichText
+		actionTextFetchParam.Font = actionTextFont
+		actionTextFetchParam.Size = actionTextFontSize
+
+		local actionTextSize = TextService:GetTextBoundsAsync(actionTextFetchParam)
+
+		local objectTextFetchParam = Instance.new("GetTextBoundsParams")
+		objectTextFetchParam.Text = objectStr
+		objectTextFetchParam.RichText = objectText.RichText
+		objectTextFetchParam.Font = objectTextFont
+		objectTextFetchParam.Size = objectTextFontSize
+
+		local objectTextSize = TextService:GetTextBoundsAsync(objectTextFetchParam)
+
+		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
+		
+		-- Symmetry calculation: Left Margin + Icon Space + Text + Right Margin (same as left)
+		local promptWidth = 60
+		if hasAction or hasObject then
+			promptWidth = edgeMargin + iconToTextGap + maxTextWidth + edgeMargin
 		end
 
-		--local isObjectTextPresent = (prompt.ObjectText ~= nil and prompt.ObjectText ~= "")
+		actionText.Size = UDim2.fromOffset(actionTextSize.X, actionTextSize.Y)
+		objectText.Size = UDim2.fromOffset(objectTextSize.X, objectTextSize.Y)
 
-		-- If object text is present, calculate the Y offset (9) for objectText
-		--[[local actionTextYOffset = 0
-		if isObjectTextPresent then
-			actionTextYOffset = 12
-		end]]
-		
-		--objectText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYOffset)
-		
-		
-		-- The resulting Y position must be a UDim2 offset, not scale (0)
-		--actionText.Position = UDim2.new(0.5, textPaddingLeft - promptWidth / 2, 0, actionTextYPosition)
+		if hasAction and hasObject then
+			actionText.Visible = true
+			objectText.Visible = true
+		elseif hasAction or hasObject then
+			actionText.Visible = hasAction
+			objectText.Visible = hasObject
+		else
+			actionText.Visible = false
+			objectText.Visible = false
+		end
 
-		actionText.Text = message
-		--objectText.Text = prompt.ObjectText
+		actionText.Text = actionStr
+		objectText.Text = objectStr
+		
 		actionText.AutoLocalize = prompt.AutoLocalize
 		actionText.RootLocalizationTable = prompt.RootLocalizationTable
 
-		--objectText.AutoLocalize = prompt.AutoLocalize
-		--objectText.RootLocalizationTable = prompt.RootLocalizationTable
+		objectText.AutoLocalize = prompt.AutoLocalize
+		objectText.RootLocalizationTable = prompt.RootLocalizationTable
 
-		local PIXELS_PER_STUD = 55
-
-		-- Convert pixels to studs
 		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
+
 		local partWidth = promptWidth / PIXELS_PER_STUD
 		local partHeight = promptHeight / PIXELS_PER_STUD
 		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
@@ -758,7 +785,7 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 
 	local function cleanup()
 		if changedConnection then
-			changedConnection:Disconnect()
+		changedConnection:Disconnect()
 		end
 
 		for _, tween in tweensForFadeOut do

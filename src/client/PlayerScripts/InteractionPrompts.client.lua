@@ -187,8 +187,8 @@ end
 --[=[
 	Shows a prompt that can not be interacted, with a text message showing why.
 ]=]
-local function showNonInteractivePrompt(prompt: InteractionPrompt, failMsg: string): ()
-	prompt:showNonInteractable(failMsg)
+local function showNonInteractivePrompt(prompt: InteractionPrompt, titleKey: string, subtitleKey: string): ()
+	prompt:showNonInteractable(titleKey, subtitleKey)
 	if DEBUG_PROMPTS then
 		setDebugPointColor(debugPartsPerPrompt[prompt], BLUE)
 	end
@@ -204,11 +204,15 @@ local function hideAndDisablePrompt(prompt: InteractionPrompt): ()
 	end
 end
 
-local function getConditionFailMessage(prompt: InteractionPrompt): string
+local function getConditionFailMessage(prompt: InteractionPrompt): (string, string)
 	local attachment = prompt:getAttachment()
-	local failMsgAtt = attachment:GetAttribute(TriggerAttributes.DISABLED_SUBTITLE) :: string?
+	local titleKeyAtt = attachment:GetAttribute(TriggerAttributes.DISABLED_TITLE) :: string? or ""
+	local subtitleKeyAtt = attachment:GetAttribute(TriggerAttributes.DISABLED_SUBTITLE) :: string? or "NO_DISABLED_SUBTITLE"
 
-	return failMsgAtt and ClientLanguage.getOrDefault(failMsgAtt, failMsgAtt) or "NO_FAIL_SUBTITLE"
+	local titleKey = ClientLanguage.getOrDefault(titleKeyAtt, titleKeyAtt)
+	local subtitleKey = ClientLanguage.getOrDefault(subtitleKeyAtt, subtitleKeyAtt)
+
+	return titleKey, subtitleKey
 end
 
 --

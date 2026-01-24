@@ -87,7 +87,7 @@ function InteractionPrompt.showInteractable(self: InteractionPrompt, inputType: 
 	)
 end
 
-function InteractionPrompt.showNonInteractable(self: InteractionPrompt, failMsg: string): ()
+function InteractionPrompt.showNonInteractable(self: InteractionPrompt, titleKey: string, subtitleKey: string): ()
 	if self.currentRenderState == InteractionPrompt.RenderStates.NON_INTERACTABLE then
 		return
 	end
@@ -101,7 +101,7 @@ function InteractionPrompt.showNonInteractable(self: InteractionPrompt, failMsg:
 	end
 
 	self.activeCleanUpFunc = InteractionPromptRenderer.createNonInteractivePrompt(
-		self:getProximityPrompt(), failMsg, InteractionPromptRenderer.getScreenGui()
+		self:getProximityPrompt(), titleKey, subtitleKey, InteractionPromptRenderer.getScreenGui()
 	)
 
 	self:disableInteraction()
