@@ -17,6 +17,7 @@ local HelpMenu = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.me
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
+local TriggerAttributes = require(ReplicatedStorage.shared.world.interaction.attributes.TriggerAttributes)
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -226,6 +227,10 @@ local function parseCondition(str: string): any
 end
 
 local function evaluatePromptShowCondition(prompt: InteractionPrompt): any
+	if prompt:getAttachment():GetAttribute(TriggerAttributes.SERVER_ENABLED) == false then
+		return false
+	end
+
 	local conditionAtt = prompt:getAttachment():GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CLIENT_CONDITION) :: string?
 	if not conditionAtt or type(conditionAtt) ~= "string" then
 		return true -- It doesn't have a condition, so let it show anyway
@@ -276,6 +281,10 @@ local function update(deltaTime: number): ()
 		local proxPrompt = interactionPrompt:getProximityPrompt()
 		
 		if not proxPrompt or not proxPrompt.Parent or not proxPrompt.Enabled then
+			continue
+		end
+
+		if interactionPrompt:getAttachment():GetAttribute(TriggerAttributes.SERVER_VISIBLE) == false then
 			continue
 		end
 

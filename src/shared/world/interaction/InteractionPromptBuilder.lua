@@ -4,17 +4,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
+local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
 local TriggerAttributes = require(ReplicatedStorage.shared.world.interaction.attributes.TriggerAttributes)
 
-local DEFAULT_ACTIVATION_DISTANCE = 5
-local DEFAULT_HOLD_DUR = 0.3
-local DEFAULT_OMNI_DIR = true
-local DEFAULT_TITLE_KEY = "ui.prompt.interact"
-local DEFAULT_SUBTITLE_KEY = ""
-local DEFAULT_NORMAL_ID = Enum.NormalId.Left
-local ATTACHMENT_NAME = "Trigger"
 local ENUM_HOLD_STATUS = {
 	NONE = 0,
 	MINOR_SUSPICIOUS = 1,
@@ -25,9 +21,19 @@ local ENUM_INTERACTION_KEY = {
 	SECONDARY = 1
 }
 local INTERACTION_KEYS_TO_KEYCODES = {
-	[0] = Enum.KeyCode.F,
-	[1] = Enum.KeyCode.G
+	[ENUM_INTERACTION_KEY.PRIMARY] = Enum.KeyCode.F,
+	[ENUM_INTERACTION_KEY.SECONDARY] = Enum.KeyCode.G
 }
+
+local DEFAULT_ACTIVATION_DISTANCE = 5
+local DEFAULT_HOLD_DUR = 0.3
+local DEFAULT_OMNI_DIR = true
+local DEFAULT_TITLE_KEY = "ui.prompt.interact"
+local DEFAULT_SUBTITLE_KEY = ""
+local DEFAULT_NORMAL_ID = Enum.NormalId.Left
+local DEFAULT_HOLD_STATUS_EXPR = `{ENUM_HOLD_STATUS.NONE}`
+local DEFAULT_SERVER_VISIBLE_EXPR = `true`
+local ATTACHMENT_NAME = "Trigger"
 
 --[=[
 	@class InteractionPromptBuilder
@@ -47,8 +53,10 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		subtitleKey: string,
 		tag: string?,
 		normalId: Enum.NormalId,
+		interactKey: number,
+		--
+		serverVisibleExpr: string,
 		holdStatusExpr: string,
-		interactKey: number
 	}
 }, InteractionPromptBuilder))
 
@@ -61,9 +69,11 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			titleKey = DEFAULT_TITLE_KEY,
 			subtitleKey = DEFAULT_SUBTITLE_KEY,
 			normalId = DEFAULT_NORMAL_ID,
-			holdStatusExpr = `{ENUM_HOLD_STATUS.NONE}`,
+			holdStatusExpr = DEFAULT_HOLD_STATUS_EXPR,
 			interactKey = ENUM_INTERACTION_KEY.PRIMARY,
-			tag = nil :: string?
+			tag = nil :: string?,
+			--
+			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR
 		}
 	}, InteractionPromptBuilder)
 end
@@ -167,12 +177,17 @@ function InteractionPromptBuilder.withSecondaryInteractionKey(self: InteractionP
 	return self
 end
 
+function InteractionPromptBuilder.withServerVisibleExpression(self: InteractionPromptBuilder, serverVisibleExpr: string): InteractionPromptBuilder
+	self.setAttributes.serverVisibleExpr = serverVisibleExpr
+	return self
+end
+
 --
 
 --[=[
 	Builds and creates and returns an instance of `WorldInteractionPrompt`.
 ]=]
-function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentPart: BasePart): WorldInteractionPrompt.WorldInteractionPrompt
+function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentPart: BasePart, expressionContext: ExpressionContext.ExpressionContext): WorldInteractionPrompt.WorldInteractionPrompt
 	local setAttributes = self.setAttributes
 	local attachment = InteractionPromptBuilder.createAttachmentAtNormal(parentPart, ATTACHMENT_NAME, setAttributes.normalId)
 
@@ -191,6 +206,23 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	end
 
 	attachment:SetAttribute(TriggerAttributes.OMNIDIRECTIONAL, setAttributes.omniDir)
+	attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, true)
+
+	--
+
+	local parsedServerVisibleExpr = ExpressionParser.fromString(setAttributes.serverVisibleExpr):parse() :: ExpressionParser.ASTNode
+	local serverVisibleExprUsedVars = ExpressionParser.getVariablesSet(parsedServerVisibleExpr)
+	attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
+
+	GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
+		if not serverVisibleExprUsedVars[variableName] then
+			return
+		end
+
+		attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
+	end)
+
+	--
 
 	local worldPrompt = WorldInteractionPrompt.new(proximityPrompt)
 
