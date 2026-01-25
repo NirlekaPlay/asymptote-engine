@@ -351,6 +351,11 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 		weld(part, hingePart)
 	end
 
+	local lockFront = base:GetAttribute("LockFront") :: boolean?
+	local lockBack = base:GetAttribute("LockBack") :: boolean?
+	local autoLock = base:GetAttribute("AutoLock") :: boolean?
+	local remoteUnlock = base:GetAttribute("RemoteUnlock") :: string?
+
 	-- Attatchments
 	local zOffset = isDoubleDoor and (base.Size.Z / 2 + attatchmentAddDist) or (doorSizeZ / 2 + attatchmentAddDist)
 	local attachmentParent = isDoubleDoor and base or part0
@@ -374,7 +379,17 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 	frontAttatchment.Position = isDoubleDoor and Vector3.new(0, 0, (-base.Size.Z / 2) + -attatchmentAddDist) or Vector3.new(0, 0, (-doorSizeZ / 2) + -attatchmentAddDist)
 	frontAttatchment.Parent = isDoubleDoor and base or part0]]
 
-	local frontProxPrompt = promptTemplate:create(attachmentParent, context, frontAttatchment)
+	local frontProxPrompt
+	if lockFront and remoteUnlock then
+		frontProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:withServerEnabledExpression(`{remoteUnlock}`)
+			:create(attachmentParent, context, frontAttatchment)
+	else
+		frontProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:create(attachmentParent, context, frontAttatchment)
+	end
 
 	--[[local backAttatchment = Instance.new("Attachment")
 	backAttatchment.Name = "Back"
@@ -382,7 +397,17 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 	backAttatchment.Orientation = Vector3.new(0, 180, 0)
 	backAttatchment.Parent = isDoubleDoor and base or part0]]
 
-	local backProxPrompt = promptTemplate:create(attachmentParent, context, backAttatchment)
+	local backProxPrompt
+	if lockBack and remoteUnlock then
+		backProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:withServerEnabledExpression(`{remoteUnlock}`)
+			:create(attachmentParent, context, backAttatchment)
+	else
+		backProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:create(attachmentParent, context, backAttatchment)
+	end
 
 	local middleAttatchment = Instance.new("Attachment")
 	middleAttatchment.Name = "Middle"
@@ -406,11 +431,6 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 	end
 
 	-- Setup
-
-	local lockFront = base:GetAttribute("LockFront") :: boolean?
-	local lockBack = base:GetAttribute("LockBack") :: boolean?
-	local autoLock = base:GetAttribute("AutoLock") :: boolean?
-	local remoteUnlock = base:GetAttribute("RemoteUnlock") :: string?
 
 	local newDoor = Door.new(
 		hingePart, {
