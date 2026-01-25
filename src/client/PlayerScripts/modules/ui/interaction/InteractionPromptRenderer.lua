@@ -654,7 +654,7 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	local roundedCorner = Instance.new("UICorner")
 	roundedCorner.Parent = frame
 
-	local actionTextFontSize = 25
+	local actionTextFontSize = 20
 	local objectTextFontSize = 15
 
 	local fontZekton = Font.fromName("Zekton")
