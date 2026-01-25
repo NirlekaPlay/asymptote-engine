@@ -1016,6 +1016,8 @@ function Level.restartLevel(): ()
 
 	task.wait()
 
+	Mission.resetAlertLevel()
+
 	for component in stateComponentsSet do
 		component:onLevelRestart()
 	end
@@ -1053,8 +1055,6 @@ function Level.restartLevel(): ()
 	if DEBUG_STATE_CHANGES then
 		print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
 	end
-
-	Mission.resetAlertLevel()
 
 	for _, player in Players:GetPlayers() do
 		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
