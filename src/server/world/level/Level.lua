@@ -33,6 +33,7 @@ local MissionEndZone = require(ServerScriptService.server.world.level.clutter.pr
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
+local FreeTrigger = require(ServerScriptService.server.world.level.clutter.props.triggers.interaction.FreeTrigger)
 local ElevatorShaftController = require(ServerScriptService.server.world.level.components.ElevatorShaftController)
 local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
 local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
@@ -905,6 +906,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if placeholder.Name == "ElevatorCallButton" and prop then
 				propsInLevelSet[ElevatorCallButton.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "FreeTrigger" then
+				propsInLevelSet[FreeTrigger.createFromPlaceholder(placeholder, prop, Level)] = true
 				return true
 			end
 
