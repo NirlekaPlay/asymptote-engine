@@ -7,5 +7,6 @@ return {
 	SERVER_ENABLED = "ServerEnabled",
 	CLIENT_ENABLED = "ClientEnabled",
 	DISABLED_TITLE = "DisabledTitle",
-	DISABLED_SUBTITLE = "DisabledSubtitle"
+	DISABLED_SUBTITLE = "DisabledSubtitle",
+	MIN_REQUIRED_TOOLS = "MinRequiredTools"
 }

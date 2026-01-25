@@ -41,6 +41,7 @@ local DEFAULT_DISABLED_TITLE = ""
 local DEFAULT_CLIENT_VISIBLE_EXPR = ""
 local DEFAULT_CLIENT_ENABLED_EXPR = ""
 local DEFAULT_WORLD_OFFSET_BY = 0
+local DEFAULT_REQUIRED_TOOLS = ""
 local ATTACHMENT_NAME = "Trigger"
 
 --[=[
@@ -63,6 +64,7 @@ export type InteractionPromptBuilder = typeof(setmetatable({} :: {
 		normalId: Enum.NormalId,
 		interactKey: number,
 		worldOffsetBy: number,
+		requiredTools: string,
 		--
 		disabledTitleKey: string,
 		--
@@ -87,6 +89,7 @@ function InteractionPromptBuilder.new(): InteractionPromptBuilder
 			holdStatusExpr = DEFAULT_HOLD_STATUS_EXPR,
 			interactKey = ENUM_INTERACTION_KEY.PRIMARY,
 			worldOffsetBy = DEFAULT_WORLD_OFFSET_BY,
+			requiredTools = DEFAULT_REQUIRED_TOOLS,
 			tag = nil :: string?,
 			--
 			serverVisibleExpr = DEFAULT_SERVER_VISIBLE_EXPR,
@@ -276,6 +279,15 @@ function InteractionPromptBuilder.withWorldOffsetBy(self: InteractionPromptBuild
 	return self
 end
 
+--[=[
+	Dictates wether or not this prompt will be enabled on the client if the player have any of the specific tools in
+	`requiredToolsStr`, seperated by whitespace.
+]=]
+function InteractionPromptBuilder.withRequiredTools(self: InteractionPromptBuilder, requiredToolsStr: string): InteractionPromptBuilder
+	self.setAttributes.requiredTools = requiredToolsStr
+	return self
+end
+
 --
 
 --[=[
@@ -300,6 +312,7 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	end
 
 	attachment:SetAttribute(TriggerAttributes.OMNIDIRECTIONAL, setAttributes.omniDir)
+	attachment:SetAttribute(TriggerAttributes.MIN_REQUIRED_TOOLS, setAttributes.requiredTools)
 
 	--
 

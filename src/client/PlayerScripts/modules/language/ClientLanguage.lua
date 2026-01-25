@@ -35,6 +35,18 @@ function ClientLanguage.getOrDefault(key: string, default: string?): string
 	end
 end
 
+function ClientLanguage.parseString(str: string): string
+	local parsed = string.gsub(str, "%S+", function(key)
+		if ClientLanguage.has(key) then
+			return ClientLanguage.getOrDefault(key, key)
+		end
+
+		return key
+	end)
+	
+	return parsed
+end
+
 function ClientLanguage.has(key: string): boolean
 	return storage[key] ~= nil
 end

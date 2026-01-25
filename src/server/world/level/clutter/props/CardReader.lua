@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
+local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
@@ -73,17 +74,6 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 	local part0 = (model :: any).Part0 :: BasePart
 
 	local triggerVariable = base:GetAttribute("TriggerVariable") :: string
-
-	-- Proximity prompt
-
-	local prompt = InteractionPromptBuilder.new()
-		:withPrimaryInteractionKey()
-		:withTitleKey("ui.prompt.unlock")
-		:withHoldStatus(`1`)
-		:withHoldDuration(0.5)
-		:withActivationDistance(4)
-		:withOmniDir(false)
-		:create(part0, serverLevel:getExpressionContext())
 
 	-- Global states
 	if not GlobalStatesHolder.hasState(triggerVariable) then
@@ -171,6 +161,8 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 		end
 	end
 
+	local minimumCard = base:GetAttribute("MinimumCard") :: string
+
 	-- Sound
 
 	local acceptSound = ReplicatedStorage.shared.assets.sounds.keycard_accept:Clone()
@@ -179,6 +171,18 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 	-- Setup
 
 	local newReader = CardReader.new(validCards, triggerVariable, lightParts, acceptSound)
+
+	local prompt = InteractionPromptBuilder.new()
+		:withPrimaryInteractionKey()
+		:withDisabledTitleKey("object.generic.card_reader")
+		:withDisabledSubtitleExpr(`'ui.prompt.missing_tool_prefix {ItemService.getItemLocalizedStringName(minimumCard)}'`)
+		:withTitleKey("ui.prompt.unlock")
+		:withHoldStatus(`1`)
+		:withHoldDuration(0.5)
+		:withActivationDistance(4)
+		:withOmniDir(false)
+		:withRequiredTools(validCardsAtt or "")
+		:create(part0, serverLevel:getExpressionContext())
 
 	-- TODO: These may cause a memory leak. Fix this thank you.
 	prompt:getTriggeredEvent():Connect(function(player)

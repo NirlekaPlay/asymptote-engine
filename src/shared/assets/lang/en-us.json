@@ -20,6 +20,7 @@
   "ui.prompt.take": "Take",
   "ui.prompt.call": "Call",
   "ui.prompt.interact": "Interact",
+  "ui.prompt.missing_tool_prefix": "Missing",
   "ui.objectives.stealth": "Stealth",
   "ui.objectives.mission": "Mission",
   "ui.objectives.loud": "Loud",
@@ -38,5 +39,8 @@
   "ui.status.dangerous_item": "Dangerous Item",
   "object.generic.elevator": "Elevator",
   "object.generic.elevators": "Elevators",
-  "object.generic.security_laptop": "Security Laptop"
+  "object.generic.security_laptop": "Security Laptop",
+  "object.generic.card_reader": "Card Reader",
+  "object.item.basic_keycard": "Keycard",
+  "object.item.security_keycard": "Security Keycard"
 }
