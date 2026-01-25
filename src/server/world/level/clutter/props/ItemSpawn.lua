@@ -52,12 +52,18 @@ function ItemSpawn.createFromPlaceholder(placeholder: BasePart, model: Model?, s
 	placeholder.CanTouch = false
 	placeholder.AudioCanCollide = false
 
-	local bottomFaceCFrame = placeholder.CFrame * CFrame.new(0, -placeholder.Size.Y / 2, 0)
+	local handle = itemTool:FindFirstChild("Handle") :: BasePart
+	local itemHeight = handle and handle.Size.Y or 1
+
+	-- Prevents items from sinking
+	local spawnCFrame = placeholder.CFrame 
+						* CFrame.new(0, -placeholder.Size.Y / 2, 0) -- go to floor
+						* CFrame.new(0, itemHeight / 2, 0)
 	local tagString
 	if itemTag and itemTag ~= "" then
 		tagString = itemTag
 	end
-	local newItemSpawn = ItemSpawn.new(itemTool, bottomFaceCFrame, itemPickedVariable, serverLevel, tagString)
+	local newItemSpawn = ItemSpawn.new(itemTool, spawnCFrame, itemPickedVariable, serverLevel, tagString)
 	newItemSpawn:spawnItem()
 	return newItemSpawn
 end
