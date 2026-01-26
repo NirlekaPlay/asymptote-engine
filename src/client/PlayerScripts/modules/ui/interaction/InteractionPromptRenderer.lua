@@ -82,7 +82,13 @@ local KeyCodeToTextMapping = {
 local CFRAME_FLIP_ROT = CFrame.Angles(0, math.rad(180), 0)
 local PIXELS_PER_STUD = 65
 
-local promptParts: { [BasePart]: true } = {}
+type RenderedPrompts = {
+	part: BasePart,
+	attachment: Attachment,
+	omniDir: boolean
+}
+
+local renderedPrompts: { [RenderedPrompts]: true } = {}
 
 local function createProgressBarGradient(parent: Instance, leftSide: boolean)
 	local frame = Instance.new("Frame")
@@ -148,29 +154,35 @@ local function isPromptPartValid(part: BasePart): boolean
 end
 
 function InteractionPromptRenderer.removeInvalidPromptParts(): ()
-	local partsToRemove: { [BasePart]: true } = {}
+	local promptsToRemove: { [RenderedPrompts]: true } = {}
 
 	-- I don't know anymore.
-	for promptPart in promptParts do
-		if not isPromptPartValid(promptPart) then
-			partsToRemove[promptPart] = true
+	for renderedPrompt in renderedPrompts do
+		if not isPromptPartValid(renderedPrompt.part) then
+			promptsToRemove[renderedPrompt] = true
 		end
 	end
 
-	for promptPart in partsToRemove do
-		promptParts[promptPart] = nil
+	for renderedPrompt in promptsToRemove do
+		renderedPrompts[renderedPrompt] = nil
 	end
 end
 
 function InteractionPromptRenderer.updatePartPromptsCframe(): ()
-	if next(promptParts) == nil then
+	if next(renderedPrompts) == nil then
 		return
 	end
 
 	local cameraCFrame = Camera.CFrame
 
-	for promptPart in promptParts do
-		promptPart.CFrame = (cameraCFrame.Rotation * CFRAME_FLIP_ROT) + promptPart.Position
+	for renderedPrompt in renderedPrompts do
+		if renderedPrompt.attachment.WorldPosition ~= renderedPrompt.part.Position then
+			renderedPrompt.part.Position = renderedPrompt.attachment.WorldPosition
+		end
+
+		if renderedPrompt.omniDir then
+			renderedPrompt.part.CFrame = (cameraCFrame.Rotation * CFRAME_FLIP_ROT) + renderedPrompt.part.Position
+		end
 	end
 end
 
@@ -208,9 +220,13 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	promptPart.CFrame = promptParentAttatchment.WorldCFrame
 	promptPart.Parent = workspace
 
-	if isOmniDir then
-		promptParts[promptPart] = true
-	end
+	local renderedPrompt = {
+		part = promptPart,
+		attachment = promptParentAttatchment,
+		omniDir = isOmniDir
+	}
+
+	renderedPrompts[renderedPrompt] = true
 
 	local promptUI = Instance.new("SurfaceGui")
 	promptUI.Name = "Prompt"
@@ -609,6 +625,8 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			tween:Play()
 		end
 
+		renderedPrompts[renderedPrompt] = nil
+
 		task.wait(0.2)
 
 		promptUI.Parent = nil
@@ -637,9 +655,13 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	promptPart.CFrame = promptParentAttatchment.WorldCFrame
 	promptPart.Parent = workspace
 
-	if isOmniDir then
-		promptParts[promptPart] = true
-	end
+	local rendererdPrompt = {
+		part = promptPart,
+		attachment = promptParentAttatchment,
+		omniDir = isOmniDir
+	}
+
+	renderedPrompts[rendererdPrompt] = true
 
 	local promptUI = Instance.new("SurfaceGui")
 	promptUI.Name = "Prompt"
@@ -791,6 +813,8 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 		for _, tween in tweensForFadeOut do
 			tween:Play()
 		end
+
+		renderedPrompts[renderedPrompts] = nil
 
 		task.wait(0.2)
 
