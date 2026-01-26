@@ -85,7 +85,8 @@ local PIXELS_PER_STUD = 65
 type RenderedPrompts = {
 	part: BasePart,
 	attachment: Attachment,
-	omniDir: boolean
+	omniDir: boolean,
+	shouldUpdatePosition: boolean
 }
 
 local renderedPrompts: { [RenderedPrompts]: true } = {}
@@ -176,8 +177,10 @@ function InteractionPromptRenderer.updatePartPromptsCframe(): ()
 	local cameraCFrame = Camera.CFrame
 
 	for renderedPrompt in renderedPrompts do
-		if renderedPrompt.attachment.WorldPosition ~= renderedPrompt.part.Position then
-			renderedPrompt.part.Position = renderedPrompt.attachment.WorldPosition
+		if renderedPrompt.shouldUpdatePosition then
+			if renderedPrompt.attachment.WorldPosition ~= renderedPrompt.part.Position then
+				renderedPrompt.part.Position = renderedPrompt.attachment.WorldPosition
+			end
 		end
 
 		if renderedPrompt.omniDir then
@@ -223,7 +226,8 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	local renderedPrompt = {
 		part = promptPart,
 		attachment = promptParentAttatchment,
-		omniDir = isOmniDir
+		omniDir = isOmniDir,
+		shouldUpdatePosition = true
 	}
 
 	renderedPrompts[renderedPrompt] = true
@@ -625,7 +629,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			tween:Play()
 		end
 
-		renderedPrompts[renderedPrompt] = nil
+		renderedPrompt.shouldUpdatePosition = false
 
 		task.wait(0.2)
 
@@ -658,7 +662,8 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	local rendererdPrompt = {
 		part = promptPart,
 		attachment = promptParentAttatchment,
-		omniDir = isOmniDir
+		omniDir = isOmniDir,
+		shouldUpdatePosition = true
 	}
 
 	renderedPrompts[rendererdPrompt] = true
@@ -814,7 +819,7 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 			tween:Play()
 		end
 
-		renderedPrompts[renderedPrompts] = nil
+		rendererdPrompt.shouldUpdatePosition = false
 
 		task.wait(0.2)
 
