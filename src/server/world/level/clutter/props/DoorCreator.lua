@@ -387,10 +387,14 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
 			:withServerEnabledExpression(`{remoteUnlock}`)
 			:create(attachmentParent, context, frontAttatchment)
-	else
+	elseif lockFront and not validRemoteUnlock then
 		frontProxPrompt = promptTemplate:fork()
 			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
 			:withServerEnabledExpression(`false`)
+			:create(attachmentParent, context, frontAttatchment)
+	else
+		frontProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
 			:create(attachmentParent, context, frontAttatchment)
 	end
 
@@ -406,10 +410,14 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
 			:withServerEnabledExpression(`{remoteUnlock}`)
 			:create(attachmentParent, context, backAttatchment)
-	else
+	elseif lockBack and not validRemoteUnlock then
 		backProxPrompt = promptTemplate:fork()
 			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
 			:withServerEnabledExpression(`false`)
+			:create(attachmentParent, context, backAttatchment)
+	else
+		backProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
 			:create(attachmentParent, context, backAttatchment)
 	end
 
