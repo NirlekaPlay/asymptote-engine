@@ -80,7 +80,11 @@ local KeyCodeToTextMapping = {
 }
 
 local CFRAME_FLIP_ROT = CFrame.Angles(0, math.rad(180), 0)
-local PIXELS_PER_STUD = 65
+local BASE_REF = 65
+local OLD_PIXELS_PER_STUD = 200
+local NEW_PIXELS_PER_STUD = 200
+local SCALE_MULTIPLIER = NEW_PIXELS_PER_STUD / BASE_REF
+local SCALE_MULTIPLIER_OLD = OLD_PIXELS_PER_STUD / BASE_REF
 
 type RenderedPrompts = {
 	part: BasePart,
@@ -90,6 +94,8 @@ type RenderedPrompts = {
 }
 
 local renderedPrompts: { [RenderedPrompts]: true } = {}
+
+local MAIN_FONT = Font.fromName("Zekton")
 
 local function createProgressBarGradient(parent: Instance, leftSide: boolean)
 	local frame = Instance.new("Frame")
@@ -121,8 +127,9 @@ end
 
 local function createCircularProgressBar()
 	local bar = Instance.new("Frame")
+	bar.Visible = false
 	bar.Name = "CircularProgressBar"
-	bar.Size = UDim2.fromOffset(58, 58)
+	bar.Size = UDim2.fromOffset(58 * SCALE_MULTIPLIER_OLD, 58 * SCALE_MULTIPLIER_OLD)
 	bar.AnchorPoint = Vector2.new(0.5, 0.5)
 	bar.Position = UDim2.fromScale(0.5, 0.5)
 	bar.BackgroundTransparency = 1
@@ -137,6 +144,8 @@ local function createCircularProgressBar()
 		local angle = math.clamp(value * 360, 0, 360)
 		gradient1.Rotation = math.clamp(angle, 180, 360)
 		gradient2.Rotation = math.clamp(angle, 0, 180)
+
+		bar.Visible = not (value <= 0)
 	end)
 
 	return bar
@@ -234,6 +243,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 
 	local promptUI = Instance.new("SurfaceGui")
 	promptUI.Name = "Prompt"
+	promptUI.LightInfluence = 0
 	promptUI.AlwaysOnTop = true
 
 	local frame = Instance.new("Frame")
@@ -243,6 +253,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	frame.Parent = promptUI
 
 	local roundedCorner = Instance.new("UICorner")
+	roundedCorner.CornerRadius = UDim.new(0, 8 * SCALE_MULTIPLIER_OLD)
 	roundedCorner.Parent = frame
 
 	local inputFrame = Instance.new("Frame")
@@ -269,10 +280,10 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	)
 	table.insert(tweensForButtonHoldEnd, TweenService:Create(inputFrameScaler, tweenInfoFast, { Scale = 1 }))
 
-	local actionTextFontSize = 30
-	local objectTextFontSize = 15
+	local actionTextFontSize = 30 * SCALE_MULTIPLIER_OLD
+	local objectTextFontSize = 15 * SCALE_MULTIPLIER_OLD
 
-	local fontZekton = Font.fromName("Zekton")
+	local fontZekton = MAIN_FONT
 	local actionTextFont = fontZekton
 	local objectTextFont = fontZekton
 
@@ -332,7 +343,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	if prompt.HoldDuration > 0 then
 		local roundFrame = Instance.new("Frame")
 		roundFrame.Name = "RoundFrame"
-		roundFrame.Size = UDim2.fromOffset(45, 45)
+		roundFrame.Size = UDim2.fromOffset(45 * SCALE_MULTIPLIER_OLD, 45 * SCALE_MULTIPLIER_OLD)
 
 		roundFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 		roundFrame.Position = UDim2.fromScale(0.5, 0.5)
@@ -351,7 +362,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 
 	local roundFrameFront = Instance.new("Frame")
 	roundFrameFront.Name = "RoundFrameFront"
-	roundFrameFront.Size = prompt.HoldDuration > 0 and UDim2.fromOffset(40, 40) or UDim2.fromOffset(45, 45)
+	roundFrameFront.Size = prompt.HoldDuration > 0 and UDim2.fromOffset(40 * SCALE_MULTIPLIER_OLD, 40 * SCALE_MULTIPLIER_OLD) or UDim2.fromOffset(45 * SCALE_MULTIPLIER_OLD, 45 * SCALE_MULTIPLIER_OLD)
 
 	roundFrameFront.AnchorPoint = Vector2.new(0.5, 0.5)
 	roundFrameFront.Position = UDim2.fromScale(0.5, 0.5)
@@ -371,7 +382,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			local icon = Instance.new("ImageLabel")
 			icon.Name = "ButtonImage"
 			icon.AnchorPoint = Vector2.new(0.5, 0.5)
-			icon.Size = UDim2.fromOffset(24, 24)
+			icon.Size = UDim2.fromOffset(24 * SCALE_MULTIPLIER_OLD, 24 * SCALE_MULTIPLIER_OLD)
 			icon.Position = UDim2.fromScale(0.5, 0.5)
 			icon.BackgroundTransparency = 1
 			icon.ImageTransparency = 1
@@ -385,7 +396,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 		buttonImage.Name = "ButtonImage"
 		buttonImage.BackgroundTransparency = 1
 		buttonImage.ImageTransparency = 1
-		buttonImage.Size = UDim2.fromOffset(25, 31)
+		buttonImage.Size = UDim2.fromOffset(25 * SCALE_MULTIPLIER_OLD, 31 * SCALE_MULTIPLIER_OLD)
 		buttonImage.AnchorPoint = Vector2.new(0.5, 0.5)
 		buttonImage.Position = UDim2.fromScale(0.5, 0.5)
 		buttonImage.Image = "rbxasset://textures/ui/Controls/TouchTapIcon.png"
@@ -424,7 +435,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			local icon = Instance.new("ImageLabel")
 			icon.Name = "ButtonImage"
 			icon.AnchorPoint = Vector2.new(0.5, 0.5)
-			icon.Size = UDim2.fromOffset(36, 36)
+			icon.Size = UDim2.fromOffset(36 * SCALE_MULTIPLIER_OLD, 36 * SCALE_MULTIPLIER_OLD)
 			icon.Position = UDim2.fromScale(0.5, 0.5)
 			icon.BackgroundTransparency = 1
 			icon.ImageTransparency = 1
@@ -437,8 +448,8 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 			buttonText.Name = "ButtonText"
 			buttonText.Position = UDim2.fromOffset(0, -1)
 			buttonText.Size = UDim2.fromScale(1, 1)
-			buttonText.FontFace = Font.fromName("Zekton")
-			buttonText.TextSize = 30
+			buttonText.FontFace = MAIN_FONT
+			buttonText.TextSize = 30 * SCALE_MULTIPLIER_OLD
 			if string.len(buttonTextString :: string) > 2 then
 				buttonText.TextSize = 12
 			end
@@ -526,9 +537,9 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 	end
 
 	local function updateUIFromPrompt()
-		local promptHeight = 60
-		local edgeMargin = 12 -- The gap on the far left (before the icon)
-		local iconToTextGap = 50 -- The space the icon occupies (62 - 12)
+		local promptHeight = 60 * SCALE_MULTIPLIER_OLD
+		local edgeMargin = 12 * SCALE_MULTIPLIER_OLD -- The gap on the far left (before the icon)
+		local iconToTextGap = 50 * SCALE_MULTIPLIER_OLD -- The space the icon occupies (62 - 12)
 		
 		local actionStr = ClientLanguage.getOrDefault(prompt.ActionText, prompt.ActionText)
 		local objectStr = ClientLanguage.getOrDefault(prompt.ObjectText, prompt.ObjectText)
@@ -555,7 +566,7 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 		local maxTextWidth = math.max(actionTextSize.X, objectTextSize.X)
 		
 		-- Symmetry calculation: Left Margin + Icon Space + Text + Right Margin (same as left)
-		local promptWidth = 60
+		local promptWidth = 60 * SCALE_MULTIPLIER_OLD
 		if hasAction or hasObject then
 			promptWidth = edgeMargin + iconToTextGap + maxTextWidth + edgeMargin
 		end
@@ -594,8 +605,8 @@ function InteractionPromptRenderer.createPrompt(prompt: ProximityPrompt, inputTy
 
 		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
 
-		local partWidth = promptWidth / PIXELS_PER_STUD
-		local partHeight = promptHeight / PIXELS_PER_STUD
+		local partWidth = promptWidth / OLD_PIXELS_PER_STUD
+		local partHeight = promptHeight / OLD_PIXELS_PER_STUD
 		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
 	end
 
@@ -670,6 +681,7 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 
 	local promptUI = Instance.new("SurfaceGui")
 	promptUI.Name = "Prompt"
+	promptUI.LightInfluence = 0
 	promptUI.AlwaysOnTop = true
 
 	local frame = Instance.new("Frame")
@@ -679,12 +691,13 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	frame.Parent = promptUI
 
 	local roundedCorner = Instance.new("UICorner")
+	roundedCorner.CornerRadius = UDim.new(0, 8 * SCALE_MULTIPLIER)
 	roundedCorner.Parent = frame
 
-	local actionTextFontSize = 20
-	local objectTextFontSize = 15
+	local actionTextFontSize = 20 * SCALE_MULTIPLIER
+	local objectTextFontSize = 15 * SCALE_MULTIPLIER
 
-	local fontZekton = Font.fromName("Zekton")
+	local fontZekton = MAIN_FONT
 	local actionTextFont = fontZekton
 	local objectTextFont = fontZekton
 
@@ -736,8 +749,8 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 	--
 
 	local function updateUIFromPrompt()
-		local promptHeight = 60
-		local edgeMargin = 12 -- The gap on the far left (before the icon)
+		local promptHeight = 60 * SCALE_MULTIPLIER
+		local edgeMargin = 12 * SCALE_MULTIPLIER -- The gap on the far left (before the icon)
 		local iconToTextGap = 0 -- The space the icon occupies (62 - 12)
 		
 		local actionStr = ClientLanguage.getOrDefault(titleKey, titleKey)
@@ -795,8 +808,8 @@ function InteractionPromptRenderer.createNonInteractivePrompt(prompt: ProximityP
 
 		promptUI.CanvasSize = Vector2.new(promptWidth, promptHeight)
 
-		local partWidth = promptWidth / PIXELS_PER_STUD
-		local partHeight = promptHeight / PIXELS_PER_STUD
+		local partWidth = promptWidth / NEW_PIXELS_PER_STUD
+		local partHeight = promptHeight / NEW_PIXELS_PER_STUD
 		promptPart.Size = Vector3.new(partWidth, partHeight, 0.2)
 	end
 
