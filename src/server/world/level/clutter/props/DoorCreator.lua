@@ -3,7 +3,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
+local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local Door = require(ServerScriptService.server.world.level.clutter.props.Door)
 local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
 local DoorPromptComponent = require(ServerScriptService.server.world.level.clutter.props.DoorPromptComponent)
@@ -21,6 +23,13 @@ local RESERVED_DOOR_PARTS_NAMES = {
 	["Part0"] = true,
 	["Base"] = true
 }
+
+local promptTemplate= InteractionPromptBuilder.new()
+	:withPrimaryInteractionKey()
+	:withActivationDistance(PROMPT_ACTIVATION_DIST)
+	:withHoldDuration(0)
+	:withOmniDir(false)
+	:withTitleKey("ui.prompt.open")
 
 local DoorCreator = {}
 
@@ -76,10 +85,13 @@ local function weld(part0: BasePart, part1: BasePart): WeldConstraint
 	return weld
 end
 
-function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model): Door.Door
+function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, serverLevel: ServerLevel.ServerLevel): Door.Door
 	if DEBUG_INST_INIT then
 		print(model)
 	end
+
+	local context = serverLevel:getExpressionContext()
+
 	local base = model:FindFirstChild("Base") :: BasePart
 	local baseCFrame = base.CFrame
 	local basePos = baseCFrame.Position
@@ -306,38 +318,26 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		local frontAttatchment1 = createUprightAttachment(part1, Vector3.new(0, 0, -attatchmentOffset), Vector3.new(0, 0, -1))
 		frontAttatchment1.Name = "Front"
 
-		local frontProxPrompt1 = Instance.new("ProximityPrompt")
-		frontProxPrompt1.Style = Enum.ProximityPromptStyle.Custom
-		frontProxPrompt1.MaxActivationDistance = PROMPT_ACTIVATION_DIST
-		frontProxPrompt1.Parent = frontAttatchment1
+		local frontProxPrompt1 = promptTemplate:create(part1, context, frontAttatchment1)
 
 		-- Back: Position is +offset, Look Direction is Backward (0, 0, 1)
 		local backAttatchment1 = createUprightAttachment(part1, Vector3.new(0, 0, attatchmentOffset), Vector3.new(0, 0, 1))
 		backAttatchment1.Name = "Back"
 
-		local backProxPrompt1 = Instance.new("ProximityPrompt")
-		backProxPrompt1.Style = Enum.ProximityPromptStyle.Custom
-		backProxPrompt1.MaxActivationDistance = PROMPT_ACTIVATION_DIST
-		backProxPrompt1.Parent = backAttatchment1
+		local backProxPrompt1 = promptTemplate:create(part1, context, backAttatchment1)
 
 		-- LEFT door attachments (part0)
 		-- Front
 		local frontAttatchment2 = createUprightAttachment(part0, Vector3.new(0, 0, -attatchmentOffset), Vector3.new(0, 0, -1))
 		frontAttatchment2.Name = "Front"
 
-		local frontProxPrompt2 = Instance.new("ProximityPrompt")
-		frontProxPrompt2.Style = Enum.ProximityPromptStyle.Custom
-		frontProxPrompt2.MaxActivationDistance = PROMPT_ACTIVATION_DIST
-		frontProxPrompt2.Parent = frontAttatchment2
+		local frontProxPrompt2 = promptTemplate:create(part0, context, frontAttatchment2)
 
 		-- Back
 		local backAttatchment2 = createUprightAttachment(part0, Vector3.new(0, 0, attatchmentOffset), Vector3.new(0, 0, 1))
 		backAttatchment2.Name = "Back"
 
-		local backProxPrompt2 = Instance.new("ProximityPrompt")
-		backProxPrompt2.Style = Enum.ProximityPromptStyle.Custom
-		backProxPrompt2.MaxActivationDistance = PROMPT_ACTIVATION_DIST
-		backProxPrompt2.Parent = backAttatchment2
+		local backProxPrompt2 = promptTemplate:create(part0, context, backAttatchment2)
 
 		local doubleDoorPrompts = prompts :: DoorPromptComponent.DoubleDoorPrompts
 		doubleDoorPrompts.doorRightBack = {frontProxPrompt1}
@@ -350,6 +350,11 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	for _, part in nonMainDoorParts do
 		weld(part, hingePart)
 	end
+
+	local lockFront = base:GetAttribute("LockFront") :: boolean?
+	local lockBack = base:GetAttribute("LockBack") :: boolean?
+	local autoLock = base:GetAttribute("AutoLock") :: boolean?
+	local remoteUnlock = base:GetAttribute("RemoteUnlock") :: string?
 
 	-- Attatchments
 	local zOffset = isDoubleDoor and (base.Size.Z / 2 + attatchmentAddDist) or (doorSizeZ / 2 + attatchmentAddDist)
@@ -374,10 +379,24 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	frontAttatchment.Position = isDoubleDoor and Vector3.new(0, 0, (-base.Size.Z / 2) + -attatchmentAddDist) or Vector3.new(0, 0, (-doorSizeZ / 2) + -attatchmentAddDist)
 	frontAttatchment.Parent = isDoubleDoor and base or part0]]
 
-	local frontProxPrompt = Instance.new("ProximityPrompt")
-	frontProxPrompt.Style = Enum.ProximityPromptStyle.Custom
-	frontProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
-	frontProxPrompt.Parent = frontAttatchment
+	local validRemoteUnlock = remoteUnlock and remoteUnlock ~= ""
+
+	local frontProxPrompt
+	if lockFront and validRemoteUnlock then
+		frontProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:withServerEnabledExpression(`{remoteUnlock}`)
+			:create(attachmentParent, context, frontAttatchment)
+	elseif lockFront and not validRemoteUnlock then
+		frontProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:withServerEnabledExpression(`false`)
+			:create(attachmentParent, context, frontAttatchment)
+	else
+		frontProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:create(attachmentParent, context, frontAttatchment)
+	end
 
 	--[[local backAttatchment = Instance.new("Attachment")
 	backAttatchment.Name = "Back"
@@ -385,20 +404,31 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	backAttatchment.Orientation = Vector3.new(0, 180, 0)
 	backAttatchment.Parent = isDoubleDoor and base or part0]]
 
-	local backProxPrompt = Instance.new("ProximityPrompt")
-	backProxPrompt.Style = Enum.ProximityPromptStyle.Custom
-	backProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST
-	backProxPrompt.Parent = backAttatchment
+	local backProxPrompt
+	if lockBack and validRemoteUnlock then
+		backProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:withServerEnabledExpression(`{remoteUnlock}`)
+			:create(attachmentParent, context, backAttatchment)
+	elseif lockBack and not validRemoteUnlock then
+		backProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:withServerEnabledExpression(`false`)
+			:create(attachmentParent, context, backAttatchment)
+	else
+		backProxPrompt = promptTemplate:fork()
+			:withDisabledSubtitleExpr(`'ui.prompt.locked'`)
+			:create(attachmentParent, context, backAttatchment)
+	end
 
 	local middleAttatchment = Instance.new("Attachment")
 	middleAttatchment.Name = "Middle"
-	middleAttatchment:SetAttribute("OmniDir", true)
 	middleAttatchment.Parent = base
 
-	local middleProxPrompt = Instance.new("ProximityPrompt")
-	middleProxPrompt.Style = Enum.ProximityPromptStyle.Custom
-	middleProxPrompt.MaxActivationDistance = PROMPT_ACTIVATION_DIST + (frontAttatchment.WorldPosition - backAttatchment.WorldPosition).Magnitude / 2 
-	middleProxPrompt.Parent = middleAttatchment
+	local middleProxPrompt = promptTemplate:fork()
+		:withOmniDir(true)
+		:withActivationDistance(PROMPT_ACTIVATION_DIST + (frontAttatchment.WorldPosition - backAttatchment.WorldPosition).Magnitude / 2 )
+		:create(attachmentParent, context, middleAttatchment)
 
 	if isDoubleDoor then
 		local promptsForDouble = prompts :: DoorPromptComponent.DoubleDoorPrompts
@@ -413,11 +443,6 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 	end
 
 	-- Setup
-
-	local lockFront = base:GetAttribute("LockFront") :: boolean?
-	local lockBack = base:GetAttribute("LockBack") :: boolean?
-	local autoLock = base:GetAttribute("AutoLock") :: boolean?
-	local remoteUnlock = base:GetAttribute("RemoteUnlock") :: string?
 
 	local newDoor = Door.new(
 		hingePart, {
@@ -474,16 +499,16 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 		end
 	end
 
-	frontProxPrompt.Triggered:Connect(triggerFront)
-	backProxPrompt.Triggered:Connect(triggerBack)
-	middleProxPrompt.Triggered:Connect(triggerMiddle)
+	frontProxPrompt:getTriggeredEvent():Connect(triggerFront)
+	backProxPrompt:getTriggeredEvent():Connect(triggerBack)
+	middleProxPrompt:getTriggeredEvent():Connect(triggerMiddle)
 
 	if isDoubleDoor then
 		local promptsForDouble = prompts :: DoorPromptComponent.DoubleDoorPrompts
-		promptsForDouble.doorLeftBack[1].Triggered:Connect(triggerBack)
-		promptsForDouble.doorLeftFront[1].Triggered:Connect(triggerFront)
-		promptsForDouble.doorRightBack[1].Triggered:Connect(triggerBack)
-		promptsForDouble.doorRightFront[1].Triggered:Connect(triggerFront)
+		promptsForDouble.doorLeftBack[1]:getTriggeredEvent():Connect(triggerBack)
+		promptsForDouble.doorLeftFront[1]:getTriggeredEvent():Connect(triggerFront)
+		promptsForDouble.doorRightBack[1]:getTriggeredEvent():Connect(triggerBack)
+		promptsForDouble.doorRightFront[1]:getTriggeredEvent():Connect(triggerFront)
 	end
 
 	if remoteUnlock and string.match(remoteUnlock, "%S") ~= nil then
@@ -491,7 +516,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model):
 			GlobalStatesHolder.setState(remoteUnlock, false)
 		end
 		GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
-			if v then
+			if v and not (newDoor:isOpen() or newDoor:isTurning()) then
 				task.wait(0.3)
 				if GlobalStatesHolder.getState(remoteUnlock) then
 					newDoor:unlockBothSides()

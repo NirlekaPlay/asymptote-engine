@@ -2,6 +2,7 @@
 
 local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
+local TweenService = game:GetService("TweenService")
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
 
 local localPlayer = Players.LocalPlayer
@@ -14,6 +15,18 @@ local REF_KEY = ui_keySideFrame.REF
 local REF_ACTION = ui_actionSideFrame.REF
 local PREFIX = "- "
 local BLACK = Color3.new(0, 0, 0)
+
+local ROOT_OFF_SCREEN_POS = UDim2.new(0.5, 0, -1, 0)
+local ROOT_ON_SCREEN_POS = UDim2.new(0.5, 0, 0, 0)
+local SHOW_TWEEN_DUR = 0.5
+local TWEEN_INFO_IN = TweenInfo.new(
+	SHOW_TWEEN_DUR,
+	Enum.EasingStyle.Quart,
+	Enum.EasingDirection.Out
+)
+
+ui.Root.AnchorPoint = Vector2.new(0.5, 0)
+ui.Root.Position = ROOT_OFF_SCREEN_POS
 
 ui.Enabled = true
 
@@ -48,3 +61,7 @@ createNewPair("H", "Help")
 createNewPair("L", "Toggle Mouse Unlock")
 createNewPair("N", "Debug brain")
 createNewPair("B", "Debug tracers")
+
+task.wait(5)
+
+TweenService:Create(ui.Root, TWEEN_INFO_IN, { Position = ROOT_ON_SCREEN_POS }):Play()

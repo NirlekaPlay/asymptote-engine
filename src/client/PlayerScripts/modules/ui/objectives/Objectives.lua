@@ -60,6 +60,8 @@ local function createObjectiveUI(headerName: string, ref: typeof(referenceUi), h
 	objectiveUiClone.Parent = ref.Parent
 	objectiveUiClone.Header.Text = ClientLanguage.getOrDefault(headerTextKey, headerTextKey)
 	objectiveUiClone.Header.BackgroundColor3 = headerColor3
+	objectiveUiClone.TextLabel.AutomaticSize = Enum.AutomaticSize.Y
+	objectiveUiClone.TextLabel.TextWrapped = true
 
 	if textColor3 then
 		objectiveUiClone.Header.TextColor3 = textColor3

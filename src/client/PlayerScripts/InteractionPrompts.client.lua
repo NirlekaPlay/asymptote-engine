@@ -17,6 +17,9 @@ local HelpMenu = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.me
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
+local String = require(ReplicatedStorage.shared.util.string.String)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
+local TriggerAttributes = require(ReplicatedStorage.shared.world.interaction.attributes.TriggerAttributes)
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -33,11 +36,6 @@ local INF = math.huge
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local GREEN = Color3.new(0, 1, 0)
-
-local ATTRIBUTES = {
-	PRIMARY_HOLD_CLIENT_CONDITION = "PrimaryHoldClientShowCondition",
-	PRIMARY_HOLD_CONDITION_FAIL_SUBTITLE = "PrimaryHoldConditionFailTitle" -- don't ask.
-}
 
 type InteractionPrompt = InteractionPrompt.InteractionPrompt
 type InteractionPromptConfiguration = InteractionPromptConfiguration.InteractionPromptConfiguration
@@ -81,22 +79,23 @@ local function isWorldPosInPartBounds(pos: Vector3, part: BasePart): boolean
 		and math.abs(relativePos.Z) <= halfSize.Z
 end
 
-local function traverseAncestryUntil(root: Instance, predicate: (Instance) -> boolean): Instance?
+local function traverseAncestryUntilLast(root: Instance, predicate: (Instance) -> boolean): Instance?
+	local lastMatch = nil
 	local current = root
 	
 	while current do
 		if predicate(current) then
-			return current
+			lastMatch = current
 		end
 		current = current.Parent
 	end
 	
-	return nil
+	return lastMatch
 end
 
 local function getParentModelOrDefault(root: Instance, default: Instance): Instance
-	return traverseAncestryUntil(root, function(inst)
-		return inst:IsA("Model")
+	return traverseAncestryUntilLast(root, function(inst)
+		return inst:IsA("Model") or inst:IsA("BasePart")
 	end) or default
 end
 
@@ -187,8 +186,8 @@ end
 --[=[
 	Shows a prompt that can not be interacted, with a text message showing why.
 ]=]
-local function showNonInteractivePrompt(prompt: InteractionPrompt, failMsg: string): ()
-	prompt:showNonInteractable(failMsg)
+local function showNonInteractivePrompt(prompt: InteractionPrompt, titleKey: string, subtitleKey: string): ()
+	prompt:showNonInteractable(titleKey, subtitleKey)
 	if DEBUG_PROMPTS then
 		setDebugPointColor(debugPartsPerPrompt[prompt], BLUE)
 	end
@@ -204,11 +203,15 @@ local function hideAndDisablePrompt(prompt: InteractionPrompt): ()
 	end
 end
 
-local function getConditionFailMessage(prompt: InteractionPrompt): string
+local function getConditionFailMessage(prompt: InteractionPrompt, disableReason: number?): (string, string)
 	local attachment = prompt:getAttachment()
-	local failMsgAtt = attachment:GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CONDITION_FAIL_SUBTITLE) :: string?
+	local titleKeyAtt = attachment:GetAttribute(TriggerAttributes.DISABLED_TITLE) :: string? or ""
+	local subtitleKeyAtt = attachment:GetAttribute(TriggerAttributes.DISABLED_SUBTITLE) :: string? or "NO_DISABLED_SUBTITLE"
 
-	return failMsgAtt and ClientLanguage.getOrDefault(failMsgAtt, failMsgAtt) or "NO_FAIL_SUBTITLE"
+	local titleKey = ClientLanguage.getOrDefault(titleKeyAtt, titleKeyAtt)
+	local subtitleKey = ClientLanguage.parseString(subtitleKeyAtt)
+
+	return titleKey, subtitleKey
 end
 
 --
@@ -225,9 +228,40 @@ local function parseCondition(str: string): any
 	))
 end
 
+local function playerHasAtleastOneOfTheTools(player: Player, minRequiredTools: string): boolean
+	local requiredToolNames = String.splitByWhitespace(minRequiredTools)
+		
+	for _, toolName in requiredToolNames do
+		local foundBackpack = localPlayer.Backpack:FindFirstChild(toolName)
+		if foundBackpack and foundBackpack:IsA("Tool") then
+			return true
+		end
+
+		if localPlayer.Character then
+			local foundChar = (localPlayer.Character :: Model):FindFirstChild(toolName)
+			if foundChar and foundChar:IsA("Tool") then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
 local function evaluatePromptShowCondition(prompt: InteractionPrompt): any
-	local conditionAtt = prompt:getAttachment():GetAttribute(ATTRIBUTES.PRIMARY_HOLD_CLIENT_CONDITION) :: string?
-	if not conditionAtt or type(conditionAtt) ~= "string" then
+	if prompt:getAttachment():GetAttribute(TriggerAttributes.SERVER_ENABLED) == false then
+		return false
+	end
+
+	local requiredToolsStr = prompt:getAttachment():GetAttribute(TriggerAttributes.MIN_REQUIRED_TOOLS) :: string?
+	if requiredToolsStr ~= nil and not UString.isBlank(requiredToolsStr) then
+		if not playerHasAtleastOneOfTheTools(localPlayer, requiredToolsStr) then
+			return false
+		end
+	end
+
+	local conditionAtt = prompt:getAttachment():GetAttribute(TriggerAttributes.CLIENT_ENABLED) :: string?
+	if not conditionAtt or type(conditionAtt) ~= "string" or conditionAtt == "" then
 		return true -- It doesn't have a condition, so let it show anyway
 	end
 
@@ -277,6 +311,20 @@ local function update(deltaTime: number): ()
 		
 		if not proxPrompt or not proxPrompt.Parent or not proxPrompt.Enabled then
 			continue
+		end
+
+		if interactionPrompt:getAttachment():GetAttribute(TriggerAttributes.SERVER_VISIBLE) == false then
+			continue
+		end
+
+		local clientVisibleAtt = interactionPrompt:getAttachment():GetAttribute(TriggerAttributes.CLIENT_VISIBLE) :: string?
+		if clientVisibleAtt then
+			if clientVisibleAtt ~= "" then
+				local evaluated = parseCondition(clientVisibleAtt)
+				if not evaluated then
+					continue
+				end
+			end
 		end
 
 		local promptAttachment = interactionPrompt:getAttachment()
@@ -367,6 +415,8 @@ local function update(deltaTime: number): ()
 		local canShow = evaluatePromptShowCondition(currentPrompt)
 		if not canShow then
 			showNonInteractivePrompt(currentPrompt, getConditionFailMessage(currentPrompt))
+		else
+			showAndEnablePrompt(currentPrompt)
 		end
 	end
 

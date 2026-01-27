@@ -23,6 +23,7 @@ local SummonCommand = require(ServerScriptService.server.commands.SummonCommand)
 local TagCommand = require(ServerScriptService.server.commands.TagCommand)
 local TeleportCommand = require(ServerScriptService.server.commands.TeleportCommand)
 local TickCommand = require(ServerScriptService.server.commands.TickCommand)
+local VariableCommand = require(ServerScriptService.server.commands.VariableCommand)
 local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
 local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEntityPosition)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
@@ -61,6 +62,7 @@ function Commands.register()
 	GreetCommand.register(dispatcher)
 	TickCommand.register(dispatcher)
 	RefreshCommand.register(dispatcher)
+	VariableCommand.register(dispatcher)
 end
 
 function Commands.getDispatcher(): CommandDispatcher

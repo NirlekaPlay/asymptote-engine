@@ -33,6 +33,7 @@ local MissionEndZone = require(ServerScriptService.server.world.level.clutter.pr
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local SoundSource = require(ServerScriptService.server.world.level.clutter.props.SoundSource)
 local TriggerZone = require(ServerScriptService.server.world.level.clutter.props.triggers.TriggerZone)
+local FreeTrigger = require(ServerScriptService.server.world.level.clutter.props.triggers.interaction.FreeTrigger)
 local ElevatorShaftController = require(ServerScriptService.server.world.level.components.ElevatorShaftController)
 local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
 local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
@@ -768,7 +769,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					Pants = Content.fromAssetId(pantsId)
 				}, nil, disguiseProfile.DisguiseClass)
 
-				newDisguiser:setupProximityPrompt()
+				newDisguiser:setupProximityPrompt(Level:getExpressionContext())
 
 				placeholder.Transparency = 1
 				placeholder.CanCollide = false
@@ -808,7 +809,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 					Pants = Content.fromAssetId(pantsId)
 				}, disguiseProfile.BrickColor, disguiseProfile.DisguiseClass)
 
-				newDisguiser:setupProximityPrompt()
+				newDisguiser:setupProximityPrompt(Level:getExpressionContext())
 				return true
 			end
 
@@ -844,12 +845,12 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "CardReader" and passed then
-				CardReader.createFromModel(prop)
+				CardReader.createFromModel(placeholder, prop, Level)
 				return true
 			end
 
 			if startsWith(placeholder.Name, "Door") and passed and prop then
-				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop)] = true
+				propsInLevelSet[DoorCreator.createFromPlaceholder(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -905,6 +906,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if placeholder.Name == "ElevatorCallButton" and prop then
 				propsInLevelSet[ElevatorCallButton.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "FreeTrigger" then
+				propsInLevelSet[FreeTrigger.createFromPlaceholder(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -1010,6 +1016,8 @@ function Level.restartLevel(): ()
 
 	task.wait()
 
+	Mission.resetAlertLevel()
+
 	for component in stateComponentsSet do
 		component:onLevelRestart()
 	end
@@ -1047,8 +1055,6 @@ function Level.restartLevel(): ()
 	if DEBUG_STATE_CHANGES then
 		print("Variables after global resets:", GlobalStatesHolder.getAllStatesReference())
 	end
-
-	Mission.resetAlertLevel()
 
 	for _, player in Players:GetPlayers() do
 		local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)

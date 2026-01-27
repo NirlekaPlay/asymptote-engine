@@ -133,6 +133,7 @@ nav:
         - Props: level/props.md
         - Props Reference: level/props-reference.md
     - Conditional Expressions: engine/conditional-expressions.md
+    - Changelogs: articles/changelog/changelog.md
   - Contributing:
     - Bugs: contributing/bugs.md
     - Conventions: contributing/conventions.md

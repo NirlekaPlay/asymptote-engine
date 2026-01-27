@@ -1,6 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
 local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
 local DoorPromptComponent = require(ServerScriptService.server.world.level.clutter.props.DoorPromptComponent)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
@@ -47,9 +49,9 @@ export type DoorState = number
 export type DoorSides = number
 
 export type DoorPrompts = {
-	front: {ProximityPrompt},
-	back: {ProximityPrompt},
-	middle: {ProximityPrompt}
+	front: {WorldInteractionPrompt.WorldInteractionPrompt},
+	back: {WorldInteractionPrompt.WorldInteractionPrompt},
+	middle: {WorldInteractionPrompt.WorldInteractionPrompt}
 }
 
 local TURNING_TIME = 0.3

@@ -3,14 +3,14 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
-local PlayerHeadRotationClient = TypedRemotes.PlayerHeadRotationClient
+local ClientboundPlayerHeadRotation = TypedRemotes.ClientboundPlayerHeadRotation
 
-TypedRemotes.PlayerHeadRotationServer.OnServerEvent:Connect(function(player, cameraPos)
+TypedRemotes.ServerboundPlayerHeadRotation.OnServerEvent:Connect(function(player, cameraPos)
 	for _, otherPlayer in ipairs(Players:GetPlayers()) do
 		if otherPlayer == player then
 			continue
 		end
 
-		PlayerHeadRotationClient:FireClient(otherPlayer, player, cameraPos)
+		ClientboundPlayerHeadRotation:FireClient(otherPlayer, player, cameraPos)
 	end
 end)
