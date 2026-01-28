@@ -8,10 +8,10 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
 
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 local QuoteOfTheDay = require(ReplicatedStorage.shared.quotes.QuoteOfTheDay)
 local QuoteOfTheDayList = require(ReplicatedStorage.shared.quotes.QuoteOfTheDayList)
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
-local UITextShadow = require(script.Parent.UITextShadow)
 
 local DEBUG_MODE_ATTRIBUTE_NAME = "QuoteOfTheDayDebugMode"
 local DEBUG_MODE = StarterGui:GetAttribute(DEBUG_MODE_ATTRIBUTE_NAME)
