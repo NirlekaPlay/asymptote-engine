@@ -14,7 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TriggerAttributes = require(ReplicatedStorage.shared.world.interaction.attributes.TriggerAttributes)
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
-local UIGradientWipe = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UIGradientWipe)
+local UIGradientWipe = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UIGradientWipe)
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")

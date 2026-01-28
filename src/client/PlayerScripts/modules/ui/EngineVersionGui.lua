@@ -7,7 +7,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 
 local LoadingScreen = require(script.Parent.LoadingScreen)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 
 local DEBUG_WARN_MISSING_INSTANCES = false
 local TELEPORT_WAIT_TIME = 0.5

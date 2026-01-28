@@ -1,4 +1,5 @@
 --!strict
+
 local TweenService = game:GetService("TweenService")
 
 local GRADIENT_WIPE_NUM_SEQ = NumberSequence.new({
