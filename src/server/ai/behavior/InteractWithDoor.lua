@@ -4,7 +4,7 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Bounds = require(ReplicatedStorage.shared.math.geometry.Bounds)
+local Bounds = require(ReplicatedStorage.shared.util.math.geometry.Bounds)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
