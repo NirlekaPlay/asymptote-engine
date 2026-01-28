@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
-local Bounds = require(ReplicatedStorage.shared.math.geometry.Bounds)
+local Bounds = require(ReplicatedStorage.shared.util.math.geometry.Bounds)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 

@@ -7,7 +7,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
 local ClientLanguage = require(StarterPlayer.StarterPlayerScripts.client.modules.language.ClientLanguage)
 local IndicatorsRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.hud.indicator.IndicatorsRenderer)
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 local localPlayer = Players.LocalPlayer

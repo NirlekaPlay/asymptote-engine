@@ -5,10 +5,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local SHOW_POS = UDim2.fromScale(0, 0)
-local HIDE_POS = UDim2.fromScale(0, 0.05)
+local HIDE_POS = UDim2.fromScale(0, -0.05)
 
 local TWEEN_INFO_EXPO_IN = TweenInfo.new(1.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
-local TWEEN_INFO_EXPO_IN_FAST = TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+local TWEEN_INFO_EXPO_IN_FAST = TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 
 local DIALOGUE_UI = ReplicatedStorage.shared.assets.gui.Dialogue
 
@@ -20,19 +20,34 @@ local dialogueFrame = ui.Root.DialogueFrame
 local dialogueText = ui.Root.DialogueFrame.DialogueText
 local dialogueSpeaker = ui.Root.DialogueFrame.SpeakerText
 
-gradientTransparencyNumValue.Value = 1
+dialogueText.TextSize *= 1.2
+dialogueSpeaker.TextSize *= 1.5
 
-local function calculate(original: number, alpha: number): number
-	return original + (1 - original) * alpha
-end
+local startValue1 = 1
+local goalValue1 = 0.0375
+
+local startValue2 = 1 
+local goalValue2 = 0.494
+
+local startValue3 = 1
+local goalValue3 = 1
 
 gradientTransparencyNumValue.Changed:Connect(function(alpha)
+	-- Linear interpolation: (start + (goal - start) * (1 - alpha))
+	-- Note: Using (1 - alpha) because the goal is reached at alpha = 0
+	
+	local current1 = startValue1 + (goalValue1 - startValue1) * (1 - alpha)
+	local current2 = startValue2 + (goalValue2 - startValue2) * (1 - alpha)
+	local current3 = startValue3 + (goalValue3 - startValue3) * (1 - alpha)
+
 	gradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, calculate(0, alpha)),
-		NumberSequenceKeypoint.new(0.150812, calculate(0.00624996, alpha)),
-		NumberSequenceKeypoint.new(1, 1)
+		NumberSequenceKeypoint.new(0, current1),
+		NumberSequenceKeypoint.new(0.501, current2),
+		NumberSequenceKeypoint.new(1, current3)
 	})
 end)
+
+gradientTransparencyNumValue.Value = 1
 
 ui.Parent = Players.LocalPlayer.PlayerGui
 dialogueFrame.ZIndex = 2
@@ -86,11 +101,9 @@ function DialogueUIHandler.transitionDialogue(show: boolean)
 	local targetPosition = show and SHOW_POS or HIDE_POS
 	local tweenInfo = show and TWEEN_INFO_EXPO_IN or TWEEN_INFO_EXPO_IN
 	local teenInfoText = show and TWEEN_INFO_EXPO_IN or TWEEN_INFO_EXPO_IN_FAST
-	
-	local targetTrans = show and 0 or 1
+
 	local targetTextTrans = show and 0 or 1
-	
-	TweenService:Create(dialogueSpeaker, teenInfoText, { BackgroundTransparency = targetTrans }):Play()
+
 	TweenService:Create(dialogueSpeaker, teenInfoText, { TextTransparency = targetTextTrans }):Play()
 
 	TweenService:Create(dialogueFrame, tweenInfo, { Position = targetPosition }):Play()

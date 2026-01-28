@@ -17,7 +17,10 @@ local function deserializeTweenInfo(serialized: LocalTweenPayload.SerializedTwee
 end
 
 TypedRemotes.ClientBoundTween.OnClientEvent:Connect(function(payload)
-	-- TODO: Pretty sure theres a more optimized way to do this.
+	if not payload.instance or not payload.instance:IsDescendantOf(game) then
+		return
+	end
+
 	TweenService:Create(
 		payload.instance, deserializeTweenInfo(payload.tweenInfo), payload.properties
 	):Play()

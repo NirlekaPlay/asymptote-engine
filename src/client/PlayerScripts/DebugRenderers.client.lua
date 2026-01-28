@@ -11,7 +11,7 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local BrainDebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.debug.BrainDebugRenderer)
 local DebugRenderer = require(StarterPlayer.StarterPlayerScripts.client.modules.renderer.debug.DebugRenderer)
 local RTween = require(StarterPlayer.StarterPlayerScripts.client.modules.interpolation.RTween)
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 
 local currentDebugRendererIndicator: ScreenGui
 local currentDebugRendererText: TextLabel

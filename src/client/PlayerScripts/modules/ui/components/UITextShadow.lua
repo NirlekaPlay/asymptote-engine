@@ -30,10 +30,10 @@ end
 	behind the front TextLabel.
 ]=]
 function UITextShadow.createTextShadow(
-	frontText: TextLabel, 
-	angleDegrees: number?, 
-	distance: number?, 
-	shadowColor: Color3?, 
+	frontText: TextLabel,
+	angleDegrees: number?,
+	distance: number?,
+	shadowColor: Color3?,
 	shadowTransparency: number?
 ): TextLabel
 

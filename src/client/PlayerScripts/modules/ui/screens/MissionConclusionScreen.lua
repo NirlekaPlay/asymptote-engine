@@ -11,7 +11,7 @@ local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.i
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
 local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Spectate)
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 local DialogueController = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueController)
 
 local LocalPlayer = Players.LocalPlayer

@@ -3,7 +3,7 @@
 local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.UITextShadow)
+local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui

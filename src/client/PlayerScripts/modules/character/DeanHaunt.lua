@@ -3,7 +3,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local BoundingBox = require(ReplicatedStorage.shared.math.geometry.BoundingBox)
+local BoundingBox = require(ReplicatedStorage.shared.util.math.geometry.BoundingBox)
 
 local DeanHaunt = {}
 
