@@ -1,8 +1,9 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local IsHalloween = require(ReplicatedStorage.shared.util.misc.IsHalloween)
 local DeanHaunt = require(StarterPlayer.StarterPlayerScripts.client.modules.character.DeanHaunt)
-local IsHalloween = require(StarterPlayer.StarterPlayerScripts.client.modules.util.IsHalloween)
 
 local CHECK_INTERVAL = 60
 

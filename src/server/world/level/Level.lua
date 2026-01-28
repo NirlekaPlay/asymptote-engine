@@ -13,6 +13,7 @@ local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.Camera
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionEvaluationSorter = require(ReplicatedStorage.shared.util.expression.ExpressionEvaluationSorter)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
+local IsHalloween = require(ReplicatedStorage.shared.util.misc.IsHalloween)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local DisguiseConfig = require(ServerScriptService.server.disguise.DisguiseConfig)
@@ -92,10 +93,7 @@ local function isEmptyStr(str: string): boolean
 end
 
 local function setIsHalloweenVar(): ()
-	local currentMonth = tonumber(os.date("%m")) -- Returns month as number (1-12)
-	local isHalloween = currentMonth == 10
-
-	GlobalStatesHolder.setState("IsHalloween", isHalloween)
+	GlobalStatesHolder.setState("IsHalloween", IsHalloween())
 end
 
 local function getRandomSeed(): number
