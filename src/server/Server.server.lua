@@ -9,6 +9,7 @@ local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTyp
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
+local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionManager = require(ServerScriptService.server.collection.CollectionManager)
@@ -165,7 +166,9 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onM
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
 Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
-Level.initializeLevel()
+pcall(function()
+	Level.initializeLevel()
+end)
 
 -- to prevent race condition bullshit
 local playersToRemove: { [number]: true } = {}
@@ -228,6 +231,7 @@ end
 RunService.PostSimulation:Connect(update)
 
 CollisionGroupManager.register()
+ItemService.register()
 
 -- To prevent streaming bullshit.
 -- This fixes players who joined and don't have a character yet.
