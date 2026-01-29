@@ -332,23 +332,28 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 	attachment:SetAttribute(TriggerAttributes.CLIENT_VISIBLE, setAttributes.clientVisibleExpr)
 	attachment:SetAttribute(TriggerAttributes.CLIENT_ENABLED, setAttributes.clientEnabledExpr)
 
-	GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
-		if serverVisibleExprUsedVars[variableName] then
-			attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
-		end
+	proximityPrompt.Parent = attachment
+	local worldPrompt = WorldInteractionPrompt.new(proximityPrompt)
 
-		if serverEnabledExprUsedVars[variableName] then
-			attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, ExpressionParser.evaluate(parsedServerEnabledExpr, expressionContext))
-		end
+	worldPrompt:getMaid():giveTask(attachment)
 
-		if disabledSubtitleUsedVars[variableName] then
-			attachment:SetAttribute(TriggerAttributes.DISABLED_SUBTITLE, ExpressionParser.evaluate(parsedDisabledSubtitleExpr, expressionContext))
-		end
-	end)
+	worldPrompt:getMaid():giveTask(
+		GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
+			if serverVisibleExprUsedVars[variableName] then
+				attachment:SetAttribute(TriggerAttributes.SERVER_VISIBLE, ExpressionParser.evaluate(parsedServerVisibleExpr, expressionContext))
+			end
+
+			if serverEnabledExprUsedVars[variableName] then
+				attachment:SetAttribute(TriggerAttributes.SERVER_ENABLED, ExpressionParser.evaluate(parsedServerEnabledExpr, expressionContext))
+			end
+
+			if disabledSubtitleUsedVars[variableName] then
+				attachment:SetAttribute(TriggerAttributes.DISABLED_SUBTITLE, ExpressionParser.evaluate(parsedDisabledSubtitleExpr, expressionContext))
+			end
+		end)
+	)
 
 	--
-
-	local worldPrompt = WorldInteractionPrompt.new(proximityPrompt)
 
 	-- TODO: This should be handled in the WorldProximityPrompt itself
 	-- Considering it needs to evaluate an expression
@@ -365,22 +370,24 @@ function InteractionPromptBuilder.create(self: InteractionPromptBuilder, parentP
 			giveStatus = PlayerStatusTypes.CRIMINAL_SUSPICIOUS
 		end
 
-		worldPrompt:getHoldBeganEvent():Connect(function(player)
-			local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
-			if playerStatus then
-				playerStatus:addStatus(giveStatus)
-			end
-		end)
+		worldPrompt:getMaid():giveTask(
+			worldPrompt:getHoldBeganEvent():Connect(function(player)
+				local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+				if playerStatus then
+					playerStatus:addStatus(giveStatus)
+				end
+			end)
+		)
 
-		worldPrompt:getHoldEndedEvent():Connect(function(player)
-			local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
-			if playerStatus then
-				playerStatus:removeStatus(giveStatus)
-			end
-		end)
+		worldPrompt:getMaid():giveTask(
+			worldPrompt:getHoldEndedEvent():Connect(function(player)
+				local playerStatus = PlayerStatusRegistry.getPlayerStatusHolder(player)
+				if playerStatus then
+					playerStatus:removeStatus(giveStatus)
+				end
+			end)
+		)
 	end
-
-	proximityPrompt.Parent = attachment
 
 	return worldPrompt
 end
