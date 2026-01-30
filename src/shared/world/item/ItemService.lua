@@ -64,6 +64,8 @@ function ItemService.register(): ()
 		local itemTag = "Item" .. inst.Name
 		inst:AddTag(itemTag)
 
+		ItemService.registerItem(inst.Name, Item.fromTool(inst))
+
 		CollectionService:GetInstanceAddedSignal(itemTag):Connect(function(taggedInst)
 			if not taggedInst:IsA("Tool") then
 				return
