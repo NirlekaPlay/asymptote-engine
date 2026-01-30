@@ -165,6 +165,7 @@ CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onM
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
+ItemService.register()
 Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
 pcall(function()
 	Level.initializeLevel()
@@ -231,7 +232,6 @@ end
 RunService.PostSimulation:Connect(update)
 
 CollisionGroupManager.register()
-ItemService.register()
 
 -- To prevent streaming bullshit.
 -- This fixes players who joined and don't have a character yet.
