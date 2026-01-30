@@ -97,11 +97,13 @@ function ItemService.register(): ()
 
 			--
 
-			local ancestryChangedConn
-			local promptTriggeredConn
+			local ancestryChangedConn: RBXScriptConnection?
+			local promptTriggeredConn: RBXScriptConnection?
+			local destroyedConn: RBXScriptConnection?
 
 			local function destroy(): ()
 				print("Destroying...")
+
 				if ancestryChangedConn then
 					ancestryChangedConn:Disconnect()
 					ancestryChangedConn = nil :: any
@@ -110,6 +112,11 @@ function ItemService.register(): ()
 				if promptTriggeredConn then
 					promptTriggeredConn:Disconnect()
 					promptTriggeredConn = nil :: any
+				end
+
+				if destroyedConn then
+					destroyedConn:Disconnect()
+					destroyedConn = nil
 				end
 
 				prompt:destroy()
@@ -136,11 +143,11 @@ function ItemService.register(): ()
 				prompt:setServerVisible(true)
 			end)
 
-			promptTriggeredConn= prompt:getTriggeredEvent():Connect(function(player)
+			promptTriggeredConn = prompt:getTriggeredEvent():Connect(function(player)
 				taggedInst.Parent = player.Backpack
 			end)
 
-			taggedInst.Destroying:Once(destroy)
+			destroyedConn = taggedInst.Destroying:Once(destroy)
 		end)
 	end
 end
