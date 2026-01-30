@@ -34,17 +34,6 @@ if explFolder then
 end
 
 local ATTRIBUTE_HANDLERS = {
-	fbb = {
-		mags = function(item: Instance, value: any)
-			item.settings.magleft.Value = value
-		end,
-		fireInterval = function(item: Instance, value: any)
-			item.settings.speed.Value = value
-		end,
-		magCapacity = function(item: Instance, value: any)
-			item.settings.maxmagcapacity.Value = value
-		end,
-	},
 	c4 = {
 		radius = function(item: Instance, value: any)
 			require(item.Settings).ExpRange = value
@@ -115,17 +104,19 @@ end
 
 local function applyAttributes(item: Instance, itemName: string, attributes: { [string]: any })
 	local handlers = ATTRIBUTE_HANDLERS[itemName]
-	if not handlers or not attributes then return end
+	if not attributes then
+		return
+	end
 	
 	for attrName, attrValue in pairs(attributes) do
 		if attrValue == "inf" then
 			attrValue = INF
 		end
-		local handler = handlers[attrName]
+		local handler = handlers and handlers[attrName] or nil
 		if handler then
 			handler(item, attrValue)
 		else
-			warn(`Unknown attribute '{attrName}' for item '{itemName}'`)
+			item:SetAttribute(attrName, attrValue)
 		end
 	end
 end
