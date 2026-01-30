@@ -13,6 +13,7 @@ local Spectate = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Sp
 local Transition = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.Transition)
 local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
 local DialogueController = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.dialogue.DialogueController)
+local HealthSaturationScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.HealthSaturationScreen)
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
@@ -90,6 +91,7 @@ function MissionConclusionScreen.onMissionStart(): ()
 	local subtitleFrame = missionConclusionGui.Root.Subtitle
 	
 	Transition.transition()
+	HealthSaturationScreen.enable()
 	Spectate.disableMode()
 	CameraManager.restoreToDefaultBehavior()
 	CameraManager.stopTilting()
@@ -143,6 +145,7 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 	homeButton.Text = "Return to Lobby"
 	homeButton.Interactable = true
 	Transition.transition()
+	HealthSaturationScreen.disable()
 	Spectate.disableMode()
 	CameraManager.takeOverCamera()
 	CameraManager.setSocket(cameraSocket)
