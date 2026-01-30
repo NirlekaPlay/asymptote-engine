@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.world.stealth.alertlevel.AlertLevels)
 local BrainDebugPayload = require(ReplicatedStorage.shared.network.payloads.BrainDebugPayload)
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
 local ClientBoundChatMessagePayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundChatMessagePayload)

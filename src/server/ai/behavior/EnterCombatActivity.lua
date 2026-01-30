@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.world.stealth.alertlevel.AlertLevels)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)

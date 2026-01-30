@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.world.stealth.alertlevel.AlertLevels)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 local ALERT_LEVELS = {

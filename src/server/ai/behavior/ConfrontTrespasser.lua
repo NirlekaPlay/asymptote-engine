@@ -3,10 +3,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.world.stealth.alertlevel.AlertLevels)
 local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
-local ReportType = require(ReplicatedStorage.shared.report.ReportType)
+local ReportType = require(ReplicatedStorage.shared.world.stealth.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
@@ -156,7 +156,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 				if trespasserMemory:isPresent() then
 					local player = trespasserMemory:get()
 					if player:GetAttribute(ATTRIBUTE_CONFRONTED_BY) == agent:getUuid() then
-						player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+						player:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 					end
 				end
 			end)
@@ -179,7 +179,7 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 	if trespasserMemory:isPresent() then
 		local player = trespasserMemory:get()
 		if player:GetAttribute(ATTRIBUTE_CONFRONTED_BY) == agent:getUuid() then
-			player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+			player:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 		end
 	end
 
