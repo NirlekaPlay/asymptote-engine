@@ -76,7 +76,7 @@ function ReportDeadBody.doStart(self: ReportDeadBody, agent: Agent): ()
 		reportDialogue = GuardGenericDialogues["entity.dead_body_unknown"]
 	end
 
-	local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+	local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)
 	local reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
 	talkControl:saySequencesWithDelay(choosenDialogue, 0.5, deadBodyName)
 	local reportRegisterDur = 3

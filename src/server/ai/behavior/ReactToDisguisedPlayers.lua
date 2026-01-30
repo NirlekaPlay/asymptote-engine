@@ -73,9 +73,9 @@ function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: A
 
 	local reportDialogue
 	if playerDisguiseClass == 0 then
-		reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised"])
+		reportDialogue = talkCtrl.randomlyChooseDialogueSequences(GuardGenericDialogues["status.disguised"])
 	elseif playerDisguiseClass == 1 then
-		reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised.employee"])
+		reportDialogue = talkCtrl.randomlyChooseDialogueSequences(GuardGenericDialogues["status.disguised.employee"])
 	else
 		error("ERR_INVALID_DISGUISE_CLASS")
 	end

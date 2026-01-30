@@ -75,7 +75,7 @@ function ReportSuspiciousPlayer.doStart(self: ReportSuspiciousPlayer, agent: Age
 	local faceCtrl = agent:getFaceControl()
 	local dialogue = GuardGenericDialogues["status.sus_minor.reaction"]
 
-	dialogue = talkCtrl.randomlyChosoeDialogueSequences(dialogue)
+	dialogue = talkCtrl.randomlyChooseDialogueSequences(dialogue)
 
 	faceCtrl:setFace("Angry")
 	talkCtrl:saySequences(dialogue)
@@ -108,7 +108,7 @@ function ReportSuspiciousPlayer.doUpdate(self: ReportSuspiciousPlayer, agent: Ag
 		local reportRegisterDur = 2.5
 
 		reportDialogue = GuardGenericDialogues["status.sus_minor.report"]
-		local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+		local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)
 		reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
 		talkControl:saySequencesWithDelay(choosenDialogue, 0.5)
 

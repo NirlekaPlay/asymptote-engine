@@ -80,7 +80,7 @@ function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent:
 		reportDialogue = GuardGenericDialogues["status.sus_criminal.area.unknown"]
 	end
 
-	reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(reportDialogue)
+	reportDialogue = talkCtrl.randomlyChooseDialogueSequences(reportDialogue)
 
 	faceCtrl:setFace("Angry")
 	talkCtrl:saySequences(reportDialogue, criminalCurrentArea)

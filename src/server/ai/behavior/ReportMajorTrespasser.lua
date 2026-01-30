@@ -84,7 +84,7 @@ function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent
 		reportDialogue = GuardGenericDialogues["trespassing.major.report.area.unknown"]
 	end
 
-	local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+	local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)
 	local reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
 	talkControl:saySequencesWithDelay(choosenDialogue, 0.5, trespasserAreaName)
 	local reportRegisterDur = 3
