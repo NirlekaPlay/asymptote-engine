@@ -57,6 +57,7 @@ local function addEntry(by: string, content: string): ()
 
 	newEntry.RichText = true
 	newEntry.Text = finalStr
+	newEntry.TextWrapped = true
 	newEntry.Visible = true
 
 	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, scrollingFrameUiListLayout.AbsoluteContentSize.Y)

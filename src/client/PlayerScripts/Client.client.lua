@@ -104,6 +104,7 @@ end)
 
 local function handleCharacter(character: Model): ()
 	-- Probably should use WaitForChild but I dunno...
+	Spectate.disableMode()
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.Died:Once(function()

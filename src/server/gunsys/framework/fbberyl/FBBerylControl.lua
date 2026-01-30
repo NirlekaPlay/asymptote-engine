@@ -244,7 +244,6 @@ function FBBerylControl.fire(self: FBBerylControl, direction: Vector3): ()
 	bulletData.size = Vector3.new(self.bulletSpeed / 5, 0.25, 0.25)
 	bulletData.muzzleCframe = self.gunParts.lufa.CFrame
 	bulletData.speed = self.bulletSpeed
-	GunSysTypedRemotes.BulletTracer:FireAllClients(bulletData)
 	BulletSimulation.createBulletFromPayload(bulletData, self.character, function(hithum, limb)
 		if not (hithum and hithum.Health > 0) then
 			return
@@ -264,6 +263,7 @@ function FBBerylControl.fire(self: FBBerylControl, direction: Vector3): ()
 			hithum.Health = 0
 		end
 	end)
+	GunSysTypedRemotes.BulletTracer:FireAllClients(bulletData)
 	--
 	task.wait(0.07)
 	--

@@ -84,9 +84,13 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
 	local filter = table.clone(sharedRayIgnoreList)
-	table.insert(filter, fromChar)
 	rayParams.CollisionGroup = "Bullet"
 	rayParams.FilterDescendantsInstances = filter :: any -- stfu
+	rayParams:AddToFilter(fromChar)
+
+	-- Hac.
+
+	bulletData.fromChar = fromChar
 
 	local bulletObj = {
 		fromChar = fromChar,
