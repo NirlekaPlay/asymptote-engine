@@ -1,7 +1,6 @@
 --!strict
 
 local Debris = game:GetService("Debris")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
@@ -11,7 +10,6 @@ local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.Bu
 local BulletHitHandler = require(script.Parent.BulletHitHandler)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 
-local LOCAL_PLAYER = Players.LocalPlayer
 local BULLET_INST_NAME = "GunSysBullet"
 local MUZZLE_FLASH_INST_NAME = "GunSysMuzzleFlash"
 local MUZZLE_FLASH_LIFE_TIME = 0.025
@@ -97,6 +95,7 @@ function BulletTracerHandler.onReceiveTracerData(bulletTracerData: BulletTracerP
 	local filter = sharedRayIgnoreList
 	rayParams.CollisionGroup = "Bullet"
 	rayParams.FilterDescendantsInstances = filter
+	rayParams:AddToFilter(bulletTracerData.fromChar)
 
 	BulletTracerHandler.muzzleFlash(bulletTracerData.muzzleCframe, Vector3.new(2, 0.6, 0.6), math.random(1, 15) / 10)
 	table.insert(activeBullets, {
@@ -260,6 +259,8 @@ function BulletTracerHandler.createNewBulletPart(
 ): BasePart
 
 	local bullet = Instance.new("Part")
+	bullet.AudioCanCollide = false
+	bullet.CastShadow = false
 	bullet.Name = BULLET_INST_NAME
 	bullet.Anchored = true
 	bullet.CanCollide = false
@@ -306,6 +307,7 @@ function BulletTracerHandler.muzzleFlash(muzzleCframe: CFrame, size: Vector3, tr
 	muzzleFlashPart.Parent = workspace
 
 	local particlePart = Instance.new("Part")
+	particlePart.CastShadow = false
 	particlePart.Anchored = true
 	particlePart.Transparency = 1
 	particlePart.CanCollide = false
