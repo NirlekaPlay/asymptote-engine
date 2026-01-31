@@ -15,6 +15,17 @@ local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
 	end
 }
 
+local function hasCommand<S>(context: CommandContext.CommandContext<S>): boolean
+	if context:getCommand() ~= nil then
+		return true
+	end
+	local child = context:getChild()
+	if child ~= nil then
+		return hasCommand(child)
+	end
+	return false
+end
+
 --[=[
 	@class CommandDispatcher
 
@@ -255,9 +266,11 @@ function CommandDispatcher.executeParsed<S>(
 						-- TODO: redirection stuff here
 					end
 				end
-			elseif context:getCommand() ~= nil then
-				foundCommand = true
+			end
 
+			-- Check if THIS context has a command first
+			if context:getCommand() ~= nil then
+				foundCommand = true
 				local success, err = pcall(function()
 					local value = context:getCommand()(context)
 					result += value
@@ -269,6 +282,31 @@ function CommandDispatcher.executeParsed<S>(
 					self.consumer.onCommandComplete(context, false, result)
 					if not forked then
 						error(err)
+					end
+				end
+			else
+				-- If not, check nodes
+				local commandNode = nil
+				for _, nodeInfo in context:getNodes() do
+					if nodeInfo.node:getCommand() ~= nil then
+						commandNode = nodeInfo.node
+						break
+					end
+				end
+				
+				if commandNode ~= nil then
+					foundCommand = true
+					local success, err = pcall(function()
+						local value = commandNode:getCommand()(context)
+						result += value
+						self.consumer.onCommandComplete(context, true, value)
+						successfulForks += 1
+					end)
+					if not success then
+						self.consumer.onCommandComplete(context, false, result)
+						if not forked then
+							error(err)
+						end
 					end
 				end
 			end
