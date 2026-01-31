@@ -16,7 +16,7 @@ local ForceFieldCommand = {}
 local FORCE_FIELD_INST_NAME = "CmdForceField"
 
 function ForceFieldCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
-	dispatcher:register(
+	local forceFieldNode = dispatcher:register(
 		CommandHelper.literal("forcefield")
 			:executes(function(c)
 				local source: CommandSourceStack.CommandSourceStack = c:getSource()
@@ -53,6 +53,11 @@ function ForceFieldCommand.register(dispatcher: CommandDispatcher.CommandDispatc
 				end)
 			)
 		)
+	)
+
+	dispatcher:register(
+		CommandHelper.literal("ff")
+			:redirect(forceFieldNode)
 	)
 end
 
