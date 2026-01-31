@@ -354,7 +354,7 @@ function CommandDispatcher.parseNodes<S>(
 ): ParseResults.ParseResults<S>
 
 	local source = contextSoFar:getSource()
-	local errors: { [CommandNode<S>]: string } = {}
+	local errors: { [CommandNode<S>]: ParseResults.ErrorResult } = {}
 	local potentials: { ParseResults<S> } = {}
 	local cursorPos = originalReader:getCursorPos()
 
@@ -379,7 +379,11 @@ function CommandDispatcher.parseNodes<S>(
 			-- Errors returned by `pcall` and other methods always includes the traceback.
 			-- e.g. "ReplicatedStorage.shared.commands.arguments.asymptote.selector.EntitySelectorParser:218: Player 's' not found"
 			-- This prevents that.
-			errors[childNode] = ((err :: any) :: string):match("^[^:]+:%d+: (.+)") -- what the fuck.
+			local errorCursorPos = reader:getCursorPos()
+			errors[childNode] = {
+				message = ((err :: any) :: string):match("^[^:]+:%d+: (.+)") :: string,
+				cursorPos = errorCursorPos
+			}
 			reader:setCursorPos(cursorPos)
 			continue
 		end
