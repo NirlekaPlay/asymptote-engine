@@ -244,7 +244,7 @@ function CommandDispatcher.executeParsed<S>(
 	local command = parse:getReader():getString()
 	local original = parse:getContext():build(command)
 	local contexts: { CommandContext<S> }? = {original}
-	local next: {CommandContext<S>}? = nil
+	local nextContext: {CommandContext<S>}? = nil
 
 	while contexts ~= nil do
 		for _, context in contexts do
@@ -254,21 +254,21 @@ function CommandDispatcher.executeParsed<S>(
 			if child ~= nil then
 				forked = forked or (nil) -- child:isForked()
 
-				if child:hasNodes() then
+				--if child:hasNodes() then
 					foundCommand = true
 					local modifier = nil -- context:getRedirectModifier()
 					if modifier == nil then
-						if next == nil then
-							next = {}
+						if nextContext == nil then
+							nextContext = {}
 						end
-						table.insert((next :: any), child:copyFor(context:getSource()))
+						table.insert((nextContext :: any), child:copyFor(context:getSource()))
 					else
 						-- TODO: redirection stuff here
 					end
-				end
+				--end
 			end
 
-			-- Check if THIS context has a command first
+			-- First check if context itself has a command
 			if context:getCommand() ~= nil then
 				foundCommand = true
 				local success, err = pcall(function()
@@ -277,15 +277,14 @@ function CommandDispatcher.executeParsed<S>(
 					self.consumer.onCommandComplete(context, true, value)
 					successfulForks += 1
 				end)
-
 				if not success then
 					self.consumer.onCommandComplete(context, false, result)
 					if not forked then
 						error(err)
 					end
 				end
-			else
-				-- If not, check nodes
+			-- Check nodes for commands
+			elseif next(context:getNodes()) ~= nil then
 				local commandNode = nil
 				for _, nodeInfo in context:getNodes() do
 					if nodeInfo.node:getCommand() ~= nil then
@@ -309,11 +308,26 @@ function CommandDispatcher.executeParsed<S>(
 						end
 					end
 				end
+			-- Check if rootNode has a command (for redirects with no args)
+			elseif context:getRootNode() and context:getRootNode():getCommand() ~= nil then
+				foundCommand = true
+				local success, err = pcall(function()
+					local value = context:getRootNode():getCommand()(context)
+					result += value
+					self.consumer.onCommandComplete(context, true, value)
+					successfulForks += 1
+				end)
+				if not success then
+					self.consumer.onCommandComplete(context, false, result)
+					if not forked then
+						error(err)
+					end
+				end
 			end
 		end
 
-		contexts = next
-		next = nil
+		contexts = nextContext
+		nextContext = nil
 	end
 
 	if not foundCommand then
@@ -373,7 +387,6 @@ function CommandDispatcher.parseNodes<S>(
 		context:withCommand(childNode:getCommand())
 		if reader:canRead(childNode:getRedirect() == nil and 2 or 1) then
 			reader:skip()
-
 			if childNode:getRedirect() ~= nil then
 				local childContext = CommandContextBuilder.new(source, childNode.redirect, reader:getCursorPos())
 				local parse = self:parseNodes(childNode.redirect, reader, childContext) -- istg recursion feels like a sin.
@@ -384,6 +397,11 @@ function CommandDispatcher.parseNodes<S>(
 				table.insert(potentials, parse)
 			end
 		else
+			-- No more input - check if this is a redirect without arguments
+			if childNode:getRedirect() ~= nil then
+				local childContext = CommandContextBuilder.new(source, childNode.redirect, reader:getCursorPos())
+				context:withChild(childContext)
+			end
 			table.insert(potentials, ParseResults.new(context, reader, {}))
 		end
 	end
