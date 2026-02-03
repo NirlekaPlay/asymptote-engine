@@ -11,6 +11,52 @@ then you don't really need to follow all of these. This guide is mostly for prod
 Use `--!strict` at the top of a file to enable Luau's strictest type checking. This prevents you from giving a function the wrong
 parameter types, mispelling variable names, etc, through autocomplete.
 
+## Declaration of Variables
+### Roblox Services
+Services used in a script should all be declared on the top of the script, preferably in alphabetical order.
+
+Avoid directly accessing services using the dot `.`, for example `game.ReplicatedStorage`, instead use `game:GetService(...)`, like `game:GetService("ReplicatedStorage")`.
+
+```lua
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+```
+
+### Types
+If you declare a variable but you do not set a value to it immediately, or it's initially `nil`, specify the type of the variable.
+
+```lua
+local destroyingConnection: RBXScriptConnection
+```
+
+And of course, if it could be `nil`, use `?`
+
+```lua
+local destroyingConnection: RBXScriptConnection?
+local currentTarget: Player? = nil
+```
+
+Avoid specifying the type if you *DO* set it immediately
+
+```lua
+local initialStartTime: number = 10 -- Avoid this, it's redundant
+local initialStartTime = 10 -- This is acceptable
+```
+
+An exception to this is for tables and other types that uses generics or contains something.
+
+```lua
+local closestPlayers = {} -- Avoid this
+local closestPlayers: { [Player]: true } = {} -- Do this instead
+```
+
+Another example for other types:
+
+```lua
+local currentWalkTarget: WalkTarget<Player>? = nil
+```
+
 ## Classes
 Avoid writing all systems and logic into a single monolith script. Seperate the systems into module scripts.
 A typical module script will have this as the canvas:
