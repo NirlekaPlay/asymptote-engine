@@ -223,6 +223,42 @@ local waitTime = Random.new():NextNumber(MIN_WAIT_TIME, MAX_WAIT_TIME)
 task.wait(waitTime)
 ```
 
+## Enums
+Luau doesn't have enums but creating custom enum tables is a good practice for fixed sets of data.
+
+### Reasons for using them
+
+* **Autocomplete & Safety:** Eliminates "magic strings" or numbers, preventing bugs caused by typos (e.g., `"Happpy"` instead of `"Happy"`).
+* **Readability:** `FACE_TYPES.ANGRY` is much more descriptive than the arbitrary number `1`.
+* **Centralization:** Change a value in one place, and it updates across your entire codebase.
+
+### Implementation
+For basic use, a basic table works.
+
+```lua
+local FACE_TYPES = {
+    HAPPY = 0,
+    ANGRY = 1,
+    SAD = 2
+}
+```
+
+However, if by some demonic reasons that your enum table *might* get modified, use `table.freeze` to make them read-only.
+Any attempts to modify them throws an error.
+
+```lua
+local FACE_TYPES = table.freeze({
+    HAPPY = 0,
+    ANGRY = 1,
+    SAD = 2
+})
+```
+
+```lua
+local faceControl = agent:getFaceControl()
+faceControl:setFace(FACE_TYPES.ANGRY)
+```
+
 ## Design Patterns
 
 ### Interfaces
