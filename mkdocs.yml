@@ -137,6 +137,7 @@ nav:
   - Contributing:
     - Bugs: contributing/bugs.md
     - Conventions: contributing/conventions.md
+    - Scripting Guide: contributing/scripting-guide.md
     - Planning:
       - Huh?: planning/planning.md
       - Proximity prompts: planning/proximity-prompts.md
