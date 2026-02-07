@@ -78,6 +78,11 @@ function GlobalStatesHolder.nullifyAllStatesAndEvents(): ()
 			stateEvent:Destroy()
 		end
 	end
+
+	statesChangedSignal:Destroy()
+	statesChangedSignal = nil :: any
+
+	statesChangedSignal = Instance.new("BindableEvent")
 end
 
 return GlobalStatesHolder
