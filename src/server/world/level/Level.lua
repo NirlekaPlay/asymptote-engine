@@ -356,6 +356,38 @@ function Level.initializeLevel(): ()
 	canUpdateLevel = true
 end
 
+function Level.clearLevel(): ()
+	canUpdateLevel = false
+
+	if globalVariablesStatesChangedConn then
+		globalVariablesStatesChangedConn:Disconnect()
+		globalVariablesStatesChangedConn = nil
+	end
+
+	if levelFolder then
+		levelFolder:Destroy()
+	end
+
+	if destroyNpcsCallback then
+		destroyNpcsCallback()
+	end
+
+	if voxelWorld then
+		voxelWorld:reset()
+	end
+
+	cellsList = {}
+	propsInLevelSet = {}
+	propsInLevelSetThrottledUpdate = {}
+	instancesParentedToNpcConfigs = {}
+	guardCombatNodes = {}
+	charsAppearancePayloads = {}
+	stateComponentsSet = {}
+
+	persistentInstMan:destroyAll()
+	objectiveManager = nil
+end
+
 -- TODO: THIS SHIT TOO.
 local RIG_TO_CLONE = ReplicatedStorage.shared.assets.characters.Rig
 local OUTFITS = {

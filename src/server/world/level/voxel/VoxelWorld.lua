@@ -144,6 +144,16 @@ local function visualizeComputedNodes(debugNodes: {{pos: Vector3, cost: number}}
 	end)
 end
 
+function VoxelWorld.reset(self: VoxelWorld): ()
+	cancelLastDebugThread()
+
+	self.chunks = {}
+
+	if computedNodesFolder then
+		computedNodesFolder:ClearAllChildren()
+	end
+end
+
 function VoxelWorld.getSoundPathAsync(
 	self: VoxelWorld,
 	startPos: Vector3,
