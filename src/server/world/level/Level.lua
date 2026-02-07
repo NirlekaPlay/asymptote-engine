@@ -78,6 +78,7 @@ local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
 local soundDispatcher: SoundDispatcher.SoundDispatcher
 local voxelWorld: VoxelWorld.VoxelWorld
+local delayedLevelStartThread: thread? = nil
 --
 local canUpdateLevel = false
 
@@ -350,7 +351,11 @@ function Level.initializeLevel(): ()
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
 
 	-- TODO: This might lead to inconsistencies...
-	task.delay(3, function()
+	if delayedLevelStartThread then
+		task.cancel(delayedLevelStartThread)
+		delayedLevelStartThread = nil
+	end
+	delayedLevelStartThread = task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
 
@@ -365,6 +370,13 @@ function Level.clearLevel(): ()
 		globalVariablesStatesChangedConn = nil
 	end
 
+	if delayedLevelStartThread then
+		task.cancel(delayedLevelStartThread)
+		delayedLevelStartThread = nil
+	end
+
+	cellsList = {}
+
 	if levelFolder then
 		levelFolder:Destroy()
 	end
@@ -377,7 +389,6 @@ function Level.clearLevel(): ()
 		voxelWorld:reset()
 	end
 
-	cellsList = {}
 	propsInLevelSet = {}
 	propsInLevelSetThrottledUpdate = {}
 	instancesParentedToNpcConfigs = {}
@@ -1143,7 +1154,12 @@ function Level.restartLevel(): ()
 
 	MusicController.evaluateStack()
 
-	task.delay(3, function()
+	if delayedLevelStartThread then
+		task.cancel(delayedLevelStartThread)
+		delayedLevelStartThread = nil
+	end
+
+	delayedLevelStartThread = task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
 
