@@ -389,8 +389,24 @@ function Level.clearLevel(): ()
 		voxelWorld:reset()
 	end
 
+	--
+
+	local function destroyProps(set: { [Prop.Prop]: true })
+		for prop in set do
+			if prop and prop.destroy then
+				prop:destroy()
+			end
+		end
+	end
+
+	destroyProps(propsInLevelSet)
+	destroyProps(propsInLevelSetThrottledUpdate)
+
 	propsInLevelSet = {}
 	propsInLevelSetThrottledUpdate = {}
+
+	--
+
 	instancesParentedToNpcConfigs = {}
 	guardCombatNodes = {}
 	charsAppearancePayloads = {}

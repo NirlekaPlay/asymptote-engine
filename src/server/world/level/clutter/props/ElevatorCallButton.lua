@@ -69,4 +69,13 @@ function ElevatorCallButton.onLevelRestart(self: ElevatorCallButton, serverLevel
 	return
 end
 
+--
+
+function ElevatorCallButton.destroy(self: ElevatorCallButton): ()
+	if self.proxPromptTriggeredConn then
+		self.proxPromptTriggeredConn:Disconnect()
+		self.proxPromptTriggeredConn = nil
+	end
+end
+
 return ElevatorCallButton

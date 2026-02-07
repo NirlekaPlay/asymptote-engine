@@ -32,6 +32,13 @@ function Maid.doCleaning(self: Maid): ()
 			(task :: RBXScriptConnection):Disconnect()
 		elseif typeof(task) == "Instance" then
 			(task :: Instance):Destroy()
+		elseif typeof(task) == "table" then
+			if task.destroy and type(task.destroy) == "function" then
+				local success, err = pcall(task.destroy, task)
+				if not success then
+					warn(`An error has occured when calling <{task}>::destroy() :\n{err}`)
+				end
+			end
 		end
 	end
 

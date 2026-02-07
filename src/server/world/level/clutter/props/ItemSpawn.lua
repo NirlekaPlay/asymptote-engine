@@ -114,4 +114,13 @@ function ItemSpawn.onLevelRestart(self: ItemSpawn): ()
 	self:spawnItem()
 end
 
+--
+
+function ItemSpawn.destroy(self: ItemSpawn): ()
+	if self.currentSpawnedItemParentChangedConn then
+		self.currentSpawnedItemParentChangedConn:Disconnect()
+		self.currentSpawnedItemParentChangedConn = nil
+	end
+end
+
 return ItemSpawn

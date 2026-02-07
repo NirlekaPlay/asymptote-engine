@@ -5,7 +5,9 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
+local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
 local Door = require(ServerScriptService.server.world.level.clutter.props.Door)
 local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
 local DoorPromptComponent = require(ServerScriptService.server.world.level.clutter.props.DoorPromptComponent)
@@ -89,6 +91,8 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 	if DEBUG_INST_INIT then
 		print(model)
 	end
+
+	local maid = Maid.new()
 
 	local context = serverLevel:getExpressionContext()
 
@@ -444,6 +448,12 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 
 	-- Setup
 
+	for name, prompts1 in prompts do
+		for _, prompt in prompts1 :: { WorldInteractionPrompt.WorldInteractionPrompt } do
+			maid:giveTask(prompt)
+		end
+	end
+
 	local newDoor = Door.new(
 		hingePart, {
 			front = {frontProxPrompt},
@@ -454,6 +464,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 		(isDoubleDoor and hingePart2) and DoorHingeComponent.double(hingePart, hingePart2) or DoorHingeComponent.single(hingePart),
 		pathReqPart,
 		lookVec,
+		maid,
 		doorParts,
 		lockFront,
 		lockBack,
@@ -499,23 +510,23 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 		end
 	end
 
-	frontProxPrompt:getTriggeredEvent():Connect(triggerFront)
-	backProxPrompt:getTriggeredEvent():Connect(triggerBack)
-	middleProxPrompt:getTriggeredEvent():Connect(triggerMiddle)
+	maid:giveTask(frontProxPrompt:getTriggeredEvent():Connect(triggerFront))
+	maid:giveTask(backProxPrompt:getTriggeredEvent():Connect(triggerBack))
+	maid:giveTask(middleProxPrompt:getTriggeredEvent():Connect(triggerMiddle))
 
 	if isDoubleDoor then
 		local promptsForDouble = prompts :: DoorPromptComponent.DoubleDoorPrompts
-		promptsForDouble.doorLeftBack[1]:getTriggeredEvent():Connect(triggerBack)
-		promptsForDouble.doorLeftFront[1]:getTriggeredEvent():Connect(triggerFront)
-		promptsForDouble.doorRightBack[1]:getTriggeredEvent():Connect(triggerBack)
-		promptsForDouble.doorRightFront[1]:getTriggeredEvent():Connect(triggerFront)
+		maid:giveTask(promptsForDouble.doorLeftBack[1]:getTriggeredEvent():Connect(triggerBack))
+		maid:giveTask(promptsForDouble.doorLeftFront[1]:getTriggeredEvent():Connect(triggerFront))
+		maid:giveTask(promptsForDouble.doorRightBack[1]:getTriggeredEvent():Connect(triggerBack))
+		maid:giveTask(promptsForDouble.doorRightFront[1]:getTriggeredEvent():Connect(triggerFront))
 	end
 
 	if remoteUnlock and string.match(remoteUnlock, "%S") ~= nil then
 		if not GlobalStatesHolder.hasState(remoteUnlock) then
 			GlobalStatesHolder.setState(remoteUnlock, false)
 		end
-		GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
+		maid:giveTask(GlobalStatesHolder.getStateChangedConnection(remoteUnlock):Connect(function(v)
 			if v and not (newDoor:isOpen() or newDoor:isTurning()) then
 				task.wait(0.3)
 				if GlobalStatesHolder.getState(remoteUnlock) then
@@ -523,7 +534,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 					soundUnlock:Play()
 				end
 			end
-		end)
+		end))
 	end
 
 	return newDoor
