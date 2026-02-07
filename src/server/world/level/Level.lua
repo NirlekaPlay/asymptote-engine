@@ -65,6 +65,7 @@ local instancesParentedToNpcConfigs: { [Instance]: { [Instance]: true }} = {}
 local guardCombatNodes: { Node.Node } = {}
 local levelIsRestarting = false
 local destroyNpcsCallback: () -> ()
+local uponLevelClearCallback: () -> ()
 local persistentInstMan = PersistentInstanceManager.new()
 local cellManager: CellManager.CellManager
 local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
@@ -383,6 +384,10 @@ function Level.clearLevel(): ()
 
 	if destroyNpcsCallback then
 		destroyNpcsCallback()
+	end
+
+	if uponLevelClearCallback then
+		uponLevelClearCallback()
 	end
 
 	if voxelWorld then
@@ -1199,6 +1204,10 @@ end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()
 	destroyNpcsCallback = f
+end
+
+function Level.setUponLevelClearCallback(f: () -> ()): ()
+	uponLevelClearCallback = f
 end
 
 function Level.update(deltaTime: number): ()
