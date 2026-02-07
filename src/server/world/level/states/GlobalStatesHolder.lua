@@ -1,5 +1,7 @@
 --!strict
 
+local DEBUG_STATE_CHANGES = false
+
 local globalStates: { [string]: any } = {}
 local stateSignals: { [string]: BindableEvent } = {}
 local statesChangedSignal: BindableEvent = Instance.new("BindableEvent")
@@ -55,12 +57,26 @@ end
 function GlobalStatesHolder.resetAllStates(predicate: ((stateName: string) -> boolean)?): ()
 	for stateName, stateValue in globalStates do
 		if predicate and predicate(stateName) then
-			print(`VARIABLE '{stateName}' RESET TO NIL.`)
+			if DEBUG_STATE_CHANGES then
+				print(`VARIABLE '{stateName}' RESET TO NIL.`)
+			end
 			globalStates[stateName] = nil
 			continue
 		end
 
-		print(`VARIABLE '{stateName}' LEFT AS IS.`)
+		if DEBUG_STATE_CHANGES then
+			print(`VARIABLE '{stateName}' LEFT AS IS.`)
+		end
+	end
+end
+
+function GlobalStatesHolder.nullifyAllStatesAndEvents(): ()
+	globalStates = {}
+
+	for stateName, stateEvent in stateSignals do
+		if stateEvent then
+			stateEvent:Destroy()
+		end
 	end
 end
 

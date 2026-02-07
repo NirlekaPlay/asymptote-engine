@@ -210,6 +210,8 @@ end
 
 function CardReader.destroy(self: CardReader): ()
 	self.maid:doCleaning()
+	self.lightLevelParts = {}
+	self.validCards = {}
 	setmetatable(self, nil)
 end
 

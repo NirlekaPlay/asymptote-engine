@@ -423,6 +423,7 @@ function Level.clearLevel(): ()
 
 	--
 
+	GlobalStatesHolder.nullifyAllStatesAndEvents()
 	MusicController.clearControllers()
 
 	persistentInstMan:destroyAll()
