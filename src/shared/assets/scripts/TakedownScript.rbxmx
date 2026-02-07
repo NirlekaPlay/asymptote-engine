@@ -5,7 +5,6 @@
 	<Item class="Script" referent="RBXc4b8671352134a32914fe8278f5a739a">
 		<Properties>
 			<ProtectedString name="Source"><![CDATA[--!strict
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
@@ -14,86 +13,109 @@ local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerSta
 local remote = require(ReplicatedStorage.shared.network.remotes.TypedRemotes).ClientboundSetPlayerModuleDisability
 
 local prompt = script.Parent
-local character = script.Parent.Parent.Parent.Parent
-local charHumanoid = character.Humanoid
-local charRoot = character.HumanoidRootPart
+local npcCharacter = prompt:FindFirstAncestorOfClass("Model")
+local npcHumanoid = npcCharacter and npcCharacter:FindFirstChildOfClass("Humanoid")
+local npcRoot = npcCharacter and npcCharacter:FindFirstChild("HumanoidRootPart") :: BasePart
 
-local takedownAnimId = 97587604203797
+local TAKEDOWN_ANIM_ID = 97587604203797
+local MOVE_TIMEOUT = 1.5 -- Max seconds to wait for player to reach the spot
+
 local animation = Instance.new("Animation")
-animation.AnimationId = "rbxassetid://" .. takedownAnimId
+animation.AnimationId = "rbxassetid://" .. TAKEDOWN_ANIM_ID
 animation.Parent = script
 
-local function isPlayerBehind(targetRoot: Part, playerRoot: Part): (boolean, number)
+local function isPlayerBehind(targetRoot: BasePart, playerRoot: BasePart): boolean
 	local targetForward = targetRoot.CFrame.LookVector
 	local directionToPlayer = (playerRoot.Position - targetRoot.Position).Unit
 	local dot = targetForward:Dot(directionToPlayer)
-	local angle = math.deg(math.acos(dot))
-	print(angle)
-	return angle > 80, angle
+	return math.deg(math.acos(dot)) > 80
 end
 
 prompt.Triggered:Connect(function(player)
-	if not player.Character then
-		return
-	end
-
-	local plrRoot = player.Character.HumanoidRootPart
+	-- 1. Initial Safety Checks
+	local plrChar = player.Character
+	if not (plrChar and npcRoot and npcHumanoid and npcHumanoid.Health > 0) then return end
 	
-	if not isPlayerBehind(charRoot, plrRoot) then
+	local plrRoot = plrChar:FindFirstChild("HumanoidRootPart") :: BasePart
+	local plrHumanoid = plrChar:FindFirstChildOfClass("Humanoid")
+	if not (plrRoot and plrHumanoid and plrHumanoid.Health > 0) then return end
+
+	if not isPlayerBehind(npcRoot, plrRoot) then return end
+
+	-- Lock the interaction
+	prompt.Enabled = false
+	
+	-- Store state for restoration
+	local prevWalkSpeed = plrHumanoid.WalkSpeed
+	local prevJumpPower = plrHumanoid.JumpPower
+	local statusHolder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+
+	-- 2. Cleanup Function (The "Insurance Policy")
+	local function restorePlayer()
+		if plrHumanoid and plrHumanoid.Parent then
+			plrHumanoid.WalkSpeed = prevWalkSpeed
+			plrHumanoid.JumpPower = prevJumpPower
+		end
+		remote:FireClient(player, true)
+		if statusHolder then
+			statusHolder:removeStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
+		end
+	end
+
+	-- 3. Positioning Sequence
+	statusHolder:addStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
+	remote:FireClient(player, false)
+
+	local goalPos = (npcRoot.CFrame * CFrame.new(0, 0, 1.5)).Position
+	plrHumanoid:MoveTo(goalPos)
+
+	-- Wait for arrival with a hard timeout
+	local startWait = os.clock()
+	repeat
+		task.wait() 
+	until (plrRoot.Position - goalPos).Magnitude < 1 or (os.clock() - startWait) > MOVE_TIMEOUT or not npcRoot.Parent
+
+	-- Check if everyone is still alive/exists after the walk
+	if not (plrRoot.Parent and npcRoot.Parent and plrHumanoid.Health > 0) then
+		restorePlayer()
 		return
 	end
 
-	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then return end
+	-- 4. Animation Sequence
+	plrRoot.CFrame = CFrame.lookAt(plrRoot.Position, npcRoot.Position * Vector3.new(1, 0, 1) + Vector3.new(0, plrRoot.Position.Y, 0))
+	plrHumanoid.WalkSpeed = 0
+	plrHumanoid.JumpPower = 0
 
-	local animator = humanoid:FindFirstChildOfClass("Animator")
-	if not animator then return end
-
-	prompt.Enabled = false
-
-	-- 1. CALCULATE THE SPOT BEHIND THE NPC
-	-- Offset by 2 studs on the Z-axis (backward)
-	local goalCFrame = charRoot.CFrame * CFrame.new(0, 0, 1)
-	local goalPos = goalCFrame.Position
-	local plrPreviousWalkSpeed = humanoid.WalkSpeed
-	local plrPreviousJumpPower = humanoid.JumpPower
-
-	-- 2. MAKE THE PLAYER WALK THERE
-	remote:FireClient(player, false)
-	PlayerStatusRegistry.getPlayerStatusHolder(player):addStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
-	humanoid:MoveTo(goalPos)
-
-	-- Wait until they arrive or 2 seconds pass (failsafe)
-	humanoid.MoveToFinished:Wait()
-
-	-- 3. LOCK THEM DOWN & SNAP ROTATION
-	-- Ensure they are perfectly facing the NPC's back for the anim
-	plrRoot.CFrame = CFrame.new(plrRoot.Position, charRoot.Position)
-	humanoid.WalkSpeed = 0
-	humanoid.JumpPower = 0
-
+	local animator = plrHumanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", plrHumanoid)
 	local track = animator:LoadAnimation(animation)
 	track.Priority = Enum.AnimationPriority.Action4
-	repeat
-		task.wait()
-	until track.Length > 0
+	
+	-- Failsafe for animation loading
+	local loadTimeout = 0
+	while track.Length <= 0 and loadTimeout < 1 do
+		loadTimeout += task.wait()
+	end
 
-	track:GetMarkerReachedSignal("AnimEvent_TakedownAnticipate"):Connect(function()
-		print("what the hell")
-	end)
-
-	track:GetMarkerReachedSignal("AnimEvent_TakedownSnap"):Connect(function()
-		charHumanoid.Health = 0
-		remote:FireClient(player, true)
-		humanoid.WalkSpeed = plrPreviousWalkSpeed
-		humanoid.JumpPower = plrPreviousJumpPower
+	-- Connect Events
+	local snapConnection: RBXScriptConnection
+	snapConnection = track:GetMarkerReachedSignal("AnimEvent_TakedownSnap"):Connect(function()
+		if npcHumanoid then npcHumanoid.Health = 0 end
+		snapConnection:Disconnect()
 	end)
 
 	track:Play()
+	
+	-- Wait for end or interruption
 	track.Ended:Wait()
-	PlayerStatusRegistry.getPlayerStatusHolder(player):removeStatus(PlayerStatusTypes.CRIMINAL_SUSPICIOUS)
+	
+	-- Final Cleanup
+	restorePlayer()
+	
+	-- Clean up script/prompt if NPC is dead
 	task.defer(function()
-		script:Destroy()
+		if not (npcHumanoid and npcHumanoid.Health <= 0) then
+			prompt.Enabled = true -- Allow retry if it failed somehow
+		end
 	end)
 end)]]></ProtectedString>
 			<bool name="Disabled">true</bool>
