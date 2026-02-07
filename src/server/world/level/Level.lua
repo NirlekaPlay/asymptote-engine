@@ -37,6 +37,7 @@ local TriggerZone = require(ServerScriptService.server.world.level.clutter.props
 local FreeTrigger = require(ServerScriptService.server.world.level.clutter.props.triggers.interaction.FreeTrigger)
 local ElevatorShaftController = require(ServerScriptService.server.world.level.components.ElevatorShaftController)
 local MusicController = require(ServerScriptService.server.world.level.components.MusicController)
+local StateComponent = require(ServerScriptService.server.world.level.components.registry.StateComponent)
 local StateComponentFactory = require(ServerScriptService.server.world.level.components.registry.StateComponentFactory)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local MissionManager = require(ServerScriptService.server.world.level.mission.MissionManager)
@@ -382,7 +383,20 @@ function Level.clearLevel(): ()
 	instancesParentedToNpcConfigs = {}
 	guardCombatNodes = {}
 	charsAppearancePayloads = {}
+
+	--
+
+	for component in stateComponentsSet :: { [StateComponent.StateComponent]: true } do
+		if component and component.destroy then
+			component:destroy(Level)
+		end
+	end
+
 	stateComponentsSet = {}
+
+	--
+
+	MusicController.clearControllers()
 
 	persistentInstMan:destroyAll()
 	objectiveManager = nil

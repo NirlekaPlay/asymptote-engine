@@ -7,7 +7,8 @@ local ExpressionContext = require(ReplicatedStorage.shared.util.expression.Expre
 
 export type StateComponent = {
 	fromInstance: (instance: Instance, context: ExpressionContext.ExpressionContext) -> StateComponent,
-	update: ((self: StateComponent, deltaTime: number, serverLevel: ServerLevel.ServerLevel) -> ())?
+	update: ((self: StateComponent, deltaTime: number, serverLevel: ServerLevel.ServerLevel) -> ())?,
+	destroy: ((self: StateComponent, serverLevel: ServerLevel.ServerLevel) -> ())?
 }
 
 return nil
