@@ -432,6 +432,8 @@ function Level.clearLevel(): ()
 	MusicController.clearControllers()
 
 	persistentInstMan:destroyAll()
+	levelInstancesAccessor:destroy()
+	levelInstancesAccessor = nil :: any
 	objectiveManager = nil
 end
 

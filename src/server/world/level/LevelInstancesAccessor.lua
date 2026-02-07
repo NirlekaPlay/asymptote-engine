@@ -46,4 +46,16 @@ function LevelInstancesAccessor.getGeometriesFolder(self: LevelInstancesAccessor
 	return self.geometriesFolder
 end
 
+--
+
+function LevelInstancesAccessor.destroy(self: LevelInstancesAccessor): ()
+	if self.geometriesFolder then
+		self.geometriesFolder:Destroy()
+	end
+
+	if self.nodesFolder then
+		self.nodesFolder:Destroy()
+	end
+end
+
 return LevelInstancesAccessor
