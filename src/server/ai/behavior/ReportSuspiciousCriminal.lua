@@ -5,7 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
-local ReportType = require(ReplicatedStorage.shared.report.ReportType)
+local ReportType = require(ReplicatedStorage.shared.world.stealth.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
@@ -80,7 +80,7 @@ function ReportSuspiciousCriminal.doStart(self: ReportSuspiciousCriminal, agent:
 		reportDialogue = GuardGenericDialogues["status.sus_criminal.area.unknown"]
 	end
 
-	reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(reportDialogue)
+	reportDialogue = talkCtrl.randomlyChooseDialogueSequences(reportDialogue)
 
 	faceCtrl:setFace("Angry")
 	talkCtrl:saySequences(reportDialogue, criminalCurrentArea)

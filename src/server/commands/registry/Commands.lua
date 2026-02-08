@@ -80,7 +80,7 @@ function Commands.performCommand(input: string, source: CommandSourceStack.Comma
 	local parseResults = dispatcher:parseString(input, source)
 
 	local success, errorMsg = Commands.finishParsing(parseResults, source)
-	
+
 	if not success and errorMsg then
 		source:sendFailure(
 			MutableTextComponent.literal(errorMsg)
@@ -116,19 +116,41 @@ end
 function Commands.getParseErrors<S>(parseResults: ParseResults.ParseResults<S>): string?
 	if not parseResults:getReader():canRead() then
 		return nil
-	elseif #parseResults:getErrors() == 1 then
-		local errors = parseResults:getErrors()
-		local str: string
-		for _, err in pairs(errors) do
-			str = err
-			break
-		end
-		return str
-	else
-		return parseResults:getContext():getRange():isEmpty()
-			and "Unknown or incomplete command"
-			or "Incorrect argument for command"
 	end
+	
+	local errors = parseResults:getErrors()
+	local errorCount = 0
+	for _ in errors do
+		errorCount += 1
+	end
+	
+	local input = parseResults:getReader():getString()
+	
+	if errorCount == 1 then
+		for _, err in pairs(errors) do
+			if type(err) == "table" then
+				local context = input:sub(1, err.cursorPos) .. " <-- HERE"
+				return err.message .. "\n" .. context
+			else
+				-- Fallback for old string format
+				return err
+			end
+		end
+	elseif errorCount > 1 then
+		local firstError = next(errors)
+		local err = errors[firstError]
+		
+		if type(err) == "table" then
+			local context = input:sub(1, err.cursorPos) .. " <-- HERE"
+			return err.message .. "\n" .. context
+		else
+			return err
+		end
+	end
+	
+	return parseResults:getContext():getRange():isEmpty()
+		and "Unknown or incomplete command"
+		or "Incorrect argument for command"
 end
 
 --

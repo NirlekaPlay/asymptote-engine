@@ -81,4 +81,12 @@ function CommandContext.hasNodes<S>(self: CommandContext<S>): boolean
 	return next(self.nodes) ~= nil
 end
 
+function CommandContext.getNodes<S>(self: CommandContext<S>): CommandNode.CommandNode<S>
+	return self.nodes
+end
+
+function CommandContext.getRootNode<S>(self: CommandContext<S>): CommandNode.CommandNode<S>
+	return self.rootNode
+end
+
 return CommandContext

@@ -5,7 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
-local ReportType = require(ReplicatedStorage.shared.report.ReportType)
+local ReportType = require(ReplicatedStorage.shared.world.stealth.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
@@ -73,9 +73,9 @@ function ReactToDisguisedPlayers.doStart(self: ReactToDisguisedPlayers, agent: A
 
 	local reportDialogue
 	if playerDisguiseClass == 0 then
-		reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised"])
+		reportDialogue = talkCtrl.randomlyChooseDialogueSequences(GuardGenericDialogues["status.disguised"])
 	elseif playerDisguiseClass == 1 then
-		reportDialogue = talkCtrl.randomlyChosoeDialogueSequences(GuardGenericDialogues["status.disguised.employee"])
+		reportDialogue = talkCtrl.randomlyChooseDialogueSequences(GuardGenericDialogues["status.disguised.employee"])
 	else
 		error("ERR_INVALID_DISGUISE_CLASS")
 	end

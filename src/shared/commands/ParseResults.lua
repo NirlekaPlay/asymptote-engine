@@ -10,14 +10,16 @@ ParseResults.__index = ParseResults
 
 export type ParseResults<S> = typeof(setmetatable({} :: {
 	context: CommandContextBuilder.CommandContextBuilder<S>,
-	errors: { [CommandNode.CommandNode<S>]: string },
+	errors: { [CommandNode.CommandNode<S>]: ErrorResult },
 	reader: StringReader.StringReader
 }, ParseResults))
+
+export type ErrorResult = { message: string, cursorPos: number }
 
 function ParseResults.new<S>(
 	context: CommandContextBuilder.CommandContextBuilder<S>,
 	reader: StringReader.StringReader,
-	errors: { [CommandNode.CommandNode<S>]: string }
+	errors: { [CommandNode.CommandNode<S>]: ErrorResult }
 ): ParseResults<S>
 	return setmetatable({
 		context = context,

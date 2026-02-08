@@ -3,10 +3,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.world.stealth.alertlevel.AlertLevels)
 local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
-local ReportType = require(ReplicatedStorage.shared.report.ReportType)
+local ReportType = require(ReplicatedStorage.shared.world.stealth.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
@@ -130,17 +130,17 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 		local trespasserAreaName = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(trespasserPlayer)
 		reportDialogue = trespasserAreaName and GuardGenericDialogues["trespassing.minor.report.area.known"] or GuardGenericDialogues["trespassing.minor.report.area.unknown"]
 
-		local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+		local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)
 		reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
 		talkControl:saySequencesWithDelay(choosenDialogue, 0.5, trespasserAreaName)
 	elseif currentEncounters == 2 then
-		local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(GuardGenericDialogues["trespassing.minor.second_encounter"])
+		local choosenDialogue = talkControl.randomlyChooseDialogueSequences(GuardGenericDialogues["trespassing.minor.second_encounter"])
 		talkControl:saySequences(choosenDialogue)
 	elseif currentEncounters >= 3 then
 		doReport = true
 		reportType = ReportType.CRIMINAL_SPOTTED
 		reportDialogue = GuardGenericDialogues["trespassing.minor.non_cooperative"]
-		local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+		local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)
 		reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
 		talkControl:saySequencesWithDelay(choosenDialogue, 0.5)
 	end
@@ -156,7 +156,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 				if trespasserMemory:isPresent() then
 					local player = trespasserMemory:get()
 					if player:GetAttribute(ATTRIBUTE_CONFRONTED_BY) == agent:getUuid() then
-						player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+						player:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 					end
 				end
 			end)
@@ -179,7 +179,7 @@ function ConfrontTrespasser.doStop(self: ConfrontTrespasser, agent: Agent): ()
 	if trespasserMemory:isPresent() then
 		local player = trespasserMemory:get()
 		if player:GetAttribute(ATTRIBUTE_CONFRONTED_BY) == agent:getUuid() then
-			player:GetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
+			player:SetAttribute(ATTRIBUTE_CONFRONTED_BY, nil)
 		end
 	end
 
@@ -251,7 +251,7 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 		end
 		
 		if lostDialogues then
-			local chosen = talkControl.randomlyChosoeDialogueSequences(lostDialogues)
+			local chosen = talkControl.randomlyChooseDialogueSequences(lostDialogues)
 			local speechDur = talkControl.getDialoguesTotalSpeechDuration(chosen)
 			talkControl:saySequences(chosen)
 			reportControl:reportWithCustomDur(ReportType.TRESPASSER_LOST, 2.0, speechDur)
@@ -282,11 +282,11 @@ function ConfrontTrespasser.doUpdate(self: ConfrontTrespasser, agent: Agent, del
 			dialogues = GuardGenericDialogues["trespassing.minor.warn.2"]
 		elseif currentWarnings >= 3 then
 			dialogues = GuardGenericDialogues["trespassing.minor.non_cooperative"]
-			agent:getReportControl():reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2.5, talkControl.getDialoguesTotalSpeechDuration(talkControl.randomlyChosoeDialogueSequences(dialogues)))
+			agent:getReportControl():reportWithCustomDur(ReportType.CRIMINAL_SPOTTED, 2.5, talkControl.getDialoguesTotalSpeechDuration(talkControl.randomlyChooseDialogueSequences(dialogues)))
 		end
 
 		if dialogues then
-			talkControl:saySequences(talkControl.randomlyChosoeDialogueSequences(dialogues))
+			talkControl:saySequences(talkControl.randomlyChooseDialogueSequences(dialogues))
 		end
 	end
 

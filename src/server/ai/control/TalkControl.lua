@@ -91,13 +91,13 @@ function TalkControl.saySequencesWithDelay(self: TalkControl, textArray: {string
 end
 
 function TalkControl.sayRandomSequences(self: TalkControl, randomDialoguesArray: {{string}}, ...): ()
-	local selectedDialogue = TalkControl.randomlyChosoeDialogueSequences(randomDialoguesArray)
+	local selectedDialogue = TalkControl.randomlyChooseDialogueSequences(randomDialoguesArray)
 	if selectedDialogue then
 		self:createTalkThread(self:createDialogueSegmentFromArray(selectedDialogue, ...))
 	end
 end
 
-function TalkControl.randomlyChosoeDialogueSequences(randomDialoguesArray: {{string}}): {string}
+function TalkControl.randomlyChooseDialogueSequences(randomDialoguesArray: {{string}}): {string}
 	return randomDialoguesArray[rng:NextInteger(1, #randomDialoguesArray)]
 end
 

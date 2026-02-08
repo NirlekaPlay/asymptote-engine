@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local GuardGenericDialogues = require(ReplicatedStorage.shared.dialogue.GuardGenericDialogues)
-local ReportType = require(ReplicatedStorage.shared.report.ReportType)
+local ReportType = require(ReplicatedStorage.shared.world.stealth.report.ReportType)
 local Agent = require(ServerScriptService.server.Agent)
 local DetectionAgent = require(ServerScriptService.server.DetectionAgent)
 local ReporterAgent = require(ServerScriptService.server.ReporterAgent)
@@ -76,7 +76,7 @@ function ReportDeadBody.doStart(self: ReportDeadBody, agent: Agent): ()
 		reportDialogue = GuardGenericDialogues["entity.dead_body_unknown"]
 	end
 
-	local choosenDialogue = talkControl.randomlyChosoeDialogueSequences(reportDialogue)
+	local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)
 	local reportDialogueSpeechDur = talkControl.getDialoguesTotalSpeechDuration(choosenDialogue)
 	talkControl:saySequencesWithDelay(choosenDialogue, 0.5, deadBodyName)
 	local reportRegisterDur = 3

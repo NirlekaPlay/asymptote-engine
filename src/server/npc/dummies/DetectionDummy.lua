@@ -1,8 +1,10 @@
 --!strict
 
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local DetectionDummyAi = require(script.Parent.DetectionDummyAi)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
@@ -101,6 +103,23 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or nil)
+
+	local takedownPromptAttachment = Instance.new("Attachment")
+	takedownPromptAttachment.Name = "Trigger"
+	takedownPromptAttachment.Parent = character.HumanoidRootPart
+
+	local takedownPrompt = InteractionPromptBuilder.new()
+		:withHoldStatus(`2`)
+		:withPrimaryInteractionKey()
+		:withOmniDir(true)
+		:withTitleKey("ui.prompt.subdue")
+		:create(character.HumanoidRootPart, serverLevel:getExpressionContext(), takedownPromptAttachment)
+
+	takedownPrompt.proxPrompt.RequiresLineOfSight = false
+
+	local takedownScript = ReplicatedStorage.shared.assets.scripts.TakedownScript:Clone()
+	takedownScript.Parent = takedownPrompt.proxPrompt
+	takedownScript.Enabled = true
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()

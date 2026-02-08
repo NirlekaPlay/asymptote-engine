@@ -2,7 +2,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local AlertLevels = require(ReplicatedStorage.shared.alertlevel.AlertLevels)
+local AlertLevels = require(ReplicatedStorage.shared.world.stealth.alertlevel.AlertLevels)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 local localPlayer = Players.LocalPlayer

@@ -221,8 +221,14 @@ function EntitySelectorParser.parsePlayerNames(input: string)
 	end
 	
 	local matches: { Player } = {}
+	local searchLower = playerName:lower()
+
 	for _, player in Players:GetPlayers() do
-		if player.Name:lower():sub(1, #playerName) == playerName:lower() then
+		local searchLowerCount = #searchLower
+		local nameMatch = player.Name:lower():sub(1, searchLowerCount) == searchLower
+		local displayMatch = player.DisplayName:lower():sub(1, searchLowerCount) == searchLower
+		
+		if nameMatch or displayMatch then
 			table.insert(matches, player)
 		end
 	end
@@ -230,7 +236,11 @@ function EntitySelectorParser.parsePlayerNames(input: string)
 	if #matches == 0 then
 		error("Player '" .. playerName .. "' not found")
 	elseif #matches > 1 then
-		error("Multiple players found: " .. table.concat(table.map(matches, function(p) return p.Name end), ", "))
+		local namesFound = {}
+		for _, p in matches do
+			table.insert(namesFound, p.DisplayName .. " (@" .. p.Name .. ")")
+		end
+		error("Multiple players found: " .. table.concat(namesFound, ", "))
 	end
 
 	return matches[1], playerName:len()

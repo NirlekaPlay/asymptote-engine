@@ -23,7 +23,6 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 						return 1
 					end)
 			)
-
 			:andThen(
 				CommandHelper.argument("destination", EntityArgument.entities())
 					:executes(function(c)
@@ -52,8 +51,8 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 								local targets = EntityArgument.getEntities(c, "destination")
 								local sources = EntityArgument.getEntities(c, "targets")
 								
-								if #targets == 0 then error("No target found") end
-								if #sources == 0 then error("No source found") end
+								if next(targets) == nil then error("No target found") end
+								if next(sources) == nil then error("No source found") end
 								
 								local targetPos = TeleportCommand.getEntityPosition(targets[1])
 								if not targetPos then error("Target has no valid position") end
@@ -65,7 +64,6 @@ function TeleportCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 								return #sources
 							end)
 					)
-
 					:andThen(
 						CommandHelper.argument("location", Vector3ArgumentType.vec3())
 							:executes(function(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>)
