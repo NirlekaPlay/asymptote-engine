@@ -1253,6 +1253,8 @@ function Level.startMission(overrideExistingChars: boolean?): ()
 	for _, player in Players:GetPlayers() do
 		if player.Character and overrideExistingChars then
 			player:LoadCharacterAsync()
+		elseif not player.Character then
+			player:LoadCharacterAsync()
 		end
 	end
 end
