@@ -58,7 +58,15 @@ function VariableCommand.list(context: CommandContext.CommandContext<CommandSour
 	local varsSet = GlobalStatesHolder.getAllStatesReference()
 	local list = MutableTextComponent.literal("")
 
-	for varName, varVal in varsSet do
+	local sortedNames: {string} = {}
+	for varName in varsSet do
+		table.insert(sortedNames, varName)
+	end
+
+	table.sort(sortedNames)
+
+	for _, varName in sortedNames do
+		local varVal = varsSet[varName]
 		list:appendComponent(
 			MutableTextComponent.literal(`{varName}: `)
 		)
