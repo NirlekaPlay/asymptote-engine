@@ -121,6 +121,10 @@ function ItemSpawn.destroy(self: ItemSpawn): ()
 		self.currentSpawnedItemParentChangedConn:Disconnect()
 		self.currentSpawnedItemParentChangedConn = nil
 	end
+
+	if self.currentlySpawnedItem then
+		self.currentlySpawnedItem:Destroy()
+	end
 end
 
 return ItemSpawn
