@@ -56,6 +56,11 @@ function LevelInstancesAccessor.destroy(self: LevelInstancesAccessor): ()
 	if self.nodesFolder then
 		self.nodesFolder:Destroy()
 	end
+
+	self.geometriesFolder = nil :: any
+	self.nodesFolder = nil :: any
+	self.cellModels = {}
+	self.missionSetup = nil :: any
 end
 
 return LevelInstancesAccessor

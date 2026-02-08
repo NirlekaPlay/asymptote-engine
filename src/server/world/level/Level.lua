@@ -4,6 +4,7 @@ local InsertService = game:GetService("InsertService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
 local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
@@ -70,7 +71,7 @@ local persistentInstMan = PersistentInstanceManager.new()
 local cellManager: CellManager.CellManager
 local levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor
 local charsAppearancePayloads: { [Model]: CharacterAppearancePayload.CharacterAppearancePayload } = {}
-local objectiveManager: ObjectiveManager.ObjectiveManager = ObjectiveManager.new()
+local objectiveManager: ObjectiveManager.ObjectiveManager
 local globalVariablesObjs: { [string]: { parsed: ExpressionParser.ASTNode?, usedVariables: { [string]: true }}} = {}
 local globalVariablesStatesChangedConn: RBXScriptConnection? = nil
 local stateComponentsSet: { [any]: true } = {}
@@ -80,6 +81,7 @@ local currentIntroCam: CameraSocket.CameraSocket
 local soundDispatcher: SoundDispatcher.SoundDispatcher
 local voxelWorld: VoxelWorld.VoxelWorld
 local delayedLevelStartThread: thread? = nil
+local playerWantRestartConn: RBXScriptConnection?
 --
 local canUpdateLevel = false
 
@@ -120,7 +122,6 @@ end
 local Level = {}
 
 function Level.initializeLevel(): ()
-	missionManager = MissionManager.new(Level)
 	levelFolder = workspace:FindFirstChild("Level") :: Folder
 	if not levelFolder or next(levelFolder:GetChildren()) == nil then
 		levelFolder = workspace:FindFirstChild("DebugMission") :: Folder
@@ -141,6 +142,8 @@ function Level.initializeLevel(): ()
 		-- TODO: Use an actual centralized reader.
 		missionSetupObj = MissionSetupReaderV1.parse(missionSetupModule)
 	end
+
+	objectiveManager = ObjectiveManager.new()
 
 	local cellsFolder = levelFolder:FindFirstChild("Cells")
 	if not cellsFolder or not cellsFolder:IsA("Folder") then
@@ -291,9 +294,9 @@ function Level.initializeLevel(): ()
 
 	-- Mission
 
-	--missionManager = MissionManager.new(Level)
+	missionManager = MissionManager.new(Level)
 
-	TypedRemotes.ServerBoundPlayerWantRestart.OnServerEvent:Connect(function(player)
+	playerWantRestartConn = TypedRemotes.ServerBoundPlayerWantRestart.OnServerEvent:Connect(function(player)
 		missionManager:onPlayerWantRetry(player)
 	end)
 
@@ -348,7 +351,6 @@ function Level.initializeLevel(): ()
 
 	-- Dialogue
 
-
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
 
 	-- TODO: This might lead to inconsistencies...
@@ -371,6 +373,11 @@ function Level.clearLevel(): ()
 		globalVariablesStatesChangedConn = nil
 	end
 
+	if playerWantRestartConn then
+		playerWantRestartConn:Disconnect()
+		playerWantRestartConn = nil
+	end
+
 	if delayedLevelStartThread then
 		task.cancel(delayedLevelStartThread)
 		delayedLevelStartThread = nil
@@ -380,6 +387,7 @@ function Level.clearLevel(): ()
 
 	if levelFolder then
 		levelFolder:Destroy()
+		levelFolder = nil :: any
 	end
 
 	if destroyNpcsCallback then
@@ -431,10 +439,50 @@ function Level.clearLevel(): ()
 	GlobalStatesHolder.nullifyAllStatesAndEvents()
 	MusicController.clearControllers()
 
-	persistentInstMan:destroyAll()
-	levelInstancesAccessor:destroy()
+	if persistentInstMan then
+		persistentInstMan:destroyAll()
+	end
+	if levelInstancesAccessor then
+		levelInstancesAccessor:destroy()
+	end
+	if missionManager then
+		missionManager:destroy()
+	end
+	missionManager = nil :: any
 	levelInstancesAccessor = nil :: any
-	objectiveManager = nil
+	objectiveManager = nil :: any
+
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			player.Character:Destroy()
+		end
+	end
+end
+
+function Level.loadLevel(levelName: string): ()
+	local mapFolder = ServerStorage:FindFirstChild("Maps")
+	if not mapFolder or not mapFolder:IsA("Folder") then
+		error(`Cannot load map '{levelName}': 'Maps' folder not found in 'ServerStorage'`)
+	end
+
+	local levelFolder = mapFolder:FindFirstChild(levelName) :: Folder
+	if levelFolder then
+		Level.clearLevel()
+
+		local cloned = levelFolder:Clone()
+		cloned.Name = "DebugMission"
+		cloned.Parent = workspace
+
+		Mission.resetAlertLevel()
+		Level.initializeLevel()
+		
+		canUpdateLevel = true
+		missionManager:onLevelRestart()
+		TypedRemotes.ClientBoundMissionStart:FireAllClients()
+		Level.startMission(true)
+	else
+		error(`Map '{levelName}' not found!`)
+	end
 end
 
 -- TODO: THIS SHIT TOO.
@@ -702,9 +750,13 @@ function Level.onPlayerJoined(player: Player): ()
 			charAppearancesPayloads[i] = payload
 		end
 	end
-	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
+	if levelInstancesAccessor then
+		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
+	end
 
-	objectiveManager:sendCurrentObjectivesToPlayer(player)
+	if objectiveManager then
+		objectiveManager:sendCurrentObjectivesToPlayer(player)
+	end
 end
 
 function Level.onPlayerDied(player: Player): ()
@@ -1196,9 +1248,10 @@ function Level.restartLevel(): ()
 	end
 end
 
-function Level.startMission(): ()
+function Level.startMission(overrideExistingChars: boolean?): ()
+	overrideExistingChars = overrideExistingChars or false
 	for _, player in Players:GetPlayers() do
-		if not player.Character then
+		if player.Character and overrideExistingChars then
 			player:LoadCharacterAsync()
 		end
 	end

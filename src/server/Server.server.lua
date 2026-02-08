@@ -317,7 +317,7 @@ end)
 
 Commands.register()
 
-Level.startMission()
+--Level.startMission()
 
 -- Derailer
 

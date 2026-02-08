@@ -8,7 +8,6 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
-local Level = require(ServerScriptService.server.world.level.Level)
 
 --[=[
 	@class RetreatToCombatNodes
@@ -124,7 +123,7 @@ function RetreatToCombatNodes.retreatToNode(self: RetreatToCombatNodes, node: No
 end
 
 function RetreatToCombatNodes.getNearestUnoccupiedCombatNode(self: RetreatToCombatNodes, agent: Agent): Node.Node?
-	local combatNodes = Level.getGuardCombatNodes()
+	local combatNodes = agent:getServerLevel():getGuardCombatNodes()
 	local nearestNode = nil
 	local nearestDistance = math.huge  -- start with infinity
 

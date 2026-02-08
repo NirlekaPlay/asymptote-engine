@@ -1,10 +1,13 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Signal = require(ReplicatedStorage.shared.thirdparty.Signal)
+
 local DEBUG_STATE_CHANGES = false
 
 local globalStates: { [string]: any } = {}
 local stateSignals: { [string]: BindableEvent } = {}
-local statesChangedSignal: BindableEvent = Instance.new("BindableEvent")
+local statesChangedSignal: Signal.Signal<string, any> = Signal.new()
 
 local GlobalStatesHolder = {}
 
@@ -51,7 +54,7 @@ function GlobalStatesHolder.getStateChangedConnection(stateName: string): RBXScr
 end
 
 function GlobalStatesHolder.getStatesChangedConnection(): RBXScriptSignal<string, any>
-	return statesChangedSignal.Event
+	return statesChangedSignal
 end
 
 function GlobalStatesHolder.resetAllStates(predicate: ((stateName: string) -> boolean)?): ()
@@ -71,7 +74,8 @@ function GlobalStatesHolder.resetAllStates(predicate: ((stateName: string) -> bo
 end
 
 function GlobalStatesHolder.nullifyAllStatesAndEvents(): ()
-	globalStates = {}
+	-- I don't want any lingering references in this shit
+	table.clear(globalStates)
 
 	for stateName, stateEvent in stateSignals do
 		if stateEvent then
@@ -79,10 +83,12 @@ function GlobalStatesHolder.nullifyAllStatesAndEvents(): ()
 		end
 	end
 
+	table.clear(stateSignals)
+
 	statesChangedSignal:Destroy()
 	statesChangedSignal = nil :: any
 
-	statesChangedSignal = Instance.new("BindableEvent")
+	statesChangedSignal = Signal.new()
 end
 
 return GlobalStatesHolder

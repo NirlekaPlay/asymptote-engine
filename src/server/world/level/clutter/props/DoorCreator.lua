@@ -126,7 +126,8 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 	pathMod.PassThrough = true
 	pathMod.Parent = pathReqPart
 
-	
+	maid:giveTask(pathReqPart)
+
 	local edgeParts = createPerpendicularParts(base, 10, base.Size.Y, 1)
 	for _, part in edgeParts do
 		part.Name = "DoorPerpendicularPart"
