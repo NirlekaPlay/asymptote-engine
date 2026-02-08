@@ -457,6 +457,8 @@ function Level.clearLevel(): ()
 			player.Character:Destroy()
 		end
 	end
+
+	PlayerStatusRegistry.clearPlayerStatuses()
 end
 
 function Level.loadLevel(levelName: string): ()
