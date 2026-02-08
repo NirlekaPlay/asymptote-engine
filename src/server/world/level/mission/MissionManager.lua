@@ -36,6 +36,8 @@ function MissionManager.new(serverLevel: ServerLevel.ServerLevel): MissionManage
 		serverLevel = serverLevel
 	}, MissionManager)
 
+	GlobalStatesHolder.setState(MISSION_FAILED_VARIABLE, false)
+
 	self.missionFailedConnection = GlobalStatesHolder.getStateChangedConnection(MISSION_FAILED_VARIABLE):Connect(function(v)
 		if v then
 			self:failMission()
@@ -222,6 +224,15 @@ function MissionManager.isValidPlayer(player: Player): boolean
 	end
 
 	return true
+end
+
+--
+
+function MissionManager.destroy(self: MissionManager): ()
+	if self.missionFailedConnection then
+		self.missionFailedConnection:Disconnect()
+		self.missionFailedConnection = nil
+	end
 end
 
 return MissionManager

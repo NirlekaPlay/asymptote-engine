@@ -2,10 +2,9 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
-local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
@@ -22,20 +21,23 @@ export type CardReader = typeof(setmetatable({} :: {
 	lightLevelParts: { BasePart},
 	validCards: { [string]: true },
 	triggerVariableName: string,
-	acceptSound: Sound
+	acceptSound: Sound,
+	maid: Maid.Maid
 }, CardReader))
 
 function CardReader.new(
 	validCards: { [string]: true },
 	triggerVariableName: string,
 	lightLevelParts: { BasePart},
-	acceptSound: Sound
+	acceptSound: Sound,
+	maid: Maid.Maid
 ): CardReader
 	return setmetatable({
 		validCards = validCards,
 		triggerVariableName = triggerVariableName,
 		lightLevelParts = lightLevelParts,
-		acceptSound = acceptSound
+		acceptSound = acceptSound,
+		maid = maid
 	}, CardReader)
 end
 
@@ -63,7 +65,6 @@ function CardReader.onTriggerVariableChanged(self: CardReader, value: boolean): 
 end
 
 function CardReader.setLightPartColors(self: CardReader, color: BrickColor): ()
-
 	for _, lightPart in self.lightLevelParts do
 		lightPart.BrickColor = color
 	end
@@ -74,6 +75,7 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 	local part0 = (model :: any).Part0 :: BasePart
 
 	local triggerVariable = base:GetAttribute("TriggerVariable") :: string
+	local maid = Maid.new()
 
 	-- Global states
 	if not GlobalStatesHolder.hasState(triggerVariable) then
@@ -168,9 +170,11 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 	local acceptSound = ReplicatedStorage.shared.assets.sounds.keycard_accept:Clone()
 	acceptSound.Parent = part0
 
+	maid:giveTask(acceptSound)
+
 	-- Setup
 
-	local newReader = CardReader.new(validCards, triggerVariable, lightParts, acceptSound)
+	local newReader = CardReader.new(validCards, triggerVariable, lightParts, acceptSound, maid)
 
 	local prompt = InteractionPromptBuilder.new()
 		:withPrimaryInteractionKey()
@@ -184,21 +188,31 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 		:withRequiredTools(validCardsAtt or "")
 		:create(part0, serverLevel:getExpressionContext())
 
-	-- TODO: These may cause a memory leak. Fix this thank you.
-	prompt:getTriggeredEvent():Connect(function(player)
-		newReader:onPromptTriggered(player)
-	end)
+	maid:giveTask(prompt)
 
-	GlobalStatesHolder.getStateChangedConnection(triggerVariable):Connect(function(v)
+	maid:giveTask(prompt:getTriggeredEvent():Connect(function(player)
+		newReader:onPromptTriggered(player)
+	end))
+
+	maid:giveTask(GlobalStatesHolder.getStateChangedConnection(triggerVariable):Connect(function(v)
 		if v then
 			prompt:disable()
 		else
 			prompt:enable()
 		end
 		newReader:onTriggerVariableChanged(v)
-	end)
+	end))
 
 	return newReader
+end
+
+--
+
+function CardReader.destroy(self: CardReader): ()
+	self.maid:doCleaning()
+	self.lightLevelParts = {}
+	self.validCards = {}
+	setmetatable(self, nil)
 end
 
 return CardReader

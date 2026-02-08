@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local UString = require(ReplicatedStorage.shared.util.string.UString)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
@@ -19,14 +20,17 @@ local FreeTrigger = {}
 FreeTrigger.__index = FreeTrigger
 
 export type FreeTrigger = Prop.Prop & typeof(setmetatable({} :: {
-	prompt: WorldInteractionPrompt.WorldInteractionPrompt
+	prompt: WorldInteractionPrompt.WorldInteractionPrompt,
+	maid: Maid.Maid
 }, FreeTrigger))
 
 function FreeTrigger.new(
-	prompt: WorldInteractionPrompt.WorldInteractionPrompt
+	prompt: WorldInteractionPrompt.WorldInteractionPrompt,
+	maid: Maid.Maid
 ): FreeTrigger
 	return setmetatable({
-		prompt = prompt
+		prompt = prompt,
+		maid = maid
 	}, FreeTrigger) :: FreeTrigger
 end
 
@@ -45,6 +49,8 @@ function FreeTrigger.createFromPlaceholder(
 	local subtitleKey = placeholder:GetAttribute("SubtitleKey") :: string?
 	local titleKey = placeholder:GetAttribute("TitleKey") :: string?
 	local clientVisible = placeholder:GetAttribute("ClientVisible") :: string?
+
+	local maid = Maid.new()
 
 	FreeTrigger.makePartStatic(placeholder)
 
@@ -111,7 +117,7 @@ function FreeTrigger.createFromPlaceholder(
 		local setValueTo: string = ExpressionParser.evaluate(parsedSetValueExpr, serverLevel:getExpressionContext())
 		local setVariableTo: string = ExpressionParser.evaluate(parsedSetVariableExpr, serverLevel:getExpressionContext())
 
-		local _statesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
+		local statesChangedConn = GlobalStatesHolder.getStatesChangedConnection():Connect(function(variableName, variableValue)
 			if setVariableUsedVars[variableName] then
 				setVariableTo = ExpressionParser.evaluate(parsedSetVariableExpr, serverLevel:getExpressionContext())
 			end
@@ -121,13 +127,19 @@ function FreeTrigger.createFromPlaceholder(
 			end
 		end)
 
-		local _triggerConn = prompt:getTriggeredEvent():Connect(function(player)
+		local triggerConn = prompt:getTriggeredEvent():Connect(function(player)
 			GlobalStatesHolder.setState(setVariableTo, setValueTo)
 		end)
+
+		maid:giveTask(statesChangedConn)
+		maid:giveTask(triggerConn)
 	end
 
+	maid:giveTask(prompt)
+
 	return FreeTrigger.new(
-		prompt
+		prompt,
+		maid
 	)
 end
 
@@ -136,6 +148,12 @@ end
 
 function FreeTrigger.onLevelRestart(self: FreeTrigger): ()
 	return
+end
+
+--
+
+function FreeTrigger.destroy(self: FreeTrigger): ()
+	self.maid:doCleaning()
 end
 
 --

@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local StateComponent = require(ServerScriptService.server.world.level.components.registry.StateComponent)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
@@ -89,6 +90,15 @@ function DialogueConceptTrigger.onStatesChanged(self: DialogueConceptTrigger, va
 			(self.statesChangedConn :: RBXScriptConnection):Disconnect()
 			self.statesChangedConn = nil
 		end
+	end
+end
+
+--
+
+function DialogueConceptTrigger.destroy(self: DialogueConceptTrigger, serverLevel: ServerLevel.ServerLevel): ()
+	if self.statesChangedConn then
+		self.statesChangedConn:Disconnect()
+		self.statesChangedConn = nil
 	end
 end
 

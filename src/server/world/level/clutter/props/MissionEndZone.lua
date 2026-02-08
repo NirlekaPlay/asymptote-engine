@@ -179,4 +179,12 @@ function MissionEndZone.onLevelRestart(self: MissionEndZone): ()
 	return
 end
 
+--
+
+function MissionEndZone.destroy(self: MissionEndZone): ()
+	if self.highlightInst then
+		self.highlightInst:Destroy()
+	end
+end
+
 return MissionEndZone

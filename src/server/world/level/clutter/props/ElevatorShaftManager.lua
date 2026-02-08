@@ -138,4 +138,13 @@ function ElevatorShaftManager.onLevelRestart(self: ElevatorShaftManager, initEle
 	end
 end
 
+--
+
+function ElevatorShaftManager.destroy(self: ElevatorShaftManager): ()
+	self.currentElevator = nil
+	self.targetElevator = nil
+
+	self.elevators = nil :: any
+end
+
 return ElevatorShaftManager

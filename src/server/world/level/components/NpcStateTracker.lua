@@ -1,7 +1,10 @@
 --!strict
 
 local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local StateComponent = require(ServerScriptService.server.world.level.components.registry.StateComponent)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
@@ -23,7 +26,8 @@ NpcStateTracker.__index = NpcStateTracker
 
 export type NpcStateTracker = StateComponent.StateComponent & typeof(setmetatable({} :: {
 	npcServerTag: string,
-	deathCountVariable: string?
+	deathCountVariable: string?,
+	maid: Maid.Maid
 }, NpcStateTracker))
 
 function NpcStateTracker.fromInstance(inst: Instance): NpcStateTracker
@@ -38,24 +42,26 @@ function NpcStateTracker.fromInstance(inst: Instance): NpcStateTracker
 		end
 	end
 
+	local maid = Maid.new()
+
 	-- TODO: Bad practice. Will fix later.
 	local function proccessTagged(tagged: Instance)
 		if tagged:IsA("Model") and tagged.Parent == workspace and tagged:FindFirstChildOfClass("Humanoid") then
 			local conns: {RBXScriptConnection} = {}
 			if not isEmptyString(deathCountVariable) then
 				local humanoid = tagged:FindFirstChildOfClass("Humanoid") :: Humanoid
-				local diedConn = humanoid.Died:Once(function()
+				local diedConn = maid:giveTask(humanoid.Died:Once(function()
 					GlobalStatesHolder.setState(deathCountVariable, GlobalStatesHolder.getState(deathCountVariable) + 1)
-				end)
+				end))
 
 				table.insert(conns, diedConn)
 			end
 
-			tagged.Destroying:Once(function()
+			maid:giveTask(tagged.Destroying:Once(function()
 				for _, conn in conns do
 					conn:Disconnect()
 				end
-			end)
+			end))
 		end
 	end
 
@@ -63,17 +69,14 @@ function NpcStateTracker.fromInstance(inst: Instance): NpcStateTracker
 		proccessTagged(tagged)
 	end
 
-	-- TODO: Disconnect this later.
-	-- But should we?
-	-- Since state components wont get destroyed anyway
-	-- best to leave it...
-	CollectionService:GetInstanceAddedSignal(npcServerTag):Connect(function(tagged)
+	maid:giveTask(CollectionService:GetInstanceAddedSignal(npcServerTag):Connect(function(tagged)
 		proccessTagged(tagged)
-	end)
+	end))
 
 	return setmetatable({
 		npcServerTag = npcServerTag,
-		deathCountVariable = deathCountVariable :: string?
+		deathCountVariable = deathCountVariable :: string?,
+		maid = maid
 	}, NpcStateTracker) :: NpcStateTracker
 end
 
@@ -81,6 +84,12 @@ function NpcStateTracker.onLevelRestart(self: NpcStateTracker): ()
 	if self.deathCountVariable then
 		GlobalStatesHolder.setState(self.deathCountVariable, 0)
 	end
+end
+
+--
+
+function NpcStateTracker.destroy(self: NpcStateTracker, serverLevel: ServerLevel.ServerLevel): ()
+	self.maid:doCleaning()
 end
 
 return NpcStateTracker

@@ -131,4 +131,10 @@ function TriggerZone.onLevelRestart(self: TriggerZone): ()
 	return
 end
 
+--
+
+function TriggerZone.destroy(self: TriggerZone): ()
+	return
+end
+
 return TriggerZone

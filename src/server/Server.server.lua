@@ -28,6 +28,17 @@ local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
 
+local function nullifyNodes(): ()
+	nodeGroups = {}
+	for part, node in allNodes do
+		if part then
+			part:Destroy()
+		end
+	end
+
+	allNodes = {}
+end
+
 local function getNodes(char: Model): { Node.Node }
 	local nodesName = char:GetAttribute("Nodes") :: string
 
@@ -159,6 +170,10 @@ local function clearAndDestroyAllNpcs(): ()
 	table.clear(guards)
 end
 
+local function uponLevelClearCallback(): ()
+	nullifyNodes()
+end
+
 GlobalStatesHolder.setState("IsStudio", RunService:IsStudio())
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
@@ -167,6 +182,7 @@ CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUM
 
 ItemService.register()
 Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
+Level.setUponLevelClearCallback(uponLevelClearCallback)
 pcall(function()
 	Level.initializeLevel()
 end)
@@ -250,11 +266,6 @@ replicationFocusPart.Parent = workspace
 local function proccessPlayer(player: Player): ()
 	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
-	-- Localization:
-	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
-	if localizedStrings and next(localizedStrings) ~= nil then
-		TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
-	end
 	-- entity reg here:
 	EntityManager.newDynamic("Player", player, tostring(player.UserId))
 
@@ -301,7 +312,7 @@ end)
 
 Commands.register()
 
-Level.startMission()
+--Level.startMission()
 
 -- Derailer
 

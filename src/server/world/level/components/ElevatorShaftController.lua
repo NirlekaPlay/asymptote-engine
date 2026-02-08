@@ -19,7 +19,8 @@ export type ElevatorShaftController = StateComponent.StateComponent & typeof(set
 	shaftManager: ElevatorShaftManager.ElevatorShaftManager,
 	shaftId: number,
 	initialElevatorId: number,
-	requestVariableName: string
+	requestVariableName: string,
+	statesChangedConn: RBXScriptConnection?
 }, ElevatorShaftController))
 
 function ElevatorShaftController.fromInstance(inst: Instance): ElevatorShaftController
@@ -59,6 +60,8 @@ function ElevatorShaftController.fromInstance(inst: Instance): ElevatorShaftCont
 		GlobalStatesHolder.setState(requestStateName, -1)
 	end)
 
+	self.statesChangedConn = conn
+
 	return self
 end
 
@@ -77,6 +80,18 @@ end
 
 function ElevatorShaftController.update(self: ElevatorShaftController, deltaTime: number, serverLevel: ServerLevel.ServerLevel): ()
 	self.shaftManager:update(deltaTime)
+end
+
+--
+
+function ElevatorShaftController.destroy(self: ElevatorShaftController, serverLevel: ServerLevel.ServerLevel): ()
+	if self.statesChangedConn then
+		self.statesChangedConn:Disconnect()
+		self.statesChangedConn = nil
+	end
+
+	self.shaftManager:destroy()
+	self.shaftManager = nil
 end
 
 return ElevatorShaftController

@@ -35,4 +35,13 @@ function PlayerStatusRegistry.getPlayerStatusHolder(player: Player): PlayerStatu
 	return playersStatusObjects[player.UserId]
 end
 
+function PlayerStatusRegistry.clearPlayerStatuses(): ()
+	for _, player in Players:GetPlayers() do
+		local holder = PlayerStatusRegistry.getPlayerStatusHolder(player)
+		if holder then
+			holder:clearAllStatuses()
+		end
+	end
+end
+
 return PlayerStatusRegistry

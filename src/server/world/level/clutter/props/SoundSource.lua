@@ -123,4 +123,16 @@ function SoundSource.update(deltaTime: number): ()
 	return
 end
 
+--
+
+function SoundSource.destroy(self: SoundSource): ()
+	for k, v in self.parsedVariablesConnections do
+		if v then
+			v:Disconnect()
+		end
+	end
+
+	self.parsedVariablesConnections = {}
+end
+
 return SoundSource

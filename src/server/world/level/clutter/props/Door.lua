@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
 local DoorHingeComponent = require(ServerScriptService.server.world.level.clutter.props.DoorHingeComponent)
 local DoorPromptComponent = require(ServerScriptService.server.world.level.clutter.props.DoorPromptComponent)
@@ -41,7 +42,9 @@ export type Door = Prop.Prop & typeof(setmetatable({} :: {
 	settingLockFront: boolean,
 	settingLockBack: boolean,
 	autoLock: boolean,
-	unlockVariable: string?
+	unlockVariable: string?,
+	--
+	maid: Maid.Maid
 }, Door))
 
 export type DoorState = number
@@ -69,6 +72,7 @@ function Door.new(
 	hingeComponent: DoorHingeComponent.DoorHingeComponent,
 	doorPathReqPart: BasePart,
 	forwardDir: Vector3,
+	maid: Maid.Maid,
 	doorParts: {BasePart}?,
 	lockFront: boolean?,
 	lockBack: boolean?,
@@ -90,7 +94,8 @@ function Door.new(
 		settingLockFront = lockFront or false,
 		settingLockBack = lockBack or false,
 		autoLock = autoLock or false,
-		unlockVariable = unlockVariable
+		unlockVariable = unlockVariable,
+		maid = maid
 	}, Door)
 
 	return self :: Door
@@ -266,6 +271,12 @@ function Door.onLevelRestart(self: Door): ()
 	if self.unlockVariable and GlobalStatesHolder.hasState(self.unlockVariable) then
 		GlobalStatesHolder.setState(self.unlockVariable, false)
 	end
+end
+
+--
+
+function Door.destroy(self: Door): ()
+	self.maid:doCleaning()
 end
 
 return Door

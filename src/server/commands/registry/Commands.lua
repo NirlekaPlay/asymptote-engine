@@ -14,6 +14,7 @@ local HighlightCommand = require(ServerScriptService.server.commands.HighlightCo
 local InsertAssetCommand = require(ServerScriptService.server.commands.InsertAssetCommand)
 local KillCommand = require(ServerScriptService.server.commands.KillCommand)
 local LightingCommand = require(ServerScriptService.server.commands.LightingCommand)
+local MapCommand = require(ServerScriptService.server.commands.MapCommand)
 local PacketCommand = require(ServerScriptService.server.commands.PacketCommand)
 local QuoteOfTheDayCommand = require(ServerScriptService.server.commands.QuoteOfTheDayCommand)
 local RefreshCommand = require(ServerScriptService.server.commands.RefreshCommand)
@@ -63,6 +64,7 @@ function Commands.register()
 	TickCommand.register(dispatcher)
 	RefreshCommand.register(dispatcher)
 	VariableCommand.register(dispatcher)
+	MapCommand.register(dispatcher)
 end
 
 function Commands.getDispatcher(): CommandDispatcher

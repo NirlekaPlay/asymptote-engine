@@ -46,4 +46,21 @@ function LevelInstancesAccessor.getGeometriesFolder(self: LevelInstancesAccessor
 	return self.geometriesFolder
 end
 
+--
+
+function LevelInstancesAccessor.destroy(self: LevelInstancesAccessor): ()
+	if self.geometriesFolder then
+		self.geometriesFolder:Destroy()
+	end
+
+	if self.nodesFolder then
+		self.nodesFolder:Destroy()
+	end
+
+	self.geometriesFolder = nil :: any
+	self.nodesFolder = nil :: any
+	self.cellModels = {}
+	self.missionSetup = nil :: any
+end
+
 return LevelInstancesAccessor

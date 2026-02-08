@@ -27,15 +27,28 @@ function Maid.giveTask<T>(self: Maid, task: T): T
 end
 
 function Maid.doCleaning(self: Maid): ()
-	for index, task in self._tasks do
+	local tasks = self._tasks
+	-- Move to a local reference and clear the original immediately
+	-- to prevent re-entrant calls from re-cleaning the same list
+	
+	while #tasks > 0 do
+		local index = #tasks
+		local task = tasks[index]
+		tasks[index] = nil
+
 		if typeof(task) == "RBXScriptConnection" then
-			(task :: RBXScriptConnection):Disconnect()
+			task:Disconnect()
 		elseif typeof(task) == "Instance" then
-			(task :: Instance):Destroy()
+			task:Destroy()
+		elseif type(task) == "table" then
+			local destroy = task.Destroy or task.destroy
+			if type(destroy) == "function" then
+				pcall(destroy, task)
+			end
+		elseif type(task) == "function" then
+			(task :: (...any) -> (...any))()
 		end
 	end
-
-	table.clear(self._tasks)
 end
 
 return Maid

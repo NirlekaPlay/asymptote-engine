@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local SoundService = game:GetService("SoundService")
+local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local StateComponent = require(ServerScriptService.server.world.level.components.registry.StateComponent)
 local ExpressionContext = require(ReplicatedStorage.shared.util.expression.ExpressionContext)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
@@ -41,7 +42,7 @@ MusicController.__index = MusicController
 export type MusicController = StateComponent.StateComponent & typeof(setmetatable({} :: {
 	parsedActivePriority: ExpressionParser.ASTNode,
 	soundInst: Sound,
-	varsChangedConn: RBXScriptConnection,
+	varsChangedConn: RBXScriptConnection?,
 	currentPriority: number
 }, MusicController))
 
@@ -125,6 +126,24 @@ function MusicController.evaluateStack(): ()
 				controller.soundInst:Stop()
 			end
 		end
+	end
+end
+
+--
+
+function MusicController.clearControllers(): ()
+	worldMusicControllers = {}
+end
+
+function MusicController.destroy(self: MusicController, serverLevel: ServerLevel.ServerLevel): ()
+	if self.varsChangedConn then
+		self.varsChangedConn:Disconnect()
+		self.varsChangedConn = nil
+	end
+
+	if self.soundInst then
+		self.soundInst:Stop()
+		self.soundInst:Destroy()
 	end
 end
 

@@ -1,8 +1,13 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Signal = require(ReplicatedStorage.shared.thirdparty.Signal)
+
+local DEBUG_STATE_CHANGES = false
+
 local globalStates: { [string]: any } = {}
 local stateSignals: { [string]: BindableEvent } = {}
-local statesChangedSignal: BindableEvent = Instance.new("BindableEvent")
+local statesChangedSignal: Signal.Signal<string, any> = Signal.new()
 
 local GlobalStatesHolder = {}
 
@@ -49,19 +54,41 @@ function GlobalStatesHolder.getStateChangedConnection(stateName: string): RBXScr
 end
 
 function GlobalStatesHolder.getStatesChangedConnection(): RBXScriptSignal<string, any>
-	return statesChangedSignal.Event
+	return statesChangedSignal
 end
 
 function GlobalStatesHolder.resetAllStates(predicate: ((stateName: string) -> boolean)?): ()
 	for stateName, stateValue in globalStates do
 		if predicate and predicate(stateName) then
-			print(`VARIABLE '{stateName}' RESET TO NIL.`)
+			if DEBUG_STATE_CHANGES then
+				print(`VARIABLE '{stateName}' RESET TO NIL.`)
+			end
 			globalStates[stateName] = nil
 			continue
 		end
 
-		print(`VARIABLE '{stateName}' LEFT AS IS.`)
+		if DEBUG_STATE_CHANGES then
+			print(`VARIABLE '{stateName}' LEFT AS IS.`)
+		end
 	end
+end
+
+function GlobalStatesHolder.nullifyAllStatesAndEvents(): ()
+	-- I don't want any lingering references in this shit
+	table.clear(globalStates)
+
+	for stateName, stateEvent in stateSignals do
+		if stateEvent then
+			stateEvent:Destroy()
+		end
+	end
+
+	table.clear(stateSignals)
+
+	statesChangedSignal:Destroy()
+	statesChangedSignal = nil :: any
+
+	statesChangedSignal = Signal.new()
 end
 
 return GlobalStatesHolder
