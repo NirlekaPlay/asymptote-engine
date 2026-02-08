@@ -494,6 +494,22 @@ function Level.loadLevel(levelName: string): ()
 	end
 end
 
+function Level.getMapList(): {string}
+	local mapFolder = ServerStorage:FindFirstChild("Maps")
+	if not mapFolder or not mapFolder:IsA("Folder") then
+		error(`Cannot fetch maps: 'Maps' folder not present in 'ServerStorage'`)
+	end
+
+	local list: {string} = {}
+	for _, map in mapFolder:GetChildren() do
+		if map:IsA("Folder") then
+			table.insert(list, map.Name)
+		end
+	end
+
+	return list
+end
+
 -- TODO: THIS SHIT TOO.
 local RIG_TO_CLONE = ReplicatedStorage.shared.assets.characters.Rig
 local OUTFITS = {

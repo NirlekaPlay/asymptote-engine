@@ -29,6 +29,10 @@ function MapCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Com
 							end)
 					)
 			)
+			:andThen(
+				CommandHelper.literal("list")
+					:executes(MapCommand.list)
+			)
 	)
 end
 
@@ -36,6 +40,17 @@ function MapCommand.clear(c: CommandContext.CommandContext<CommandSourceStack.Co
 	Level.clearLevel()
 
 	c:getSource():sendSuccess(MutableTextComponent.literal("Successfully cleared level"))
+
+	return 1
+end
+
+function MapCommand.list(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
+	local list = Level.getMapList()
+	local msg = MutableTextComponent.literal("Available maps are:\n")
+	for _, name in list do
+		msg:appendString(`{name}\n`)
+	end
+	c:getSource():sendSuccess(msg)
 
 	return 1
 end
