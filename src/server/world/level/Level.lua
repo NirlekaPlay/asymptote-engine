@@ -475,6 +475,13 @@ function Level.loadLevel(levelName: string): ()
 
 		Mission.resetAlertLevel()
 		Level.initializeLevel()
+		-- Localization:
+		local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
+		if localizedStrings and next(localizedStrings) ~= nil then
+			for _, player in Players:GetPlayers() do
+				TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
+			end
+		end
 		
 		canUpdateLevel = true
 		missionManager:onLevelRestart()
@@ -736,12 +743,16 @@ function Level.onPlayerJoined(player: Player): ()
 	if DEBUG_VEBOSITY_LEVEL > 0 then
 		print("Server: Player added " .. `'{player.Name}'`)
 	end
-	missionManager:onPlayerJoined(player)
-	if not Level:getMissionManager():isConcluded() then
-		if not player.Character then
-			player:LoadCharacterAsync()
+
+	if missionManager then
+		missionManager:onPlayerJoined(player)
+		if not Level:getMissionManager():isConcluded() then
+			if not player.Character then
+				player:LoadCharacterAsync()
+			end
 		end
 	end
+
 	if next(charsAppearancePayloads) ~= nil then
 		local charAppearancesPayloads: { CharacterAppearancePayload.CharacterAppearancePayload } = {}
 		local i = 0
@@ -751,6 +762,11 @@ function Level.onPlayerJoined(player: Player): ()
 		end
 	end
 	if levelInstancesAccessor then
+		-- Localization:
+		local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
+		if localizedStrings and next(localizedStrings) ~= nil then
+			TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
+		end
 		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
 	end
 
@@ -760,7 +776,9 @@ function Level.onPlayerJoined(player: Player): ()
 end
 
 function Level.onPlayerDied(player: Player): ()
-	missionManager:onPlayerDied(player)
+	if missionManager then
+		missionManager:onPlayerDied(player)
+	end
 end
 
 function Level.initializePlayerColliders(folder: Folder): ()
@@ -1287,7 +1305,9 @@ function Level.onSimulationStepped(deltaTime: number): ()
 end
 
 function Level.onPlayerRemoving(player: Player): ()
-	missionManager:onPlayerLeaving(player)
+	if missionManager then
+		missionManager:onPlayerLeaving(player)
+	end
 end
 
 -- its a reference so I guess we dont need to change anything????

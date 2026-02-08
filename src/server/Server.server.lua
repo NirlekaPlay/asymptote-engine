@@ -266,11 +266,6 @@ replicationFocusPart.Parent = workspace
 local function proccessPlayer(player: Player): ()
 	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
-	-- Localization:
-	local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
-	if localizedStrings and next(localizedStrings) ~= nil then
-		TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
-	end
 	-- entity reg here:
 	EntityManager.newDynamic("Player", player, tostring(player.UserId))
 
