@@ -21,6 +21,8 @@ local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
 local CollisionGroupManager = require(ServerScriptService.server.physics.collision.CollisionGroupManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local Teleportation = require(ServerScriptService.server.teleportation.Teleportation)
+local MissionTeleMetadata = require(ServerScriptService.server.teleportation.metadata.MissionTeleMetadata)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
@@ -174,9 +176,16 @@ local function uponLevelClearCallback(): ()
 	nullifyNodes()
 end
 
+local function initTeleportPortal(inst: Instance): ()
+end
+
+local teleportData = Teleportation.init() :: MissionTeleMetadata.MissionTeleMetadata
+
 GlobalStatesHolder.setState("IsStudio", RunService:IsStudio())
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
+
+CollectionManager.mapTaggedInstances(CollectionTagTypes.TELEPORT_PORTAL, initTeleportPortal)
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
@@ -312,8 +321,6 @@ end)
 
 Commands.register()
 
---Level.startMission()
-
 -- Derailer
 
 local GROUP_ID = 34035167
@@ -347,3 +354,7 @@ TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(tran
 end)
 
 TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(DebugPackets.onReceiveSubscription)
+
+if teleportData then
+	Level.loadLevel(teleportData.MapName)
+end

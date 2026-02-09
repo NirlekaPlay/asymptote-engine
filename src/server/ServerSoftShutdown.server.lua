@@ -16,6 +16,10 @@
 	their own servers with only 1 player.
 --]]
 
+if true then
+	return
+end
+
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
