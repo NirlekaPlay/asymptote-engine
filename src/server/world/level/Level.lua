@@ -3,6 +3,7 @@
 local InsertService = game:GetService("InsertService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -1289,11 +1290,21 @@ end
 
 function Level.startMission(overrideExistingChars: boolean?): ()
 	overrideExistingChars = overrideExistingChars or false
+	local targetStreamPos = workspace:FindFirstChildOfClass("SpawnLocation")
+	local function loadChar(player: Player)
+		task.spawn(function()
+			if targetStreamPos then
+				player:RequestStreamAroundAsync(targetStreamPos.Position)
+				RunService.PreSimulation:Wait()
+			end
+			player:LoadCharacterAsync()
+		end)
+	end
 	for _, player in Players:GetPlayers() do
 		if player.Character and overrideExistingChars then
-			player:LoadCharacterAsync()
+			loadChar(player)
 		elseif not player.Character then
-			player:LoadCharacterAsync()
+			loadChar(player)
 		end
 	end
 end
