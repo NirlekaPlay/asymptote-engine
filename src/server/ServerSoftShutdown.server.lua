@@ -16,15 +16,13 @@
 	their own servers with only 1 player.
 --]]
 
-if true then
-	return
-end
-
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerInstance = require(ServerScriptService.server.ServerInstance)
 
-if not RunService:IsStudio() and (((game :: any).VIPServerId ~= "" and (game :: any).VIPServerOwnerId == 0)) then
+if not RunService:IsStudio() and (not ServerInstance.isServerPrivate() and ((game :: any).VIPServerId ~= "" and (game :: any).VIPServerOwnerId == 0)) then
 	-- This is a reserved server without a VIP server owner
 	local m = Instance.new("Message")
 	m.Text = "This is a temporary lobby. Teleporting back in a moment."
