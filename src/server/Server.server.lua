@@ -1,6 +1,8 @@
 --!strict
 
 local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
+local Teleportation = require(ServerScriptService.server.teleportation.Teleportation)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -181,6 +183,10 @@ end
 
 local teleportData = Teleportation.init() :: MissionTeleMetadata.MissionTeleMetadata
 
+game:BindToClose(function()
+	Teleportation.onServerClosing()
+end)
+
 GlobalStatesHolder.setState("IsStudio", RunService:IsStudio())
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
@@ -273,6 +279,9 @@ replicationFocusPart.Name = "ReplicationFocus"
 replicationFocusPart.Parent = workspace
 
 local function proccessPlayer(player: Player): ()
+	task.spawn(function()
+		Teleportation.onPlayerAdded(player)
+	end)
 	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
 	-- entity reg here:
@@ -309,6 +318,9 @@ for _, player in Players:GetPlayers() do
 end
 
 Players.PlayerRemoving:Connect(function(player)
+	task.spawn(function()
+		Teleportation.onPlayerRemoving(player)
+	end)
 	Level.onPlayerRemoving(player)
 	-- entity reg here:
 	playersToRemove[player.UserId] = true
