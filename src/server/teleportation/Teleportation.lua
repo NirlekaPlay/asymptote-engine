@@ -56,7 +56,7 @@ end
 
 function Teleportation.teleportPlayerToFriendIfFollowing(player: Player): ()
 	local followId = player.FollowUserId
-	
+
 	if followId and followId > 0 then
 		local success, rawData = pcall(function()
 			return activeSessionsMemoryStore:GetAsync(tostring(followId))
@@ -64,8 +64,14 @@ function Teleportation.teleportPlayerToFriendIfFollowing(player: Player): ()
 
 		local data = rawData :: PlayerActiveSessionMetadata.PlayerActiveSessionMetadata
 
-		if success and data and data.allowJoining then
-			TeleportService:TeleportToPlaceInstance(data.placeId, data.jobId, player)
+		if success and data then
+			if data.jobId == game.JobId then
+				return
+			end
+
+			if data.allowJoining then
+				TeleportService:TeleportToPlaceInstance(data.placeId, data.jobId, player)
+			end
 		else
 			warn(`There was an error trying to fetch session data from memory store '{ACTIVE_SESSIONS_MEMORY_NAME}' for player {player.Name}: {rawData}`)
 		end
