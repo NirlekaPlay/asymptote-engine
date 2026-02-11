@@ -2,6 +2,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local serverTeleData: any = nil
+
 --[=[
 	@class Server
 ]=]
@@ -18,6 +20,14 @@ function Server.isServerPrivate(): boolean
 	end
 
 	return false
+end
+
+function Server.setTeleData(data: any): ()
+	serverTeleData = data
+end
+
+function Server.getTeleData(): any
+	return serverTeleData
 end
 
 return Server

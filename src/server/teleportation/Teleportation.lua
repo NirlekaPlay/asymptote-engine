@@ -78,7 +78,7 @@ function Teleportation.teleportPlayerToFriendIfFollowing(player: Player): ()
 	end
 end
 
-function Teleportation.createReservedSession(owner: Player, placeId: number, data: any): string
+function Teleportation.createReservedSession(owner: Player?, placeId: number, data: any): string
 	local success, accessCode, privateServerId = (pcall :: any)(function()
 		return TeleportService:ReserveServerAsync(placeId)
 	end)
