@@ -1,12 +1,11 @@
 --!strict
 
 local Players = game:GetService("Players")
-local ServerScriptService = game:GetService("ServerScriptService")
-local Teleportation = require(ServerScriptService.server.teleportation.Teleportation)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local ServerInstance = require(ServerScriptService.server.ServerInstance)
 local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
@@ -182,6 +181,9 @@ local function initTeleportPortal(inst: Instance): ()
 end
 
 local teleportData = Teleportation.init() :: MissionTeleMetadata.MissionTeleMetadata
+if teleportData then
+	ServerInstance.setTeleData(teleportData)
+end
 
 game:BindToClose(function()
 	Teleportation.onServerClosing()
