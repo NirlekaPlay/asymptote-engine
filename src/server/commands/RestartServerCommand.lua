@@ -6,6 +6,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local TeleportService = game:GetService("TeleportService")
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
 local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
+local SoftShutdown = require(ServerScriptService.server.teleportation.SoftShutdown)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 
 local RestartServerCommand = {}
@@ -21,19 +22,7 @@ function RestartServerCommand.register(dispatcher: CommandDispatcher.CommandDisp
 end
 
 function RestartServerCommand.restartServer(): ()
-	if #Players:GetPlayers() == 0 then
-		return
-	end
-	
-	local reservedServerCode = TeleportService:ReserveServer(game.PlaceId)
-
-	for _, player in ipairs(Players:GetPlayers()) do
-		TeleportService:TeleportToPrivateServer(game.PlaceId, reservedServerCode, {player})
-	end
-
-	Players.PlayerAdded:Connect(function(player)
-		TeleportService:TeleportToPrivateServer(game.PlaceId, reservedServerCode, {player})
-	end)
+	SoftShutdown.shutdown()
 end
 
 return RestartServerCommand

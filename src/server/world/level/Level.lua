@@ -3,6 +3,7 @@
 local InsertService = game:GetService("InsertService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -121,7 +122,7 @@ end
 ]=]
 local Level = {}
 
-function Level.initializeLevel(): ()
+function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	levelFolder = workspace:FindFirstChild("Level") :: Folder
 	if not levelFolder or next(levelFolder:GetChildren()) == nil then
 		levelFolder = workspace:FindFirstChild("DebugMission") :: Folder
@@ -131,7 +132,10 @@ function Level.initializeLevel(): ()
 		return
 	end
 
-	canUpdateLevel = true
+	setCanUpdateLevel = not not setCanUpdateLevel
+	if setCanUpdateLevel then
+		canUpdateLevel = true
+	end
 
 	local missionSetupObj
 
@@ -361,8 +365,6 @@ function Level.initializeLevel(): ()
 	delayedLevelStartThread = task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
-
-	canUpdateLevel = true
 end
 
 function Level.clearLevel(): ()
@@ -476,7 +478,7 @@ function Level.loadLevel(levelName: string): ()
 		cloned.Parent = workspace
 
 		Mission.resetAlertLevel()
-		Level.initializeLevel()
+		Level.initializeLevel(false)
 		-- Localization:
 		local localizedStrings = Level:getServerLevelInstancesAccessor():getMissionSetup().localizedStrings
 		if localizedStrings and next(localizedStrings) ~= nil then
@@ -484,7 +486,9 @@ function Level.loadLevel(levelName: string): ()
 				TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 			end
 		end
-		
+
+		objectiveManager:sendCurrentObjectivesToClients()
+
 		canUpdateLevel = true
 		missionManager:onLevelRestart()
 		TypedRemotes.ClientBoundMissionStart:FireAllClients()
@@ -1286,11 +1290,21 @@ end
 
 function Level.startMission(overrideExistingChars: boolean?): ()
 	overrideExistingChars = overrideExistingChars or false
+	local targetStreamPos = workspace:FindFirstChildOfClass("SpawnLocation")
+	local function loadChar(player: Player)
+		task.spawn(function()
+			if targetStreamPos then
+				player:RequestStreamAroundAsync(targetStreamPos.Position)
+				RunService.PreSimulation:Wait()
+			end
+			player:LoadCharacterAsync()
+		end)
+	end
 	for _, player in Players:GetPlayers() do
 		if player.Character and overrideExistingChars then
-			player:LoadCharacterAsync()
+			loadChar(player)
 		elseif not player.Character then
-			player:LoadCharacterAsync()
+			loadChar(player)
 		end
 	end
 end

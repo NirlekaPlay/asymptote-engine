@@ -19,5 +19,9 @@ return {
 
 	GUARD_POST = register("Post", function(inst)
 		return inst:IsA("BasePart")
-	end) :: TagType<BasePart>
+	end) :: TagType<BasePart>,
+
+	TELEPORT_PORTAL = register("TeleportPortal", function(inst: Instance)
+		return true
+	end)
 }

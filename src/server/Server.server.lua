@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local ServerInstance = require(ServerScriptService.server.ServerInstance)
 local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
@@ -21,6 +22,8 @@ local Level = require(ServerScriptService.server.world.level.Level)
 local DetectionDummy = require(ServerScriptService.server.npc.dummies.DetectionDummy)
 local CollisionGroupManager = require(ServerScriptService.server.physics.collision.CollisionGroupManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local Teleportation = require(ServerScriptService.server.teleportation.Teleportation)
+local MissionTeleMetadata = require(ServerScriptService.server.teleportation.metadata.MissionTeleMetadata)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
@@ -174,9 +177,23 @@ local function uponLevelClearCallback(): ()
 	nullifyNodes()
 end
 
+local function initTeleportPortal(inst: Instance): ()
+end
+
+local teleportData = Teleportation.init() :: MissionTeleMetadata.MissionTeleMetadata
+if teleportData then
+	ServerInstance.setTeleData(teleportData)
+end
+
+game:BindToClose(function()
+	Teleportation.onServerClosing()
+end)
+
 GlobalStatesHolder.setState("IsStudio", RunService:IsStudio())
 
 CollectionManager.mapTaggedInstances(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
+
+CollectionManager.mapTaggedInstances(CollectionTagTypes.TELEPORT_PORTAL, initTeleportPortal)
 
 CollectionManager.mapOnTaggedInstancesAdded(CollectionTagTypes.NPC_DETECTION_DUMMY, onMapTaggedDummies)
 
@@ -264,6 +281,9 @@ replicationFocusPart.Name = "ReplicationFocus"
 replicationFocusPart.Parent = workspace
 
 local function proccessPlayer(player: Player): ()
+	task.spawn(function()
+		Teleportation.onPlayerAdded(player)
+	end)
 	player.ReplicationFocus = replicationFocusPart
 	Level.onPlayerJoined(player)
 	-- entity reg here:
@@ -300,6 +320,9 @@ for _, player in Players:GetPlayers() do
 end
 
 Players.PlayerRemoving:Connect(function(player)
+	task.spawn(function()
+		Teleportation.onPlayerRemoving(player)
+	end)
 	Level.onPlayerRemoving(player)
 	-- entity reg here:
 	playersToRemove[player.UserId] = true
@@ -311,8 +334,6 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 Commands.register()
-
---Level.startMission()
 
 -- Derailer
 
@@ -347,3 +368,7 @@ TypedRemotes.ServerBoundClientForeignChatted.OnServerEvent:Connect(function(tran
 end)
 
 TypedRemotes.SubscribeDebugDump.OnServerEvent:Connect(DebugPackets.onReceiveSubscription)
+
+if teleportData then
+	Level.loadLevel(teleportData.MapName)
+end
