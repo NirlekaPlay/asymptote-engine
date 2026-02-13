@@ -81,6 +81,9 @@ export type FaceControl = typeof(setmetatable({} :: {
 	decals: { [string]: Decal }, -- keyed by region: "EyeRight", "Mouth", etc
 }, FaceControl))
 
+type EyesAlias = "Open"
+	| "Closed"
+
 type FaceAlias = "Neutral"
 	| "Shocked"
 	| "Angry"
@@ -171,6 +174,15 @@ function FaceControl.setFace(self: FaceControl, faceAlias: FaceAlias): ()
 	self.currentFaceAlias = faceAlias
 end
 
+function FaceControl.setEyesAlias(self: FaceControl, eyesAlias: EyesAlias): ()
+	if eyesAlias == "Open" then
+		self:resetEyesToExpression()
+	elseif eyesAlias == "Closed" then
+		self:_setRegionTexture("EyeLeft", DEFAULT_FACE_PACK_ASSET_IDS.EYE_LEFT_CLOSED)
+		self:_setRegionTexture("EyeRight", DEFAULT_FACE_PACK_ASSET_IDS.EYE_RIGHT_CLOSED)
+	end
+end
+
 function FaceControl.setMouth(self: FaceControl, assetId: number?): ()
 	self:_setRegionTexture("Mouth", assetId)
 end
@@ -181,6 +193,16 @@ function FaceControl.setMouthPhoneme(self: FaceControl, phonemeKey: Phoneme): ()
 		self:setMouth(assetId)
 	else
 		self:resetMouthToExpression()
+	end
+end
+
+function FaceControl.resetEyesToExpression(self: FaceControl): ()
+	local aliasMap = FACE_ALIAS_ASSET_ID[self.currentFaceAlias :: any] or {} :: any
+	local eyeLeft = aliasMap.EyeLeft
+	local eyeRight = aliasMap.EyeRight
+	if eyeLeft and eyeRight then
+		self:_setRegionTexture("EyeLeft", eyeLeft)
+		self:_setRegionTexture("EyeRight", eyeRight)
 	end
 end
 

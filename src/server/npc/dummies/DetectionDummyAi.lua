@@ -5,6 +5,7 @@ local Agent = require(ServerScriptService.server.Agent)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local Activity = require(ServerScriptService.server.ai.behavior.Activity)
 local BehaviorWrapper = require(ServerScriptService.server.ai.behavior.BehaviorWrapper)
+local BlinkEyes = require(ServerScriptService.server.ai.behavior.BlinkEyes)
 local ConfrontTrespasser = require(ServerScriptService.server.ai.behavior.ConfrontTrespasser)
 local EnterCombatActivity = require(ServerScriptService.server.ai.behavior.EnterCombatActivity)
 local FleeToEscapePoints = require(ServerScriptService.server.ai.behavior.FleeToEscapePoints)
@@ -63,7 +64,8 @@ local MEMORY_TYPES = {
 	MemoryModuleTypes.HAS_RETREATED,
 	MemoryModuleTypes.WALK_TARGET,
 	MemoryModuleTypes.PATH,
-	MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE
+	MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE,
+	MemoryModuleTypes.ATTENTION_LEVEL
 }
  
 local SENSOR_FACTORIES = {
@@ -100,7 +102,8 @@ function GuardAi.initCoreActivity(brain: Brain<Agent>): ()
 		BehaviorWrapper.new(ReactToDisguisedPlayers.new()),
 		BehaviorWrapper.new(ReportSuspiciousPlayer.new()),
 		BehaviorWrapper.new(WalkToTargetSink.new()),
-		BehaviorWrapper.new(InteractWithDoor.new())
+		BehaviorWrapper.new(InteractWithDoor.new()),
+		BehaviorWrapper.new(BlinkEyes.new())
 	})
 end
 
