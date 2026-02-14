@@ -10,7 +10,6 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local controls = PlayerModule:GetControls()
 
 TypedRemotes.ClientboundSetPlayerModuleDisability.OnClientEvent:Connect(function(enable)
-	print("Received", enable)
 	if not controls then
 		controls = PlayerModule:GetControls()
 	end

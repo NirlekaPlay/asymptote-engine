@@ -104,6 +104,12 @@ function BodyDraggingService.startDragging(char: Model, toPlayer: Player): ()
 		currentlyDraggingCharacter.Value = char
 		currentlyDraggingCharacter.Parent = toPlayer.Character
 	end
+
+	((toPlayer :: any).Character.Humanoid :: Humanoid).JumpPower = 0;
+	((toPlayer :: any).Character.Humanoid :: Humanoid).JumpHeight = 0;
+	((toPlayer :: any).Character.Humanoid :: Humanoid).WalkSpeed = 10;
+
+	((toPlayer :: any).Character.Humanoid :: Humanoid):SetAttribute("CanSprint", false)
 end
 
 function BodyDraggingService.stopDragging(char: Model, toPlayer: Player): ()
@@ -149,6 +155,11 @@ function BodyDraggingService.stopDragging(char: Model, toPlayer: Player): ()
 			descendant.Massless = false
 		end
 	end
+
+	((toPlayer :: any).Character.Humanoid :: Humanoid).JumpPower = 0;
+	((toPlayer :: any).Character.Humanoid :: Humanoid).JumpHeight = 7.2;
+	((toPlayer :: any).Character.Humanoid :: Humanoid).WalkSpeed = 16;
+	((toPlayer :: any).Character.Humanoid :: Humanoid):SetAttribute("CanSprint", true)
 end
 
 function BodyDraggingService.createDragPromptOnPart(serverLevel: ServerLevel, part: BasePart): WorldInteractionPrompt
@@ -158,6 +169,8 @@ function BodyDraggingService.createDragPromptOnPart(serverLevel: ServerLevel, pa
 
 	local prompt = InteractionPromptBuilder.new()
 		:withHoldDuration(2)
+		:withActivationDistance(7)
+		:withHoldStatus(`2`)
 		:withPrimaryInteractionKey()
 		:withTitleKey(`ui.prompt.carry`)
 		:create(part, serverLevel:getExpressionContext(), promptAttachment)

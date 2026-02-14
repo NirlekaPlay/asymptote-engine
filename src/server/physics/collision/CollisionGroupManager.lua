@@ -59,6 +59,10 @@ function CollisionGroupManager.register()
 		:notCollideWith(CollisionGroupTypes.BODY_DRAG_RAGDOLL)
 		:notCollideWith(CollisionGroupTypes.RAGDOLL_COLLIDER_PART)
 		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.RAGDOLL_COLLIDER_PART)
+		:notCollideWith(CollisionGroupTypes.PLAYER)
+		:register()
 end
 
 function CollisionGroupManager.registerCollisionGroupsFromDict(collisionGroups: { [any]: string }): ()
