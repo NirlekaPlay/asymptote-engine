@@ -10118,6 +10118,7 @@ local ray = Ray.new
 local excludeParams = RaycastParams.new()
 excludeParams.IgnoreWater = true
 excludeParams.FilterType = Enum.RaycastFilterType.Exclude
+excludeParams.CollisionGroup = "ClientCamOcclusionRay"
 
 local includeParams = RaycastParams.new()
 includeParams.IgnoreWater = true
@@ -10308,7 +10309,7 @@ local QUERY_POINT_CAST_LIMIT = 64
 -- Piercing raycasts
 
 local function getCollisionPoint(origin, dir)
-	if FFlagUserRaycastUpdateAPI then
+	--if FFlagUserRaycastUpdateAPI then
 		excludeParams.FilterDescendantsInstances = excludeList
 		repeat
 			local raycastResult = workspace:Raycast(origin, dir, excludeParams)
@@ -10320,7 +10321,7 @@ local function getCollisionPoint(origin, dir)
 				excludeParams:AddToFilter(raycastResult.Instance)
 			end
 		until not raycastResult
-	else
+	--[[else -- WHy do you even need to check that you moron????
 		local originalSize = #excludeList
 
 		repeat
@@ -10338,7 +10339,7 @@ local function getCollisionPoint(origin, dir)
 		until not hitPart
 
 		eraseFromEnd(excludeList, originalSize)
-	end
+	end]]
 
 	return origin + dir, false
 end
@@ -10359,7 +10360,7 @@ local function queryPoint(origin, unitDir, dist, lastPos)
 
 	local numPierced = 0
 	
-	if FFlagUserRaycastUpdateAPI then
+	--if FFlagUserRaycastUpdateAPI then
 		excludeParams.FilterDescendantsInstances = excludeList
 		repeat
 			local enterRaycastResult = workspace:Raycast(movingOrigin, target - movingOrigin, excludeParams)
@@ -10400,7 +10401,7 @@ local function queryPoint(origin, unitDir, dist, lastPos)
 			excludeParams:AddToFilter(entryInstance)
 			movingOrigin = entryPosition - unitDir*1e-3
 		until hardLimit < inf or not entryInstance
-	else
+	--[[else
 		repeat
 			local entryPart, entryPos = workspace:FindPartOnRayWithIgnoreList(ray(movingOrigin, target - movingOrigin), excludeList, false, true)
 			numPierced += 1
@@ -10442,7 +10443,7 @@ local function queryPoint(origin, unitDir, dist, lastPos)
 		until hardLimit < inf or not entryPart
 
 		eraseFromEnd(excludeList, originalSize)
-	end
+	end]]
 
 	debug.profileend()
 	return softLimit - nearPlaneZ, hardLimit - nearPlaneZ

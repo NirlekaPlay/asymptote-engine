@@ -15,5 +15,6 @@ return {
 	NPC_CHAR = "NpcCharacter",
 	QUERY_CHECK_NPC_CHARS = "QueryCheckNpcChars",
 	BODY_DRAG_RAGDOLL = "BodyDragRagdoll",
-	RAGDOLL_COLLIDER_PART = "RagdollColliderPart"
+	RAGDOLL_COLLIDER_PART = "RagdollColliderPart",
+	CLIENT_CAMERA_OCCLUSION_RAY = "ClientCamOcclusionRay"
 }
