@@ -142,7 +142,7 @@ function RagdollControl.replaceJoints(self: RagdollControl): ()
 		b.Radius = 0.15
 		b.LimitsEnabled = true
 		b.TwistLimitsEnabled = false
-		b.MaxFrictionTorque = 0
+		b.MaxFrictionTorque = 0.3 -- was 0, this dampens the swinging
 		b.Restitution = 0
 		b.UpperAngle = 90
 		b.TwistLowerAngle = -45
@@ -150,9 +150,17 @@ function RagdollControl.replaceJoints(self: RagdollControl): ()
 
 		if motor.Name == "Neck" then
 			b.TwistLimitsEnabled = true
-			b.UpperAngle = 45
-			b.TwistLowerAngle = -70
-			b.TwistUpperAngle = 70
+			b.UpperAngle = 20         -- was 45, head shouldnt flop around much
+			b.TwistLowerAngle = -25   -- was -70
+			b.TwistUpperAngle = 25    -- was 70
+			b.MaxFrictionTorque = 10  -- extra stiff for the neck
+		end
+
+		if motor.Name == "Left Hip" or motor.Name == "Right Hip" then
+			b.UpperAngle = 30        -- legs shouldnt swing wildly
+			b.TwistLowerAngle = -15
+			b.TwistUpperAngle = 15
+			b.MaxFrictionTorque = 3.5  -- heavier limbs need more friction
 		end
 
 		a0.Parent = motor.Part0

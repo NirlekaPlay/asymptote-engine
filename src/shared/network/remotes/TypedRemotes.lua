@@ -67,5 +67,7 @@ return {
 	--
 	ServerboundPlayerSendCommand = RE("ServerboundPlayerSendCommand") :: RE<string>,
 	--
-	ClientboundSetPlayerModuleDisability = RE("ClientboundSetPlayerModuleDisability") :: RE<boolean>
+	ClientboundSetPlayerModuleDisability = RE("ClientboundSetPlayerModuleDisability") :: RE<boolean>,
+	--
+	ServerboundStopBodyDrag = RE("ClientboundStopBodyDrag") :: RE<>
 }
