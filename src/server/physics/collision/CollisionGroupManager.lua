@@ -48,6 +48,12 @@ function CollisionGroupManager.register()
 		:notCollideWithAnything()
 		:collidesWith(CollisionGroupTypes.NPC_CHAR)
 		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.BODY_DRAG_RAGDOLL)
+		:collidesWithSelf()
+		:notCollideWith(CollisionGroupTypes.PLAYER)
+		:notCollideWith(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
+		:register()
 end
 
 function CollisionGroupManager.registerCollisionGroupsFromDict(collisionGroups: { [any]: string }): ()

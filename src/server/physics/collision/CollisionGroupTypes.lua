@@ -13,5 +13,7 @@ return {
 	PATHFINDING_PART = "PathfindingPart",
 	NPC_VISION_RAY = "NpcVisionRay",
 	NPC_CHAR = "NpcCharacter",
-	QUERY_CHECK_NPC_CHARS = "QueryCheckNpcChars"
+	QUERY_CHECK_NPC_CHARS = "QueryCheckNpcChars",
+	BODY_DRAG_RAGDOLL = "BodyDragRagdoll",
+	RAGDOLL_COLLIDER_PART = "RagdollColliderPart"
 }

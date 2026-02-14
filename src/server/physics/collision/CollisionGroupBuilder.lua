@@ -40,6 +40,11 @@ function CollisionGroupBuilder.collidesWith(self: CollisionGroupBuilder, otherGr
 	return self
 end
 
+function CollisionGroupBuilder.collidesWithSelf(self: CollisionGroupBuilder): CollisionGroupBuilder
+	self.collisionDict[self.collisionGroupName] = true
+	return self
+end
+
 function CollisionGroupBuilder.notCollideWith(self: CollisionGroupBuilder, otherGroupName: string): CollisionGroupBuilder
 	self.collisionDict[otherGroupName] = false
 	return self
