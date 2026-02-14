@@ -48,6 +48,21 @@ function CollisionGroupManager.register()
 		:notCollideWithAnything()
 		:collidesWith(CollisionGroupTypes.NPC_CHAR)
 		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.BODY_DRAG_RAGDOLL)
+		:collidesWithSelf()
+		:notCollideWith(CollisionGroupTypes.PLAYER)
+		:notCollideWith(CollisionGroupTypes.NON_COLLIDE_WITH_PLAYER)
+		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.CLIENT_CAMERA_OCCLUSION_RAY)
+		:notCollideWith(CollisionGroupTypes.BODY_DRAG_RAGDOLL)
+		:notCollideWith(CollisionGroupTypes.RAGDOLL_COLLIDER_PART)
+		:register()
+
+	CollisionGroupBuilder.new(CollisionGroupTypes.RAGDOLL_COLLIDER_PART)
+		:notCollideWith(CollisionGroupTypes.PLAYER)
+		:register()
 end
 
 function CollisionGroupManager.registerCollisionGroupsFromDict(collisionGroups: { [any]: string }): ()

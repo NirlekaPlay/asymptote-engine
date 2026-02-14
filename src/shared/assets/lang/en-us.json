@@ -22,6 +22,7 @@
   "ui.prompt.interact": "Interact",
   "ui.prompt.missing_tool_prefix": "Missing",
   "ui.prompt.subdue": "Subdue",
+  "ui.prompt.carry": "Carry",
   "ui.objectives.stealth": "Stealth",
   "ui.objectives.mission": "Mission",
   "ui.objectives.loud": "Loud",

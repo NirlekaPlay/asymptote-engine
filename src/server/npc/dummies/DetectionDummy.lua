@@ -22,6 +22,7 @@ local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local BodyDraggingService = require(ServerScriptService.server.world.entity.ragdoll.BodyDraggingService)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 local SoundListener = require(ServerScriptService.server.world.level.sound.SoundListener)
@@ -411,6 +412,16 @@ function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
 	if not isCharDestroying then
 		self:getFaceControl():setFace("Unconscious")
+		task.spawn(function()
+			task.wait(1)
+			if self and self.character and self.character:IsDescendantOf(workspace) then
+				local prompt = BodyDraggingService.createDragPromptOnPart(self.serverLevel, self.character.HumanoidRootPart)
+				prompt:getTriggeredEvent():Connect(function(player)
+					BodyDraggingService.startDragging(self.character, player)
+					prompt:disable()
+				end)
+			end
+		end)
 	end
 end
 
