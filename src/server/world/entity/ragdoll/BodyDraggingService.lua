@@ -53,13 +53,17 @@ function BodyDraggingService.startDragging(char: Model, toPlayer: Player): ()
 	local playerRoot = playerCharacter:FindFirstChild("Torso") :: BasePart
 
 	local charDragAttachment = Instance.new("Attachment")
-	charDragAttachment.Name = "CarryAttachment_Ragdoll"
-	charDragAttachment.CFrame = CFrame.new(0, 0, 0) 
+	charDragAttachment.Name = "BodyDrag_CarryAttachment_Ragdoll"
+	charDragAttachment.CFrame = CFrame.new(0, 0, 0)
 	charDragAttachment.Parent = charRoot
 
 	local playerCarryAttachment = Instance.new("Attachment")
-	playerCarryAttachment.Name = "CarryAttachment_Player"
-	playerCarryAttachment.CFrame = CFrame.new(0, 0.5, 1.2)
+	playerCarryAttachment.Name = "BodyDrag_CarryAttachment_Player"
+	playerCarryAttachment.CFrame = CFrame.new(-0.001, 1.258, 1.069) * CFrame.Angles(
+		math.rad(-18.572),
+		math.rad(0.909),
+		math.rad(89.524)
+	)
 	playerCarryAttachment.Parent = playerRoot
 
 	local alignPosition = Instance.new("AlignPosition")
@@ -87,13 +91,13 @@ function BodyDraggingService.startDragging(char: Model, toPlayer: Player): ()
 		end
 	end
 
-	local ragdollLeftHand  = char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
+	local ragdollRightLeg = char:FindFirstChild("Right Leg")
 	local ragdollRightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
 	local playerLeftShoulder  = playerCharacter:FindFirstChild("LeftUpperArm") or playerCharacter:FindFirstChild("Left Arm")
 	local playerRightShoulder = playerCharacter:FindFirstChild("RightUpperArm") or playerCharacter:FindFirstChild("Right Arm")
 
-	pinHandToShoulder(ragdollLeftHand :: BasePart, playerLeftShoulder :: BasePart)
-	pinHandToShoulder(ragdollRightHand :: BasePart, playerRightShoulder :: BasePart)
+	pinHandToShoulder(ragdollRightLeg :: BasePart, playerRightShoulder :: BasePart)
+	pinHandToShoulder(ragdollRightHand :: BasePart, playerLeftShoulder :: BasePart)
 
 	local existingBodyDragObjectValue = toPlayer.Character:FindFirstChild("CurrentDraggingChar")
 	if existingBodyDragObjectValue and existingBodyDragObjectValue:IsA("ObjectValue") then
