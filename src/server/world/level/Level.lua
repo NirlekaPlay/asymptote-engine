@@ -132,10 +132,7 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 		return
 	end
 
-	setCanUpdateLevel = not not setCanUpdateLevel
-	if setCanUpdateLevel then
-		canUpdateLevel = true
-	end
+	canUpdateLevel = (setCanUpdateLevel ~= nil) and setCanUpdateLevel or true
 
 	local missionSetupObj
 
