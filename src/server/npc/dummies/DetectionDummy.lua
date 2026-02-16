@@ -324,9 +324,9 @@ end
 function DummyAgent.getBlockPosition(self: DummyAgent): Vector3
 	local currentPos = self.character.HumanoidRootPart.Position :: Vector3
 	return Vector3.new(
-		math.floor(currentPos.X),
-		math.floor(currentPos.Y) - 2,
-		math.floor(currentPos.Z)
+		math.round(currentPos.X),
+		math.round(currentPos.Y - 2),
+		math.round(currentPos.Z)
 	)
 end
 

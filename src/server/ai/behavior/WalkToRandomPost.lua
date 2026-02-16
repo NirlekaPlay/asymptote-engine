@@ -16,7 +16,8 @@ local Node = require(ServerScriptService.server.ai.navigation.Node)
 local MIN_RANDOM_WAIT_TIME = 16
 local MAX_RANDOM_WAIT_TIME = 24
 local STOP_GUARD_ANIM_BELOW = 2.5
-local REACH_THRESHOLD = 4
+local REACH_THRESHOLD = 1
+local USE_DIST_MANHATTAN = false
 
 --[=[
 	@class WalkToRandomPost
@@ -176,7 +177,7 @@ end
 --
 
 function WalkToRandomPost.moveToPost(self: WalkToRandomPost, agent: Agent, post: Node.Node): ()
-	if Vec3.distManhattan(agent:getBlockPosition(), post:getBlockPosition()) <= REACH_THRESHOLD then
+	if WalkToRandomPost.isAtTargetPost(agent, post) then
 		self.timeToReleasePost = agent:getRandom():NextNumber(MIN_RANDOM_WAIT_TIME, MAX_RANDOM_WAIT_TIME)
 
 		local brain = agent:getBrain()
@@ -211,7 +212,11 @@ function WalkToRandomPost.isAtTargetPost(agent: Agent, targetPost: Node.Node?): 
 	local agentBlockPos = agent:getBlockPosition()
 	local nodeBlockPos = targetPost:getBlockPosition()
 
-	return Vec3.distManhattan(agentBlockPos, nodeBlockPos) <= REACH_THRESHOLD
+	if USE_DIST_MANHATTAN then
+		return Vec3.distManhattan(agentBlockPos, nodeBlockPos) <= REACH_THRESHOLD
+	else
+		return (agentBlockPos - nodeBlockPos).Magnitude <= REACH_THRESHOLD
+	end
 end
 
 function WalkToRandomPost.setGuardAnimation(agent: Agent, guardAnim: boolean): ()

@@ -1,14 +1,18 @@
 --!strict
 
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Vec3 = require(ReplicatedStorage.shared.util.vector.Vec3)
 local Agent = require(ServerScriptService.server.Agent)
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local MemoryStatus = require(ServerScriptService.server.ai.memory.MemoryStatus)
 local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local NodePath = require(ServerScriptService.server.world.level.pathfinding.NodePath)
+
+local USE_DIST_MANHATTAN = false
 
 local WalkToTargetSink = {}
 WalkToTargetSink.__index = WalkToTargetSink
@@ -100,6 +104,24 @@ end
 
 function WalkToTargetSink.doStart(self: WalkToTargetSink, agent: Agent): ()
 	agent:getBrain():setMemory(MemoryModuleTypes.PATH, self.currentPath)
+	if self.currentPath then
+		local waypoints = self.currentPath:getWaypoints()
+		
+		for i, waypoint in waypoints do
+			local isDoor = agent:getNavigation():getPathfinder():getNodeEvaluator():isWaypointDoor(waypoint)
+			local color = isDoor and Color3.fromRGB(255, 85, 0) or Color3.new(0, 0, 1)
+			
+			Debris:AddItem(Draw.point(waypoint.Position, color))
+			if isDoor then
+				Debris:AddItem(Draw.text(waypoint.Position, tostring(i), Color3.new(1,1,1)))
+			end
+
+			if i > 1 then
+				local prevWaypoint = waypoints[i - 1]
+				Debris:AddItem(Draw.line(prevWaypoint.Position, waypoint.Position, Color3.new(1, 1, 1)))
+			end
+		end
+	end
 	agent:getNavigation():moveToFromPath(self.currentPath, self.speedModifier)
 end
 
@@ -166,9 +188,14 @@ function WalkToTargetSink.tryComputePath(self: WalkToTargetSink, agent: Agent, w
 end
 
 function WalkToTargetSink.hasReachedTarget(agent: Agent, walkTarget: WalkTarget.WalkTarget): boolean
+	local closeEnoughDist = walkTarget:getCloseEnoughDist()
 	local targetPos = walkTarget:getTarget():getBlockPosition()
 	local npcPos = agent:getBlockPosition()
-	return Vec3.distManhattan(targetPos, npcPos) <= walkTarget:getCloseEnoughDist()
+	if USE_DIST_MANHATTAN then
+		return Vec3.distManhattan(targetPos, npcPos) <= closeEnoughDist
+	else
+		return (targetPos - npcPos).Magnitude <= closeEnoughDist
+	end
 end
 
 return WalkToTargetSink
