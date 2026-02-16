@@ -16,7 +16,7 @@ local Node = require(ServerScriptService.server.ai.navigation.Node)
 local MIN_RANDOM_WAIT_TIME = 16
 local MAX_RANDOM_WAIT_TIME = 24
 local STOP_GUARD_ANIM_BELOW = 2.5
-local REACH_THRESHOLD = 1
+local REACH_THRESHOLD = 4
 local USE_DIST_MANHATTAN = false
 
 --[=[
