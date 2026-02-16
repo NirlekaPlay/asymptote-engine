@@ -141,6 +141,29 @@ function InteractWithDoor.doUpdate(self: InteractWithDoor, agent: Agent, deltaTi
 					end
 					
 					break
+				elseif door:isOpen() then
+					if not self.sanityInduceThread then
+						self.sanityInduceThread = task.delay(1, function()
+							local shouldClose = true
+							if not part then
+								self.sanityInduceThread = nil
+								print("Return sanity thread")
+								return
+							end
+
+							if door:isClosed() then
+								self.sanityInduceThread = nil
+								return
+							end
+
+							if shouldClose then
+								door:onPromptTriggered(Door.Sides.MIDDLE)
+							end
+							self.sanityInduceThread = nil
+						end)
+					end
+
+					break
 				end
 			end
 		end
