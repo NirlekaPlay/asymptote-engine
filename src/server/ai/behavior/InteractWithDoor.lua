@@ -70,24 +70,21 @@ function InteractWithDoor.doStop(self: InteractWithDoor, agent: Agent): ()
 end
 
 function InteractWithDoor.doUpdate(self: InteractWithDoor, agent: Agent, deltaTime: number): ()
+	local nodeEvaluator = agent:getNavigation():getPathfinder():getNodeEvaluator()
 	local path = agent:getBrain():getMemory(MemoryModuleTypes.PATH):get()
 	local nextNode = path:getNextNode()
 
-	if nextNode.Label ~= "Door" then
+	if not nodeEvaluator:isWaypointDoor(nextNode) then
 		return
 	end
 
-	local overlapParams = OverlapParams.new()
-	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-	overlapParams.FilterDescendantsInstances = { agent.character }
-
-	local partsInRadius = workspace:GetPartBoundsInRadius(nextNode.Position, 4, overlapParams)
+	local doorBoundsInRadius = nodeEvaluator:getDoorBoundPartsAt(nextNode.Position)
 	local agentPos = (agent.character.HumanoidRootPart :: BasePart).Position
 
 	if DEBUG_NEXT_DOOR_NODE_POS then
 		Debris:AddItem(Draw.point(nextNode.Position), 0.1)
 	end
-	
+
 	-- Performance?
 	-- Hah, whats that?
 	-- If it works it works.
@@ -95,70 +92,60 @@ function InteractWithDoor.doUpdate(self: InteractWithDoor, agent: Agent, deltaTi
 	-- TODO: Do the thing.
 
 	-- O(*sodding terrible*)
-	for _, part in partsInRadius do
-		if part.Name == "DoorBounds" then
-			-- Slightly position it up the Y axis so cuz its so paper thin, and due to precision
-			-- errors the waypoints have a chance to not be within the door bounds even if it is.
-			local isCorrectDoor = Bounds.isPosInPart(nextNode.Position + Vector3.yAxis, part)
+	for _, part in doorBoundsInRadius do
+		-- What the fuck.
+		local propsInLevel = Level.getProps()
+		for prop in propsInLevel do
+			if getmetatable(prop) == Door and (prop :: Door.Door).doorPathReqPart == part then
+				local door = prop :: Door.Door
+				if door:isClosed() or door.state == Door.States.CLOSING then
+					local basePos = part.Position
+					local forwardDir = door:getForwardDir()
+					local origin = basePos
+					local toTarget = (agentPos - origin)
+					local dotResult = forwardDir:Dot(toTarget)
+					local openingSide
 
-			if not isCorrectDoor then
-				continue
-			end
-
-			-- What the fuck.
-			local propsInLevel = Level.getProps()
-			for prop in propsInLevel do
-				if getmetatable(prop) == Door and (prop :: Door.Door).doorPathReqPart == part then
-					local door = prop :: Door.Door
-					if door:isClosed() or door.state == Door.States.CLOSING then
-						local basePos = part.Position
-						local forwardDir = door:getForwardDir()
-						local origin = basePos
-						local toTarget = (agentPos - origin)
-						local dotResult = forwardDir:Dot(toTarget)
-						local openingSide
-
-						if dotResult > 0 then
-							-- Agent is infront of the door
-							openingSide = Door.Sides.FRONT
-						elseif dotResult < 0 then
-							-- Agent is behind
-							openingSide = Door.Sides.BACK
-						else
-							-- Exactly perpendicular, just put it to front
-							openingSide = Door.Sides.FRONT
-						end
-						door:onPromptTriggered(openingSide, true)
-
-						-- Sigh.
-						if not self.sanityInduceThread then
-							self.sanityInduceThread = task.delay(1, function()
-								local shouldClose = true
-								if not part then
-									self.sanityInduceThread = nil
-									print("Return sanity thread")
-									return
-								end
-
-								if door:isClosed() then
-									self.sanityInduceThread = nil
-									return
-								end
-
-								if shouldClose then
-									door:onPromptTriggered(Door.Sides.MIDDLE)
-								end
-								self.sanityInduceThread = nil
-							end)
-						end
-						
-						break
+					if dotResult > 0 then
+						-- Agent is infront of the door
+						openingSide = Door.Sides.FRONT
+					elseif dotResult < 0 then
+						-- Agent is behind
+						openingSide = Door.Sides.BACK
+					else
+						-- Exactly perpendicular, just put it to front
+						openingSide = Door.Sides.FRONT
 					end
+					door:onPromptTriggered(openingSide, true)
+
+					-- Sigh.
+					if not self.sanityInduceThread then
+						self.sanityInduceThread = task.delay(1, function()
+							local shouldClose = true
+							if not part then
+								self.sanityInduceThread = nil
+								print("Return sanity thread")
+								return
+							end
+
+							if door:isClosed() then
+								self.sanityInduceThread = nil
+								return
+							end
+
+							if shouldClose then
+								door:onPromptTriggered(Door.Sides.MIDDLE)
+							end
+							self.sanityInduceThread = nil
+						end)
+					end
+					
+					break
 				end
 			end
-
-			break
 		end
+
+		break
 	end
 end
 

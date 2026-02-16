@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local CollectionTags = require(ServerScriptService.server.collection.CollectionTags)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
@@ -21,10 +22,6 @@ local DEBUG_PERPENDICULAR_MOD_BOX = false
 local RED = Color3.new(1, 0, 0)
 local BLUE = Color3.new(0, 0, 1)
 local PROMPT_ACTIVATION_DIST = 5
-local RESERVED_DOOR_PARTS_NAMES = {
-	["Part0"] = true,
-	["Base"] = true
-}
 
 local promptTemplate= InteractionPromptBuilder.new()
 	:withPrimaryInteractionKey()
@@ -119,6 +116,7 @@ function DoorCreator.createFromPlaceholder(placeholder: BasePart, model: Model, 
 	-- It all started here: https://discord.com/channels/1023187658370990131/1090992851011252314/1461748604124401960
 	pathReqPart.Size = Vector3.new(base.Size.X - 1, base.Size.Y - 1, base.Size.Z + 4)
 	pathReqPart.CollisionGroup = CollisionGroupTypes.PATHFINDING_PART
+	pathReqPart:AddTag(CollectionTags.DOOR_PATH_BOUNDS)
 	pathReqPart.Parent = workspace
 
 	local pathMod = Instance.new("PathfindingModifier")

@@ -111,9 +111,18 @@ function WalkToTargetSink.doStop(self: WalkToTargetSink, agent: Agent): ()
 end
 
 function WalkToTargetSink.doUpdate(self: WalkToTargetSink, agent: Agent, deltaTime: number): ()
-	if self.isComputing then return end
+	if self.isComputing then
+		return
+	end
 
 	local brain = agent:getBrain()
+
+	local path = agent:getNavigation():getPath()
+	if self.currentPath ~= path then
+		self.currentPath = path
+		brain:setMemory(MemoryModuleTypes.PATH, self.currentPath)
+	end
+
 	local walkTargetOpt = brain:getMemory(MemoryModuleTypes.WALK_TARGET)
 
 	if walkTargetOpt:isPresent() and self.lastTargetPos then
