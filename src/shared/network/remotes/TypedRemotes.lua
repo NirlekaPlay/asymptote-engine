@@ -69,5 +69,7 @@ return {
 	--
 	ClientboundSetPlayerModuleDisability = RE("ClientboundSetPlayerModuleDisability") :: RE<boolean>,
 	--
-	ServerboundStopBodyDrag = RE("ClientboundStopBodyDrag") :: RE<>
+	ServerboundStopBodyDrag = RE("ClientboundStopBodyDrag") :: RE<>,
+	--
+	ClientboundHeadsUpNotif = RE("ClientboundHeadsUpNotif") :: RE<string>
 }
