@@ -809,7 +809,7 @@ function Level.onPlayerJoined(player: Player): ()
 	local maid = Maid.new()
 	playersMaid[player.UserId] = maid
 
-	maid:giveTask(player.CharacterAdded:Once(function(char)
+	maid:giveTask(player.CharacterAdded:Connect(function(char)
 		if levelInstancesAccessor then
 			local starterItems = levelInstancesAccessor:getMissionSetup():getStarterPackItems()
 			for _, itemName in starterItems do
