@@ -809,7 +809,8 @@ function Level.onPlayerJoined(player: Player): ()
 	local maid = Maid.new()
 	playersMaid[player.UserId] = maid
 
-	maid:giveTask(player.CharacterAdded:Connect(function(char)
+	-- Probably gonna cause a memory leak.
+	local function proccessChar(char: Model): ()
 		if levelInstancesAccessor then
 			local starterItems = levelInstancesAccessor:getMissionSetup():getStarterPackItems()
 			for _, itemName in starterItems do
@@ -820,7 +821,12 @@ function Level.onPlayerJoined(player: Player): ()
 				end
 			end
 		end
-	end))
+	end
+
+	maid:giveTask(player.CharacterAdded:Connect(proccessChar))
+	if player.Character then
+		proccessChar(player.Character)
+	end
 end
 
 function Level.onPlayerDied(player: Player): ()
