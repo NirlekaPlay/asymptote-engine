@@ -20,6 +20,8 @@ type DialogueStep = {
 
 local intertitlesThread: thread? = nil
 
+backgroundFrame.BackgroundTransparency = 1
+titleTextRef.TextTransparency = 1
 gui.Parent = Players.LocalPlayer.PlayerGui
 titleTextRef.Text = "<b>DONT RESIZE YOURSELF YOU DOORKNOB</b>" -- Prevents the motherfucking gui from resizing whern theres a fucking bold text.
 
