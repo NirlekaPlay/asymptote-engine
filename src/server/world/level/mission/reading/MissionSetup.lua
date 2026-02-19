@@ -24,7 +24,8 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	colors: { [string]: Color3 },
 	objectives: any, -- TODO: FOR NOW
 	globalsExpressionStrs: { [string]: string },
-	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload
+	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload,
+	starterPackItems: { string }
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -38,7 +39,8 @@ function MissionSetup.new(
 	colors: { [string]: Color3 },
 	objectives: any,
 	globalsExpressionStrs: { [string]: string },
-	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload
+	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload,
+	starterPackItems: { string }
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
@@ -49,7 +51,8 @@ function MissionSetup.new(
 		colors = colors,
 		objectives = objectives,
 		globalsExpressionStrs = globalsExpressionStrs,
-		dialogueConceptsPayload = dialogueConceptsPayload
+		dialogueConceptsPayload = dialogueConceptsPayload,
+		starterPackItems = starterPackItems
 	}, MissionSetup)
 end
 
@@ -107,6 +110,10 @@ end
 
 function MissionSetup.getObjectives(self: MissionSetup): any
 	return self.objectives
+end
+
+function MissionSetup.getStarterPackItems(self: MissionSetup): {string}
+	return self.starterPackItems
 end
 
 return MissionSetup
