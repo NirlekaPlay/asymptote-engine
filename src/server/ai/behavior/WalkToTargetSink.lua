@@ -13,6 +13,7 @@ local WalkTarget = require(ServerScriptService.server.ai.memory.WalkTarget)
 local NodePath = require(ServerScriptService.server.world.level.pathfinding.NodePath)
 
 local USE_DIST_MANHATTAN = false
+local DEBUG_PATH = false
 
 local WalkToTargetSink = {}
 WalkToTargetSink.__index = WalkToTargetSink
@@ -104,7 +105,7 @@ end
 
 function WalkToTargetSink.doStart(self: WalkToTargetSink, agent: Agent): ()
 	agent:getBrain():setMemory(MemoryModuleTypes.PATH, self.currentPath)
-	if self.currentPath then
+	if self.currentPath and DEBUG_PATH then
 		local waypoints = self.currentPath:getWaypoints()
 		
 		for i, waypoint in waypoints do
