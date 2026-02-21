@@ -1,8 +1,7 @@
 --!strict
+--!native
 
-local insert = table.insert
-local remove = table.remove
-local floor = math.floor
+local bit32_rshift = bit32.rshift
 
 --[=[
 	@class Heap
@@ -36,15 +35,18 @@ end
 
 function Heap.push(self: Heap, node: Node)
 	local nodes = self.nodes
-	insert(nodes, node)
-	self.count += 1
-	local c = self.count
+	local c = self.count + 1
+	self.count = c
+	nodes[c] = node -- Manual insert
 	
 	-- "Sift Up"
 	while c > 1 do
-		local p = floor(c / 2)
-		if nodes[c].f < nodes[p].f then
-			nodes[c], nodes[p] = nodes[p], nodes[c]
+		local p = bit32_rshift(c, 1) -- p = floor(c / 2)
+		local nodeC = nodes[c]
+		local nodeP = nodes[p]
+		
+		if nodeC.f < nodeP.f then
+			nodes[c], nodes[p] = nodeP, nodeC
 			c = p
 		else
 			break
@@ -53,30 +55,36 @@ function Heap.push(self: Heap, node: Node)
 end
 
 function Heap.pop(self: Heap): Node?
-	local nodes = self.nodes
 	local count = self.count
 	if count == 0 then return nil end
 	
+	local nodes = self.nodes
 	local root = nodes[1]
+	
+	-- Move last to first
 	nodes[1] = nodes[count]
-	remove(nodes, count)
-	self.count -= 1
+	nodes[count] = nil -- Manual remove
+	count -= 1
+	self.count = count
 	
 	local p = 1
-	local newCount = count - 1
-	
+
 	-- "Sift Down"
 	while true do
-		local c = p * 2
-		if c > newCount then break end
+		local c = p * 2 -- Left child
+		if c > count then break end
 		
+		local right = c + 1
 		-- Pick the smaller child
-		if c + 1 <= newCount and nodes[c+1].f < nodes[c].f then 
-			c = c + 1
+		if right <= count and nodes[right].f < nodes[c].f then 
+			c = right
 		end
 		
-		if nodes[c].f < nodes[p].f then
-			nodes[c], nodes[p] = nodes[p], nodes[c]
+		local nodeC = nodes[c]
+		local nodeP = nodes[p]
+		
+		if nodeC.f < nodeP.f then
+			nodes[c], nodes[p] = nodeP, nodeC
 			p = c
 		else
 			break

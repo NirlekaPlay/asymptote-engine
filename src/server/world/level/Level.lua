@@ -16,6 +16,8 @@ local ExpressionContext = require(ReplicatedStorage.shared.util.expression.Expre
 local ExpressionEvaluationSorter = require(ReplicatedStorage.shared.util.expression.ExpressionEvaluationSorter)
 local ExpressionParser = require(ReplicatedStorage.shared.util.expression.ExpressionParser)
 local IsHalloween = require(ReplicatedStorage.shared.util.misc.IsHalloween)
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
+local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local DisguiseConfig = require(ServerScriptService.server.disguise.DisguiseConfig)
@@ -132,9 +134,10 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 		return
 	end
 
-	setCanUpdateLevel = not not setCanUpdateLevel
-	if setCanUpdateLevel then
+	if setCanUpdateLevel == nil then
 		canUpdateLevel = true
+	else
+		canUpdateLevel = setCanUpdateLevel
 	end
 
 	local missionSetupObj
@@ -761,6 +764,8 @@ function Level.initializeNpc(inst: Instance): ()
 	end)
 end
 
+local playersMaid: {[number]: Maid.Maid} = {}
+
 function Level.onPlayerJoined(player: Player): ()
 	if DEBUG_VEBOSITY_LEVEL > 0 then
 		print("Server: Player added " .. `'{player.Name}'`)
@@ -794,6 +799,33 @@ function Level.onPlayerJoined(player: Player): ()
 
 	if objectiveManager then
 		objectiveManager:sendCurrentObjectivesToPlayer(player)
+	end
+
+	if playersMaid[player.UserId] then
+		playersMaid[player.UserId]:doCleaning()
+		playersMaid[player.UserId] = nil
+	end
+
+	local maid = Maid.new()
+	playersMaid[player.UserId] = maid
+
+	-- Probably gonna cause a memory leak.
+	local function proccessChar(char: Model): ()
+		if levelInstancesAccessor then
+			local starterItems = levelInstancesAccessor:getMissionSetup():getStarterPackItems()
+			for _, itemName in starterItems do
+				local fetch = ItemService.getItem(itemName)
+				if fetch then
+					local cloned = fetch:getTool():Clone()
+					cloned.Parent = player.Backpack
+				end
+			end
+		end
+	end
+
+	maid:giveTask(player.CharacterAdded:Connect(proccessChar))
+	if player.Character then
+		proccessChar(player.Character)
 	end
 end
 
@@ -1337,6 +1369,11 @@ function Level.onSimulationStepped(deltaTime: number): ()
 end
 
 function Level.onPlayerRemoving(player: Player): ()
+	if playersMaid[player.UserId] then
+		playersMaid[player.UserId]:doCleaning()
+		playersMaid[player.UserId] = nil
+	end
+
 	if missionManager then
 		missionManager:onPlayerLeaving(player)
 	end

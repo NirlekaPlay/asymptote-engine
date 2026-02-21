@@ -58,6 +58,10 @@ function PathNavigation.getPath(self: PathNavigation): NodePath.NodePath?
 	return self.path
 end
 
+function PathNavigation.getPathfinder(self: PathNavigation): Pathfinder.Pathfinder
+	return self.pathfinder
+end
+
 function PathNavigation.setSpeedModifier(self: PathNavigation, speedModifier: number): ()
 	self.speedModifier = speedModifier
 end
