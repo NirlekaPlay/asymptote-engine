@@ -1,0 +1,50 @@
+{
+  "declarations": {
+    "sounds": {
+      "IntroMusic": { "id": "rbxassetid://9038678148", "volume": 0.4, "looping": true },
+      "RadioSfx": { "id": "rbxassetid://127997181362733", "volume": 0.1, "looping": false },
+      "ElevatorStop": { "id": "rbxassetid://101891961799484", "volume": 0.1, "looping": false },
+      "ElevatorAmbience": { "id": "rbxassetid://9112772739", "volume": 0.3, "looping": true }
+    }
+  },
+  "scenes": {
+    "intro": [
+      {
+        "onStart": [{ "action": "play", "target": "IntroMusic" }, { "action": "play", "target": "ElevatorAmbience" }],
+        "steps": [
+          { "text": "16th of October, 2022", "duration": 1.5 },
+          { "text": "Broken Hill, Australia", "duration": 2 }
+        ]
+      },
+      {
+        "steps": [
+          { "text": "You are a newly promoted Tier 4 officer of Plasma Security Division.", "duration": 5 }
+        ]
+      },
+      {
+        "steps": [
+          { "text": "The Council has tasked you to assassinate the equipment vendor named <b>Dennis.</b>", "duration": 7 }
+        ]
+      },
+      {
+        "steps": [
+          { "text": "He is located in the newly built administration building.", "duration": 5 }
+        ]
+      },
+      {
+        "steps": [
+          {
+            "text": "A handler by the name of <b><font color='#0071FF'>Alice</font></b> will guide you through the mission.",
+            "duration": 5,
+            "events": [
+              { "time": 2, "action": "play", "target": "RadioSfx" },
+              { "time": 3, "action": "fade", "target": "ElevatorAmbience", "to": 0, "duration": 1 },
+              { "time": 3, "action": "play", "target": "ElevatorStop" }
+            ]
+          }
+        ],
+        "onEnd": [{ "action": "fade", "target": "IntroMusic", "to": 0, "duration": 3.5 }]
+      }
+    ]
+  }
+}
