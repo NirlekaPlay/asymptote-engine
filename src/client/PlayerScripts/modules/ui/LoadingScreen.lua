@@ -8,7 +8,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
 
-local UITextShadow = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UITextShadow)
+local UIAutoScaledText = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UIAutoScaledText)
 local QuoteOfTheDay = require(ReplicatedStorage.shared.quotes.QuoteOfTheDay)
 local QuoteOfTheDayList = require(ReplicatedStorage.shared.quotes.QuoteOfTheDayList)
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
@@ -19,8 +19,6 @@ local DEBUG_QUOTE_OF_THE_DAY_INDEX_ATTRIBUTE_NAME = "QuoteOfTheDayIndex"
 local DEBUG_QUOTE_OF_THE_DAY_UI_ENABLED_ATTRIBUTE_NAME = "ShowQuoteOfTheDayUi"
 local DEBUG_BACKGROUND_INDEX_ATTRIBUTE_NAME = "BakckgroundIndex"
 
-local LOADING_SCREEN_SCREEN_GUI_NAME = "LoadingScreen"
-local LOADING_SCREEN_BACKGROUND_COLOR = Color3.new(0.090196, 0.090196, 0.090196)
 local LOADING_SCREEN_BACKGROUND_IDS = {
 	{ name = "Hub Room", id = 93100734007160 },
 	{ name = "The Founder's Eye", id = 119595682823582 },
@@ -28,9 +26,11 @@ local LOADING_SCREEN_BACKGROUND_IDS = {
 	{ name = "A Tester's Favorite Item", id = 112033098640768 },
 	{ name = "Mr. Fox's Fiery Rehearsal Session", id = 94507925788952},
 	{ name = "Darkness and Light", id = 98157055540963 },
-	{ name = "Falling Stairs of God", id = 78883576372525 }
+	{ name = "Falling Stairs of God", id = 78883576372525 },
+	{ name = "Administration Building", id = 137772869105675 }
 }
 local TWEEN_INFO_FADE = TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
+local loadingScreenGui = ReplicatedStorage.shared.assets.gui.LoadingScreen
 local lastArrivedBackgroundId: number? = nil
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer.PlayerGui
@@ -55,17 +55,12 @@ function LoadingScreen.revert(): ()
 	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.All, true)
 
 	local tweens: { Tween } = {}
-	local trackingTween: Tween
-	for _, guiObject in ipairs((currentLoadingScreenGui:FindFirstChild("Frame") :: Frame):GetChildren()) do
+	for _, guiObject in currentLoadingScreenGui:GetChildren() do
 		if guiObject:IsA("TextLabel") then
 			local newTween = TweenService:Create(
 				guiObject, TWEEN_INFO_FADE, { TextTransparency = 1 }
 			)
 			table.insert(tweens, newTween)
-
-			if not trackingTween then
-				trackingTween = newTween
-			end
 		elseif guiObject:IsA("ImageLabel") then
 			local newTween = TweenService:Create(
 				guiObject, TWEEN_INFO_FADE, { ImageTransparency = 1 }
@@ -75,10 +70,6 @@ function LoadingScreen.revert(): ()
 			)
 			table.insert(tweens, newTween)
 			table.insert(tweens, newTween1)
-
-			if not trackingTween then
-				trackingTween = newTween
-			end
 		end
 	end
 
@@ -100,121 +91,53 @@ function LoadingScreen.onTeleporting(delay: number, teleportCallback: () -> ())
 	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.All, false)
 
 	local tweens: { Tween } = {}
-	local trackingTween: Tween
-	for _, guiObject in ipairs((currentLoadingScreenGui:FindFirstChild("Frame") :: Frame):GetChildren()) do
+
+	for _, guiObject in currentLoadingScreenGui:GetChildren() do
+		local targetProperties = {}
+
 		if guiObject:IsA("TextLabel") then
+			targetProperties.TextTransparency = guiObject.TextTransparency
 			guiObject.TextTransparency = 1
-			local newTween = TweenService:Create(
-				guiObject, TWEEN_INFO_FADE, { TextTransparency = 0 }
-			)
-			table.insert(tweens, newTween)
-
-			if not trackingTween then
-				trackingTween = newTween
-			end
 		elseif guiObject:IsA("ImageLabel") then
+			targetProperties.ImageTransparency = guiObject.ImageTransparency
+			targetProperties.BackgroundTransparency = guiObject.BackgroundTransparency
 			guiObject.ImageTransparency = 1
-			local newTween = TweenService:Create(
-				guiObject, TWEEN_INFO_FADE, { ImageTransparency = 0 }
-			)
-			local newTween1 = TweenService:Create(
-				guiObject, TWEEN_INFO_FADE, { BackgroundTransparency = 0 }
-			)
-			table.insert(tweens, newTween)
-			table.insert(tweens, newTween1)
+			guiObject.BackgroundTransparency = 1
+		elseif guiObject:IsA("Frame") then
+			targetProperties.BackgroundTransparency = guiObject.BackgroundTransparency
+			guiObject.BackgroundTransparency = 1
+		end
 
-			if not trackingTween then
-				trackingTween = newTween
-			end
+		if next(targetProperties) then
+			local newTween = TweenService:Create(guiObject, TWEEN_INFO_FADE, targetProperties)
+			table.insert(tweens, newTween)
 		end
 	end
 
-	for _, tween in ipairs(tweens) do
+	for _, tween in tweens do
 		tween:Play()
 	end
 
-	if trackingTween then
-		trackingTween.Completed:Wait()
-	end
-
-	task.wait(delay)
+	task.wait(0.5 + delay)
 
 	TeleportService:SetTeleportGui(currentLoadingScreenGui :: any)
 
 	teleportCallback()
 end
 
-function LoadingScreen.createLoadingScreenGui(): ScreenGui
+function LoadingScreen.createLoadingScreenGui(): typeof(loadingScreenGui)
 	local quoteOfTheDay = QuoteOfTheDay.getQuoteOfTheDay()
+	local newScreenGui = loadingScreenGui:Clone()
 
-	local newScreenGui = Instance.new("ScreenGui")
-	newScreenGui.IgnoreGuiInset = true
-	newScreenGui.ResetOnSpawn = false
-	newScreenGui.DisplayOrder = 99999 -- make sure its on top of everything
-	newScreenGui.Name = LOADING_SCREEN_SCREEN_GUI_NAME
+	local authorText = UIAutoScaledText.fromTextLabel(newScreenGui.MainFrame.Author, 1080, newScreenGui.MainFrame.Author.TextSize)
+	local quoteText = UIAutoScaledText.fromTextLabel(newScreenGui.MainFrame.Quote, 1080, newScreenGui.MainFrame.Author.TextSize)
+	UIAutoScaledText.fromTextLabel(newScreenGui.MainFrame.Title, 1080, newScreenGui.MainFrame.Author.TextSize)
+	local background = newScreenGui.Background
 
-	local rootFrame = Instance.new("Frame")
-	rootFrame.BackgroundTransparency = 1
-	rootFrame.Size = UDim2.fromScale(1, 1)
-	rootFrame.Parent = newScreenGui
+	authorText.Text = quoteOfTheDay.author
+	quoteText.Text = quoteOfTheDay.message
+	background.ImageContent = Content.fromAssetId(LoadingScreen.selectBackgroundId())
 
-	local backgroundImageLabel = Instance.new("ImageLabel")
-	backgroundImageLabel.Name = "Background"
-	backgroundImageLabel.Size = UDim2.fromScale(1, 1)
-	backgroundImageLabel.ScaleType = Enum.ScaleType.Crop
-	backgroundImageLabel.ZIndex = 0
-	backgroundImageLabel.BackgroundTransparency = 0
-	backgroundImageLabel.BackgroundColor3 = LOADING_SCREEN_BACKGROUND_COLOR
-	backgroundImageLabel.ImageContent = Content.fromAssetId(LoadingScreen.selectBackgroundId())
-	backgroundImageLabel.Parent = rootFrame
-
-	local quoteHeaderText = Instance.new("TextLabel")
-	quoteHeaderText.Name = "Header"
-	quoteHeaderText.BackgroundTransparency = 1
-	quoteHeaderText.TextColor3 = Color3.new(1, 1, 1)
-	quoteHeaderText.FontFace = Font.fromName("Zekton")
-	quoteHeaderText.TextScaled = true
-	quoteHeaderText.Position = UDim2.fromScale(0.05, 0.718)
-	quoteHeaderText.Size = UDim2.fromScale(0.469,0.051)
-	quoteHeaderText.TextXAlignment = Enum.TextXAlignment.Left
-	quoteHeaderText.Text = "Quote of The Day:"
-	quoteHeaderText.ZIndex = 3
-	quoteHeaderText.Parent = rootFrame
-
-	UITextShadow.createTextShadow(quoteHeaderText, nil, 1.5, nil, 0.5)
-
-	local quoteMessageText = Instance.new("TextLabel")
-	quoteMessageText.Name = "Message"
-	quoteMessageText.BackgroundTransparency = 1
-	quoteMessageText.TextColor3 = Color3.new(1, 1, 1)
-	quoteMessageText.FontFace = Font.fromName("Zekton", Enum.FontWeight.Regular, Enum.FontStyle.Italic)
-	quoteMessageText.TextScaled = true
-	quoteMessageText.Size = UDim2.fromScale(0.811, 0.061)
-	quoteMessageText.Position = UDim2.fromScale(0.052, 0.766)
-	quoteMessageText.TextXAlignment = Enum.TextXAlignment.Left
-	quoteMessageText.Text = quoteOfTheDay.message
-	quoteMessageText.ZIndex = 3
-	quoteMessageText.Parent = rootFrame
-
-	UITextShadow.createTextShadow(quoteMessageText, nil, 1.5, nil, 0.5)
-
-	local quoteAuthorText = Instance.new("TextLabel")
-	quoteAuthorText.Name = "Author"
-	quoteAuthorText.BackgroundTransparency = 1
-	quoteAuthorText.TextColor3 = Color3.new(1, 1, 1)
-	quoteAuthorText.FontFace = Font.fromName("Zekton")
-	quoteAuthorText.TextScaled = true
-	quoteAuthorText.Size = UDim2.fromScale(0.44, 0.039)
-	quoteAuthorText.Position = UDim2.fromScale(0.079, 0.827)
-	quoteAuthorText.AutomaticSize = Enum.AutomaticSize.X
-	quoteAuthorText.TextXAlignment = Enum.TextXAlignment.Left
-	quoteAuthorText.Text = quoteOfTheDay.author
-	quoteAuthorText.ZIndex = 3
-	quoteAuthorText.Parent = rootFrame
-
-	UITextShadow.createTextShadow(quoteAuthorText, nil, 1.5, nil, 0.5)
-
-	newScreenGui.Enabled = true
 	newScreenGui.Parent = playerGui
 
 	return newScreenGui
@@ -226,15 +149,11 @@ function LoadingScreen.updateQuoteOfTheDay(quote: QuoteOfTheDayList.Quote): ()
 		return
 	end
 
-	local messageTextLabel = currentLoadingScreenGui.Frame.Message :: TextLabel
-	local messageTextLabelShadow = currentLoadingScreenGui.Frame.Message_Shadow :: TextLabel
-	local authorTextLabel = currentLoadingScreenGui.Frame.Author :: TextLabel
-	local authorTextLabelShadow = currentLoadingScreenGui.Frame.Author_Shadow :: TextLabel
+	local messageTextLabel = currentLoadingScreenGui.MainFrame.Quote
+	local authorTextLabel = currentLoadingScreenGui.MainFrame.Author
 
 	messageTextLabel.Text = quote.message
-	messageTextLabelShadow.Text = quote.message
 	authorTextLabel.Text = quote.author
-	authorTextLabelShadow.Text = quote.author
 end
 
 function LoadingScreen.updateBackground(background: { name: string, id: number }): ()
@@ -243,7 +162,7 @@ function LoadingScreen.updateBackground(background: { name: string, id: number }
 		return
 	end
 
-	local backgroundImageLabel = currentLoadingScreenGui.Frame.Background
+	local backgroundImageLabel = currentLoadingScreenGui.Background
 	backgroundImageLabel.ImageContent = Content.fromAssetId(background.id)
 	print(`Updated background to: '{background.name}'`)
 end

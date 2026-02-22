@@ -27,13 +27,13 @@ local function animateLoadingScreenFadeAndDestroy()
 		return
 	end
 
-	local tweenInfo = TweenInfo.new(3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+	local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.In)
 	local objectsToAnimate: { [GuiBase]: { [string]: any } } = {}
 	for _, guiObject in ipairs(customLoadingScreen:GetDescendants()) do
 		if guiObject:IsA("Frame") then
 			objectsToAnimate[guiObject] = { BackgroundTransparency = 1 }
 		elseif guiObject:IsA("TextLabel") then
-			objectsToAnimate[guiObject] = { TextTransparency = 1 }
+			objectsToAnimate[guiObject] = { TextTransparency = 1, BackgroundTransparency = 1 }
 		elseif guiObject:IsA("ImageLabel") then
 			arrivedBackgroundId = tonumber(string.match(guiObject.Image, "%d+"))
 			objectsToAnimate[guiObject] = { ImageTransparency = 1, BackgroundTransparency = 1 }
@@ -51,9 +51,7 @@ local function animateLoadingScreenFadeAndDestroy()
 		end
 	end
 
-	if firstObjectWaitEvent then
-		firstObjectWaitEvent:Wait()
-	end
+	task.wait(1.5)
 
 	customLoadingScreen:Destroy()
 end
