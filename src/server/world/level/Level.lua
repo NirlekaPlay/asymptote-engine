@@ -359,15 +359,6 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Dialogue
 
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
-
-	-- TODO: This might lead to inconsistencies...
-	if delayedLevelStartThread then
-		task.cancel(delayedLevelStartThread)
-		delayedLevelStartThread = nil
-	end
-	delayedLevelStartThread = task.delay(3, function()
-		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
-	end)
 end
 
 function Level.clearLevel(): ()
@@ -1339,6 +1330,16 @@ function Level.startMission(overrideExistingChars: boolean?): ()
 			loadChar(player)
 		end
 	end
+
+	-- Initial dialogue
+	if delayedLevelStartThread then
+		task.cancel(delayedLevelStartThread)
+		delayedLevelStartThread = nil
+	end
+
+	delayedLevelStartThread = task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+	end)
 end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()
