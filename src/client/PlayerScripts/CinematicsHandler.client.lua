@@ -9,3 +9,14 @@ local CinematicsDirector = require(ReplicatedStorage.shared.cinematic.Cinematics
 
 local dir = CinematicsDirector.fromData(misssion_dennis_intro)
 dir:runScene("intro", IntertitlesScreen)
+
+task.wait(5)
+
+print("Killed")
+dir:destroy()
+dir = nil
+IntertitlesScreen.stop()
+IntertitlesScreen.fadeOut()
+
+dir = CinematicsDirector.fromData(misssion_dennis_intro)
+dir:runScene("intro", IntertitlesScreen)

@@ -354,11 +354,11 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Objectives
 
 	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
-	MusicController.evaluateStack()
 
 	-- Dialogue
 
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
+	return true :: any
 end
 
 function Level.clearLevel(): ()
@@ -1312,6 +1312,7 @@ function Level.restartLevel(): ()
 end
 
 function Level.startMission(overrideExistingChars: boolean?): ()
+	print("Called")
 	overrideExistingChars = overrideExistingChars or false
 	local targetStreamPos = workspace:FindFirstChildOfClass("SpawnLocation")
 	local function loadChar(player: Player)
@@ -1340,6 +1341,12 @@ function Level.startMission(overrideExistingChars: boolean?): ()
 	delayedLevelStartThread = task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
+
+	print("Begin")
+
+	MusicController.evaluateStack()
+
+	print("Passed")
 end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()

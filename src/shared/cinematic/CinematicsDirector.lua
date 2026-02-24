@@ -122,7 +122,7 @@ function CinematicsDirector.runThread(self: CinematicsDirector, sceneData: any, 
 			})
 		end
 
-		intertitlesScreen.runSequenceThread({formattedSteps})
+		intertitlesScreen.runSequenceThread({formattedSteps}, self._maid)
 
 		if block.onEnd then
 			for _, event in block.onEnd do

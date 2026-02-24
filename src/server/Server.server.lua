@@ -201,7 +201,10 @@ ItemService.register()
 Level.setDestroyNpcsCallback(clearAndDestroyAllNpcs)
 Level.setUponLevelClearCallback(uponLevelClearCallback)
 pcall(function()
-	Level.initializeLevel()
+	local success = Level.initializeLevel()
+	if success then
+		Level.startMission(true)
+	end
 end)
 
 -- to prevent race condition bullshit

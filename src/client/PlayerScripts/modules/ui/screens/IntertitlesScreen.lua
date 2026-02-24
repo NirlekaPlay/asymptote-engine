@@ -4,12 +4,15 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
+local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local UIAutoScaledText = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.components.UIAutoScaledText)
 
 local gui = ReplicatedStorage.shared.assets.gui.Intertitles:Clone()
 local root = gui.Root
 local backgroundFrame = root.SafeArea
 local titleTextRef = backgroundFrame.REF
+
+local currentSeq: { thread: thread, maid: Maid.Maid }? = nil
 
 local TWEEN_INFO_EXPO_OUT = TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 
@@ -55,18 +58,22 @@ function IntertitlesScreen.createLine(text: string): TextLabel
 	return UIAutoScaledText.fromTextLabel(titleText, 1920, 40)
 end
 
-function IntertitlesScreen.runSequenceThread(sequence: {{DialogueStep}}): ()
+function IntertitlesScreen.runSequenceThread(sequence: {{DialogueStep}}, maid: Maid.Maid): ()
 	for _, mStep in sequence do
 		local currentElements = {}
 
 		for j, step in mStep do
 			local rawLabel = IntertitlesScreen.createLine(step.text)
+			maid:giveTask(rawLabel)
 			currentElements[j] = {raw = rawLabel, stepData = step}
 		end
 
 		for _, item in currentElements do
 			if item.stepData.onVisible then
-				task.spawn(item.stepData.onVisible)
+				local thread = task.spawn(item.stepData.onVisible)
+				maid:giveTask(function()
+					task.cancel(thread)
+				end)
 			end
 
 			TweenService:Create(item.raw, TWEEN_INFO_EXPO_OUT, { TextTransparency = 0 }):Play()
@@ -76,12 +83,23 @@ function IntertitlesScreen.runSequenceThread(sequence: {{DialogueStep}}): ()
 		for _, item in currentElements do
 			local fadeOut = TweenService:Create(item.raw, TWEEN_INFO_EXPO_OUT, { TextTransparency = 1 })
 			fadeOut:Play()
-			fadeOut.Completed:Once(function()
+			maid:giveTask(fadeOut.Completed:Once(function()
 				item.raw:Destroy()
-			end)
+			end))
 		end
-		
+
 		task.wait(0.5)
+	end
+
+	maid:doCleaning()
+	currentSeq = nil
+end
+
+function IntertitlesScreen.stop(): ()
+	if currentSeq then
+		task.cancel(currentSeq.thread)
+		currentSeq.maid:doCleaning()
+		currentSeq = nil
 	end
 end
 
