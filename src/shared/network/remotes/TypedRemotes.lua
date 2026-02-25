@@ -71,5 +71,8 @@ return {
 	--
 	ServerboundStopBodyDrag = RE("ClientboundStopBodyDrag") :: RE<>,
 	--
-	ClientboundHeadsUpNotif = RE("ClientboundHeadsUpNotif") :: RE<string>
+	ClientboundHeadsUpNotif = RE("ClientboundHeadsUpNotif") :: RE<string>,
+	--
+	ClientboundCinematicsData = RE("ClientboundCinematicsData") :: RE<any>,
+	ClientboundCinematicsPlayScene = RE("ClientboundCinematicsPlayScene") :: RE<string>
 }

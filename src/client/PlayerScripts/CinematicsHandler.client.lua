@@ -2,21 +2,25 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
-local TestService = game:GetService("TestService")
 local IntertitlesScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.IntertitlesScreen)
-local misssion_dennis_intro = require(TestService.intertitles.misssion_dennis_intro)
 local CinematicsDirector = require(ReplicatedStorage.shared.cinematic.CinematicsDirector)
+local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
-local dir = CinematicsDirector.fromData(misssion_dennis_intro)
-dir:runScene("intro", IntertitlesScreen)
+local dir: CinematicsDirector.CinematicsDirector?
 
-task.wait(5)
+TypedRemotes.ClientboundCinematicsData.OnClientEvent:Connect(function(data)
+	if dir ~= nil then
+		dir:destroy()
+		dir = nil
+	end
 
-print("Killed")
-dir:destroy()
-dir = nil
-IntertitlesScreen.stop()
-IntertitlesScreen.fadeOut()
+	dir = CinematicsDirector.fromData(data)
+end)
 
-dir = CinematicsDirector.fromData(misssion_dennis_intro)
-dir:runScene("intro", IntertitlesScreen)
+TypedRemotes.ClientboundCinematicsPlayScene.OnClientEvent:Connect(function(sceneName)
+	print(sceneName)
+	if dir then
+		dir:stop()
+		dir:runScene(sceneName, IntertitlesScreen)
+	end
+end)

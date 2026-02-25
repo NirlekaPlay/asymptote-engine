@@ -480,6 +480,8 @@ function Level.loadLevel(levelName: string): ()
 				TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 			end
 		end
+		-- Cinematics data
+		TypedRemotes.ClientboundCinematicsData:FireAllClients(Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
 
 		objectiveManager:sendCurrentObjectivesToClients()
 
@@ -786,6 +788,7 @@ function Level.onPlayerJoined(player: Player): ()
 			TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 		end
 		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
+		TypedRemotes.ClientboundCinematicsData:FireClient(Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
 	end
 
 	if objectiveManager then
@@ -1255,7 +1258,6 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		player:LoadCharacterAsync()
 	end
 
 	missionManager:onLevelRestart()
@@ -1306,6 +1308,8 @@ function Level.restartLevel(): ()
 
 	levelIsRestarting = false
 
+	Level.startMission(true)
+
 	if DEBUG_STATE_CHANGES then
 		print(GlobalStatesHolder.getAllStatesReference())
 	end
@@ -1341,6 +1345,13 @@ function Level.startMission(overrideExistingChars: boolean?): ()
 	delayedLevelStartThread = task.delay(3, function()
 		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
 	end)
+
+	local cinemaData = Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData()
+	if cinemaData and cinemaData.scenes and (cinemaData :: any).scenes.intro then
+		TypedRemotes.ClientboundCinematicsPlayScene:FireAllClients("intro")
+	end
+
+	-- Following code Should be played after players plays or skips the entire intro
 
 	print("Begin")
 

@@ -25,7 +25,8 @@ export type MissionSetup = typeof(setmetatable({} :: {
 	objectives: any, -- TODO: FOR NOW
 	globalsExpressionStrs: { [string]: string },
 	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload,
-	starterPackItems: { string }
+	starterPackItems: { string },
+	cinematicsData: any
 }, MissionSetup))
 
 type LightingSettings = { [any]: any }
@@ -40,7 +41,8 @@ function MissionSetup.new(
 	objectives: any,
 	globalsExpressionStrs: { [string]: string },
 	dialogueConceptsPayload: ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload,
-	starterPackItems: { string }
+	starterPackItems: { string },
+	cinematicsData: any
 ): MissionSetup
 	return setmetatable({
 		localizedStrings = localizedStrings,
@@ -52,8 +54,13 @@ function MissionSetup.new(
 		objectives = objectives,
 		globalsExpressionStrs = globalsExpressionStrs,
 		dialogueConceptsPayload = dialogueConceptsPayload,
-		starterPackItems = starterPackItems
+		starterPackItems = starterPackItems,
+		cinematicsData = cinematicsData
 	}, MissionSetup)
+end
+
+function MissionSetup.getCinematicsData(self: MissionSetup): any
+	return self.cinematicsData
 end
 
 function MissionSetup.getLocalizedString(self: MissionSetup, keyStr: string): string
