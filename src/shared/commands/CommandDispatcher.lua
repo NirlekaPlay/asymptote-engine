@@ -86,7 +86,7 @@ function CommandDispatcher.setConsumer<S>(self: CommandDispatcher<S>, consumer: 
 end
 
 function CommandDispatcher.getCompletionSuggestions<S>(self: CommandDispatcher<S>, parsed: ParseResults<S>): CompletableFuture.CompletableFuture<Suggestions.Suggestions>
-	return self:getCompletionSuggestions(parsed, parsed:getReader():getTotalLength())
+	return self:_getCompletionSuggestions(parsed, parsed:getReader():getTotalLength())
 end
 
 function CommandDispatcher._getCompletionSuggestions<S>(self: CommandDispatcher<S>, parsed: ParseResults<S>, cursorPos: number): CompletableFuture.CompletableFuture<Suggestions.Suggestions>
