@@ -15,15 +15,17 @@ export type CinematicsDirector = typeof(setmetatable({} :: {
 	assets: { [string]: Instance },
 	rawIntroData: any,
 	currentThread: thread?,
+	finishedCallback: (sceneName: string) -> ()?,
 	--
 	_maid: Maid.Maid,
 	_activeThreads: {thread}
 }, CinematicsDirector))
 
-function CinematicsDirector.fromData(rawIntroData: any): CinematicsDirector
+function CinematicsDirector.fromData(rawIntroData: any, finishedCallback: (sceneName: string) -> ()?): CinematicsDirector
 	return setmetatable({
 		assets = {},
 		rawIntroData = rawIntroData,
+		finishedCallback = finishedCallback,
 		_maid = Maid.new(),
 		_activeThreads = {},
 		_currentThread = nil :: thread?
@@ -87,10 +89,10 @@ function CinematicsDirector.runScene(self: CinematicsDirector, sceneName: string
 		self.currentThread = nil
 	end
 
-	self.currentThread = task.spawn(CinematicsDirector.runThread, self, sceneData, intertitlesScreen)
+	self.currentThread = task.spawn(CinematicsDirector.runThread, self, sceneName, sceneData, intertitlesScreen)
 end
 
-function CinematicsDirector.runThread(self: CinematicsDirector, sceneData: any, intertitlesScreen: any): ()
+function CinematicsDirector.runThread(self: CinematicsDirector, sceneName: string, sceneData: any, intertitlesScreen: any): ()
 	self:initializeAssets()
 	
 	intertitlesScreen.prepare()
@@ -132,6 +134,10 @@ function CinematicsDirector.runThread(self: CinematicsDirector, sceneData: any, 
 	end
 
 	intertitlesScreen.fadeOut()
+
+	if self.finishedCallback then
+		self.finishedCallback(sceneName)
+	end
 end
 
 --

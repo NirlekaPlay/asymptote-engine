@@ -1,5 +1,6 @@
 --!strict
 
+local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local IntertitlesScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.IntertitlesScreen)
@@ -9,13 +10,23 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local dir: CinematicsDirector.CinematicsDirector?
 local cacheData: any = nil
 
+local function onCinematicSceneFinished(sceneName: string): ()
+	if sceneName == "intro" then
+		TypedRemotes.ServerboundCinematicsPlayerIntroDone:FireServer()
+	end
+end
+
+local function newCinematicsDirector<T>(data: T): CinematicsDirector.CinematicsDirector
+	return CinematicsDirector.fromData(data, onCinematicSceneFinished)
+end
+
 TypedRemotes.ClientboundCinematicsData.OnClientEvent:Connect(function(data)
 	if dir ~= nil then
 		dir:destroy()
 		dir = nil
 	end
 
-	dir = CinematicsDirector.fromData(data)
+	dir = newCinematicsDirector(data)
 	cacheData = data
 end)
 
@@ -25,14 +36,17 @@ TypedRemotes.ClientboundCinematicsPlayScene.OnClientEvent:Connect(function(scene
 		dir:stop()
 		dir:runScene(sceneName, IntertitlesScreen)
 	elseif dir == nil and cacheData then
-		dir = CinematicsDirector.fromData(cacheData);
+		dir = newCinematicsDirector(cacheData);
 		(dir :: any):runScene(sceneName, IntertitlesScreen)
 	end
 end)
 
-local t = {}
+--[=[
+	@class ClientCinematics
+]=]
+local ClientCinematics = {}
 
-function t.interrupt(): ()
+function ClientCinematics.interrupt(): ()
 	if dir ~= nil then
 		dir:destroy()
 		dir = nil
@@ -40,4 +54,16 @@ function t.interrupt(): ()
 	end
 end
 
-return t
+function ClientCinematics.onSkipKeyPressed(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+
+	ClientCinematics.interrupt()
+
+	return Enum.ContextActionResult.Sink
+end
+
+ContextActionService:BindAction("ACTION_CINEMATIC_SCENE_SKIP", ClientCinematics.onSkipKeyPressed, false, Enum.KeyCode.Y)
+
+return ClientCinematics
