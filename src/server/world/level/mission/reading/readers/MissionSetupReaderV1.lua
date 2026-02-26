@@ -37,6 +37,7 @@ function MissionSetupReaderV1.parse(missionSetupModule: ModuleScript): MissionSe
 		concepts = {}
 	}
 	local starterPackItems = required["StarterPack"] or {}
+	local cinematics = required["Cinematics"] or {}
 
 	if dialoguesField then
 		local speakersField = dialoguesField["Speakers"]
@@ -70,7 +71,8 @@ function MissionSetupReaderV1.parse(missionSetupModule: ModuleScript): MissionSe
 		objectives,
 		globals,
 		dialoguesPayload,
-		starterPackItems
+		starterPackItems,
+		cinematics
 	)
 
 	return newMissionSetup

@@ -354,20 +354,11 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Objectives
 
 	objectiveManager:fromMissionSetupTable(missionSetupObj:getObjectives())
-	MusicController.evaluateStack()
 
 	-- Dialogue
 
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
-
-	-- TODO: This might lead to inconsistencies...
-	if delayedLevelStartThread then
-		task.cancel(delayedLevelStartThread)
-		delayedLevelStartThread = nil
-	end
-	delayedLevelStartThread = task.delay(3, function()
-		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
-	end)
+	return true :: any
 end
 
 function Level.clearLevel(): ()
@@ -489,6 +480,8 @@ function Level.loadLevel(levelName: string): ()
 				TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 			end
 		end
+		-- Cinematics data
+		TypedRemotes.ClientboundCinematicsData:FireAllClients(Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
 
 		objectiveManager:sendCurrentObjectivesToClients()
 
@@ -795,6 +788,8 @@ function Level.onPlayerJoined(player: Player): ()
 			TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 		end
 		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
+		TypedRemotes.ClientboundCinematicsData:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		TypedRemotes.ClientboundCinematicsPlayScene:FireClient(player, "intro") -- NOTES: HAC.
 	end
 
 	if objectiveManager then
@@ -1264,7 +1259,6 @@ function Level.restartLevel(): ()
 		if statusHolder then
 			statusHolder:clearAllStatuses()
 		end
-		player:LoadCharacterAsync()
 	end
 
 	missionManager:onLevelRestart()
@@ -1315,12 +1309,15 @@ function Level.restartLevel(): ()
 
 	levelIsRestarting = false
 
+	Level.startMission(true)
+
 	if DEBUG_STATE_CHANGES then
 		print(GlobalStatesHolder.getAllStatesReference())
 	end
 end
 
 function Level.startMission(overrideExistingChars: boolean?): ()
+	print("Called")
 	overrideExistingChars = overrideExistingChars or false
 	local targetStreamPos = workspace:FindFirstChildOfClass("SpawnLocation")
 	local function loadChar(player: Player)
@@ -1339,6 +1336,29 @@ function Level.startMission(overrideExistingChars: boolean?): ()
 			loadChar(player)
 		end
 	end
+
+	-- Initial dialogue
+	if delayedLevelStartThread then
+		task.cancel(delayedLevelStartThread)
+		delayedLevelStartThread = nil
+	end
+
+	delayedLevelStartThread = task.delay(3, function()
+		TypedRemotes.ClientBoundDialogueConceptEvaluate:FireAllClients("DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+	end)
+
+	local cinemaData = Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData()
+	if cinemaData and cinemaData.scenes and (cinemaData :: any).scenes.intro then
+		TypedRemotes.ClientboundCinematicsPlayScene:FireAllClients("intro")
+	end
+
+	-- Following code Should be played after players plays or skips the entire intro
+
+	print("Begin")
+
+	MusicController.evaluateStack()
+
+	print("Passed")
 end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()
@@ -1409,5 +1429,13 @@ end
 function Level.updateCells(): ()
 	cellManager:update()
 end
+
+TypedRemotes.ServerboundCinematicsPlayerIntroDone.OnServerEvent:Connect(function(player)
+	if missionManager then
+		if not missionManager:isConcluded() then
+			TypedRemotes.ClientBoundDialogueConceptEvaluate:FireClient(player, "DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+		end
+	end
+end)
 
 return Level
