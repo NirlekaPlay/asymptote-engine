@@ -788,7 +788,8 @@ function Level.onPlayerJoined(player: Player): ()
 			TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 		end
 		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
-		TypedRemotes.ClientboundCinematicsData:FireClient(Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		TypedRemotes.ClientboundCinematicsData:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		TypedRemotes.ClientboundCinematicsPlayScene:FireClient(player, "intro") -- NOTES: HAC.
 	end
 
 	if objectiveManager then

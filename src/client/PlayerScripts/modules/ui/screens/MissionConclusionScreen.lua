@@ -6,6 +6,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local CameraManager = require(StarterPlayer.StarterPlayerScripts.client.modules.camera.CameraManager)
+local ClientCinematics = require(StarterPlayer.StarterPlayerScripts.client.modules.cinematic.ClientCinematics)
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
 local MouseManager = require(StarterPlayer.StarterPlayerScripts.client.modules.input.MouseManager)
 local LoadingScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.LoadingScreen)
@@ -145,6 +146,7 @@ function MissionConclusionScreen.updateMissionConclusionScreen(
 	homeButton.Text = "Return to Lobby"
 	homeButton.Interactable = true
 	Transition.transition()
+	ClientCinematics.interrupt()
 	HealthSaturationScreen.disable()
 	Spectate.disableMode()
 	CameraManager.takeOverCamera()
