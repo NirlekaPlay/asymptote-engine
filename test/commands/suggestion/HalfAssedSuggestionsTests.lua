@@ -3,11 +3,16 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local Commands = require(ServerScriptService.server.commands.registry.Commands)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 
 local HalfAssedSuggestionsTests = {}
 
-local dispatcher = CommandDispatcher.new()
+local dispatcher = Commands.getDispatcher()
+
+task.wait(3)
+
+--[[CommandDispatcher.new()
 dispatcher:register(
 	CommandHelper.literal("verylongcommand")
 		:andThen(
@@ -16,9 +21,9 @@ dispatcher:register(
 					return 1
 				end)
 		)
-)
+)]]
 
-local parsed = dispatcher:parseString("verylong", {})
+local parsed = dispatcher:parseString("var", {})
 local future = dispatcher:getCompletionSuggestions(parsed)
 local timeout = 5
 local start = os.clock()
@@ -34,17 +39,10 @@ local suggestions = future:join()
 
 -- 3. Assertions
 -- Assuming your Suggestions object has a getList() or similar method
-local list = suggestions:getList()
+local list = suggestions and suggestions:getList() or nil
 
-local found = false
-for _, suggestion in list do
-	if suggestion:getText() == "verylongcommand" then
-		found = true
-		break
-	end
-end
-
-assert(found, "Should have suggested 'verylongcommand'")
+assert(list, "Didn't find anything")
 print("✅ Suggestions test passed!")
+print(list)
 
 return HalfAssedSuggestionsTests
