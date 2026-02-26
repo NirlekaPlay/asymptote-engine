@@ -62,8 +62,8 @@ function CommandContextBuilder.findSuggestionContext<S>(self: CommandContextBuil
 		if range:getEnd() < cursorPos then
 			if self.child ~= nil then
 				return self.child.findSuggestionContext(cursorPos)
-			elseif not self.nodes:isEmpty() then
-				local last = self.nodes:get(#self.nodes - 1);
+			elseif next(self.nodes) ~= nil then
+				local last = self.nodes[(#self.nodes - 1)]
 				return SuggestionContext.new(last:getNode(), last:getRange():getEnd() + 1)
 			else
 				return SuggestionContext.new(self.rootNode, range:getStart())
@@ -78,7 +78,7 @@ function CommandContextBuilder.findSuggestionContext<S>(self: CommandContextBuil
 				prev = node:getNode()
 			end
 			if prev == nil then
-				error("Can't find node before cursor");
+				error("Can't find node before cursor")
 			end
 			return SuggestionContext.new(prev, range:getStart())
 		end
