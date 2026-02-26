@@ -1430,4 +1430,12 @@ function Level.updateCells(): ()
 	cellManager:update()
 end
 
+TypedRemotes.ServerboundCinematicsPlayerIntroDone.OnServerEvent:Connect(function(player)
+	if missionManager then
+		if not missionManager:isConcluded() then
+			TypedRemotes.ClientBoundDialogueConceptEvaluate:FireClient(player, "DIA_MISSION_ENTER", GlobalStatesHolder.getAllStatesReference())
+		end
+	end
+end)
+
 return Level

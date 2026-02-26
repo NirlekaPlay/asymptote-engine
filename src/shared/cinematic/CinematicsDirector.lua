@@ -15,13 +15,13 @@ export type CinematicsDirector = typeof(setmetatable({} :: {
 	assets: { [string]: Instance },
 	rawIntroData: any,
 	currentThread: thread?,
-	finishedCallback: (sceneName: string) -> ()?,
+	finishedCallback: (sceneName: string?) -> ()?,
 	--
 	_maid: Maid.Maid,
 	_activeThreads: {thread}
 }, CinematicsDirector))
 
-function CinematicsDirector.fromData(rawIntroData: any, finishedCallback: (sceneName: string) -> ()?): CinematicsDirector
+function CinematicsDirector.fromData(rawIntroData: any, finishedCallback: (sceneName: string?) -> ()?): CinematicsDirector
 	return setmetatable({
 		assets = {},
 		rawIntroData = rawIntroData,
@@ -158,6 +158,10 @@ function CinematicsDirector.destroy(self: CinematicsDirector): ()
 
 	for _, inst in self.assets do
 		inst:Destroy()
+	end
+
+	if self.finishedCallback then
+		self.finishedCallback(nil)
 	end
 end
 

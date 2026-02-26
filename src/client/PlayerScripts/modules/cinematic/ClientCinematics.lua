@@ -10,8 +10,8 @@ local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemot
 local dir: CinematicsDirector.CinematicsDirector?
 local cacheData: any = nil
 
-local function onCinematicSceneFinished(sceneName: string): ()
-	if sceneName == "intro" then
+local function onCinematicSceneFinished(sceneName: string?): ()
+	if not sceneName or sceneName == "intro" then
 		TypedRemotes.ServerboundCinematicsPlayerIntroDone:FireServer()
 	end
 end
