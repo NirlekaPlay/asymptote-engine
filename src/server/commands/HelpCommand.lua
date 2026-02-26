@@ -16,20 +16,28 @@ function HelpCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Co
 			:executes(function(c)
 				local source = c:getSource()
 				local availableCommands = dispatcher:getSmartUsage(dispatcher:getRoot(), source, false)
-				local count = 0
+
+				local commandList = {}
+				for _, usage in availableCommands do
+					table.insert(commandList, usage)
+				end
+				
+				table.sort(commandList, function(a, b)
+					return a:lower() < b:lower()
+				end)
 				
 				local helpText = "Available commands:\n"
-				for _, command in pairs(availableCommands) do
-					count += 1
+				for _, command in ipairs(commandList) do
 					helpText = helpText .. "/" .. command .. "\n"
 				end
 				
-				-- Remove trailing newline
-				helpText = helpText:sub(1, -2)
+				if #commandList > 0 then
+					helpText = helpText:sub(1, -2)
+				end
 				
 				c:getSource():sendSuccess(MutableTextComponent.literal(helpText))
 				
-				return count
+				return #commandList
 			end)
 			:andThen(
 				CommandHelper.argument("command", StringArgumentType.greedyString())
