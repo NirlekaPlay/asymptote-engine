@@ -109,7 +109,9 @@ function MissionConclusionScreen.onMissionStart(): ()
 	MissionConclusionScreen.setOtherGuisEnabled(true)
 	blurcc.Enabled = false
 	subtitleFrame.Visible = false
-	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
+	if not ClientCinematics.hasData() then
+		CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
+	end
 
 	MouseManager.setIconEnabled(false)
 	MouseManager.setLockEnabled(true)

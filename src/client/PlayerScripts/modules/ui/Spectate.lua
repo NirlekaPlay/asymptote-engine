@@ -4,6 +4,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local ClientCinematics = require(StarterPlayer.StarterPlayerScripts.client.modules.cinematic.ClientCinematics)
 local HealthSaturationScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.HealthSaturationScreen)
 local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
 
@@ -164,7 +165,10 @@ function Spectate.updateSpectateGui(spectateTarget: Player?): ()
 		CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, false)
 	else
 		gui.Enabled = false
-		CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
+		-- TODO: This gives me a migraine. Cinematic logic scattered everywhere.
+		if not ClientCinematics.hasData() then
+			CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
+		end
 	end
 end
 

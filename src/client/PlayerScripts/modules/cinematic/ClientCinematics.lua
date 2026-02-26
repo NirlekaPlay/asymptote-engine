@@ -4,6 +4,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local IntertitlesScreen = require(StarterPlayer.StarterPlayerScripts.client.modules.ui.screens.IntertitlesScreen)
+local CoreCall = require(StarterPlayer.StarterPlayerScripts.client.modules.util.CoreCall)
 local CinematicsDirector = require(ReplicatedStorage.shared.cinematic.CinematicsDirector)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
@@ -13,6 +14,7 @@ local cacheData: any = nil
 local function onCinematicSceneFinished(sceneName: string?): ()
 	if not sceneName or sceneName == "intro" then
 		TypedRemotes.ServerboundCinematicsPlayerIntroDone:FireServer()
+		CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, true)
 	end
 end
 
@@ -45,6 +47,10 @@ end)
 	@class ClientCinematics
 ]=]
 local ClientCinematics = {}
+
+function ClientCinematics.hasData(): boolean
+	return cacheData ~= nil
+end
 
 function ClientCinematics.interrupt(): ()
 	if dir ~= nil then
