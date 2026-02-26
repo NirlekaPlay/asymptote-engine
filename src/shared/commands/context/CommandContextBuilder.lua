@@ -6,6 +6,7 @@ local CommandContext = require(ReplicatedStorage.shared.commands.context.Command
 local ParsedArgument = require(ReplicatedStorage.shared.commands.context.ParsedArgument)
 local ParsedCommandNode = require(ReplicatedStorage.shared.commands.context.ParsedCommandNode)
 local StringRange = require(ReplicatedStorage.shared.commands.context.StringRange)
+local SuggestionContext = require(ReplicatedStorage.shared.commands.context.SuggestionContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
 local CommandContextBuilder = {}
@@ -52,6 +53,37 @@ end
 
 function CommandContextBuilder.getRootNode<S>(self: CommandContextBuilder<S>): CommandNode.CommandNode<S>
 	return self.rootNode
+end
+
+function CommandContextBuilder.findSuggestionContext<S>(self: CommandContextBuilder<S>, cursorPos: number): SuggestionContext.SuggestionContext<S>
+	local range = self.range
+
+	if range:getStart() <= cursorPos then
+		if range:getEnd() < cursorPos then
+			if self.child ~= nil then
+				return self.child.findSuggestionContext(cursorPos)
+			elseif not self.nodes:isEmpty() then
+				local last = self.nodes:get(#self.nodes - 1);
+				return SuggestionContext.new(last:getNode(), last:getRange():getEnd() + 1)
+			else
+				return SuggestionContext.new(self.rootNode, range:getStart())
+			end
+		else
+			local prev = self.rootNode
+			for _, node in self.nodes do
+				local nodeRange = node:getRange()
+				if nodeRange:getStart() <= cursorPos and cursorPos <= nodeRange:getEnd() then
+					return SuggestionContext.new(prev, nodeRange:getStart())
+				end
+				prev = node:getNode()
+			end
+			if prev == nil then
+				error("Can't find node before cursor");
+			end
+			return SuggestionContext.new(prev, range:getStart())
+		end
+	end
+	error("Can't find node before cursor")
 end
 
 function CommandContextBuilder.withArgument<S>(self: CommandContextBuilder<S>, name: string, argument: ParsedArgument.ParsedArgument<S, any>): CommandContextBuilder<S>

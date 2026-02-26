@@ -4,8 +4,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local ParsedArgument = require(ReplicatedStorage.shared.commands.context.ParsedArgument)
 local StringRange = require(ReplicatedStorage.shared.commands.context.StringRange)
+local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
+local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
+local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
 
 --[=[
 	@class CommandNode
@@ -15,6 +20,7 @@ CommandNode.__index = CommandNode
 
 export type CommandNode<S> = typeof(setmetatable({} :: {
 	name: string,
+	literalLowerCase: string,
 	nodeType: "literal" | "argument",
 	requirement: Predicate<S>?,
 	redirect: CommandNode<S>,
@@ -30,6 +36,7 @@ type Predicate<T> = (T) -> boolean
 function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>): CommandNode<S>
 	return setmetatable({
 		name = name,
+		literalLowerCase = name:lower(),
 		nodeType = nodeType,
 		requirement = requirement,
 		redirect = redirect,
@@ -153,6 +160,22 @@ function CommandNode.getUsageText<S>(self: CommandNode<S>): string
 		return "<" .. self.name .. ">"
 	end
 	return self.name
+end
+
+function CommandNode.listSuggestions<S>(self: CommandNode<S>, context: CommandContext.CommandContext<S>, builder: SuggestionsBuilder.SuggestionsBuilder): CompletableFuture.CompletableFuture<Suggestions.Suggestions>
+	if self.nodeType == "literal" then
+		if UString.startsWith(self.literalLowerCase, builder:getRemainingLowerCase()) then
+			return builder:suggest(self.name):buildFuture()
+		else
+			return Suggestions.empty()
+		end
+	else
+		if self.customSuggestions == nil  then
+			return self.argumentType:listSuggestions(context, builder)
+		else
+			return self.customSuggestions:getSuggestions(context, builder)
+		end
+	end
 end
 
 --

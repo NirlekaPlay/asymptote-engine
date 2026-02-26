@@ -7,7 +7,11 @@ local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
+local Suggestion = require(ReplicatedStorage.shared.commands.suggestion.Suggestion)
+local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
+local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 
 local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
 	onCommandComplete = function(context: CommandContext<any>, success: boolean, result: number)
@@ -79,6 +83,44 @@ end
 ]=]
 function CommandDispatcher.setConsumer<S>(self: CommandDispatcher<S>, consumer: ResultConsumer<S>): ()
 	self.consumer = consumer
+end
+
+function CommandDispatcher.getCompletionSuggestions<S>(self: CommandDispatcher<S>, parsed: ParseResults<S>): CompletableFuture.CompletableFuture<Suggestions.Suggestions>
+	return self:getCompletionSuggestions(parsed, parsed:getReader():getTotalLength())
+end
+
+function CommandDispatcher._getCompletionSuggestions<S>(self: CommandDispatcher<S>, parsed: ParseResults<S>, cursorPos: number): CompletableFuture.CompletableFuture<Suggestions.Suggestions>
+	local context = parsed:getContext()
+
+	local nodeBeforeCursor = context:findSuggestionContext(cursorPos)
+	local parent = nodeBeforeCursor.parent
+	local start = math.min(nodeBeforeCursor.startPos, cursorPos)
+
+	local fullInput = parsed:getReader():getString() :: string
+	local truncatedInput = fullInput:sub(1, cursorPos)
+	local truncatedInputLowerCase = truncatedInput:lower()
+	local futures: {CompletableFuture.CompletableFuture<Suggestions.Suggestions>} = {}
+
+	local i = 0
+	for _, node in parent:getChildren() do
+		i += 1
+		local future = Suggestions.empty()
+		local success, err = pcall(function()
+			future = node:listSuggestions(context:build(truncatedInput), SuggestionsBuilder.new(truncatedInput, truncatedInputLowerCase, start))
+		end)
+		futures[i] = future
+	end
+
+	local result = CompletableFuture.new(nil)
+	CompletableFuture.allOf(futures):thenRun(function()
+		local suggestions: {Suggestions.Suggestions} = {}
+		for _, future in futures do
+			table.insert(suggestions, future:join())
+		end
+		result:complete(Suggestions.merge(fullInput, suggestions))
+	end)
+
+	return result
 end
 
 --[=[
