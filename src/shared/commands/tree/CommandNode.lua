@@ -12,6 +12,8 @@ local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.
 local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 local UString = require(ReplicatedStorage.shared.util.string.UString)
 
+local fFix -- TO FIX CIRCULAR DEPENDENCY BULLSHIT BY INJECTING IT
+
 --[=[
 	@class CommandNode
 ]=]
@@ -52,6 +54,10 @@ end
 
 function CommandNode.getRedirect<S>(self: CommandNode<S>): CommandNode<S>?
 	return self.redirect
+end
+
+function CommandNode.getRequirement<S>(self: CommandNode<S>): Predicate<S>?
+	return self.requirement
 end
 
 function CommandNode.getChildren<S>(self: CommandNode<S>): { [string]: CommandNode<S> }
@@ -178,6 +184,10 @@ function CommandNode.listSuggestions<S>(self: CommandNode<S>, context: CommandCo
 	end
 end
 
+function CommandNode.createBuilder<S>(self: CommandNode<S>)
+	return fFix(self)
+end
+
 --
 
 function CommandNode.addChild<S>(self: CommandNode<S>, child: CommandNode<S>)
@@ -190,6 +200,12 @@ end
 
 function CommandNode.canExecute<S>(self: CommandNode<S>): boolean
 	return self.command ~= nil
+end
+
+--
+
+function CommandNode._setFixFunc(f): ()
+	fFix = f
 end
 
 return CommandNode

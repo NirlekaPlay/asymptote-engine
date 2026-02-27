@@ -1,6 +1,5 @@
 --!strict
 
-local CommerceService = game:GetService("CommerceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -29,8 +28,11 @@ local CommandSourceStack = require(ServerScriptService.server.commands.source.Co
 local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEntityPosition)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
+local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
+local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local NodeBuilderCircDependencyFix = require(ReplicatedStorage.shared.commands.tree.NodeBuilderCircDependencyFix)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
@@ -40,6 +42,9 @@ type CommandNode<S> = CommandNode.CommandNode<S>
 
 local dispatcher = CommandDispatcher.new() :: CommandDispatcher
 local chattedConnectionsPerPlayer: { [Player]: RBXScriptConnection } = {}
+
+-- TODO: FIX THIS SHIT
+CommandNode._setFixFunc(NodeBuilderCircDependencyFix)
 
 local Commands = {}
 
@@ -155,12 +160,85 @@ end
 
 --
 
+type Map<K, V> = { [K]: V }
+
+function Commands.serializeRootNode<S>(node: CommandNode.CommandNode<S>): any
+	return node
+end
+
+function Commands.sendCommands(player: Player): ()
+	local map: Map<CommandNode<CommandSourceStack.CommandSourceStack>, CommandNode<SharedSuggestionProvider>> = {}
+	local rootCommandNode: RootCommandNode<SharedSuggestionProvider> = CommandNode.new("", "")
+	map[dispatcher:getRoot()] = rootCommandNode
+	Commands.fillUsableCommands(dispatcher:getRoot(), rootCommandNode, Commands.createCommandSourceStackFromPlayer(player), map);
+	TypedRemotes.ClientboundCommandsPacket:FireClient(player, Commands.serializeRootNode(rootCommandNode))
+end
+
+function Commands.fillUsableCommands(
+	node1: CommandNode<CommandSourceStack.CommandSourceStack>,
+	node2: CommandNode<SharedSuggestionProvider>,
+	source: CommandSourceStack.CommandSourceStack,
+	map: Map<CommandNode<CommandSourceStack.CommandSourceStack>, CommandNode<SharedSuggestionProvider>>
+): ()
+	for _, node in node1:getChildren() do
+		if node:canUse(source) then
+			local argumentBuilder = node:createBuilder() :: ArgumentBuilder.ArgumentBuilder<CommandSourceStack.CommandSourceStack, any>
+			argumentBuilder:requires(function(s)
+				return true
+			end)
+
+			if argumentBuilder.command ~= nil then
+				argumentBuilder:executes(function(c)
+					return 0
+				end)
+			end
+
+			if getmetatable(argumentBuilder) == RequiredArgumentBuilder then
+				local requiredArgumentBuilder = argumentBuilder :: RequiredArgumentBuilder.RequiredArgumentBuilder<CommandSourceStack.CommandSourceStack>
+				if requiredArgumentBuilder.suggestionsProvider ~= nil then
+					requiredArgumentBuilder:suggests(SuggestionProviders.safelySwap(requiredArgumentBuilder.suggestionsProvider))
+				end
+			end
+
+			if argumentBuilder.redirectNode ~= nil then
+				argumentBuilder:redirect(map[argumentBuilder.redirectNode])
+			end
+
+			local commandNode1 = argumentBuilder:build()
+			map[node] = commandNode1
+			node2:addChild(commandNode1)
+			if next(node:getChildren()) ~= nil then
+				Commands.fillUsableCommands(node, commandNode1, source, map)
+			end
+		end
+	end
+end
+
+--
+
+function Commands.createCommandSourceStackFromPlayer(player: Player): CommandSourceStack.CommandSourceStack
+	return CommandSourceStack.new(
+		{
+			sendSystemMessage = function(_, component: MutableTextComponent.MutableTextComponent)
+				TypedRemotes.ClientBoundChatMessage:FireClient(player, {
+					content = component:serialize()
+				})
+			end
+		},
+		player,
+		GetEntityPosition(player) or Vector3.zero,
+		player.DisplayName,
+		player.Name
+	)
+end
+
 function Commands.onPlayerAdded(player: Player): ()
 	local chattedConn = player.Chatted:Connect(function(str)
 		Commands.onPlayerChatted(str, player)
 	end)
 
 	chattedConnectionsPerPlayer[player] = chattedConn
+	Commands.sendCommands(player)
 end
 
 function Commands.onPlayerRemoving(player: Player): ()
@@ -176,19 +254,7 @@ function Commands.onPlayerChatted(str: string, player: Player): ()
 		return
 	end
 
-	local source = CommandSourceStack.new(
-		{
-			sendSystemMessage = function(_, component: MutableTextComponent.MutableTextComponent)
-				TypedRemotes.ClientBoundChatMessage:FireClient(player, {
-					content = component:serialize()
-				})
-			end
-		},
-		player,
-		GetEntityPosition(player) or Vector3.zero,
-		player.DisplayName,
-		player.Name
-	)
+	local source = Commands.createCommandSourceStackFromPlayer(player)
 	
 	-- Use performCommand instead of execute directly
 	Commands.performCommand(str:sub(2), source)

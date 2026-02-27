@@ -11,17 +11,20 @@ LiteralArgumentBuilder.__index = LiteralArgumentBuilder
 type ArgumentBuilder<S, T> = ArgumentBuilder.ArgumentBuilder<S, T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
+type Predicate<T> = (T) -> boolean
 
 export type LiteralArgumentBuilder<S> = {
 	literalString: string,
 	command: CommandFunction<S>?,
 	children: { ArgumentBuilder<S, any> },
 	redirectNode: CommandNode<S>?,
+	requirement: Predicate<S>,
 	
 	executes: <T>(self: T, commandFunc: CommandFunction<S>) -> T,
 	andThen: <T>(self: T, child: ArgumentBuilder<S, any>) -> T,
 	redirect: <T>(self: T, target: CommandNode<S>) -> T,
-	build: <T>(self: T) -> CommandNode<S>
+	build: <T>(self: T) -> CommandNode<S>,
+	requires: <T>(self: T, requirement: Predicate<S>) -> T
 }
 
 function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBuilder<S>
@@ -38,6 +41,11 @@ function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, com
 	return self
 end
 
+function LiteralArgumentBuilder.requires<S>(self: LiteralArgumentBuilder<S>, predicate: Predicate<S>): LiteralArgumentBuilder<S>
+	self.requirement = predicate
+	return self
+end
+
 function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, child: ArgumentBuilder<S, any>)
 	table.insert(self.children, child)
 	return self
@@ -49,7 +57,7 @@ function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, tar
 end
 
 function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): CommandNode<S>
-	local node = CommandNode.new(self.literalString, "literal", nil)
+	local node = CommandNode.new(self.literalString, "literal", nil, self.requirement)
 	node.command = self.command
 	node.redirect = self.redirectNode
 	

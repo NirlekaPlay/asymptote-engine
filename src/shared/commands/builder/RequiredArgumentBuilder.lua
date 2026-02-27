@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
+local SuggestionProvider = require(ReplicatedStorage.shared.commands.suggestion.SuggestionProvider)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
 --[=[
@@ -18,17 +19,24 @@ export type RequiredArgumentBuilder<S> = {
 	command: CommandFunction<S>?,
 	children: { ArgumentBuilder<S> },
 	redirectNode: CommandNode<S>?,
+	requirement: Predicate<S>?,
+	suggestionsProvider: SuggestionProvider<S>,
 	--
+	getCommand: <S>(self: RequiredArgumentBuilder<S>) -> CommandFunction<S>?,
+	getRedirect: <S>(self: RequiredArgumentBuilder<S>) -> CommandNode<S>?,
 	executes: (self: RequiredArgumentBuilder<S>, command: CommandFunction<S>) -> RequiredArgumentBuilder<S>,
 	andThen: (self: RequiredArgumentBuilder<S>, child: ArgumentBuilder<S>) -> RequiredArgumentBuilder<S>,
 	redirect: (self: RequiredArgumentBuilder<S>, target: CommandNode<S>) -> RequiredArgumentBuilder<S>,
-	build: (self: RequiredArgumentBuilder<S>) -> CommandNode<S>
+	build: (self: RequiredArgumentBuilder<S>) -> CommandNode<S>,
+	suggests: <S>(self: RequiredArgumentBuilder<S>, provider: SuggestionProvider<S>) -> RequiredArgumentBuilder<S>
 }
 
 type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S, any>
 type ArgumentType<T> = ArgumentType.ArgumentType<T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
+type Predicate<T> = (T) -> boolean
+type SuggestionProvider<S> = SuggestionProvider.SuggestionProvider<S>
 
 function RequiredArgumentBuilder.new<S, T>(argumentName: string, argumentType: ArgumentType<T>): RequiredArgumentBuilder<S>
 	return setmetatable({
@@ -45,13 +53,23 @@ function RequiredArgumentBuilder.executes<S>(self: RequiredArgumentBuilder<S>, c
 	return self
 end
 
+function RequiredArgumentBuilder.suggests<S>(self: RequiredArgumentBuilder<S>, provider: SuggestionProvider<S>): RequiredArgumentBuilder<S>
+	self.suggestionsProvider = provider
+	return self
+end
+
+function RequiredArgumentBuilder.requires<S>(self: RequiredArgumentBuilder<S>, predicate: Predicate<S>): RequiredArgumentBuilder<S>
+	self.requirement = predicate
+	return self
+end
+
 function RequiredArgumentBuilder.andThen<S>(self: RequiredArgumentBuilder<S>, child: ArgumentBuilder<S>): RequiredArgumentBuilder<S>
 	table.insert(self.children, child)
 	return self
 end
 
 function RequiredArgumentBuilder.build<S>(self: RequiredArgumentBuilder<S>): CommandNode<S>
-	local node = CommandNode.new(self.argumentName, "argument", self.argumentType)
+	local node = CommandNode.new(self.argumentName, "argument", self.argumentType, self.requirement)
 	node.command = self.command
 	node.redirect = self.redirectNode
 

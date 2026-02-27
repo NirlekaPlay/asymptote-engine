@@ -66,6 +66,7 @@ return {
 	ClientBoundRegisterDialogueConcepts = RE("ClientBoundRegisterConcepts") :: RE<ClientBoundDialogueConceptsPayload.ClientBoundDialogueConceptsPayload>,
 	--
 	ServerboundPlayerSendCommand = RE("ServerboundPlayerSendCommand") :: RE<string>,
+	ClientboundCommandsPacket = RE("ClientboundCommandsPacket") :: RE<any>,
 	--
 	ClientboundSetPlayerModuleDisability = RE("ClientboundSetPlayerModuleDisability") :: RE<boolean>,
 	--
