@@ -3,6 +3,7 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local UserInputService = game:GetService("UserInputService")
 local CommandSuggestions = require(StarterPlayer.StarterPlayerScripts.client.modules.commands.CommandSuggestions)
@@ -96,6 +97,8 @@ local function proccessInput(str: string): ()
 	end
 end
 
+local heldDirection = 0 -- 0 = None, 1 = Tab/Down, -1 = Up
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if isTerminalVisible then
 		if UserInputService:IsKeyDown(Enum.KeyCode.F3) and UserInputService:IsKeyDown(Enum.KeyCode.D) then
@@ -111,6 +114,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
 	if input.KeyCode == Enum.KeyCode.Tab then
 		if suggestionsActive then
+			heldDirection = 1
 			commandSuggestions:cycleSelection(1)
 			
 			task.defer(function()
@@ -120,6 +124,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		end
 	elseif input.KeyCode == Enum.KeyCode.Up then
 		if suggestionsActive then
+			heldDirection = -1
 			commandSuggestions:cycleSelection(-1)
 		else
 			-- Original history logic
@@ -131,6 +136,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		end
 	elseif input.KeyCode == Enum.KeyCode.Down then
 		if suggestionsActive then
+			heldDirection = 1
 			commandSuggestions:cycleSelection(1)
 		else
 			-- Original history logic
@@ -148,6 +154,19 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		end
 	elseif input.KeyCode == Enum.KeyCode.Space then
 		commandSuggestions.isTabbing = false
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Tab or input.KeyCode == Enum.KeyCode.Down or input.KeyCode == Enum.KeyCode.Up then
+		heldDirection = 0
+		commandSuggestions:stopRepeat()
+	end
+end)
+
+RunService.PreRender:Connect(function()
+	if heldDirection ~= 0 and inputField:IsFocused() then
+		commandSuggestions:updateAutoRepeat(heldDirection)
 	end
 end)
 

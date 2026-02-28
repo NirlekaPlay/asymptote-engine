@@ -16,6 +16,9 @@ local BACKGROUND_COLOR = Color3.fromRGB(0, 0, 0)
 local BACKGROUND_TRANSPARENCY = 0.2
 local SUGGESTION_HEIGHT = 20
 
+local REPEAT_DELAY = 0.4
+local REPEAT_RATE = 0.08
+
 --[=[
 	@class CommandSuggestions
 ]=]
@@ -35,7 +38,11 @@ export type CommandSuggestions = typeof(setmetatable({} :: {
 	isTabbing: boolean,
 	originalText: string,
 	--
-	suggestionFrame: ScrollingFrame
+	suggestionFrame: ScrollingFrame,
+	--
+	lastCycleTime: number,
+	initialPressTime: number,
+	isRepeating: boolean
 }, CommandSuggestions))
 
 function CommandSuggestions.new(textBox: TextBox): CommandSuggestions
@@ -49,7 +56,11 @@ function CommandSuggestions.new(textBox: TextBox): CommandSuggestions
 		selectedSuggestionIndex = 0,
 		isTabbing = false,
 		originalText = "",
-		currentSuggestions = {}
+		currentSuggestions = {},
+		--
+		lastCycleTime = 0,
+		initialPressTime = 0,
+		isRepeating = false
 	}, CommandSuggestions)
 
 	-- The Container: Growing upwards
@@ -90,6 +101,32 @@ function CommandSuggestions.finalizeSelection(self: CommandSuggestions)
 	self.suggestionFrame.Visible = false
 	self.isTabbing = false
 	self.currentSuggestions = {}
+end
+
+function CommandSuggestions.stopRepeat(self: CommandSuggestions)
+	self.isRepeating = false
+	self.lastCycleTime = 0
+	self.initialPressTime = 0
+end
+
+function CommandSuggestions.updateAutoRepeat(self: CommandSuggestions, direction: number)
+	local now = os.clock()
+	
+	if not self.isRepeating then
+		self.isRepeating = true
+		self.initialPressTime = now
+		self.lastCycleTime = now
+	else
+		local timeSinceStart = now - self.initialPressTime
+		local timeSinceLastTick = now - self.lastCycleTime
+
+		if timeSinceStart >= REPEAT_DELAY then
+			if timeSinceLastTick >= REPEAT_RATE then
+				self.lastCycleTime = now
+				self:cycleSelection(direction)
+			end
+		end
+	end
 end
 
 function CommandSuggestions.updateCommandInfo(self: CommandSuggestions): ()
