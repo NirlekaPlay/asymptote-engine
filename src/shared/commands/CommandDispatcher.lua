@@ -70,6 +70,16 @@ function CommandDispatcher.new<S>(): CommandDispatcher<S>
 end
 
 --[=[
+	Creates a new `CommandDispatcher` with the specified root node.
+]=]
+function CommandDispatcher.fromRoot<S>(root: CommandNode<S>): CommandDispatcher<S>
+	return setmetatable({
+		root = root,
+		consumer = EMPTY_RESULT_CONSUMER :: ResultConsumer<S>
+	}, CommandDispatcher)
+end
+
+--[=[
 	Utility method to register new commands.
 ]=]
 function CommandDispatcher.register<S>(self: CommandDispatcher<S>, command: LiteralArgumentBuilder<S>): CommandNode<S>
