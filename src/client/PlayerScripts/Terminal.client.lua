@@ -37,6 +37,7 @@ local historyIndex = 0
 local historyCount = 0
 
 local isTerminalVisible = false
+local commandSuggestions = CommandSuggestions.new(inputField)
 
 local function setTerminalVisibility(visible: boolean): ()
 	isTerminalVisible = visible
@@ -163,6 +164,10 @@ inputField.FocusLost:Connect(function(enterPressed)
 			setTerminalVisibility(false)
 		end
 	end
+end)
+
+inputField:GetPropertyChangedSignal("Text"):Connect(function()
+	commandSuggestions:updateCommandInfo()
 end)
 
 --

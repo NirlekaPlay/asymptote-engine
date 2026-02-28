@@ -26,8 +26,8 @@ function SuggestionsBuilder.new(input: string, inputLowerCase: string, start: nu
 		input = input,
 		inputLowerCase = inputLowerCase,
 		start = start,
-		remaining = input:sub(start),
-		remainingLowerCase = inputLowerCase:sub(start),
+		remaining = input:sub(start + 1), -- What the fuck?
+		remainingLowerCase = inputLowerCase:sub(start + 1),
 		result = {}
 	}, SuggestionsBuilder)
 end

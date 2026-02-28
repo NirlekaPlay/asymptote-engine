@@ -63,7 +63,7 @@ function CommandContextBuilder.findSuggestionContext<S>(self: CommandContextBuil
 			if self.child ~= nil then
 				return self.child.findSuggestionContext(cursorPos)
 			elseif next(self.nodes) ~= nil then
-				local last = self.nodes[(#self.nodes - 1)]
+				local last = self.nodes[(#self.nodes)]
 				return SuggestionContext.new(last:getNode(), last:getRange():getEnd() + 1)
 			else
 				return SuggestionContext.new(self.rootNode, range:getStart())
