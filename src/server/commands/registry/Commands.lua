@@ -24,13 +24,14 @@ local TagCommand = require(ServerScriptService.server.commands.TagCommand)
 local TeleportCommand = require(ServerScriptService.server.commands.TeleportCommand)
 local TickCommand = require(ServerScriptService.server.commands.TickCommand)
 local VariableCommand = require(ServerScriptService.server.commands.VariableCommand)
-local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
+local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSourceStack)
 local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEntityPosition)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local ArgumentTypeInfos = require(ReplicatedStorage.shared.commands.synchronization.ArgumentTypeInfos)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local NodeBuilderCircDependencyFix = require(ReplicatedStorage.shared.commands.tree.NodeBuilderCircDependencyFix)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
@@ -163,7 +164,71 @@ end
 type Map<K, V> = { [K]: V }
 
 function Commands.serializeRootNode<S>(node: CommandNode.CommandNode<S>): any
-	return node
+	local serialized = Commands.serializeFlatTree(node)
+	return serialized
+end
+
+type NodeMap = { [any]: number }
+
+local function enumerateNodes(root: any): (NodeMap, {any})
+	local nodes = {}
+	local objectToId = {}
+	local queue = { root }
+	
+	local index = 0
+	while #queue > 0 do
+		local current = table.remove(queue, 1)
+		if not objectToId[current] then
+			objectToId[current] = index
+			table.insert(nodes, current)
+			index += 1
+
+			for _, child in current:getChildren() do
+				table.insert(queue, child)
+			end
+
+			if current.redirectNode then
+				table.insert(queue, current.redirectNode)
+			end
+		end
+	end
+	
+	return objectToId, nodes
+end
+
+function Commands.serializeFlatTree(root: any)
+	local objectToId, nodeList = enumerateNodes(root)
+	local serializedEntries = {}
+
+	for id, node in nodeList do
+		local entry = {
+			name = node.name,
+			nodeType = node.nodeType,
+			executable = (node.command ~= nil),
+			children = {},
+			redirect = -1 -- -1 means no redirect
+		}
+
+		for _, child in node:getChildren() do
+			table.insert(entry.children, objectToId[child])
+		end
+
+		if node.redirectNode then
+			entry.redirect = objectToId[node.redirectNode]
+		end
+
+		if node.nodeType == "argument" then
+			local info = ArgumentTypeInfos.byClass(node.argumentType)
+			entry.argumentType = info and info.serializeToTableFromInstance(node.argumentType) or {}
+		end
+
+		table.insert(serializedEntries, entry)
+	end
+
+	return {
+		rootIndex = objectToId[root],
+		entries = serializedEntries
+	}
 end
 
 function Commands.sendCommands(player: Player): ()

@@ -62,7 +62,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
-local CommandSourceStack = require(ServerScriptService.server.commands.source.CommandSourceStack)
+local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local EntityArgument = require(ReplicatedStorage.shared.commands.arguments.asymptote.EntityArgument)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)

@@ -1,11 +1,10 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
 local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
-local CommandSource = require(ServerScriptService.server.commands.source.CommandSource)
+local CommandSource = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSource)
 
 local FORMATTING_STYLES = {
 	RED = TextStyle.empty()
