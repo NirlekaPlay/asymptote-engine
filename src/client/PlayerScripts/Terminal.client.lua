@@ -106,23 +106,48 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if not inputField:IsFocused() then
 		return
 	end
+	
+	local suggestionsActive = commandSuggestions:isVisible() and next(commandSuggestions.currentSuggestions) ~= nil
 
-	if input.KeyCode == Enum.KeyCode.Up then
-		if historyIndex > 1 then
-			historyIndex -= 1
-			inputField.Text = history[historyIndex]
-			-- Move cursor to the end of the line
-			task.defer(function() inputField.CursorPosition = #inputField.Text + 1 end)
+	if input.KeyCode == Enum.KeyCode.Tab then
+		if suggestionsActive then
+			commandSuggestions:cycleSelection(1)
+			
+			task.defer(function()
+				inputField:CaptureFocus()
+				inputField.CursorPosition = #inputField.Text + 1
+			end)
 		end
-		
-	elseif input.KeyCode == Enum.KeyCode.Down then
-		if historyIndex < #history then
-			historyIndex += 1
-			inputField.Text = history[historyIndex]
+	elseif input.KeyCode == Enum.KeyCode.Up then
+		if suggestionsActive then
+			commandSuggestions:cycleSelection(-1)
 		else
-			historyIndex = #history + 1
-			inputField.Text = "" -- Clear if they go past the newest command
+			-- Original history logic
+			if historyIndex > 1 then
+				historyIndex -= 1
+				inputField.Text = history[historyIndex]
+				task.defer(function() inputField.CursorPosition = #inputField.Text + 1 end)
+			end
 		end
+	elseif input.KeyCode == Enum.KeyCode.Down then
+		if suggestionsActive then
+			commandSuggestions:cycleSelection(1)
+		else
+			-- Original history logic
+			if historyIndex < #history then
+				historyIndex += 1
+				inputField.Text = history[historyIndex]
+			else
+				historyIndex = #history + 1
+				inputField.Text = ""
+			end
+		end
+	elseif input.KeyCode == Enum.KeyCode.Return then
+		if suggestionsActive then
+			commandSuggestions:finalizeSelection()
+		end
+	elseif input.KeyCode == Enum.KeyCode.Space then
+		commandSuggestions.isTabbing = false
 	end
 end)
 
@@ -141,7 +166,15 @@ ContextActionService:BindAction("ACTION_TERMINAL", function(actionName: string, 
 	return Enum.ContextActionResult.Pass
 end, false, Enum.KeyCode.T)
 
+inputField.Focused:Connect(function()
+	if inputField.Text ~= "" then
+		commandSuggestions.suggestionFrame.Visible = true
+	end
+end)
+
 inputField.FocusLost:Connect(function(enterPressed)
+	commandSuggestions.isTabbing = false
+	commandSuggestions.suggestionFrame.Visible = false
 	if enterPressed then
 		if UString.isBlank(inputField.Text) then
 			task.defer(function()
@@ -166,8 +199,28 @@ inputField.FocusLost:Connect(function(enterPressed)
 	end
 end)
 
+local lastText = ""
 inputField:GetPropertyChangedSignal("Text"):Connect(function()
-	commandSuggestions:updateCommandInfo()
+	local text = inputField.Text
+	
+	local cleaned = text:gsub("\t", "")
+	if cleaned ~= text then
+		inputField.Text = cleaned
+		return
+	end
+
+	if cleaned ~= lastText then
+		lastText = cleaned
+
+		if not commandSuggestions.isTabbing then
+			commandSuggestions:updateCommandInfo()
+		end
+
+		if cleaned == "" then
+			-- Disable suggestions mode so the user can cycle though history like normal
+			commandSuggestions.suggestionFrame.Visible = false
+		end
+	end
 end)
 
 --
