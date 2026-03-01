@@ -32,6 +32,10 @@ function SuggestionsBuilder.new(input: string, inputLowerCase: string, start: nu
 	}, SuggestionsBuilder)
 end
 
+function SuggestionsBuilder.getRemaining(self: SuggestionsBuilder): string
+	return self.remaining
+end
+
 function SuggestionsBuilder.getRemainingLowerCase(self: SuggestionsBuilder): string
 	return self.remainingLowerCase
 end
