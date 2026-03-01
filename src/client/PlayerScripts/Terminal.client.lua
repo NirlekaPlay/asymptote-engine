@@ -234,6 +234,8 @@ inputField:GetPropertyChangedSignal("Text"):Connect(function()
 		if commandSuggestions.suppressNextTextChange then
 			commandSuggestions.suppressNextTextChange = false
 			return
+		else
+			commandSuggestions:onUserTyped()
 		end
 
 		commandSuggestions:updateCommandInfo()

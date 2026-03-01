@@ -32,6 +32,14 @@ function SuggestionsBuilder.new(input: string, inputLowerCase: string, start: nu
 	}, SuggestionsBuilder)
 end
 
+function SuggestionsBuilder.getInput(self: SuggestionsBuilder): string
+	return self.input
+end
+
+function SuggestionsBuilder.getStart(self: SuggestionsBuilder): number
+	return self.start
+end
+
 function SuggestionsBuilder.getRemaining(self: SuggestionsBuilder): string
 	return self.remaining
 end
@@ -46,6 +54,17 @@ function SuggestionsBuilder.suggest(self: SuggestionsBuilder, text: string): Sug
 	end
 	table.insert(self.result, Suggestion.new(StringRange.between(self.start, #self.input), text))
 	return self
+end
+
+function SuggestionsBuilder.add(self: SuggestionsBuilder, other: SuggestionsBuilder): SuggestionsBuilder
+	local n1 = #self.result
+	local n2 = #other.result
+	table.move(other.result, 1, n2, n1 + 1, self.result) -- I didnt know this was a thing :o
+	return self
+end
+
+function SuggestionsBuilder.createOffset(self: SuggestionsBuilder, start: number): SuggestionsBuilder
+	return SuggestionsBuilder.new(self.input, self.inputLowerCase, start)
 end
 
 function SuggestionsBuilder.build(self: SuggestionsBuilder): Suggestions.Suggestions

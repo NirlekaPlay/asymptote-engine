@@ -97,6 +97,8 @@ end
 
 function CommandSuggestions.onUserTyped(self: CommandSuggestions)
 	self.isTabbing = false
+	self.originalText = ""
+	self.selectedSuggestionIndex = 0
 	self:updateCommandInfo()
 end
 
@@ -254,7 +256,7 @@ function CommandSuggestions.cycleSelection(self: CommandSuggestions, direction: 
 	if not self.isTabbing then
 		self.isTabbing = true
 		self.originalText = self.input.Text
-		self.selectedSuggestionIndex = 0 
+		self.selectedSuggestionIndex = 0
 	end
 
 	-- 2. Increment/Decrement index
@@ -276,6 +278,10 @@ function CommandSuggestions.cycleSelection(self: CommandSuggestions, direction: 
 	-- Use originalText so we don't build on top of previous suggestions
 	local prefix = self.originalText:sub(1, range.startPos)
 	local suffix = self.originalText:sub(range.endPos + 1)
+
+	print("Original:", self.originalText)
+	print("Range:", range.startPos, "to", range.endPos)
+	print("Prefix:", "'" .. self.originalText:sub(1, range.startPos) .. "'")
 
 	self.suppressNextTextChange = true
 	self.input.Text = prefix .. selected.text .. suffix

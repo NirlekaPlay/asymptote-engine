@@ -64,135 +64,133 @@ local PARAMETER_VALUES = {
 }
 
 function EntityArgument.listSuggestions<S>(self: EntityArgument, context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
-	if not SharedSuggestionProvider.isInstance(context:getSource()) then
+	local source = context:getSource()
+	if not SharedSuggestionProvider.isInstance(source) then
 		return Suggestions.empty()
-	else
-		local provider = SharedSuggestionProvider.getInstance(context:getSource())
-		local playerList = provider:getOnlinePlayers()
-		table.sort(playerList, function(a: any, b: any)
-			return a.Name < b.Name
-		end)
+	end
 
-		local reader = StringReader.fromString(builder:getRemainingLowerCase())
-		reader:skipWhitespace()
+	local provider = SharedSuggestionProvider.getInstance(source)
+	local input = builder:getInput()
+	local start = builder:getStart()
+	local reader = StringReader.fromString(input)
+	reader:setCursorPos(start)
 
-		local firstChar = reader:read()
-		local isSelector = firstChar == "@"
-
-		if not isSelector then
-			builder:suggest("@a")
-			builder:suggest("@e")
-			builder:suggest("@m")
-			builder:suggest("@p")
-			builder:suggest("@r")
-			builder:suggest("@s")
-			for _, player in playerList do
-				builder:suggest(player.Name)
-			end
-			return builder:buildFuture()
+	local currentSuggestionProvider = function(b: SuggestionsBuilder)
+		b:suggest("@p")
+		b:suggest("@a")
+		b:suggest("@r")
+		b:suggest("@s")
+		b:suggest("@e")
+		for _, player in provider:getOnlinePlayers() do
+			b:suggest(player.Name)
 		end
+	end
 
-		local selectorChar = reader:read()
-		local isSelectorComplete = SELECTOR_LETTERS[selectorChar] == true
+	local function parse()
+		if not reader:canRead() then return end
 
-		if not isSelectorComplete then
-			for letter in SELECTOR_LETTERS do
-				builder:suggest("@" .. letter)
-			end
-			return builder:buildFuture()
-		end
-
-		reader:skipWhitespace()
-
-		local nextChar = reader:peek()
-		if nextChar ~= "[" then
-			builder:suggest("[")
-			return builder:buildFuture()
-		end
-
-		reader:read()
-		reader:skipWhitespace()
-
-		if not reader:canRead() then
-			for _, paramName in PARAMETERS do
-				builder:suggest(paramName .. "=")
-			end
-			return builder:buildFuture()
-		end
-
-		-- Parse through any already-entered params to find where we are
-		-- Keep reading "param=value," segments until we reach the cursor
-		while reader:canRead() do
-			local next = reader:peek()
-
-			if next == "]" then
-				-- Cursor is after closing bracket, nothing to suggest
-				return builder:buildFuture()
+		if reader:peek() == "@" then
+			reader:skip()
+			
+			currentSuggestionProvider = function(b: SuggestionsBuilder)
+				local sub = b:createOffset(b:getStart() - 1)
+				sub:suggest("@p")
+				sub:suggest("@a")
+				sub:suggest("@r")
+				sub:suggest("@s")
+				sub:suggest("@e")
+				b:add(sub)
 			end
 
-			-- Check if we're at a position to suggest a param name
-			-- (either right after "[" or after a ",")
-			local remaining = reader:getRemaining()
-			local hasEquals = remaining:find("=")
+			if not reader:canRead() then return end
+			reader:read() -- consume selector char
+			
+			reader:skipWhitespace()
+			currentSuggestionProvider = function(b: SuggestionsBuilder)
+				b:suggest("[")
+			end
 
-			if not hasEquals then
-				-- Cursor is mid-param-name, suggest all params
-				for _, paramName in PARAMETERS do
-					builder:suggest(paramName .. "=")
+			if reader:canRead() and reader:peek() == "[" then
+				reader:skip() -- consume [
+				
+				-- IMMEDIATELY set provider for keys after consuming [
+				currentSuggestionProvider = function(b: SuggestionsBuilder)
+					for _, paramName in PARAMETERS do
+						b:suggest(paramName .. "=")
+					end
+					b:suggest("]")
 				end
-				return builder:buildFuture()
-			end
 
-			-- Capture the param name before consuming past "="
-			local paramName = remaining:match("^([^=]+)=")
+				while reader:canRead() do
+					reader:skipWhitespace()
+					
+					local keyStart = reader:getCursorPos()
+					while reader:canRead() and reader:peek() ~= "=" and reader:peek() ~= "," and reader:peek() ~= "]" do
+						reader:read()
+					end
+					local key = input:sub(keyStart + 1, reader:getCursorPos())
 
-			-- Skip past "param="
-			while reader:canRead() and reader:peek() ~= "=" do
-				reader:read()
-			end
-			if reader:canRead() then
-				reader:read() -- consume equal sign
-			end
+					if not reader:canRead() then return end
+					
+					if reader:peek() == "]" then
+						reader:skip()
+						currentSuggestionProvider = function(b: SuggestionsBuilder) end
+						return
+					end
 
-			if not reader:canRead() then
-				-- Cursor is right after "=", suggest values
-				local values = PARAMETER_VALUES[paramName]
-				if values then
-					for _, v in values do
-						builder:suggest(v)
-						builder:suggest("!" .. v)
+					if reader:peek() == "=" then
+						reader:skip() -- consume =
+						
+						currentSuggestionProvider = function(b: SuggestionsBuilder)
+							local values = PARAMETER_VALUES[key]
+							if values then
+								for _, v in values do
+									b:suggest(v)
+									b:suggest("!" .. v)
+								end
+							end
+						end
+
+						while reader:canRead() and reader:peek() ~= "," and reader:peek() ~= "]" do
+							reader:read()
+						end
+						
+						if not reader:canRead() then return end
+					end
+
+					if reader:peek() == "," then
+						reader:skip()
+						-- IMMEDIATELY set provider for next key
+						currentSuggestionProvider = function(b: SuggestionsBuilder)
+							for _, paramName in PARAMETERS do
+								b:suggest(paramName .. "=")
+							end
+						end
+					elseif reader:peek() == "]" then
+						reader:skip()
+						currentSuggestionProvider = function(b: SuggestionsBuilder) end
+						return
 					end
 				end
-				return builder:buildFuture()
 			end
-
-			-- Theres an "=", so a param name is already entered; skip past "param=value"
-			-- Read until "," or "]"
-			while reader:canRead() and reader:peek() ~= "," and reader:peek() ~= "]" do
-				reader:read()
-			end
-
-			if not reader:canRead() then
-				builder:suggest(",")
-				builder:suggest("]")
-				return builder:buildFuture()
-			end
-
-			if reader:peek() == "," then
-				reader:read()
-				reader:skipWhitespace()
-				-- Loop again to suggest next param
-			elseif reader:peek() == "]" then
-				return builder:buildFuture()
+		else
+			local nameStart = reader:getCursorPos()
+			reader:readString()
+			currentSuggestionProvider = function(b: SuggestionsBuilder)
+				local sub = b:createOffset(nameStart)
+				for _, player in provider:getOnlinePlayers() do
+					sub:suggest(player.Name)
+				end
+				b:add(sub)
 			end
 		end
-
-		for _, paramName in PARAMETERS do
-			builder:suggest(paramName .. "=")
-		end
-
-		return builder:buildFuture()
 	end
+
+	pcall(parse)
+
+	local finalBuilder = builder:createOffset(reader:getCursorPos())
+	currentSuggestionProvider(finalBuilder)
+	return finalBuilder:buildFuture()
 end
 
 return EntityArgument
