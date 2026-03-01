@@ -279,10 +279,6 @@ function CommandSuggestions.cycleSelection(self: CommandSuggestions, direction: 
 	local prefix = self.originalText:sub(1, range.startPos)
 	local suffix = self.originalText:sub(range.endPos + 1)
 
-	print("Original:", self.originalText)
-	print("Range:", range.startPos, "to", range.endPos)
-	print("Prefix:", "'" .. self.originalText:sub(1, range.startPos) .. "'")
-
 	self.suppressNextTextChange = true
 	self.input.Text = prefix .. selected.text .. suffix
 	self.input.CursorPosition = range.startPos + #selected.text + 1

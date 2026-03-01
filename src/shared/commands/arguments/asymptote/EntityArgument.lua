@@ -103,7 +103,7 @@ function EntityArgument.listSuggestions<S>(self: EntityArgument, context: Comman
 			end
 
 			if not reader:canRead() then return end
-			reader:read() -- consume selector char
+			reader:read()
 			
 			reader:skipWhitespace()
 			currentSuggestionProvider = function(b: SuggestionsBuilder)
@@ -111,9 +111,8 @@ function EntityArgument.listSuggestions<S>(self: EntityArgument, context: Comman
 			end
 
 			if reader:canRead() and reader:peek() == "[" then
-				reader:skip() -- consume [
+				reader:skip()
 				
-				-- IMMEDIATELY set provider for keys after consuming [
 				currentSuggestionProvider = function(b: SuggestionsBuilder)
 					for _, paramName in PARAMETERS do
 						b:suggest(paramName .. "=")
@@ -151,16 +150,24 @@ function EntityArgument.listSuggestions<S>(self: EntityArgument, context: Comman
 							end
 						end
 
+						local valueStart = reader:getCursorPos()
 						while reader:canRead() and reader:peek() ~= "," and reader:peek() ~= "]" do
 							reader:read()
 						end
 						
+						-- Only suggest delimiter if the user actually typed a value
+						if reader:getCursorPos() > valueStart then
+							currentSuggestionProvider = function(b: SuggestionsBuilder)
+								b:suggest(",")
+								b:suggest("]")
+							end
+						end
+
 						if not reader:canRead() then return end
 					end
 
 					if reader:peek() == "," then
 						reader:skip()
-						-- IMMEDIATELY set provider for next key
 						currentSuggestionProvider = function(b: SuggestionsBuilder)
 							for _, paramName in PARAMETERS do
 								b:suggest(paramName .. "=")
