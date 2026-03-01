@@ -7,6 +7,7 @@ local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.Argumen
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local ParsedArgument = require(ReplicatedStorage.shared.commands.context.ParsedArgument)
 local StringRange = require(ReplicatedStorage.shared.commands.context.StringRange)
+local SuggestionProvider = require(ReplicatedStorage.shared.commands.suggestion.SuggestionProvider)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
 local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
@@ -28,14 +29,15 @@ export type CommandNode<S> = typeof(setmetatable({} :: {
 	redirect: CommandNode<S>,
 	argumentType: ArgumentType<any>,
 	command: CommandFunction<S>,
-	children: { [string]: CommandNode<S> }
+	children: { [string]: CommandNode<S> },
+	customSuggestions: SuggestionProvider.SuggestionProvider<S>?
 }, CommandNode))
 
 type ArgumentType<T> = ArgumentType.ArgumentType<T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type Predicate<T> = (T) -> boolean
 
-function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>): CommandNode<S>
+function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>, suggestions: SuggestionProvider.SuggestionProvider<S>?): CommandNode<S>
 	return setmetatable({
 		name = name,
 		literalLowerCase = name:lower(),
@@ -44,7 +46,8 @@ function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argu
 		redirect = redirect,
 		argumentType = argumentType,
 		command = nil :: any,
-		children = {}
+		children = {},
+		customSuggestions = suggestions
 	}, CommandNode)
 end
 
@@ -176,7 +179,7 @@ function CommandNode.listSuggestions<S>(self: CommandNode<S>, context: CommandCo
 			return Suggestions.empty()
 		end
 	else
-		if self.customSuggestions == nil  then
+		if self.customSuggestions == nil and self.argumentType.listSuggestions then
 			return self.argumentType:listSuggestions(context, builder)
 		else
 			return self.customSuggestions:getSuggestions(context, builder)

@@ -69,7 +69,7 @@ function RequiredArgumentBuilder.andThen<S>(self: RequiredArgumentBuilder<S>, ch
 end
 
 function RequiredArgumentBuilder.build<S>(self: RequiredArgumentBuilder<S>): CommandNode<S>
-	local node = CommandNode.new(self.argumentName, "argument", self.argumentType, self.requirement)
+	local node = CommandNode.new(self.argumentName, "argument", self.argumentType, self.requirement, nil, self.suggestionsProvider)
 	node.command = self.command
 	node.redirect = self.redirectNode
 

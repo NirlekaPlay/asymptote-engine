@@ -3,6 +3,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
+local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
+local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
+local UString = require(ReplicatedStorage.shared.util.string.UString)
 
 --[=[
 	@class BooleanArgumentType
@@ -19,6 +23,11 @@ BooleanArgumentType.__index = BooleanArgumentType
 local BOOL_INST: BooleanArgumentType? = nil
 
 export type BooleanArgumentType = ArgumentType.ArgumentType<boolean>
+type ArgumentType<T> = ArgumentType.ArgumentType<T>
+type CommandContext<S> = CommandContext.CommandContext<S>
+type CompletableFuture<T> = CompletableFuture.CompletableFuture<T>
+type Suggestions = Suggestions.Suggestions
+type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
 function BooleanArgumentType.bool(): BooleanArgumentType
 	if not BOOL_INST then
@@ -46,6 +55,19 @@ function BooleanArgumentType.parse(self: BooleanArgumentType, input: string): (b
 	else
 		error("Expected 'true' or 'false', got: " .. word)
 	end
+end
+
+function BooleanArgumentType.listSuggestions<S>(self: BooleanArgumentType, context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
+	local remainingLowerCase = builder:getRemainingLowerCase()
+	if UString.isBlank(remainingLowerCase) then
+		builder:suggest("true")
+		builder:suggest("false")
+	elseif UString.startsWith("true", remainingLowerCase) then
+		builder:suggest("true")
+	elseif UString.startsWith("false", remainingLowerCase) then
+		builder:suggest("false")
+	end
+	return builder:buildFuture()
 end
 
 return BooleanArgumentType
