@@ -231,9 +231,12 @@ inputField:GetPropertyChangedSignal("Text"):Connect(function()
 	if cleaned ~= lastText then
 		lastText = cleaned
 
-		if not commandSuggestions.isTabbing then
-			commandSuggestions:updateCommandInfo()
+		if commandSuggestions.suppressNextTextChange then
+			commandSuggestions.suppressNextTextChange = false
+			return
 		end
+
+		commandSuggestions:updateCommandInfo()
 
 		if cleaned == "" then
 			-- Disable suggestions mode so the user can cycle though history like normal

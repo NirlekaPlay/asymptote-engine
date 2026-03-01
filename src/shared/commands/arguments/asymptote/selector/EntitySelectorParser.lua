@@ -195,8 +195,9 @@ function EntitySelectorParser.parse(self, input: string): (any, number)
 			parameters = input:sub(paramStart, paramEnd)
 			consumed = paramEnd
 		else
-			-- Unmatched brackets - invalid selector
-			return nil, 0
+			-- Unclosed bracket — treat everything after "[" as partial params for suggestion purposes
+			parameters = input:sub(paramStart)
+			consumed = #input
 		end
 	end
 	

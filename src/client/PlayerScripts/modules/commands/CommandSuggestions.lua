@@ -8,6 +8,7 @@ local TextService = game:GetService("TextService")
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
 local CommandsClientPacketListener = require(StarterPlayer.StarterPlayerScripts.client.modules.commands.CommandsClientPacketListener)
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
+local SharedSuggestionProvider = require(ReplicatedStorage.shared.commands.asymptote.suggestion.SharedSuggestionProvider)
 local Suggestion = require(ReplicatedStorage.shared.commands.suggestion.Suggestion)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
@@ -42,7 +43,8 @@ export type CommandSuggestions = typeof(setmetatable({} :: {
 	--
 	lastCycleTime: number,
 	initialPressTime: number,
-	isRepeating: boolean
+	isRepeating: boolean,
+	suppressNextTextChange: boolean
 }, CommandSuggestions))
 
 function CommandSuggestions.new(textBox: TextBox): CommandSuggestions
@@ -60,7 +62,8 @@ function CommandSuggestions.new(textBox: TextBox): CommandSuggestions
 		--
 		lastCycleTime = 0,
 		initialPressTime = 0,
-		isRepeating = false
+		isRepeating = false,
+		suppressNextTextChange = false
 	}, CommandSuggestions)
 
 	-- The Container: Growing upwards
@@ -101,6 +104,7 @@ function CommandSuggestions.finalizeSelection(self: CommandSuggestions)
 	self.suggestionFrame.Visible = false
 	self.isTabbing = false
 	self.currentSuggestions = {}
+	self.suppressNextTextChange = true
 end
 
 function CommandSuggestions.stopRepeat(self: CommandSuggestions)
@@ -154,7 +158,7 @@ function CommandSuggestions.updateCommandInfo(self: CommandSuggestions): ()
 		local dispatcher = CommandsClientPacketListener.getDispatcher()
 
 		if not self.currentParse then
-			self.currentParse = dispatcher:parse(reader, {})
+			self.currentParse = dispatcher:parse(reader, SharedSuggestionProvider.new(Players.LocalPlayer))
 		end
 
 		local errorLimit = if self.onlyShowIfCursorPastError then reader:getCursorPos() else 1
@@ -272,7 +276,8 @@ function CommandSuggestions.cycleSelection(self: CommandSuggestions, direction: 
 	-- Use originalText so we don't build on top of previous suggestions
 	local prefix = self.originalText:sub(1, range.startPos)
 	local suffix = self.originalText:sub(range.endPos + 1)
-	
+
+	self.suppressNextTextChange = true
 	self.input.Text = prefix .. selected.text .. suffix
 	self.input.CursorPosition = range.startPos + #selected.text + 1
 end
