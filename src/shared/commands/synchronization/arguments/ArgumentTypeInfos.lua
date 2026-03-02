@@ -2,14 +2,14 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
-local SingletonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.SingletonArgumentInfo)
-local EntityArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.asymptote.EntityArgumentInfo)
-local ItemArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.asymptote.ItemArgumentInfo)
-local JsonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.asymptote.JsonArgumentInfo)
-local Vector3ArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.asymptote.Vector3ArgumentInfo)
-local BooleanArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.default.BooleanArgumentInfo)
-local IntegerArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.default.IntegerArgumentInfo)
-local StringArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.default.StringArgumentInfo)
+local SingletonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.SingletonArgumentInfo)
+local EntityArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.asymptote.EntityArgumentInfo)
+local ItemArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.asymptote.ItemArgumentInfo)
+local JsonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.asymptote.JsonArgumentInfo)
+local Vector3ArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.asymptote.Vector3ArgumentInfo)
+local BooleanArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.default.BooleanArgumentInfo)
+local IntegerArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.default.IntegerArgumentInfo)
+local StringArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.default.StringArgumentInfo)
 
 --[=[
 	@class ArgumentTypeInfos

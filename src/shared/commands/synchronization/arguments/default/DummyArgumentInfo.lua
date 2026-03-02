@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BooleanArgumentType = require(ReplicatedStorage.shared.commands.arguments.BooleanArgumentType)
-local SingletonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.SingletonArgumentInfo)
+local SingletonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.SingletonArgumentInfo)
 
 --[=[
 	@class DummyArgumentInfo

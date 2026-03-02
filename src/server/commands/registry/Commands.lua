@@ -31,7 +31,7 @@ local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
-local ArgumentTypeInfos = require(ReplicatedStorage.shared.commands.synchronization.ArgumentTypeInfos)
+local ArgumentTypeInfos = require(ReplicatedStorage.shared.commands.synchronization.arguments.ArgumentTypeInfos)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local NodeBuilderCircDependencyFix = require(ReplicatedStorage.shared.commands.tree.NodeBuilderCircDependencyFix)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
@@ -168,16 +168,16 @@ function Commands.serializeRootNode<S>(node: CommandNode.CommandNode<S>): any
 	return serialized
 end
 
-type NodeMap = { [any]: number }
+type NodeMap = { [CommandNode.CommandNode<any>]: number }
 
-local function enumerateNodes(root: any): (NodeMap, {any})
-	local nodes = {}
-	local objectToId = {}
+local function enumerateNodes<S>(root: CommandNode.CommandNode<S>): (NodeMap, {CommandNode.CommandNode<S>})
+	local nodes: {CommandNode.CommandNode<S>} = {}
+	local objectToId: {[CommandNode.CommandNode<S>]:number} = {}
 	local queue = { root }
 	
 	local index = 0
 	while #queue > 0 do
-		local current = table.remove(queue, 1)
+		local current = table.remove(queue, 1) :: CommandNode.CommandNode<S>
 		if not objectToId[current] then
 			objectToId[current] = index
 			table.insert(nodes, current)
@@ -187,8 +187,8 @@ local function enumerateNodes(root: any): (NodeMap, {any})
 				table.insert(queue, child)
 			end
 
-			if current.redirectNode then
-				table.insert(queue, current.redirectNode)
+			if current:getRedirect() then
+				table.insert(queue, current:getRedirect())
 			end
 		end
 	end
@@ -213,8 +213,8 @@ function Commands.serializeFlatTree(root: any)
 			table.insert(entry.children, objectToId[child])
 		end
 
-		if node.redirectNode then
-			entry.redirect = objectToId[node.redirectNode]
+		if node:getRedirect() then
+			entry.redirect = objectToId[node:getRedirect()]
 		end
 
 		if node.nodeType == "argument" then
@@ -231,12 +231,50 @@ function Commands.serializeFlatTree(root: any)
 	}
 end
 
+-- Replace your current sendCommands with this
 function Commands.sendCommands(player: Player): ()
-	local map: Map<CommandNode<CommandSourceStack.CommandSourceStack>, CommandNode<SharedSuggestionProvider>> = {}
-	local rootCommandNode: RootCommandNode<SharedSuggestionProvider> = CommandNode.new("", "")
-	map[dispatcher:getRoot()] = rootCommandNode
-	Commands.fillUsableCommands(dispatcher:getRoot(), rootCommandNode, Commands.createCommandSourceStackFromPlayer(player), map);
-	TypedRemotes.ClientboundCommandsPacket:FireClient(player, Commands.serializeRootNode(rootCommandNode))
+	local source = Commands.createCommandSourceStackFromPlayer(player)
+	local serverRoot = dispatcher:getRoot()
+	
+	-- Using any here to bypass the generic S mismatch between server/client nodes
+	local nodeMap: { [CommandNode.CommandNode<any>]: CommandNode.CommandNode<any> } = {}
+	local clientRoot = CommandNode.new("", "root") :: CommandNode.CommandNode<any>
+	nodeMap[serverRoot] = clientRoot
+	
+	-- Pass 1: Recursive build of the tree structure (no redirects yet)
+	local function build(sNode: CommandNode.CommandNode<any>, cNode: CommandNode.CommandNode<any>)
+		for _, child in sNode:getChildren() do
+			if child:canUse(source) then
+				local builder = child:createBuilder()
+				
+				-- Strip logic for the client packet
+				builder:requires(function() return true end)
+				if (builder :: any).command then
+					builder:executes(function() return 0 end)
+				end
+				
+				local newClientNode = builder:build()
+				nodeMap[child] = newClientNode
+				cNode:addChild(newClientNode)
+				
+				build(child, newClientNode)
+			end
+		end
+	end
+	build(serverRoot, clientRoot)
+
+	-- Pass 2: Link redirects using the map we just finished filling
+	for sNode, cNode in nodeMap do
+		local target = sNode:getRedirect()
+		if target then
+			local clientTarget = nodeMap[target]
+			if clientTarget then
+				cNode.redirect = clientTarget
+			end
+		end
+	end
+
+	TypedRemotes.ClientboundCommandsPacket:FireClient(player, Commands.serializeRootNode(clientRoot))
 end
 
 function Commands.fillUsableCommands(
