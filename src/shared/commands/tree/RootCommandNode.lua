@@ -7,12 +7,13 @@ local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local CommandNodeType = require(ReplicatedStorage.shared.commands.tree.CommandNodeType)
 local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 
 --[=[
 	@class RootCommandNode
 
-	A RootCommandNode is the root of a command tree. It is the entry point for all commands.
+	A `RootCommandNode` is the root of a command tree. It is the entry point for all commands.
 ]=]
 local RootCommandNode = setmetatable({}, { __index = CommandNode })
 RootCommandNode.__index = RootCommandNode
@@ -30,7 +31,7 @@ function RootCommandNode.new<S>(): RootCommandNode<S>
 	return self
 end
 
-function RootCommandNode.name<S>(self: RootCommandNode<S>): string
+function RootCommandNode.getName<S>(self: RootCommandNode<S>): string
 	return ""
 end
 
@@ -51,6 +52,10 @@ function RootCommandNode.createBuilder<S>(self: RootCommandNode<S>): ArgumentBui
 end
 
 --
+
+function RootCommandNode.getNodeType<S>(self: RootCommandNode<S>): number
+	return CommandNodeType.ROOT
+end
 
 function RootCommandNode.__tostring<S>(self: RootCommandNode<S>): string
 	return "<root>"

@@ -18,7 +18,7 @@ export type LiteralArgumentBuilder<S> = {
 	command: CommandFunction<S>?,
 	children: { ArgumentBuilder<S, any> },
 	redirectNode: CommandNode<S>?,
-	requirement: Predicate<S>,
+	requirement: Predicate<S>?,
 	
 	executes: <T>(self: T, commandFunc: CommandFunction<S>) -> T,
 	andThen: <T>(self: T, child: ArgumentBuilder<S, any>) -> T,
@@ -34,6 +34,10 @@ function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBu
 		children = {},
 		redirectNode = nil
 	}, LiteralArgumentBuilder) :: any
+end
+
+function LiteralArgumentBuilder.literal<S>(literalString: string): LiteralArgumentBuilder<S>
+	return LiteralArgumentBuilder.new(literalString)
 end
 
 function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction<S>)
