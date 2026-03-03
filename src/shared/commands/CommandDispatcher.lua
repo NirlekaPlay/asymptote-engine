@@ -7,10 +7,10 @@ local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
-local Suggestion = require(ReplicatedStorage.shared.commands.suggestion.Suggestion)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local RootCommandNode = require(ReplicatedStorage.shared.commands.tree.RootCommandNode)
 local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 
 local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
@@ -49,7 +49,7 @@ local USAGE_REQUIRED_CLOSE = ")"
 local USAGE_OR = "|"
 
 export type CommandDispatcher<S> = typeof(setmetatable({} :: {
-	root: CommandNode<S>,
+	root: RootCommandNode<S>,
 	consumer: ResultConsumer<S>
 }, CommandDispatcher))
 
@@ -58,13 +58,14 @@ type CommandContext<S> = CommandContext.CommandContext<S>
 type LiteralArgumentBuilder<S> = LiteralArgumentBuilder.LiteralArgumentBuilder<S>
 type ParseResults<S> = ParseResults.ParseResults<S>
 type ResultConsumer<S> = ResultConsumer.ResultConsumer<S>
+type RootCommandNode<S> = RootCommandNode.RootCommandNode<S>
 
 --[=[
 	Creates a new `CommandDispatcher` with an empty command tree.
 ]=]
 function CommandDispatcher.new<S>(): CommandDispatcher<S>
 	return setmetatable({
-		root = CommandNode.new("", "literal", nil) :: CommandNode<S>,
+		root = RootCommandNode.new(),
 		consumer = EMPTY_RESULT_CONSUMER :: ResultConsumer<S>
 	}, CommandDispatcher)
 end
