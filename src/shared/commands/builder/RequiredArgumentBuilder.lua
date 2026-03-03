@@ -28,7 +28,8 @@ export type RequiredArgumentBuilder<S> = {
 	andThen: (self: RequiredArgumentBuilder<S>, child: ArgumentBuilder<S>) -> RequiredArgumentBuilder<S>,
 	redirect: (self: RequiredArgumentBuilder<S>, target: CommandNode<S>) -> RequiredArgumentBuilder<S>,
 	build: (self: RequiredArgumentBuilder<S>) -> CommandNode<S>,
-	suggests: <S>(self: RequiredArgumentBuilder<S>, provider: SuggestionProvider<S>) -> RequiredArgumentBuilder<S>
+	suggests: <S>(self: RequiredArgumentBuilder<S>, provider: SuggestionProvider<S>) -> RequiredArgumentBuilder<S>,
+	requires: <S>(self: RequiredArgumentBuilder<S>, requirement: Predicate<S>) -> RequiredArgumentBuilder<S>
 }
 
 type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S, any>
@@ -46,6 +47,10 @@ function RequiredArgumentBuilder.new<S, T>(argumentName: string, argumentType: A
 		children = {},
 		redirectNode = nil :: CommandNode<S>?
 	}, RequiredArgumentBuilder) :: RequiredArgumentBuilder<S>
+end
+
+function RequiredArgumentBuilder.argument<S, T>(argumentName: string, argumentType: ArgumentType<T>): RequiredArgumentBuilder<S>
+	return RequiredArgumentBuilder.new(argumentName, argumentType)
 end
 
 function RequiredArgumentBuilder.executes<S>(self: RequiredArgumentBuilder<S>, commandFunc: CommandFunction<S>): RequiredArgumentBuilder<S>

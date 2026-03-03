@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
@@ -19,8 +20,9 @@ local RootCommandNode = setmetatable({}, { __index = CommandNode })
 RootCommandNode.__index = RootCommandNode
 
 export type RootCommandNode<S> = CommandNode.CommandNode<S> & {}
-type CommandNode<S> = CommandNode.CommandNode<S>
+type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandContextBuilder<S> = CommandContextBuilder.CommandContextBuilder<S>
+type CommandNode<S> = CommandNode.CommandNode<S>
 type CompletableFuture<T> = CompletableFuture.CompletableFuture<T>
 type StringReader = StringReader.StringReader
 type Suggestions = Suggestions.Suggestions
@@ -43,7 +45,7 @@ function RootCommandNode.parse<S>(self: RootCommandNode<S>, reader: StringReader
 	return
 end
 
-function RootCommandNode.listSuggestions<S>(self: RootCommandNode<S>, context: CommandContextBuilder<S>, suggestionsBuilder: SuggestionsBuilder): CompletableFuture<Suggestions>
+function RootCommandNode.listSuggestions<S>(self: RootCommandNode<S>, context: CommandContext<S>, suggestionsBuilder: SuggestionsBuilder): CompletableFuture<Suggestions>
 	return Suggestions.empty()
 end
 

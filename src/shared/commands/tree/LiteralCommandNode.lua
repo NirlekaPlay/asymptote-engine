@@ -5,6 +5,7 @@ local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunctio
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
+local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
@@ -27,6 +28,7 @@ export type LiteralCommandNode<S> = CommandNode.CommandNode<S> & {
 	literal: string,
 	literalLowerCase: string
 }
+type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type CommandNode<S> = CommandNode.CommandNode<S>
 type CommandContextBuilder<S> = CommandContextBuilder.CommandContextBuilder<S>
@@ -37,9 +39,11 @@ type Suggestions = Suggestions.Suggestions
 type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
 function LiteralCommandNode.new<S>(literal: string, command: CommandFunction<S>?, requirement: Predicate<S>, redirect: CommandNode<S>): LiteralCommandNode<S>
-	local self = setmetatable((CommandNode :: any).new("", "literal", nil, nil, nil, nil), LiteralCommandNode) :: any
+	local self = setmetatable((CommandNode).new("", "literal", nil, requirement, redirect, nil), LiteralCommandNode) :: any
 	self.literal = literal
-	self.literalLowerCase = literal:lower()
+	self.literalLowerCase = literal:lower();
+	--
+	self.command = command
 	return self
 end
 
@@ -77,7 +81,7 @@ function LiteralCommandNode._parse<S>(self: LiteralCommandNode<S>, reader: Strin
 	return -1
 end
 
-function LiteralCommandNode.listSuggestions<S>(self: LiteralCommandNode<S>, context: CommandContextBuilder<S>, suggestionsBuilder: SuggestionsBuilder): CompletableFuture<Suggestions>
+function LiteralCommandNode.listSuggestions<S>(self: LiteralCommandNode<S>, context: CommandContext<S>, suggestionsBuilder: SuggestionsBuilder): CompletableFuture<Suggestions>
 	if UString.startsWith(self.literalLowerCase, suggestionsBuilder:getRemainingLowerCase()) then
 		return suggestionsBuilder:suggest(self.literal):buildFuture()
 	else
