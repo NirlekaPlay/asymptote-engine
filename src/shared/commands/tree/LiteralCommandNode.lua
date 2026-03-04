@@ -25,7 +25,9 @@ LiteralCommandNode.__index = LiteralCommandNode
 
 export type LiteralCommandNode<S> = CommandNode.CommandNode<S> & {
 	literal: string,
-	literalLowerCase: string
+	literalLowerCase: string,
+	--
+	getLiteral: (self: LiteralCommandNode<S>) -> string,
 }
 type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
@@ -45,6 +47,10 @@ function LiteralCommandNode.new<S>(literal: string, command: CommandFunction<S>?
 	self.command = command
 	self.nodeType = CommandNodeType.LITERAL
 	return self
+end
+
+function LiteralCommandNode.getLiteral<S>(self: LiteralCommandNode<S>): string
+	return self.literal
 end
 
 function LiteralCommandNode.getName<S>(self: LiteralCommandNode<S>): string
