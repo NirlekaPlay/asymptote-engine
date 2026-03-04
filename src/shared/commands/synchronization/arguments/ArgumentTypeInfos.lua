@@ -20,10 +20,14 @@ local ArgumentTypeInfos = {}
 
 local registry = {}
 local registry_by_class = {}
+local registry_by_id = {}
+local class_to_id = {}
 
 local function register(registry: { [any]: any }, id: string, info: SingletonArgumentInfo.SingletonArgumentInfo): ()
 	registry[id] = info
 	registry_by_class[info.type] = info
+	table.insert(registry_by_id, info)
+	class_to_id[info.type] = #registry_by_id
 end
 
 function ArgumentTypeInfos.register(registry: { [any]: any }): ()
@@ -38,6 +42,14 @@ end
 
 function ArgumentTypeInfos.byClass<S>(argument: ArgumentType.ArgumentType<S>): SingletonArgumentInfo.SingletonArgumentInfo
 	return registry_by_class[getmetatable(argument) :: any]
+end
+
+function ArgumentTypeInfos.byId(id: number): SingletonArgumentInfo.SingletonArgumentInfo
+	return registry_by_id[id]
+end
+
+function ArgumentTypeInfos.getIdFromInstance<S>(argument: ArgumentType.ArgumentType<S>): number
+	return class_to_id[getmetatable(argument) :: any]
 end
 
 function ArgumentTypeInfos.bySerializedTable(serialized: { [any]: any }): SingletonArgumentInfo.SingletonArgumentInfo

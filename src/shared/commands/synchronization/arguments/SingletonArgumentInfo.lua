@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
+local FriendlyByteBuf = require(ReplicatedStorage.shared.network.FriendlyByteBuf)
 
 --[=[
 	@class SingletonArgumentInfo
@@ -12,7 +13,9 @@ local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.Argumen
 export type SingletonArgumentInfo = {
 	serializeToTableFromInstance: <S>(argumentType: ArgumentType.ArgumentType<S>) -> any,
 	deserializeFromTable: (serialized: any) -> Template,
-	type: ArgumentType.ArgumentType<any>
+	type: ArgumentType.ArgumentType<any>,
+	serializeToNetwork: <S>(buf: FriendlyByteBuf.FriendlyByteBuf, argumentType: ArgumentType.ArgumentType<S>) -> (),
+	deserializeFromNetwork: (buf: FriendlyByteBuf.FriendlyByteBuf) -> Template
 }
 
 export type Template = {

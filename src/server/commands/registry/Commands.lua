@@ -28,6 +28,7 @@ local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.s
 local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEntityPosition)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
+local SharedSuggestionProvider = require(ReplicatedStorage.shared.commands.asymptote.suggestion.SharedSuggestionProvider)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local ArgumentBuilderFactory = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilderFactory)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
@@ -37,11 +38,13 @@ local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local CommandNodeType = require(ReplicatedStorage.shared.commands.tree.CommandNodeType)
 local RootCommandNode = require(ReplicatedStorage.shared.commands.tree.RootCommandNode)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
+local ClientboundCommandsPacket = require(ReplicatedStorage.shared.network.game.ClientboundCommandsPacket)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
 type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandDispatcher = CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>
 type CommandNode<S> = CommandNode.CommandNode<S>
+type SharedSuggestionProvider = SharedSuggestionProvider.SharedSuggestionProvider
 
 local dispatcher = CommandDispatcher.new() :: CommandDispatcher<CommandSourceStack.CommandSourceStack>
 local chattedConnectionsPerPlayer: { [Player]: RBXScriptConnection } = {}
@@ -162,118 +165,15 @@ end
 
 type Map<K, V> = { [K]: V }
 
-function Commands.serializeRootNode<S>(node: CommandNode.CommandNode<S>): any
-	local serialized = Commands.serializeFlatTree(node)
-	return serialized
-end
-
-type NodeMap = { [CommandNode.CommandNode<any>]: number }
-
-local function enumerateNodes<S>(root: CommandNode.CommandNode<S>): (NodeMap, {CommandNode.CommandNode<S>})
-	local nodes: {CommandNode.CommandNode<S>} = {}
-	local objectToId: {[CommandNode.CommandNode<S>]:number} = {}
-	local queue = { root }
-	
-	local index = 0
-	while #queue > 0 do
-		local current = table.remove(queue, 1) :: CommandNode.CommandNode<S>
-		if not objectToId[current] then
-			objectToId[current] = index
-			table.insert(nodes, current)
-			index += 1
-
-			for _, child in current:getChildren() do
-				table.insert(queue, child)
-			end
-
-			if current:getRedirect() then
-				table.insert(queue, current:getRedirect())
-			end
-		end
-	end
-	
-	return objectToId, nodes
-end
-
-function Commands.serializeFlatTree(root: any)
-	local objectToId, nodeList = enumerateNodes(root)
-	local serializedEntries = {}
-
-	for id, node in nodeList do
-		local entry = {
-			name = node.name,
-			nodeType = node.nodeType,
-			executable = (node.command ~= nil),
-			children = {},
-			redirect = -1 -- -1 means no redirect
-		}
-
-		for _, child in node:getChildren() do
-			table.insert(entry.children, objectToId[child])
-		end
-
-		if node:getRedirect() then
-			entry.redirect = objectToId[node:getRedirect()]
-		end
-
-		if node:getNodeType() == CommandNodeType.ARGUMENT then
-			local info = ArgumentTypeInfos.byClass(node.argumentType)
-			entry.argumentType = info and info.serializeToTableFromInstance(node.argumentType) or {}
-		end
-
-		table.insert(serializedEntries, entry)
-	end
-
-	return {
-		rootIndex = objectToId[root],
-		entries = serializedEntries
-	}
-end
-
--- Replace your current sendCommands with this
 function Commands.sendCommands(player: Player): ()
 	local source = Commands.createCommandSourceStackFromPlayer(player)
-	local serverRoot = dispatcher:getRoot()
-	
-	-- Using any here to bypass the generic S mismatch between server/client nodes
-	local nodeMap: { [CommandNode.CommandNode<any>]: CommandNode.CommandNode<any> } = {}
-	local clientRoot = RootCommandNode.new()
-	nodeMap[serverRoot] = clientRoot
-	
-	-- Pass 1: Recursive build of the tree structure (no redirects yet)
-	local function build(sNode: CommandNode.CommandNode<any>, cNode: CommandNode.CommandNode<any>)
-		for _, child in sNode:getChildren() do
-			if child:canUse(source) then
-				local builder = ArgumentBuilderFactory.createBuilder(child)
-				
-				-- Strip logic for the client packet
-				builder:requires(function() return true end)
-				if (builder :: any).command then
-					builder:executes(function() return 0 end)
-				end
-				
-				local newClientNode = builder:build()
-				nodeMap[child] = newClientNode
-				cNode:addChild(newClientNode)
-				
-				build(child, newClientNode)
-			end
-		end
-	end
-	build(serverRoot, clientRoot)
+	local map = {} :: Map<CommandNode<CommandSourceStack.CommandSourceStack>, CommandNode<SharedSuggestionProvider>>
+	local rootCommandNode = RootCommandNode.new()
 
-	-- Pass 2: Link redirects using the map we just finished filling
-	for sNode, cNode in nodeMap do
-		local target = sNode:getRedirect()
-		if target then
-			local clientTarget = nodeMap[target]
-			if clientTarget then
-				cNode.redirect = clientTarget
-			end
-		end
-	end
+	map[dispatcher:getRoot()] = rootCommandNode
+	Commands.fillUsableCommands(dispatcher:getRoot(), rootCommandNode, source, map)
 
-	TypedRemotes.ClientboundCommandsPacket:FireClient(player, Commands.serializeRootNode(clientRoot))
+	TypedRemotes.ClientboundCommandsPacket:FireClient(player, ClientboundCommandsPacket.fromRootNode(rootCommandNode):serializeToNetwork())
 end
 
 function Commands.fillUsableCommands(

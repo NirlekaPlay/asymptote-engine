@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Vector3ArgumentType = require(ReplicatedStorage.shared.commands.arguments.position.Vector3ArgumentType)
 local SingletonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.SingletonArgumentInfo)
+local FriendlyByteBuf = require(ReplicatedStorage.shared.network.FriendlyByteBuf)
 
 --[=[
 	@class Vector3ArgumentInfo
@@ -21,6 +22,18 @@ function Vector3ArgumentInfo.deserializeFromTable(serialized: any): SingletonArg
 		end
 	}
 	return template
+end
+
+function Vector3ArgumentInfo.serializeToNetwork(buf: FriendlyByteBuf.FriendlyByteBuf, argumentType: Vector3ArgumentType.Vector3ArgumentType): ()
+	return
+end
+
+function Vector3ArgumentInfo.deserializeFromNetwork(buf: FriendlyByteBuf.FriendlyByteBuf): SingletonArgumentInfo.Template
+	return {
+		instantiate = function()
+			return Vector3ArgumentType.vec3()
+		end
+	}
 end
 
 return Vector3ArgumentInfo
