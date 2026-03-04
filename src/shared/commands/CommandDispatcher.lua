@@ -13,6 +13,8 @@ local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local RootCommandNode = require(ReplicatedStorage.shared.commands.tree.RootCommandNode)
 local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 
+local DEBUG_USE_RAW_ERR_MSGS = false
+
 local EMPTY_RESULT_CONSUMER: ResultConsumer<any> = {
 	onCommandComplete = function(context: CommandContext<any>, success: boolean, result: number)
 		return
@@ -28,6 +30,15 @@ local function hasCommand<S>(context: CommandContext.CommandContext<S>): boolean
 		return hasCommand(child)
 	end
 	return false
+end
+
+local function naturalizeErrorMessage(err: any): string
+	local message = tostring(err)
+	if DEBUG_USE_RAW_ERR_MSGS then
+		return message
+	end
+	local naturalized = message:match("^[^:]+:%d+: (.+)") :: string
+	return naturalized
 end
 
 --[=[
@@ -434,7 +445,7 @@ function CommandDispatcher.parseNodes<S>(
 			-- This prevents that.
 			local errorCursorPos = reader:getCursorPos()
 			errors[childNode] = {
-				message = ((err :: any) :: string):match("^[^:]+:%d+: (.+)") :: string,
+				message = naturalizeErrorMessage(err),
 				cursorPos = errorCursorPos
 			}
 			reader:setCursorPos(cursorPos)

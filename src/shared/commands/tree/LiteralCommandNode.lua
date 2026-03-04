@@ -5,6 +5,7 @@ local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunctio
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
+local StringRange = require(ReplicatedStorage.shared.commands.context.StringRange)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
 local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
@@ -58,7 +59,7 @@ function LiteralCommandNode.parse<S>(self: LiteralCommandNode<S>, reader: String
 	local startPos = reader:getCursorPos()
 	local endPos = self:_parse(reader)
 	if endPos > -1 then
-		contextBuilder:withNode(self, startPos, endPos)
+		contextBuilder:withNode(self, StringRange.between(startPos, endPos))
 	else
 		error("Invalid command literal: " .. self.literal)
 	end
