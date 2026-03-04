@@ -4,8 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
-local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
-local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
 local ParsedArgument = require(ReplicatedStorage.shared.commands.context.ParsedArgument)
@@ -32,6 +30,9 @@ export type ArgumentCommandNode<S> = CommandNode.CommandNode<S> & {
 	name: string,
 	argumentType: ArgumentType<S>,
 	customSuggestions: SuggestionsBuilder,
+	--
+	getCustomSuggestions: (self: ArgumentCommandNode<S>) -> SuggestionsBuilder,
+	getArgumentType: (self: ArgumentCommandNode<S>) -> ArgumentType<S>
 }
 type ArgumentType<S> = ArgumentType.ArgumentType<S>
 type CommandContext<S> = CommandContext.CommandContext<S>
@@ -45,13 +46,18 @@ type Suggestions = Suggestions.Suggestions
 type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
 function ArgumentCommandNode.new<S>(name: string, argumentType: ArgumentType<S>, command: CommandFunction<S>, requirement: Predicate<S>, redirect: CommandNode<S>, customSuggestions: SuggestionsBuilder?): ArgumentCommandNode<S>
-	local self = setmetatable((CommandNode).new("", "argument", nil, requirement, redirect, nil), ArgumentCommandNode) :: any
+	local self = setmetatable((CommandNode).new(name, "argument", argumentType, requirement, redirect, customSuggestions), ArgumentCommandNode) :: any
 	self.name = name
 	self.argumentType = argumentType
 	self.customSuggestions = customSuggestions
 	--
 	self.command = command
+	self.nodeType = CommandNodeType.ARGUMENT
 	return self
+end
+
+function ArgumentCommandNode.getArgumentType<S>(self: ArgumentCommandNode<S>): ArgumentType<S>
+	return self.argumentType
 end
 
 function ArgumentCommandNode.getName<S>(self: ArgumentCommandNode<S>): string
@@ -60,6 +66,10 @@ end
 
 function ArgumentCommandNode.getUsageText<S>(self: ArgumentCommandNode<S>): string
 	return USAGE_ARGUMENT_OPEN .. self.name .. USAGE_ARGUMENT_CLOSE
+end
+
+function ArgumentCommandNode.getCustomSuggestions<S>(self: ArgumentCommandNode<S>): SuggestionsBuilder
+	return self.customSuggestions
 end
 
 function ArgumentCommandNode.parse<S>(self: ArgumentCommandNode<S>, reader: StringReader, contextBuilder: CommandContextBuilder<S>): ()
@@ -81,23 +91,6 @@ function ArgumentCommandNode.listSuggestions<S>(self: ArgumentCommandNode<S>, co
 	else
 		return self.customSuggestions:getSuggestions(context, suggestionsBuilder)
 	end
-end
-
-function ArgumentCommandNode.createBuilder<S, T>(self: ArgumentCommandNode<S>): ArgumentBuilder.ArgumentBuilder<S, T>
-	local builder = RequiredArgumentBuilder.argument(self.literal, self.argumentType)
-	if self.requirement then
-		builder:requires(self.requirement)
-	end
-	if self.redirect then
-		builder:redirect(self.redirect)
-	end
-	if self.customSuggestions then
-		builder:suggests(self.customSuggestions)
-	end
-	if self:getCommand() ~= nil then
-		builder:executes(self:getCommand())
-	end
-	return builder
 end
 
 --

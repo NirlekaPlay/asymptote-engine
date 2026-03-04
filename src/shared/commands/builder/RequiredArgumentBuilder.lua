@@ -5,6 +5,7 @@ local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunctio
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local SuggestionProvider = require(ReplicatedStorage.shared.commands.suggestion.SuggestionProvider)
+local ArgumentCommandNode = require(ReplicatedStorage.shared.commands.tree.ArgumentCommandNode)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 
 --[=[
@@ -74,13 +75,11 @@ function RequiredArgumentBuilder.andThen<S>(self: RequiredArgumentBuilder<S>, ch
 end
 
 function RequiredArgumentBuilder.build<S>(self: RequiredArgumentBuilder<S>): CommandNode<S>
-	local node = CommandNode.new(self.argumentName, "argument", self.argumentType, self.requirement, nil, self.suggestionsProvider)
-	node.command = self.command
-	node.redirect = self.redirectNode
+	local node = ArgumentCommandNode.new(self.argumentName, self.argumentType, self.command, self.requirement, self.redirectNode, self.suggestionsProvider)
 
 	if not node.redirect then
 		for _, child in self.children do
-			node:addChild((child :: any):build())
+			node:addChild(child:build())
 		end
 	end
 	

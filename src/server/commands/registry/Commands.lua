@@ -29,11 +29,13 @@ local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEn
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
+local ArgumentBuilderFactory = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilderFactory)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local ArgumentTypeInfos = require(ReplicatedStorage.shared.commands.synchronization.arguments.ArgumentTypeInfos)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
-local NodeBuilderCircDependencyFix = require(ReplicatedStorage.shared.commands.tree.NodeBuilderCircDependencyFix)
+local CommandNodeType = require(ReplicatedStorage.shared.commands.tree.CommandNodeType)
+local RootCommandNode = require(ReplicatedStorage.shared.commands.tree.RootCommandNode)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 
@@ -41,11 +43,8 @@ type CommandContext<S> = CommandContext.CommandContext<S>
 type CommandDispatcher = CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>
 type CommandNode<S> = CommandNode.CommandNode<S>
 
-local dispatcher = CommandDispatcher.new() :: CommandDispatcher
+local dispatcher = CommandDispatcher.new() :: CommandDispatcher<CommandSourceStack.CommandSourceStack>
 local chattedConnectionsPerPlayer: { [Player]: RBXScriptConnection } = {}
-
--- TODO: FIX THIS SHIT
-CommandNode._setFixFunc(NodeBuilderCircDependencyFix)
 
 local Commands = {}
 
@@ -217,7 +216,7 @@ function Commands.serializeFlatTree(root: any)
 			entry.redirect = objectToId[node:getRedirect()]
 		end
 
-		if node.nodeType == "argument" then
+		if node:getNodeType() == CommandNodeType.ARGUMENT then
 			local info = ArgumentTypeInfos.byClass(node.argumentType)
 			entry.argumentType = info and info.serializeToTableFromInstance(node.argumentType) or {}
 		end
@@ -238,14 +237,14 @@ function Commands.sendCommands(player: Player): ()
 	
 	-- Using any here to bypass the generic S mismatch between server/client nodes
 	local nodeMap: { [CommandNode.CommandNode<any>]: CommandNode.CommandNode<any> } = {}
-	local clientRoot = CommandNode.new("", "root") :: CommandNode.CommandNode<any>
+	local clientRoot = RootCommandNode.new()
 	nodeMap[serverRoot] = clientRoot
 	
 	-- Pass 1: Recursive build of the tree structure (no redirects yet)
 	local function build(sNode: CommandNode.CommandNode<any>, cNode: CommandNode.CommandNode<any>)
 		for _, child in sNode:getChildren() do
 			if child:canUse(source) then
-				local builder = child:createBuilder()
+				local builder = ArgumentBuilderFactory.createBuilder(child)
 				
 				-- Strip logic for the client packet
 				builder:requires(function() return true end)
@@ -285,7 +284,7 @@ function Commands.fillUsableCommands(
 ): ()
 	for _, node in node1:getChildren() do
 		if node:canUse(source) then
-			local argumentBuilder = node:createBuilder() :: ArgumentBuilder.ArgumentBuilder<CommandSourceStack.CommandSourceStack, any>
+			local argumentBuilder = ArgumentBuilderFactory.createBuilder(node) :: ArgumentBuilder.ArgumentBuilder<CommandSourceStack.CommandSourceStack, any>
 			argumentBuilder:requires(function(s)
 				return true
 			end)

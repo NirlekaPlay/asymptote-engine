@@ -3,8 +3,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
-local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
-local LiteralArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.LiteralArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
@@ -39,11 +37,12 @@ type Suggestions = Suggestions.Suggestions
 type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
 function LiteralCommandNode.new<S>(literal: string, command: CommandFunction<S>?, requirement: Predicate<S>, redirect: CommandNode<S>): LiteralCommandNode<S>
-	local self = setmetatable((CommandNode).new("", "literal", nil, requirement, redirect, nil), LiteralCommandNode) :: any
+	local self = setmetatable((CommandNode).new(literal, "literal", nil, requirement, redirect, nil), LiteralCommandNode) :: any
 	self.literal = literal
 	self.literalLowerCase = literal:lower();
 	--
 	self.command = command
+	self.nodeType = CommandNodeType.LITERAL
 	return self
 end
 
@@ -89,21 +88,10 @@ function LiteralCommandNode.listSuggestions<S>(self: LiteralCommandNode<S>, cont
 	end
 end
 
-function LiteralCommandNode.createBuilder<S, T>(self: LiteralCommandNode<S>): ArgumentBuilder.ArgumentBuilder<S, T>
-	local builder = LiteralArgumentBuilder.literal(self.literal) :: LiteralArgumentBuilder.LiteralArgumentBuilder<S>
-	if self.requirement then
-		builder:requires(self.requirement)
-	end
-	if self.redirect then
-		builder:redirect(self.redirect)
-	end
-	return builder
-end
-
 --
 
 function LiteralCommandNode.getNodeType<S>(self: LiteralCommandNode<S>): number
-	return CommandNodeType.LITERAL
+	return self.nodeType
 end
 
 function LiteralCommandNode.__tostring<S>(self: LiteralCommandNode<S>): string

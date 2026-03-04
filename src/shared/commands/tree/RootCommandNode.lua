@@ -2,7 +2,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StringReader = require(ReplicatedStorage.shared.commands.StringReader)
-local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local CommandContextBuilder = require(ReplicatedStorage.shared.commands.context.CommandContextBuilder)
 local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
@@ -30,6 +29,7 @@ type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
 function RootCommandNode.new<S>(): RootCommandNode<S>
 	local self = setmetatable((CommandNode :: any).new("", "root", nil, nil, nil, nil), RootCommandNode) :: any
+	self.nodeType = CommandNodeType.ROOT
 	return self
 end
 
@@ -49,14 +49,10 @@ function RootCommandNode.listSuggestions<S>(self: RootCommandNode<S>, context: C
 	return Suggestions.empty()
 end
 
-function RootCommandNode.createBuilder<S>(self: RootCommandNode<S>): ArgumentBuilder.ArgumentBuilder<S, any>
-	error("Cannot convert root into a builder")
-end
-
 --
 
 function RootCommandNode.getNodeType<S>(self: RootCommandNode<S>): number
-	return CommandNodeType.ROOT
+	return self.nodeType
 end
 
 function RootCommandNode.__tostring<S>(self: RootCommandNode<S>): string

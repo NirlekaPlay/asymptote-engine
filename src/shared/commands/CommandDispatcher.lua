@@ -63,10 +63,10 @@ type RootCommandNode<S> = RootCommandNode.RootCommandNode<S>
 --[=[
 	Creates a new `CommandDispatcher` with an empty command tree.
 ]=]
-function CommandDispatcher.new<S>(): CommandDispatcher<S>
+function CommandDispatcher.new<any>(): CommandDispatcher<any>
 	return setmetatable({
 		root = RootCommandNode.new(),
-		consumer = EMPTY_RESULT_CONSUMER :: ResultConsumer<S>
+		consumer = EMPTY_RESULT_CONSUMER :: ResultConsumer<any>
 	}, CommandDispatcher)
 end
 
