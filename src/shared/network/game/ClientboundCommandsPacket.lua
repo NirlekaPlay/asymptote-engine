@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local SharedSuggestionProvider = require(ReplicatedStorage.shared.commands.asymptote.suggestion.SharedSuggestionProvider)
 local ArgumentTypeInfos = require(ReplicatedStorage.shared.commands.synchronization.arguments.ArgumentTypeInfos)
+local SingletonArgumentInfo = require(ReplicatedStorage.shared.commands.synchronization.arguments.SingletonArgumentInfo)
 local ArgumentCommandNode = require(ReplicatedStorage.shared.commands.tree.ArgumentCommandNode)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local CommandNodeType = require(ReplicatedStorage.shared.commands.tree.CommandNodeType)
@@ -26,6 +27,7 @@ type NodeStub = {
 	name: string,
 	parser: ArgumentType.ArgumentType<any>?,
 	parserId: number?,
+	template: SingletonArgumentInfo.Template?,
 	suggestions: any?
 }
 
@@ -174,7 +176,7 @@ function ClientboundCommandsPacket.getRoot(self: ClientboundCommandsPacket): Roo
 		elseif nodeType == TYPE_LITERAL then
 			nodes[i] = LiteralCommandNode.new(entry.stub.name)
 		elseif nodeType == TYPE_ARGUMENT then
-			local argType = entry.stub.parser
+			local argType = entry.stub.template:instantiate()
 			nodes[i] = ArgumentCommandNode.new(entry.stub.name, argType)
 		end
 	end
