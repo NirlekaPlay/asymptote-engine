@@ -53,6 +53,10 @@ function Suggestions.getList(self: Suggestions): {Suggestion.Suggestion}
 	return self.suggestions
 end
 
+function Suggestions.getRange(self: Suggestions): StringRange.StringRange
+	return self.range
+end
+
 --
 
 function Suggestions.merge(command: string, input: {Suggestions}): Suggestions
