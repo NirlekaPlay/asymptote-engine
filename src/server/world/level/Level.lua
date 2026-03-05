@@ -1317,7 +1317,6 @@ function Level.restartLevel(): ()
 end
 
 function Level.startMission(overrideExistingChars: boolean?): ()
-	print("Called")
 	overrideExistingChars = overrideExistingChars or false
 	local targetStreamPos = workspace:FindFirstChildOfClass("SpawnLocation")
 	local function loadChar(player: Player)
@@ -1353,12 +1352,7 @@ function Level.startMission(overrideExistingChars: boolean?): ()
 	end
 
 	-- Following code Should be played after players plays or skips the entire intro
-
-	print("Begin")
-
 	MusicController.evaluateStack()
-
-	print("Passed")
 end
 
 function Level.setDestroyNpcsCallback(f: () -> ()): ()

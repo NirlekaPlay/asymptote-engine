@@ -34,6 +34,19 @@ function StringRange.isEmpty(self: StringRange): boolean
 	return self.startPos == self.endPos
 end
 
+function StringRange.equals<T>(self: StringRange, value: T): boolean
+	if value == self then
+		return true
+	end
+
+	if not (type(value) == "table" and getmetatable(value) == StringRange) then
+		return false
+	end
+
+	local that = value :: StringRange
+	return self.startPos == that.startPos and self.endPos == that.endPos
+end
+
 --
 
 function StringRange.getStart(self: StringRange): number

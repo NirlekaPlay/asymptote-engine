@@ -3,25 +3,28 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommandFunction = require(ReplicatedStorage.shared.commands.CommandFunction)
 local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilder)
-local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
+local LiteralCommandNode = require(ReplicatedStorage.shared.commands.tree.LiteralCommandNode)
 
 local LiteralArgumentBuilder = {}
 LiteralArgumentBuilder.__index = LiteralArgumentBuilder
 
 type ArgumentBuilder<S, T> = ArgumentBuilder.ArgumentBuilder<S, T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
-type CommandNode<S> = CommandNode.CommandNode<S>
+type LiteralCommandNode<S> = LiteralCommandNode.LiteralCommandNode<S>
+type Predicate<T> = (T) -> boolean
 
 export type LiteralArgumentBuilder<S> = {
 	literalString: string,
 	command: CommandFunction<S>?,
 	children: { ArgumentBuilder<S, any> },
-	redirectNode: CommandNode<S>?,
+	redirectNode: LiteralCommandNode<S>?,
+	requirement: Predicate<S>?,
 	
 	executes: <T>(self: T, commandFunc: CommandFunction<S>) -> T,
 	andThen: <T>(self: T, child: ArgumentBuilder<S, any>) -> T,
-	redirect: <T>(self: T, target: CommandNode<S>) -> T,
-	build: <T>(self: T) -> CommandNode<S>
+	redirect: <T>(self: T, target: LiteralCommandNode<S>) -> T,
+	build: <T>(self: T) -> LiteralCommandNode<S>,
+	requires: <T>(self: T, requirement: Predicate<S>) -> T
 }
 
 function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBuilder<S>
@@ -33,8 +36,17 @@ function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBu
 	}, LiteralArgumentBuilder) :: any
 end
 
+function LiteralArgumentBuilder.literal<S>(literalString: string): LiteralArgumentBuilder<S>
+	return LiteralArgumentBuilder.new(literalString)
+end
+
 function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction<S>)
 	self.command = commandFunc
+	return self
+end
+
+function LiteralArgumentBuilder.requires<S>(self: LiteralArgumentBuilder<S>, predicate: Predicate<S>): LiteralArgumentBuilder<S>
+	self.requirement = predicate
 	return self
 end
 
@@ -43,22 +55,24 @@ function LiteralArgumentBuilder.andThen<S>(self: LiteralArgumentBuilder<S>, chil
 	return self
 end
 
-function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: CommandNode<S>)
+function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, target: LiteralCommandNode<S>)
 	self.redirectNode = target
 	return self
 end
 
-function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): CommandNode<S>
-	local node = CommandNode.new(self.literalString, "literal", nil)
-	node.command = self.command
-	node.redirect = self.redirectNode
-	
+function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): LiteralCommandNode<S>
+	local node = LiteralCommandNode.new(self.literalString, self.command, self.requirement, self.redirectNode)
+	local redirectNode = self.redirectNode
+	if redirectNode then
+		node.redirect = redirectNode
+	end
+
 	if not node.redirect then
 		for _, child in self.children do
 			node:addChild(child:build())
 		end
 	end
-	
+
 	return node
 end
 

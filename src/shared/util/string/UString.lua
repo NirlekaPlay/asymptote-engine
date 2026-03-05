@@ -180,4 +180,12 @@ function UString.isWhitespace(char: string): boolean
 		or codepoint == 0x3000  -- Ideographic space
 end
 
+function UString.startsWith(str: string, prefix: string): boolean
+	if string.sub(str, 1, #prefix) == prefix then
+		return true
+	end
+
+	return false
+end
+
 return UString

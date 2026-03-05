@@ -3,7 +3,10 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local StarterPlayer = game:GetService("StarterPlayer")
 local UserInputService = game:GetService("UserInputService")
+local CommandSuggestions = require(StarterPlayer.StarterPlayerScripts.client.modules.commands.CommandSuggestions)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local Base64 = require(ReplicatedStorage.shared.util.crypt.Base64)
@@ -35,6 +38,7 @@ local historyIndex = 0
 local historyCount = 0
 
 local isTerminalVisible = false
+local commandSuggestions = CommandSuggestions.new(inputField)
 
 local function setTerminalVisibility(visible: boolean): ()
 	isTerminalVisible = visible
@@ -93,6 +97,8 @@ local function proccessInput(str: string): ()
 	end
 end
 
+local heldDirection = 0 -- 0 = None, 1 = Tab/Down, -1 = Up
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if isTerminalVisible then
 		if UserInputService:IsKeyDown(Enum.KeyCode.F3) and UserInputService:IsKeyDown(Enum.KeyCode.D) then
@@ -103,23 +109,64 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if not inputField:IsFocused() then
 		return
 	end
+	
+	local suggestionsActive = commandSuggestions:isVisible() and next(commandSuggestions.currentSuggestions) ~= nil
 
-	if input.KeyCode == Enum.KeyCode.Up then
-		if historyIndex > 1 then
-			historyIndex -= 1
-			inputField.Text = history[historyIndex]
-			-- Move cursor to the end of the line
-			task.defer(function() inputField.CursorPosition = #inputField.Text + 1 end)
+	if input.KeyCode == Enum.KeyCode.Tab then
+		if suggestionsActive then
+			heldDirection = 1
+			commandSuggestions:cycleSelection(1)
+			
+			task.defer(function()
+				inputField:CaptureFocus()
+				inputField.CursorPosition = #inputField.Text + 1
+			end)
 		end
-		
-	elseif input.KeyCode == Enum.KeyCode.Down then
-		if historyIndex < #history then
-			historyIndex += 1
-			inputField.Text = history[historyIndex]
+	elseif input.KeyCode == Enum.KeyCode.Up then
+		if suggestionsActive then
+			heldDirection = -1
+			commandSuggestions:cycleSelection(-1)
 		else
-			historyIndex = #history + 1
-			inputField.Text = "" -- Clear if they go past the newest command
+			-- Original history logic
+			if historyIndex > 1 then
+				historyIndex -= 1
+				inputField.Text = history[historyIndex]
+				task.defer(function() inputField.CursorPosition = #inputField.Text + 1 end)
+			end
 		end
+	elseif input.KeyCode == Enum.KeyCode.Down then
+		if suggestionsActive then
+			heldDirection = 1
+			commandSuggestions:cycleSelection(1)
+		else
+			-- Original history logic
+			if historyIndex < #history then
+				historyIndex += 1
+				inputField.Text = history[historyIndex]
+			else
+				historyIndex = #history + 1
+				inputField.Text = ""
+			end
+		end
+	elseif input.KeyCode == Enum.KeyCode.Return then
+		if suggestionsActive then
+			commandSuggestions:finalizeSelection()
+		end
+	elseif input.KeyCode == Enum.KeyCode.Space then
+		commandSuggestions.isTabbing = false
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Tab or input.KeyCode == Enum.KeyCode.Down or input.KeyCode == Enum.KeyCode.Up then
+		heldDirection = 0
+		commandSuggestions:stopRepeat()
+	end
+end)
+
+RunService.PreRender:Connect(function()
+	if heldDirection ~= 0 and inputField:IsFocused() then
+		commandSuggestions:updateAutoRepeat(heldDirection)
 	end
 end)
 
@@ -138,7 +185,15 @@ ContextActionService:BindAction("ACTION_TERMINAL", function(actionName: string, 
 	return Enum.ContextActionResult.Pass
 end, false, Enum.KeyCode.T)
 
+inputField.Focused:Connect(function()
+	if inputField.Text ~= "" then
+		commandSuggestions.suggestionFrame.Visible = true
+	end
+end)
+
 inputField.FocusLost:Connect(function(enterPressed)
+	commandSuggestions.isTabbing = false
+	commandSuggestions.suggestionFrame.Visible = false
 	if enterPressed then
 		if UString.isBlank(inputField.Text) then
 			task.defer(function()
@@ -159,6 +214,35 @@ inputField.FocusLost:Connect(function(enterPressed)
 		else
 			inputField:ReleaseFocus()
 			setTerminalVisibility(false)
+		end
+	end
+end)
+
+local lastText = ""
+inputField:GetPropertyChangedSignal("Text"):Connect(function()
+	local text = inputField.Text
+	
+	local cleaned = text:gsub("\t", "")
+	if cleaned ~= text then
+		inputField.Text = cleaned
+		return
+	end
+
+	if cleaned ~= lastText then
+		lastText = cleaned
+
+		if commandSuggestions.suppressNextTextChange then
+			commandSuggestions.suppressNextTextChange = false
+			return
+		else
+			commandSuggestions:onUserTyped()
+		end
+
+		commandSuggestions:updateCommandInfo()
+
+		if cleaned == "" then
+			-- Disable suggestions mode so the user can cycle though history like normal
+			commandSuggestions.suggestionFrame.Visible = false
 		end
 	end
 end)

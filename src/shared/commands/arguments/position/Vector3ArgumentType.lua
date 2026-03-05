@@ -3,6 +3,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArgumentType = require(ReplicatedStorage.shared.commands.arguments.ArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local Suggestions = require(ReplicatedStorage.shared.commands.suggestion.Suggestions)
+local SuggestionsBuilder = require(ReplicatedStorage.shared.commands.suggestion.SuggestionsBuilder)
+local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 
 --[=[
 	@class Vector3ArgumentType
@@ -17,6 +20,12 @@ local COORDINATE_TYPES = {
 }
 
 export type Vector3ArgumentType = ArgumentType.ArgumentType<ParsedVector3Result>
+
+type ArgumentType<T> = ArgumentType.ArgumentType<T>
+type CommandContext<S> = CommandContext.CommandContext<S>
+type CompletableFuture<T> = CompletableFuture.CompletableFuture<T>
+type Suggestions = Suggestions.Suggestions
+type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
 export type ParsedVector3Result = {
 	x: CoordinateData,
@@ -153,6 +162,35 @@ function Vector3ArgumentType.parseCoordinate(input: string): (CoordinateData?, n
 	end
 	
 	return nil, 0
+end
+
+function Vector3ArgumentType.listSuggestions<S>(self: Vector3ArgumentType, context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
+	local remaining = builder:getRemaining()
+	
+	-- Split what the user typed by spaces
+	-- e.g. if they typed "~ 10", parts will be {"~", "10"}
+	local parts = string.split(remaining, " ")
+	local count = #parts
+
+	-- Only suggest what's missing
+	if count <= 1 then
+		-- User is on the first number (X)
+		builder:suggest("~")
+		builder:suggest("~ ~")
+		builder:suggest("~ ~ ~")
+	elseif count == 2 then
+		-- Aalready typed X, suggest Y
+		local x = parts[1]
+		builder:suggest(x .. " ~")
+		builder:suggest(x .. " ~ ~")
+	elseif count == 3 then
+		-- Already typed X and Y, suggest Z
+		local x = parts[1]
+		local y = parts[2]
+		builder:suggest(x .. " " .. y .. " ~")
+	end
+
+	return builder:buildFuture()
 end
 
 return Vector3ArgumentType
