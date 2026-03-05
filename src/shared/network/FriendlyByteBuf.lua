@@ -11,20 +11,22 @@ export type FriendlyByteBuf = typeof(setmetatable({} :: {
 	_pos: number
 }, FriendlyByteBuf))
 
-function FriendlyByteBuf.new(src: buffer?): FriendlyByteBuf
+function FriendlyByteBuf.new(bytes: {number}?, initialPos: number?): FriendlyByteBuf
 	local self = setmetatable({
-		_bytes = {},
-		_pos = 1
+		_bytes = bytes or {},
+		_pos = initialPos or 1
 	}, FriendlyByteBuf)
 
-	if src then
-		local len = buffer.len(src)
-		for i = 0, len - 1 do
-			self._bytes[i + 1] = buffer.readu8(src, i)
-		end
-	end
-
 	return self
+end
+
+function FriendlyByteBuf.fromBuffer(buf: buffer): FriendlyByteBuf
+	local friendlyBuf = FriendlyByteBuf.new({}, 1)
+	local len = buffer.len(buf)
+	for i = 0, len - 1 do
+		friendlyBuf._bytes[i + 1] = buffer.readu8(buf, i)
+	end
+	return friendlyBuf
 end
 
 function FriendlyByteBuf.pushByte(self: FriendlyByteBuf, b: number): ()

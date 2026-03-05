@@ -19,7 +19,7 @@ end
 
 TypedRemotes.ClientboundCommandsPacket.OnClientEvent:Connect(function(rootNode)
 	dispatcher = CommandDispatcher.fromRoot(
-		ClientboundCommandsPacket.deserializeFromNetwork(FriendlyByteBuf.new(rootNode):toBuffer()):getRoot()
+		ClientboundCommandsPacket.deserializeFromNetwork(FriendlyByteBuf.fromBuffer(rootNode):toBuffer()):getRoot()
 	)
 end)
 

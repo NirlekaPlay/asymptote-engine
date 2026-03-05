@@ -234,7 +234,7 @@ function ClientboundCommandsPacket.serializeToNetwork(self: ClientboundCommandsP
 end
 
 function ClientboundCommandsPacket.deserializeFromNetwork(rbxBuffer: buffer): ClientboundCommandsPacket
-	local buf = FriendlyByteBuf.new(rbxBuffer)
+	local buf = FriendlyByteBuf.fromBuffer(rbxBuffer)
 	local entries: {Entry} = {}
 
 	local nodeCount = buf:readVarInt()
