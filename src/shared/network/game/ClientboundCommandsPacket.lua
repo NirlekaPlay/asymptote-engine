@@ -28,7 +28,8 @@ type NodeStub = {
 	parser: ArgumentType.ArgumentType<any>?,
 	parserId: number?,
 	template: SingletonArgumentInfo.Template?,
-	suggestions: any?
+	suggestions: any?,
+	description: string?
 }
 
 type Entry = {
@@ -116,6 +117,10 @@ local function createEntry(
 		error("Unknown node type:", node:getNodeType())
 	end
 
+	if stub and node:getDescription() ~= nil then
+		(stub :: NodeStub).description = node:getDescription()
+	end
+
 	local childIds: {number} = {}
 	for _, child in node:getChildren() do
 		table.insert(childIds, nodeToIndex[child])
@@ -174,10 +179,10 @@ function ClientboundCommandsPacket.getRoot(self: ClientboundCommandsPacket): Roo
 		if nodeType == TYPE_ROOT then
 			nodes[i] = RootCommandNode.new()
 		elseif nodeType == TYPE_LITERAL then
-			nodes[i] = LiteralCommandNode.new(entry.stub.name)
+			nodes[i] = LiteralCommandNode.new(entry.stub.name, nil, nil, nil, entry.stub.description)
 		elseif nodeType == TYPE_ARGUMENT then
 			local argType = entry.stub.template:instantiate()
-			nodes[i] = ArgumentCommandNode.new(entry.stub.name, argType)
+			nodes[i] = ArgumentCommandNode.new(entry.stub.name, argType, nil, nil, nil, nil, entry.stub.description)
 		end
 	end
 
@@ -202,6 +207,9 @@ function ClientboundCommandsPacket.serializeToNetwork(self: ClientboundCommandsP
 	buf:writeVarInt(#self.entries)
 
 	for _, entry in self.entries do
+		if entry.stub and entry.stub.description then
+			entry.flags = bit32.bor(entry.flags, 0x10)
+		end
 		buf:writeByte(entry.flags)
 		buf:writeVarInt(#entry.children)
 		for _, childId in entry.children do
@@ -225,6 +233,10 @@ function ClientboundCommandsPacket.serializeToNetwork(self: ClientboundCommandsP
 				local info = ArgumentTypeInfos.byClass(entry.stub.parser)
 				info.serializeToNetwork(buf, entry.stub.parser)
 			end
+		end
+
+		if entry.stub and entry.stub.description then
+			buf:writeUtf(entry.stub.description)
 		end
 	end
 
@@ -274,6 +286,10 @@ function ClientboundCommandsPacket.deserializeFromNetwork(rbxBuffer: buffer): Cl
 				name = name,
 				template = template
 			}
+		end
+
+		if bit32.band(flags, 0x10) ~= 0 then
+			stub.description = buf:readUtf()
 		end
 
 		table.insert(entries, {

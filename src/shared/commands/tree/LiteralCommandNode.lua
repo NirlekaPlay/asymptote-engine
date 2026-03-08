@@ -39,8 +39,8 @@ type StringReader = StringReader.StringReader
 type Suggestions = Suggestions.Suggestions
 type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
-function LiteralCommandNode.new<S>(literal: string, command: CommandFunction<S>?, requirement: Predicate<S>, redirect: CommandNode<S>): LiteralCommandNode<S>
-	local self = setmetatable((CommandNode).new(literal, "literal", nil, requirement, redirect, nil), LiteralCommandNode) :: any
+function LiteralCommandNode.new<S>(literal: string, command: CommandFunction<S>?, requirement: Predicate<S>, redirect: CommandNode<S>, description: string?): LiteralCommandNode<S>
+	local self = setmetatable((CommandNode).new(literal, "literal", nil, requirement, redirect, nil, description), LiteralCommandNode) :: any
 	self.literal = literal
 	self.literalLowerCase = literal:lower();
 	--

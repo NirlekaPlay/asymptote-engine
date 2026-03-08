@@ -16,6 +16,7 @@ local DestroyCommand = {}
 function DestroyCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
 		CommandHelper.literal("destroy")
+			:describe("Destroys the characters of NPCs")
 			:andThen(
 				CommandHelper.argument("victims", EntityArgument.entities())
 					:executes(function(c)

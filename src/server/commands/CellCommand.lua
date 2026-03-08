@@ -18,6 +18,7 @@ local debugBoundsPerCells : { [Model]: BasePart } = {}
 function CellCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
 		CommandHelper.literal("cell")
+			:describe("Allows you to view and hide cells in the current level")
 			:andThen(
 				CommandHelper.literal("show")
 					:andThen(

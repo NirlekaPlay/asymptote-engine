@@ -15,6 +15,7 @@ CommandNode.__index = CommandNode
 
 export type CommandNode<S> = typeof(setmetatable({} :: {
 	name: string,
+	description: string?,
 	literalLowerCase: string,
 	nodeType: "literal" | "argument",
 	requirement: Predicate<S>?,
@@ -30,7 +31,7 @@ type ArgumentType<T> = ArgumentType.ArgumentType<T>
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
 type Predicate<T> = (T) -> boolean
 
-function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>, suggestions: SuggestionProvider.SuggestionProvider<S>?): CommandNode<S>
+function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argumentType: ArgumentType<any>, requirement: Predicate<S>?, redirect: CommandNode<S>, suggestions: SuggestionProvider.SuggestionProvider<S>?, description: string?): CommandNode<S>
 	return setmetatable({
 		name = name,
 		literalLowerCase = name:lower(),
@@ -40,12 +41,17 @@ function CommandNode.new<S>(name: string, nodeType: "literal" | "argument", argu
 		argumentType = argumentType,
 		command = nil :: any,
 		children = {},
-		customSuggestions = suggestions
+		customSuggestions = suggestions,
+		description = description
 	}, CommandNode)
 end
 
 function CommandNode.getCommand<S>(self: CommandNode<S>): CommandFunction<S>
 	return self.command
+end
+
+function CommandNode.getDescription<S>(self: CommandNode<S>): string?
+	return self.description
 end
 
 function CommandNode.getRedirect<S>(self: CommandNode<S>): CommandNode<S>?
