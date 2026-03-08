@@ -18,10 +18,12 @@ local VariableCommand = {}
 function VariableCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	local varCmdNode = dispatcher:register(
 		CommandHelper.literal("variable")
+			:describe("Manipulates or list the variables in the current level")
 			:andThen(
 				CommandHelper.literal("set")
 					:andThen(
 						CommandHelper.argument("name", StringArgumentType.word())
+							:describe("Sets or add the specified variable name with the specified value")
 							:andThen(
 								CommandHelper.argument("value", StringArgumentType.greedyString())
 									:executes(function(context): number
@@ -44,6 +46,7 @@ function VariableCommand.register(dispatcher: CommandDispatcher.CommandDispatche
 			)
 			:andThen(
 				CommandHelper.literal("list")
+					:describe("Lists all variables in the current level and their values")
 					:executes(VariableCommand.list)
 			)
 	)

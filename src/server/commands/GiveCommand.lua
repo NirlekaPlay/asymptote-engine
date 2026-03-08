@@ -124,6 +124,7 @@ end
 function GiveCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	dispatcher:register(
 		CommandHelper.literal("give")
+			:describe("Gives an item to the specified player(s)")
 			:andThen(
 				CommandHelper.argument("targets", EntityArgument.entities())
 					:andThen(

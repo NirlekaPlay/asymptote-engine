@@ -18,6 +18,7 @@ local FORCE_FIELD_INST_NAME = "CmdForceField"
 function ForceFieldCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	local forceFieldNode = dispatcher:register(
 		CommandHelper.literal("forcefield")
+			:describe("Applies a forcefield to the specified entities, making them immune to most damages")
 			:executes(function(c)
 				local source: CommandSourceStack.CommandSourceStack = c:getSource()
 				local playerSource = source:getPlayerOrThrow()
