@@ -202,6 +202,13 @@ function Commands.fillUsableCommands(
 				end
 			end
 
+			-- FOR NOW: Don't sent the description string to the client. It adds to the size of the packet
+			-- Also we don't really need it right now since the description of a node can only be seen if user calls `/help` or
+			-- `/help <command>`, which is sent from the server to the client on the call.
+			--[[if node:getDescription() then
+				argumentBuilder:describe(node:getDescription())
+			end]]
+
 			if argumentBuilder.redirectNode ~= nil then
 				argumentBuilder:redirect(map[argumentBuilder.redirectNode])
 			end

@@ -22,6 +22,7 @@ export type RequiredArgumentBuilder<S> = {
 	redirectNode: CommandNode<S>?,
 	requirement: Predicate<S>?,
 	suggestionsProvider: SuggestionProvider<S>,
+	description: string?,
 	--
 	getCommand: <S>(self: RequiredArgumentBuilder<S>) -> CommandFunction<S>?,
 	getRedirect: <S>(self: RequiredArgumentBuilder<S>) -> CommandNode<S>?,
@@ -30,7 +31,8 @@ export type RequiredArgumentBuilder<S> = {
 	redirect: (self: RequiredArgumentBuilder<S>, target: CommandNode<S>) -> RequiredArgumentBuilder<S>,
 	build: (self: RequiredArgumentBuilder<S>) -> CommandNode<S>,
 	suggests: <S>(self: RequiredArgumentBuilder<S>, provider: SuggestionProvider<S>) -> RequiredArgumentBuilder<S>,
-	requires: <S>(self: RequiredArgumentBuilder<S>, requirement: Predicate<S>) -> RequiredArgumentBuilder<S>
+	requires: <S>(self: RequiredArgumentBuilder<S>, requirement: Predicate<S>) -> RequiredArgumentBuilder<S>,
+	describe: <S>(self: RequiredArgumentBuilder<S>, description: string) -> RequiredArgumentBuilder<S>
 }
 
 type ArgumentBuilder<S> = ArgumentBuilder.ArgumentBuilder<S, any>
@@ -59,6 +61,11 @@ function RequiredArgumentBuilder.executes<S>(self: RequiredArgumentBuilder<S>, c
 	return self
 end
 
+function RequiredArgumentBuilder.describe<S>(self: RequiredArgumentBuilder<S>, description: string): RequiredArgumentBuilder<S>
+	self.description = description
+	return self
+end
+
 function RequiredArgumentBuilder.suggests<S>(self: RequiredArgumentBuilder<S>, provider: SuggestionProvider<S>): RequiredArgumentBuilder<S>
 	self.suggestionsProvider = provider
 	return self
@@ -75,7 +82,7 @@ function RequiredArgumentBuilder.andThen<S>(self: RequiredArgumentBuilder<S>, ch
 end
 
 function RequiredArgumentBuilder.build<S>(self: RequiredArgumentBuilder<S>): CommandNode<S>
-	local node = ArgumentCommandNode.new(self.argumentName, self.argumentType, self.command, self.requirement, self.redirectNode, self.suggestionsProvider)
+	local node = ArgumentCommandNode.new(self.argumentName, self.argumentType, self.command, self.requirement, self.redirectNode, self.suggestionsProvider, self.description)
 
 	if not node.redirect then
 		for _, child in self.children do

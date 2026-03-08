@@ -45,8 +45,8 @@ type StringReader = StringReader.StringReader
 type Suggestions = Suggestions.Suggestions
 type SuggestionsBuilder = SuggestionsBuilder.SuggestionsBuilder
 
-function ArgumentCommandNode.new<S>(name: string, argumentType: ArgumentType<S>, command: CommandFunction<S>, requirement: Predicate<S>, redirect: CommandNode<S>, customSuggestions: SuggestionsBuilder?): ArgumentCommandNode<S>
-	local self = setmetatable((CommandNode).new(name, "argument", argumentType, requirement, redirect, customSuggestions), ArgumentCommandNode) :: any
+function ArgumentCommandNode.new<S>(name: string, argumentType: ArgumentType<S>, command: CommandFunction<S>, requirement: Predicate<S>, redirect: CommandNode<S>, customSuggestions: SuggestionsBuilder?, description: string?): ArgumentCommandNode<S>
+	local self = setmetatable((CommandNode).new(name, "argument", argumentType, requirement, redirect, customSuggestions, description), ArgumentCommandNode) :: any
 	self.name = name
 	self.argumentType = argumentType
 	self.customSuggestions = customSuggestions

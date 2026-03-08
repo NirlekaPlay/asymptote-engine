@@ -19,12 +19,14 @@ export type LiteralArgumentBuilder<S> = {
 	children: { ArgumentBuilder<S, any> },
 	redirectNode: LiteralCommandNode<S>?,
 	requirement: Predicate<S>?,
+	description: string?,
 	
 	executes: <T>(self: T, commandFunc: CommandFunction<S>) -> T,
 	andThen: <T>(self: T, child: ArgumentBuilder<S, any>) -> T,
 	redirect: <T>(self: T, target: LiteralCommandNode<S>) -> T,
 	build: <T>(self: T) -> LiteralCommandNode<S>,
-	requires: <T>(self: T, requirement: Predicate<S>) -> T
+	requires: <T>(self: T, requirement: Predicate<S>) -> T,
+	describe: <T>(self: T, description: string) -> T
 }
 
 function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBuilder<S>
@@ -38,6 +40,11 @@ end
 
 function LiteralArgumentBuilder.literal<S>(literalString: string): LiteralArgumentBuilder<S>
 	return LiteralArgumentBuilder.new(literalString)
+end
+
+function LiteralArgumentBuilder.describe<S>(self: LiteralArgumentBuilder<S>, description: string): LiteralArgumentBuilder<S>
+	self.description = description
+	return self
 end
 
 function LiteralArgumentBuilder.executes<S>(self: LiteralArgumentBuilder<S>, commandFunc: CommandFunction<S>)
@@ -61,7 +68,7 @@ function LiteralArgumentBuilder.redirect<S>(self: LiteralArgumentBuilder<S>, tar
 end
 
 function LiteralArgumentBuilder.build<S>(self: LiteralArgumentBuilder<S>): LiteralCommandNode<S>
-	local node = LiteralCommandNode.new(self.literalString, self.command, self.requirement, self.redirectNode)
+	local node = LiteralCommandNode.new(self.literalString, self.command, self.requirement, self.redirectNode, self.description)
 	local redirectNode = self.redirectNode
 	if redirectNode then
 		node.redirect = redirectNode

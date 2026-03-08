@@ -14,7 +14,8 @@ export type ArgumentBuilder<S, T> = {
 	andThen: (self: T, child: ArgumentBuilder<S, T>) -> T,
 	redirect: (self: T, target: CommandNode<S>) -> T,
 	build: (self: T) -> CommandNode<S>,
-	requires: (self: T, requirement: (S) -> boolean) -> T
+	requires: (self: T, requirement: (S) -> boolean) -> T,
+	describe: (self: T, description: string) -> T
 }
 
 type CommandFunction<S> = CommandFunction.CommandFunction<S>
