@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local AccessoryFiltering = require(ReplicatedStorage.shared.gunsys.framework.filtering.AccessoryFiltering)
 local ServerInstance = require(ServerScriptService.server.ServerInstance)
 local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DetectionManagement = require(ServerScriptService.server.ai.detection.DetectionManagement)
@@ -102,6 +103,7 @@ end
 
 local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
+	AccessoryFiltering.proccessCharacter(dummyChar)
 	local nodes = getNodes(dummyChar)
 	local newDummy = DetectionDummy.new(Level, dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
 		:setDesignatedPosts(nodes)

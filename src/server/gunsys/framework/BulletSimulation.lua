@@ -1,8 +1,10 @@
 --!strict
 
+local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local StandardConstants = require(ReplicatedStorage.shared.gunsys.framework.constants.StandardConstants)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local BulletTracerPayload = require(ReplicatedStorage.shared.network.payloads.BulletTracerPayload)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
@@ -12,35 +14,7 @@ local PI = math.pi
 
 local activeBullets: { ServerBulletObject } = {}
 local activeBulletsInitialCFrame: { [ServerBulletObject]: CFrame } = {}
-local sharedRayIgnoreList: { BasePart } = {}
 local consumers: { any } = {} -- "trust me bro"
-
-workspace.DescendantAdded:Connect(function(inst)
-	if not inst.Parent then
-		return
-	end
-
-	if inst:IsA("Accessory") or inst.Name == "HumanoidRootPart" then
-		table.insert(sharedRayIgnoreList, inst)
-	elseif inst:IsA("BasePart") and not inst.CanCollide and not inst.Parent:FindFirstChildOfClass("Humanoid") then
-		table.insert(sharedRayIgnoreList, inst)
-	end
-end)
-
-workspace.DescendantRemoving:Connect(function(WHAT)
-	local findthing = table.find(sharedRayIgnoreList, WHAT)
-	if findthing then
-		table.remove(sharedRayIgnoreList, findthing)
-	end
-end)
-
-for i,v in pairs(workspace:GetDescendants()) do
-	if v:IsA("Accessory") or v:IsA("Hat") or v.Name == "HumanoidRootPart" then
-		table.insert(sharedRayIgnoreList, v)
-	elseif v:IsA("BasePart") and not v.CanCollide and not v.Parent:FindFirstChildOfClass("Humanoid") then
-		table.insert(sharedRayIgnoreList, v)
-	end
-end
 
 --[=[
 	@class BulletSimulation
@@ -83,9 +57,8 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	local filter = table.clone(sharedRayIgnoreList)
 	rayParams.CollisionGroup = "Bullet"
-	rayParams.FilterDescendantsInstances = filter :: any -- stfu
+	rayParams.FilterDescendantsInstances = CollectionService:GetTagged(StandardConstants.RAY_EXCLUDE_TAG)
 	rayParams:AddToFilter(fromChar)
 
 	-- Hac.
