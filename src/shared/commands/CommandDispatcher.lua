@@ -453,7 +453,7 @@ function CommandDispatcher.parseNodes<S>(
 		end
 
 		context:withCommand(childNode:getCommand())
-		if reader:canRead(childNode:getRedirect() == nil and 2 or 1) then
+		if reader:canReadLength(childNode:getRedirect() == nil and 2 or 1) then
 			reader:skip()
 			if childNode:getRedirect() ~= nil then
 				local childContext = CommandContextBuilder.new(source, childNode.redirect, reader:getCursorPos())
