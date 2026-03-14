@@ -1,8 +1,10 @@
 --!strict
 
+local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local StandardConstants = require(ReplicatedStorage.shared.gunsys.framework.constants.StandardConstants)
 local SharedConstants = require(StarterPlayer.StarterPlayerScripts.client.modules.SharedConstants)
 local Particles = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.Particles)
 local WhizzyBullets = require(StarterPlayer.StarterPlayerScripts.client.modules.gunsys.framework.handlers.WhizzyBullets)
@@ -19,48 +21,6 @@ local PISS_YELLOW = Color3.new(1, 0.866667, 0) -- (≖_≖ )
 local BULLET_WHIZ_SOUND = ReplicatedStorage.shared.assets.sounds.gunsys.bullet_whiz
 
 local activeBullets: { BulletObject } = {}
-local sharedRayIgnoreList: { Instance } = {}
-
--- No. We cannot use RaycastParams.RespectCanCollide as that would also
--- ignore limbs.
-workspace.DescendantAdded:Connect(function(inst)
-	if inst:IsA("BasePart") and not inst.CanQuery then
-		return
-	end
-
-	if inst:IsA("Accessory") or inst:IsA("Hat") or inst.Name == "HumanoidRootPart" then
-		table.insert(sharedRayIgnoreList, inst)
-	elseif inst:IsA("BasePart") and not inst.CanCollide and not (inst.Parent and inst.Parent:FindFirstChildOfClass("Humanoid")) then
-		table.insert(sharedRayIgnoreList, inst)
-	end
-end)
-
-workspace.DescendantRemoving:Connect(function(inst)
-	if inst:IsA("BasePart") and not inst.CanQuery then
-		return
-	end
-
-	local findthing = table.find(sharedRayIgnoreList, inst)
-	if findthing then
-		table.remove(sharedRayIgnoreList, findthing)
-	end
-end)
-
-for _, inst in pairs(workspace:GetDescendants()) do
-	if not inst.Parent then
-		continue
-	end
-
-	if inst:IsA("BasePart") and not inst.CanQuery then
-		continue
-	end
-
-	if inst:IsA("Accessory") or inst:IsA("Hat") or inst.Name == "HumanoidRootPart" then
-		table.insert(sharedRayIgnoreList, inst)
-	elseif inst:IsA("BasePart") and not inst.CanCollide and not inst.Parent:FindFirstChildOfClass("Humanoid") then
-		table.insert(sharedRayIgnoreList, inst)
-	end
-end
 
 --[=[
 	@class BulletTracerHandler
@@ -92,9 +52,8 @@ function BulletTracerHandler.onReceiveTracerData(bulletTracerData: BulletTracerP
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	local filter = sharedRayIgnoreList
 	rayParams.CollisionGroup = "Bullet"
-	rayParams.FilterDescendantsInstances = filter
+	rayParams.FilterDescendantsInstances = CollectionService:GetTagged(StandardConstants.RAY_EXCLUDE_TAG)
 	rayParams:AddToFilter(bulletTracerData.fromChar)
 
 	BulletTracerHandler.muzzleFlash(bulletTracerData.muzzleCframe, Vector3.new(2, 0.6, 0.6), math.random(1, 15) / 10)

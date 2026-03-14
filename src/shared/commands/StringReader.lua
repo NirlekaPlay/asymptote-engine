@@ -16,8 +16,12 @@ export type StringReader = ImmutableStringReader.ImmutableStringReader & {
 	string: string,
 	characters: { string },
 	length: number,
-	cursorPos: number
-} & typeof(StringReader)
+	cursorPos: number,
+	--
+	skip: typeof(StringReader.skip),
+	getEncompassingChars: typeof(StringReader.getEncompassingChars),
+	setCursorPos: typeof(StringReader.setCursorPos)
+}
 
 function StringReader.new(str: string, chars: { string }, cursorPos: number): StringReader
 	return setmetatable({
