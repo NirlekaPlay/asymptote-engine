@@ -25,8 +25,10 @@ local CollisionGroupManager = require(ServerScriptService.server.physics.collisi
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Teleportation = require(ServerScriptService.server.teleportation.Teleportation)
 local MissionTeleMetadata = require(ServerScriptService.server.teleportation.metadata.MissionTeleMetadata)
+local EntitySectionManager = require(ServerScriptService.server.world.level.entity.EntitySectionManager)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
+local entitySecManager = EntitySectionManager.new()
 local guards: { [Model]: DetectionDummy.DummyAgent } = {}
 local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
@@ -141,6 +143,7 @@ local function setupDummy(dummyChar: Model): ()
 	end)
 
 	guards[dummyChar] = newDummy
+	entitySecManager:addEntity(newDummy)
 end
 
 local function onMapTaggedDummies(dummyChar: Model): ()
@@ -173,6 +176,7 @@ local function clearAndDestroyAllNpcs(): ()
 	end
 
 	table.clear(guards)
+	entitySecManager:clearEntities()
 end
 
 local function uponLevelClearCallback(): ()
@@ -236,11 +240,13 @@ local function update(deltaTime: number): ()
 		if not model.PrimaryPart then
 			guards[model] = nil
 			model.Parent = nil
+			entitySecManager:removeEntity(guard)
 			continue
 		end
 
 		if not model:IsDescendantOf(workspace) or not guard:isAlive() then
 			guards[model] = nil
+			entitySecManager:removeEntity(guard)
 			task.spawn(function()
 				task.wait(1) -- wait for a while so the died connections can run properly.
 				setmetatable(guard, nil)
@@ -265,6 +271,8 @@ local function update(deltaTime: number): ()
 	if Level.canUpdateLevel() then
 		BulletSimulation.update(deltaTime)
 	end
+
+	entitySecManager:update()
 end
 
 RunService.PostSimulation:Connect(update)

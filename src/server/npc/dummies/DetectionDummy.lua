@@ -321,6 +321,10 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	end
 end
 
+function DummyAgent.getPosition(self: DummyAgent): Vector3
+	return self.character.HumanoidRootPart.Position :: Vector3
+end
+
 function DummyAgent.getBlockPosition(self: DummyAgent): Vector3
 	local currentPos = self.character.HumanoidRootPart.Position :: Vector3
 	return Vector3.new(
