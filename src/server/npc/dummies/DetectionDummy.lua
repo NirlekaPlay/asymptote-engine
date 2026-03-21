@@ -25,6 +25,7 @@ local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavi
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Entity = require(ServerScriptService.server.world.entity.Entity)
+local TakedownService = require(ServerScriptService.server.world.entity.TakedownService)
 local BodyDraggingService = require(ServerScriptService.server.world.entity.ragdoll.BodyDraggingService)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local EntityInLevelCallback = require(ServerScriptService.server.world.level.entity.EntityInLevelCallback)
@@ -112,25 +113,15 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.random = Random.new(seed or nil)
 	self.levelCallback = EntityInLevelCallback.NULL
 
-	local takedownPromptAttachment = Instance.new("Attachment")
-	takedownPromptAttachment.Name = "Trigger"
-	takedownPromptAttachment.Parent = character.HumanoidRootPart
-
-	local takedownPrompt = InteractionPromptBuilder.new()
-		:withHoldStatus(`2`)
-		:withPrimaryInteractionKey()
-		:withOmniDir(true)
-		:withTitleKey("ui.prompt.subdue")
-		:create(character.HumanoidRootPart, serverLevel:getExpressionContext(), takedownPromptAttachment)
-
-	takedownPrompt.proxPrompt.RequiresLineOfSight = false
-
-	local takedownScript = ReplicatedStorage.shared.assets.scripts.TakedownScript:Clone()
-	takedownScript.Parent = takedownPrompt.proxPrompt
-	takedownScript.Enabled = true
+	TakedownService.trackCharacter(character, serverLevel)
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	local destroyingConn
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
+		if destroyingConn then
+			destroyingConn:Disconnect()
+			destroyingConn = nil
+		end
 		self:onDied(false)
 	end)
 
@@ -180,26 +171,28 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		end
 	end)
 
-	local posChangedConn: RBXScriptConnection?
+	local weakSelf = self
 
-	character.Destroying:Once(function()
-		if posChangedConn then
-			posChangedConn:Disconnect()
-			posChangedConn = nil
-		end
+	destroyingConn = character.Destroying:Once(function()
 		if humanoidDiedConnection then
 			humanoidDiedConnection:Disconnect()
 			humanoidDiedConnection = nil
 		end
 		descendantAddedConnection:Disconnect()
-		if self ~= nil and self.alive ~= false then
-			self:onDied(true)
+		
+		local agent = weakSelf
+		weakSelf = nil
+		
+		if agent ~= nil and agent.alive ~= false then
+			agent:onDied(true)
 		end
-
-		if not self:isRemoved() then
-			self:remove(Entity.RemovalReason.DISCARDED)
+		if agent and not agent:isRemoved() then
+			agent:remove(Entity.RemovalReason.DISCARDED)
 		end
+		character = nil
 	end)
+
+	self._destroyingConn = destroyingConn
 
 	self.hearingSounds = {}
 
@@ -250,8 +243,10 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	serverLevel:getPersistentInstanceManager():register(character)
 	serverLevel:getSoundDispatcher():registerListener(soundListener);
 
-	posChangedConn = (character.HumanoidRootPart :: BasePart):GetPropertyChangedSignal("Position"):Connect(function()
-		self.levelCallback:onMove()
+	local levelCallback = self.levelCallback
+
+	self._posChangedConn = (character.HumanoidRootPart :: BasePart):GetPropertyChangedSignal("Position"):Connect(function()
+		levelCallback:onMove()
 	end)
 
 	-- DEBUG SECTIONS
@@ -459,9 +454,14 @@ function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 		DetectionDummyAi.onDiedOrDestroyed(self)
 		self.gunControl:destroy(self.serverLevel)
 	end
+	if self._posChangedConn then
+		self._posChangedConn:Disconnect()
+		self._posChangedConn = nil
+	end
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
 	self.soundListener = nil :: any
+	TakedownService.untrackCharacter(self.character)
 	if not isCharDestroying then
 		self:getBodyRotationControl():destroy()
 		self:getFaceControl():setFace("Unconscious")
@@ -469,13 +469,23 @@ function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 			task.wait(1)
 			if self and self.character and self.character:IsDescendantOf(workspace) then
 				local prompt = BodyDraggingService.createDragPromptOnPart(self.serverLevel, self.character.HumanoidRootPart)
+				local character = self.character -- Assuming this captures the character and not self so it can be garbage collected
 				prompt:getTriggeredEvent():Connect(function(player)
-					BodyDraggingService.startDragging(self.character, player)
+					BodyDraggingService.startDragging(character, player)
 					prompt:disable()
+				end);
+
+				(character :: Model).AncestryChanged:Connect(function()
+					if not character:IsDescendantOf(game) then
+						prompt:destroy()
+					end
 				end)
 			end
 		end)
 	else
+		if self._destroyingConn then
+			self._destroyingConn:Disconnect()
+		end
 		self.ragdollControl:destroy()
 	end
 end
