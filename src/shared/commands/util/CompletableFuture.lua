@@ -10,6 +10,7 @@ export type CompletableFuture<T> = typeof(setmetatable({} :: {
 	_result: T?,
 	_isDone: boolean,
 	_callbacks: { () -> () },
+	_exception: string?
 }, CompletableFuture))
 
 local NIL = {}
@@ -19,6 +20,7 @@ function CompletableFuture.new<T>(r: T?): CompletableFuture<T>
 		_result = r,
 		_isDone = r ~= nil,
 		_callbacks = {},
+		_exception = nil :: string?
 	}, CompletableFuture)
 	return self
 end
@@ -28,6 +30,56 @@ function CompletableFuture.completedFuture<U>(value: U): CompletableFuture<U>
 	future._result = if value == nil then NIL else value
 	future._isDone = true
 	return future
+end
+
+function CompletableFuture.supplyAsync<U>(supplier: () -> U): CompletableFuture<U>
+	local future = CompletableFuture.new(nil) :: CompletableFuture<U>
+	
+	task.spawn(function()
+		local ok, result = pcall(supplier)
+		if ok then
+			future:complete(result)
+		else
+			future:completeExceptionally(result)
+		end
+	end)
+	
+	return future
+end
+
+function CompletableFuture.completeExceptionally<T>(self: CompletableFuture<T>, err: string): boolean
+	if self._isDone then
+		return false
+	end
+	self._result = nil
+	self._isDone = true
+	self._exception = err
+	for _, callback in self._callbacks do
+		task.spawn(callback)
+	end
+	table.clear(self._callbacks)
+	return true
+end
+
+function CompletableFuture.thenAccept<T>(self: CompletableFuture<T>, action: (T) -> ()): CompletableFuture<nil>
+	local next = CompletableFuture.new(nil) :: CompletableFuture<nil>
+
+	local function run()
+		local ok, err = pcall(action, if self._result == NIL then nil else self._result :: T)
+		if ok then
+			next:complete(nil)
+		else
+			next:completeExceptionally(err)
+		end
+	end
+
+	if self._isDone then
+		task.spawn(run)
+	else
+		table.insert(self._callbacks, run)
+	end
+
+	return next
 end
 
 function CompletableFuture.allOf(cfs: {CompletableFuture<any>}): CompletableFuture<nil>
