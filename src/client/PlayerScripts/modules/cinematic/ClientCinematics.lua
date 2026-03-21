@@ -28,12 +28,12 @@ TypedRemotes.ClientboundCinematicsData.OnClientEvent:Connect(function(data)
 		dir = nil
 	end
 
+	CoreCall.call("StarterGui", "SetCoreGuiEnabled", Enum.CoreGuiType.Backpack, false)
 	dir = newCinematicsDirector(data)
 	cacheData = data
 end)
 
 TypedRemotes.ClientboundCinematicsPlayScene.OnClientEvent:Connect(function(sceneName)
-	print(sceneName)
 	if dir then
 		dir:stop()
 		dir:runScene(sceneName, IntertitlesScreen)

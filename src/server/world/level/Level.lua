@@ -481,7 +481,7 @@ function Level.loadLevel(levelName: string): ()
 			end
 		end
 		-- Cinematics data
-		TypedRemotes.ClientboundCinematicsData:FireAllClients(Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		Level.sendCinematicsDataToAllPlayers()
 
 		objectiveManager:sendCurrentObjectivesToClients()
 
@@ -492,6 +492,22 @@ function Level.loadLevel(levelName: string): ()
 	else
 		error(`Map '{levelName}' not found!`)
 	end
+end
+
+function Level.sendCinematicsData(player: Player): ()
+	local data = Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData()
+	if not data or not next(data) then
+		return
+	end
+	TypedRemotes.ClientboundCinematicsData:FireClient(player, data)
+end
+
+function Level.sendCinematicsDataToAllPlayers(): ()
+	local data = Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData()
+	if not data or not next(data) then
+		return
+	end
+	TypedRemotes.ClientboundCinematicsData:FireAllClients(data)
 end
 
 function Level.getMapList(): {string}
@@ -788,7 +804,7 @@ function Level.onPlayerJoined(player: Player): ()
 			TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 		end
 		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
-		TypedRemotes.ClientboundCinematicsData:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		Level.sendCinematicsData(player)
 		TypedRemotes.ClientboundCinematicsPlayScene:FireClient(player, "intro") -- NOTES: HAC.
 	end
 
