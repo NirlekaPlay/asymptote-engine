@@ -72,8 +72,6 @@ end
 
 function GunControl.new(agent: Agent.Agent, serverLevel: ServerLevel.ServerLevel): GunControl
 	local fbb = GunControl.getFbb(agent.character)
-	serverLevel:getPersistentInstanceManager():register(fbb.tool)
-	serverLevel:getPersistentInstanceManager():registerInstances(fbb.tool:GetChildren())
 	return setmetatable({
 		agent = agent,
 		equipped = false,
@@ -191,6 +189,17 @@ function GunControl.rotateBody(self: BodyRotationControl.BodyRotationControl, de
 	local rotationOffset = CFrame.Angles(0, math.rad(57), 0)
 	targetCFrame = targetCFrame * rotationOffset
 	part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
+end
+
+function GunControl.destroy(self: GunControl, serverLevel: ServerLevel.ServerLevel): ()
+	if self.fbb.tool:IsDescendantOf(game) then -- The gun only drops if the guard only equips the gun anyway
+		serverLevel:getPersistentInstanceManager():register(self.fbb.tool)
+		serverLevel:getPersistentInstanceManager():registerInstances(self.fbb.tool:GetChildren())
+	end
+	self.fbb.tool.Parent = nil
+	self.agent = nil :: any
+	self.fbb = nil :: any
+	self.fbbControl = nil :: any
 end
 
 return GunControl

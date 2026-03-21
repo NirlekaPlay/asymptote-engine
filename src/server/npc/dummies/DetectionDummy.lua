@@ -457,6 +457,7 @@ function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 	end
 	if self.alive then
 		DetectionDummyAi.onDiedOrDestroyed(self)
+		self.gunControl:destroy(self.serverLevel)
 	end
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
