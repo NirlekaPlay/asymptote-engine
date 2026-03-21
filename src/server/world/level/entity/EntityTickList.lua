@@ -57,17 +57,13 @@ function EntityTickList.forEach(self: EntityTickList, fn: (entity: Entity) -> ()
 
 		local iterating = self.active -- Is this necessary?
 
-		local ok = try(function()
+		try(function()
 			for entity in iterating:keys() do
 				fn(entity)
 			end
 		end)
 
 		self.iterated = nil
-
-		if not ok then
-			error("An error has occured during entity tick proccess, infos above ^")
-		end
 	end
 end
 
