@@ -13,7 +13,7 @@ local LocalTweenPayload = require(ReplicatedStorage.shared.network.payloads.Loca
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
 local TypedRemote = require(ReplicatedStorage.shared.thirdparty.TypedRemote)
 
-local _, RE = TypedRemote.parent()
+local _, RE, URE = TypedRemote.parent()
 
 type RF<T..., R...> = TypedRemote.Function<T..., R...>
 type RE<T...> = TypedRemote.Event<T...>
@@ -22,7 +22,7 @@ type URE<T...> = TypedRemote.UnreliableEvent<T...>
 local playerHeadRotationJointRemote = TypedRemote.unreliableEvent("PlayerHeadRotation")
 
 return {
-	Detection = RE("Detection") :: RE<{DetectionPayload.DetectionData}>,
+	Detection = URE("Detection") :: URE<{DetectionPayload.DetectionData}>,
 	BubbleChat = RE("BubbleChat") :: RE<BasePart, string?>,
 	Status = RE("Status") :: RE<{ [string]: true }>,
 	AlertLevel = RE("AlertLevel") :: RE<AlertLevels.AlertLevel>,
