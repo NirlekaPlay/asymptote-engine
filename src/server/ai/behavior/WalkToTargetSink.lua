@@ -4,6 +4,7 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Vec3 = require(ReplicatedStorage.shared.util.vector.Vec3)
 local Agent = require(ServerScriptService.server.Agent)
@@ -25,6 +26,7 @@ export type WalkToTargetSink = typeof(setmetatable({} :: {
 	timeSinceLastFrame: number,
 	isComputing: boolean,
 	currentPath: NodePath.NodePath?,
+	pathReady: boolean,
 	speedModifier: number
 }, WalkToTargetSink))
 
@@ -39,6 +41,7 @@ function WalkToTargetSink.new(): WalkToTargetSink
 		timeSinceLastFrame = os.clock(),
 		isComputing = false,
 		currentPath = nil :: NodePath.NodePath?,
+		pathReady = false,
 		speedModifier = 1
 	}, WalkToTargetSink)
 end
@@ -72,10 +75,12 @@ function WalkToTargetSink.checkExtraStartConditions(self: WalkToTargetSink, agen
 	local hasReachedTarget = WalkToTargetSink.hasReachedTarget(agent, walkTarget)
 
 	if not hasReachedTarget then
-		local success = WalkToTargetSink.tryComputePath(self, agent, walkTarget)
-		if success then
+		if not self.isComputing and self.pathReady then
+			self.pathReady = false
 			self.lastTargetPos = walkTarget:getTarget():getCurrentPosition()
 			return true
+		elseif not self.isComputing then
+			WalkToTargetSink.tryComputePath(self, agent, walkTarget)
 		end
 	else
 		brain:eraseMemory(MemoryModuleTypes.WALK_TARGET)
@@ -154,38 +159,40 @@ function WalkToTargetSink.doUpdate(self: WalkToTargetSink, agent: Agent, deltaTi
 		
 		-- Recalculate if target position has shifted significantly
 		if (currentTargetPos - self.lastTargetPos).Magnitude > 4.0 then
-			task.spawn(function()
-				local success = WalkToTargetSink.tryComputePath(self, agent, walkTarget)
-				if success then
-					self.lastTargetPos = currentTargetPos
-					WalkToTargetSink.doStart(self, agent)
-				end
-			end)
+			WalkToTargetSink.tryComputePath(self, agent, walkTarget)
+				:thenAccept(function(success)
+					if success then
+						self.lastTargetPos = currentTargetPos
+						WalkToTargetSink.doStart(self, agent)
+					end
+				end)
 		end
 	end
 end
 
-function WalkToTargetSink.tryComputePath(self: WalkToTargetSink, agent: Agent, walkTarget: WalkTarget.WalkTarget): boolean
+function WalkToTargetSink.tryComputePath(self: WalkToTargetSink, agent: Agent, walkTarget: WalkTarget.WalkTarget): ()
 	local brain = agent:getBrain()
 	local targetPos = walkTarget:getTarget():getCurrentPosition()
 
 	self.isComputing = true
-	
-	local path = agent:getNavigation():createPathAsync(targetPos)
 
-	self.isComputing = false
-	self.currentPath = path
-	self.speedModifier = walkTarget:getSpeedModifier()
+	CompletableFuture.supplyAsync(function()
+		return agent:getNavigation():createPathAsync(targetPos)
+	end):thenAccept(function(path)
+		self.isComputing = false
+		self.currentPath = path
+		self.speedModifier = walkTarget:getSpeedModifier()
 
-	if path then
-		brain:eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)
-		return true
-	else
-		if not brain:hasMemoryValue(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE) then
-			brain:setMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE, os.clock())
+		if path then
+			brain:eraseMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)
+			self.pathReady = true
+		else
+			if not brain:hasMemoryValue(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE) then
+				brain:setMemory(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE, os.clock())
+			end
+			self.pathReady = false
 		end
-		return false
-	end
+	end)
 end
 
 function WalkToTargetSink.hasReachedTarget(agent: Agent, walkTarget: WalkTarget.WalkTarget): boolean
