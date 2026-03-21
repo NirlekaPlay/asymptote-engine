@@ -461,6 +461,7 @@ function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
 	if not isCharDestroying then
+		self:getBodyRotationControl():destroy()
 		self:getFaceControl():setFace("Unconscious")
 		task.spawn(function()
 			task.wait(1)
