@@ -4,6 +4,8 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
+local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local DetectionDummyAi = require(script.Parent.DetectionDummyAi)
 local Brain = require(ServerScriptService.server.ai.Brain)
@@ -22,8 +24,10 @@ local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local Entity = require(ServerScriptService.server.world.entity.Entity)
 local BodyDraggingService = require(ServerScriptService.server.world.entity.ragdoll.BodyDraggingService)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local EntityInLevelCallback = require(ServerScriptService.server.world.level.entity.EntityInLevelCallback)
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 local SoundListener = require(ServerScriptService.server.world.level.sound.SoundListener)
 
@@ -61,7 +65,9 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	enforceClass: { [string]: number },
 	serverLevel: ServerLevel.ServerLevel,
 	soundListener: SoundListener.SoundListener,
-	hearingSounds: { [string]: HeardSound } -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
+	hearingSounds: { [string]: HeardSound }, -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
+	removalReason: Entity.RemovalReason?,
+	levelCallback: EntityInLevelCallback.EntityInLevelCallback
 }, DummyAgent))
 
 type HeardSound = {
@@ -104,6 +110,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or nil)
+	self.levelCallback = EntityInLevelCallback.NULL
 
 	local takedownPromptAttachment = Instance.new("Attachment")
 	takedownPromptAttachment.Name = "Trigger"
@@ -173,7 +180,13 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		end
 	end)
 
+	local posChangedConn: RBXScriptConnection?
+
 	character.Destroying:Once(function()
+		if posChangedConn then
+			posChangedConn:Disconnect()
+			posChangedConn = nil
+		end
 		if humanoidDiedConnection then
 			humanoidDiedConnection:Disconnect()
 			humanoidDiedConnection = nil
@@ -181,6 +194,10 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		descendantAddedConnection:Disconnect()
 		if self ~= nil and self.alive ~= false then
 			self:onDied(true)
+		end
+
+		if not self:isRemoved() then
+			self:remove(Entity.RemovalReason.DISCARDED)
 		end
 	end)
 
@@ -231,7 +248,11 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.soundListener = soundListener
 
 	serverLevel:getPersistentInstanceManager():register(character)
-	serverLevel:getSoundDispatcher():registerListener(soundListener)
+	serverLevel:getSoundDispatcher():registerListener(soundListener);
+
+	posChangedConn = (character.HumanoidRootPart :: BasePart):GetPropertyChangedSignal("Position"):Connect(function()
+		self.levelCallback:onMove()
+	end)
 
 	-- DEBUG SECTIONS
 
@@ -252,6 +273,7 @@ function DummyAgent.setEnforceClass(self: DummyAgent, enforceClass: { [string]: 
 end
 
 function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
+	debug.profilebegin("agent_update")
 	-- Breaks SRP. But who cares at this point.
 	local visibleEntities = self.brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})
 	local hearingPlayers = self.brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS):orElse({})
@@ -301,8 +323,10 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	end
 	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
 	self.detectionManager:update(deltaTime)
+	debug.profilebegin("agent_brain")
 	DetectionDummyAi.updateActivity(self)
 	self.brain:update(deltaTime)
+	debug.profileend()
 	self.lookControl:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.reportControl:update(deltaTime)
@@ -319,6 +343,12 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		self.character.isPathfinding.Value = false
 		self.character.isRunning.Value = false
 	end
+
+	if DebugPackets.hasListeningClients(DebugPacketTypes.DEBUG_BRAIN) then
+		DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(self))
+	end
+
+	debug.profileend()
 end
 
 function DummyAgent.getPosition(self: DummyAgent): Vector3
@@ -336,6 +366,19 @@ end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean
 	return self.alive
+end
+
+function DummyAgent.isRemoved(self: DummyAgent): boolean
+	return self.removalReason ~= nil
+end
+
+function DummyAgent.setLevelCallback(self: DummyAgent, levelCallback): ()
+	self.levelCallback = levelCallback
+end
+
+function DummyAgent.remove(self: DummyAgent, removalReason: Entity.RemovalReason): ()
+	self.removalReason = removalReason
+	self.levelCallback:onRemove(removalReason)
 end
 
 function DummyAgent.canBeIntimidated(self: DummyAgent): boolean
@@ -409,6 +452,9 @@ end
 --
 
 function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
+	if not self:isRemoved() then
+		self:remove(Entity.RemovalReason.KILLED)
+	end
 	if self.alive then
 		DetectionDummyAi.onDiedOrDestroyed(self)
 	end

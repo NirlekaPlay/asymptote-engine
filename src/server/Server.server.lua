@@ -25,11 +25,10 @@ local CollisionGroupManager = require(ServerScriptService.server.physics.collisi
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Teleportation = require(ServerScriptService.server.teleportation.Teleportation)
 local MissionTeleMetadata = require(ServerScriptService.server.teleportation.metadata.MissionTeleMetadata)
-local EntitySectionManager = require(ServerScriptService.server.world.level.entity.EntitySectionManager)
+local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
-local entitySecManager = EntitySectionManager.new()
-local guards: { [Model]: DetectionDummy.DummyAgent } = {}
+local newLevel = NewLevel.new()
 local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
@@ -142,8 +141,7 @@ local function setupDummy(dummyChar: Model): ()
 		EntityManager.Entities[dummyUuid] = nil
 	end)
 
-	guards[dummyChar] = newDummy
-	entitySecManager:addEntity(newDummy)
+	newLevel:addFreshEntity(newDummy)
 end
 
 local function onMapTaggedDummies(dummyChar: Model): ()
@@ -165,18 +163,7 @@ local function onMapTaggedDummies(dummyChar: Model): ()
 end
 
 local function clearAndDestroyAllNpcs(): ()
-	for char, npc in guards do
-		local humanoid = char:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid.Health = 0
-		end
-
-		--print("Destroying", char)
-		char:Destroy()
-	end
-
-	table.clear(guards)
-	entitySecManager:clearEntities()
+	newLevel:removeAllEntities()
 end
 
 local function uponLevelClearCallback(): ()
@@ -236,34 +223,6 @@ local function update(deltaTime: number): ()
 
 	-- this frame, is there any listening clients?
 	local hasListeningClients = DebugPackets.hasListeningClients(DebugPacketTypes.DEBUG_BRAIN)
-	for model, guard in pairs(guards) do
-		if not model.PrimaryPart then
-			guards[model] = nil
-			model.Parent = nil
-			entitySecManager:removeEntity(guard)
-			continue
-		end
-
-		if not model:IsDescendantOf(workspace) or not guard:isAlive() then
-			guards[model] = nil
-			entitySecManager:removeEntity(guard)
-			task.spawn(function()
-				task.wait(1) -- wait for a while so the died connections can run properly.
-				setmetatable(guard, nil)
-			end)
-		end
-
-		if Level.canUpdateLevel() then
-			guard:update(deltaTime)
-		end
-		if hasListeningClients then
-			DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(guard))
-		end
-	end
-
-	if hasListeningClients then
-		DebugPackets.flushBrainDumpsToListeningClients()
-	end
 
 	-- oh god
 	DetectionManagement.flushBatchToClients()
@@ -272,7 +231,11 @@ local function update(deltaTime: number): ()
 		BulletSimulation.update(deltaTime)
 	end
 
-	entitySecManager:update()
+	newLevel:update(deltaTime)
+
+	if hasListeningClients then
+		DebugPackets.flushBrainDumpsToListeningClients()
+	end
 end
 
 RunService.PostSimulation:Connect(update)
