@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local USE_THIS_INSTEAD = "https://webhook.lewisakura.moe/api/webhooks/1473266327396286506/uetjMY9PzC_6SehGmBJ5jeyr4z5crZXNKi9PR4iPZuM-IcXwph6U_Dy58rVP0XN2O658"
+local USE_THIS_INSTEAD = nil
 
 if not USE_THIS_INSTEAD and RunService:IsStudio() then
 	return
@@ -63,7 +63,7 @@ local function sendToDiscord(player: Player, status: string)
 					["inline"] = true
 				}
 			},
-			["footer"] = { ["text"] = "Roblox Version: " .. game.PlaceVersion .. " Identifier: " .. game.ReplicatedStorage.Version.Value .. "Job id: " .. game.JobId },
+			["footer"] = { ["text"] = "Roblox Version: " .. game.PlaceVersion .. " Identifier: " .. game.ReplicatedStorage.Version.Value .. " Place Id: " .. game.PlaceId .. " Job id: " .. game.JobId },
 			["timestamp"] = DateTime.now():ToIsoDate()
 		}}
 	}
