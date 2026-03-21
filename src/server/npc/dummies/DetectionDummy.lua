@@ -473,6 +473,8 @@ function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 				end)
 			end
 		end)
+	else
+		self.ragdollControl:destroy()
 	end
 end
 

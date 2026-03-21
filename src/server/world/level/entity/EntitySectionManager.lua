@@ -177,7 +177,7 @@ function EntitySectionManager.removeEntity(self: EntitySectionManager, entity: E
 		end
 
 		self.entityToSection[entity] = nil
-		self:startTicking(entity)
+		self:stopTicking(entity)
 	end
 end
 
