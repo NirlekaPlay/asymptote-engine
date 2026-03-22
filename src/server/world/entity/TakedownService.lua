@@ -88,6 +88,11 @@ local function doTakedown(npcCharacter: Model, prompt: ProximityPrompt, player: 
 	plrHumanoid.WalkSpeed = 0
 	plrHumanoid.JumpPower = 0
 
+	local crackSound = Instance.new("Sound")
+	crackSound.SoundId = "rbxassetid://82963816920497"
+	crackSound.PlaybackSpeed = math.random(10, 12) / 10
+	crackSound.Parent = (npcCharacter :: any).Head
+
 	local animator = plrHumanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", plrHumanoid)
 	local track = animator:LoadAnimation(animation)
 	track.Priority = Enum.AnimationPriority.Action4
@@ -98,8 +103,11 @@ local function doTakedown(npcCharacter: Model, prompt: ProximityPrompt, player: 
 	end
 
 	local snapConnection: RBXScriptConnection
-	snapConnection = track:GetMarkerReachedSignal("AnimEvent_TakedownSnap"):Connect(function()
-		if npcHumanoid then npcHumanoid.Health = 0 end
+	snapConnection = track:GetMarkerReachedSignal("AnimEvent_TakedownSnap"):Once(function()
+		if npcHumanoid then
+			crackSound:Play()
+			npcHumanoid.Health = 0
+		end
 		snapConnection:Disconnect()
 	end)
 
