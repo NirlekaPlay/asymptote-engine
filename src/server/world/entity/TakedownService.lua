@@ -124,6 +124,9 @@ local function doTakedown(npcCharacter: Model, prompt: ProximityPrompt, player: 
 end
 
 function TakedownService.trackCharacter(npcCharacter: Model, serverLevel: ServerLevel.ServerLevel): ()
+	if tracked[npcCharacter] then
+		return
+	end
 	local rootPart = npcCharacter:FindFirstChild("HumanoidRootPart") :: BasePart
 
 	local attachment = Instance.new("Attachment")

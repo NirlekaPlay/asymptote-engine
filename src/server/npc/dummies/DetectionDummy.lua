@@ -343,6 +343,15 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(self))
 	end
 
+	if self.brain:hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) or
+		self.brain:hasMemoryValue(MemoryModuleTypes.PRIORITIZED_ENTITY) or
+		self.brain:hasMemoryValue(MemoryModuleTypes.IS_FLEEING) then
+
+		TakedownService.untrackCharacter(self.character)
+	else
+		TakedownService.trackCharacter(self.character, self.serverLevel)
+	end
+
 	debug.profileend()
 end
 
