@@ -172,19 +172,28 @@ function ReportControl.connectDiedConnection(self: ReportControl): ()
 	if not self.agentDiedConnection then
 		self.agentDiedConnection = (self.agent.character:FindFirstChildOfClass("Humanoid") :: Humanoid).Died:Once(function()
 			if self:isRadioEquipped() then
-				self.serverLevelRef:getPersistentInstanceManager():register(radioTool)
-				self.serverLevelRef:getPersistentInstanceManager():registerInstances(radioTool:GetChildren())
+				self.serverLevelRef:getPersistentInstanceManager():register(self.radioTool)
+				self.serverLevelRef:getPersistentInstanceManager():registerInstances(self.radioTool:GetChildren())
 				self:dropRadio()
 			else
 				self.radioTool:Destroy()
 			end
 			self:interruptReport()
+			if self.agentDestroyedConn then
+				self.agentDestroyedConn:Disconnect()
+				self.agentDestroyedConn = nil
+			end
 		end)
 	end
 	if not self.agentDestroyedConn then
-		if self.radioTool then
-			self.radioTool:Destroy()
-		end
+		self.agentDestroyedConn = (self.agent.character :: Model).AncestryChanged:Connect(function()
+			if not (self.agent.character :: Model):IsDescendantOf(game) then
+				self.agentDestroyedConn:Disconnect()
+				if self.radioTool then
+					self.radioTool:Destroy()
+				end
+			end
+		end)
 	end
 end
 
