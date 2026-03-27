@@ -4,9 +4,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
-local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
+local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
-local ZoneUtils = require(ServerScriptService.server.world.level.cell.util.ZoneUtils)
 local PlayerStatus = require(ReplicatedStorage.shared.player.PlayerStatus)
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 
@@ -17,32 +16,54 @@ local CellManager = {}
 CellManager.__index = CellManager
 
 export type CellManager = typeof(setmetatable({} :: {
-	cellsPerPlayer: { [Player]: Model },
+	cells: { Cell },
+	cellConfigs: CellConfig.ParsedCellConfigs,
+	cellsPerPlayer: { [Player]: Cell },
 	playersRootPart: { [BasePart]: Player },
 	playerZonePenalties: { [Player]: { [PlayerStatus.PlayerStatus]: true } },
-	serverLevelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor,
 	currentOverlapParams: OverlapParams
 }, CellManager))
 
-function CellManager.new(levelInstancesAccessor: LevelInstancesAccessor.LevelInstancesAccessor): CellManager
+type Cell = Cell.Cell
+type Bounds = Cell.Bounds
+
+local function isPosInCell(pos: Vector3, cell: Cell): boolean
+	-- From [InfiltrationEngine's](https://github.com/MoonstoneSkies/InfiltrationEngine-Custom-Missions)
+	-- [ZoneUtil](https://github.com/MoonstoneSkies/InfiltrationEngine-Custom-Missions/blob/main/Plugins/src/SerializationTools/Util/ZoneUtil.lua)
+	-- module.
+	local floorMatch = not cell.hasFloor
+	local roofMatch = false
+
+	for _, bound in cell.bounds do
+		local rel = bound.cframe:PointToObjectSpace(pos)
+
+		if math.abs(rel.X) <= bound.size.X / 2 and math.abs(rel.Z) <= bound.size.Z / 2 then
+			if bound.type == Cell.BoundType.ROOF and rel.Y <= 0 then
+				roofMatch = true
+			elseif bound.type == Cell.BoundType.FLOOR and rel.Y >= 0 then
+				floorMatch = true
+			end
+
+			if floorMatch and roofMatch then
+				return true
+			end
+		end
+	end
+	
+	return false
+end
+
+function CellManager.new(cells: { Cell }, cellConfigs: CellConfig.ParsedCellConfigs): CellManager
 	local overlapParams = OverlapParams.new()
 	overlapParams.FilterType = Enum.RaycastFilterType.Include
 	return setmetatable({
+		cells = cells,
+		cellConfigs = cellConfigs,
 		cellsPerPlayer = {},
 		playersRootPart = {},
 		playerZonePenalties = {},
-		serverLevelInstancesAccessor = levelInstancesAccessor,
 		currentOverlapParams = overlapParams
 	}, CellManager)
-end
-
-function CellManager.getCellManagerConfig(self: CellManager, cell: Model): CellConfig.Config?
-	local missionSetup = self:getServerLevelInstancesAccessor():getMissionSetup()
-	return missionSetup:getCellConfig(cell.Name) or nil
-end
-
-function CellManager.getServerLevelInstancesAccessor(self: CellManager): LevelInstancesAccessor.LevelInstancesAccessor
-	return self.serverLevelInstancesAccessor
 end
 
 function CellManager.getPlayerOccupiedAreaName(self: CellManager, player: Player): string?
@@ -51,12 +72,7 @@ function CellManager.getPlayerOccupiedAreaName(self: CellManager, player: Player
 		return nil
 	end
 
-	local cellLocationLocalizedKey = occupiedCells:GetAttribute("Location") :: string?
-	if not cellLocationLocalizedKey then
-		return nil
-	end
-
-	return self:getServerLevelInstancesAccessor():getMissionSetup():getLocalizedString(cellLocationLocalizedKey)
+	return occupiedCells.locationStr
 end
 
 --
@@ -72,7 +88,7 @@ function CellManager.updateOverlapParams(self: CellManager): ()
 	table.clear(self.playersRootPart)
 	local validParts: { Instance } = {}
 
-	for _, player in ipairs(Players:GetPlayers()) do
+	for _, player in Players:GetPlayers() do
 		if not CellManager.isPlayerValid(player) then
 			self.cellsPerPlayer[player] = nil
 			continue
@@ -89,13 +105,11 @@ end
 
 function CellManager.recalculatePlayers(self: CellManager): ()
 	table.clear(self.cellsPerPlayer)
-	
-	local cellModels = self:getServerLevelInstancesAccessor():getCellModels()
 
-	for rootPart, player in pairs(self.playersRootPart) do
+	for rootPart, player in self.playersRootPart do
 		local pos = rootPart.Position
-		for _, cell in ipairs(cellModels) do
-			if ZoneUtils.isPosInZone(pos, cell) then
+		for _, cell in self.cells do
+			if isPosInCell(pos, cell) then
 				self.cellsPerPlayer[player] = cell
 				break
 			end
@@ -104,9 +118,10 @@ function CellManager.recalculatePlayers(self: CellManager): ()
 end
 
 function CellManager.updatePlayersTrespassingStatus(self: CellManager): ()
-	for player, cell in pairs(self.cellsPerPlayer) do
-		local cellConfig = self:getCellManagerConfig(cell)
-		if not cellConfig or not cellConfig.canBeTrespassed then
+	for player, cell in self.cellsPerPlayer do
+		-- Wait wha?
+		local cellConfig = (self.cellConfigs[cell.name] :: any).config :: CellConfig.CellConfig
+		if not cellConfig then
 			continue
 		end
 
@@ -115,13 +130,19 @@ function CellManager.updatePlayersTrespassingStatus(self: CellManager): ()
 			continue
 		end
 
-		local disguised = playerStatus:hasStatus(PlayerStatusTypes.DISGUISED)
+		local disguise = playerStatus:getDisguise() or "None" -- Should be returned by the method itself but keep it for now
 		local penalty: PlayerStatus.PlayerStatus?
 
-		if disguised then
-			penalty = cellConfig.penalties.disguised
-		else
-			penalty = cellConfig.penalties.undisguised
+		if cellConfig.trespass then
+			penalty = PlayerStatusTypes.MAJOR_TRESPASSING
+		end
+
+		if cellConfig.minorTrespass and cellConfig.minorTrespass[disguise] then
+			penalty = PlayerStatusTypes.MINOR_TRESPASSING
+		end
+
+		if cellConfig.allow and cellConfig.allow[disguise] then
+			penalty = nil
 		end
 
 		local appliedPenalties: { [PlayerStatus.PlayerStatus]: true } = self.playerZonePenalties[player] or {}
@@ -132,7 +153,7 @@ function CellManager.updatePlayersTrespassingStatus(self: CellManager): ()
 		end
 
 		-- remove penalties that are no longer relevant
-		for appliedPenalty in pairs(appliedPenalties) do
+		for appliedPenalty in appliedPenalties do
 			if appliedPenalty ~= penalty then
 				playerStatus:removeStatus(appliedPenalty)
 				appliedPenalties[appliedPenalty] = nil
@@ -147,7 +168,7 @@ function CellManager.updatePlayersTrespassingStatus(self: CellManager): ()
 	end
 
 	-- also handle players who left all trespassable zones
-	for player, appliedPenalties in pairs(self.playerZonePenalties) do
+	for player, appliedPenalties in self.playerZonePenalties do
 		if self.cellsPerPlayer[player] then
 			continue
 		end
@@ -157,7 +178,7 @@ function CellManager.updatePlayersTrespassingStatus(self: CellManager): ()
 			continue
 		end
 
-		for appliedPenalty in pairs(appliedPenalties) do
+		for appliedPenalty in appliedPenalties do
 			playerStatus:removeStatus(appliedPenalty)
 		end
 
