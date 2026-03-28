@@ -14,7 +14,7 @@ local PI = math.pi
 
 local activeBullets: { ServerBulletObject } = {}
 local activeBulletsInitialCFrame: { [ServerBulletObject]: CFrame } = {}
-local consumers: { any } = {} -- "trust me bro"
+local consumers: { [any]: true } = {} -- "trust me bro"
 
 --[=[
 	@class BulletSimulation
@@ -36,7 +36,11 @@ export type ServerBulletObject = {
 }
 
 function BulletSimulation.addConsumer(consumer: any): ()
-	table.insert(consumers, consumer)
+	consumers[consumer] = true
+end
+
+function BulletSimulation.removeConsumer(consumer: any): ()
+	consumers[consumer] = nil
 end
 
 function BulletSimulation.getBulletsInitialCFrames(): { [ServerBulletObject]: CFrame }
@@ -84,7 +88,7 @@ function BulletSimulation.createBulletFromPayload(bulletData: BulletTracerPayloa
 	activeBulletsInitialCFrame[bulletObj] = CFrame.lookAt(bulletData.origin, lookAtPoint)
 
 	-- TODO: This is bad.
-	for _, consumer in consumers do
+	for consumer in consumers do
 		consumer:onBulletCreated(bulletData.origin, fromChar)
 	end
 end

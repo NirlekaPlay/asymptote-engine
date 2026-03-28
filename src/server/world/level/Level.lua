@@ -83,6 +83,7 @@ local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
 local soundDispatcher: SoundDispatcher.SoundDispatcher
 local voxelWorld: VoxelWorld.VoxelWorld
+local currentBulletConsumer
 local delayedLevelStartThread: thread? = nil
 local playerWantRestartConn: RBXScriptConnection?
 --
@@ -188,7 +189,7 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Do you?
 
 	-- Man do I love tight coupling!
-	BulletSimulation.addConsumer({
+	currentBulletConsumer = {
 		onBulletCreated = function(_, origin: Vector3, char: Model): ()
 			if not Players:GetPlayerFromCharacter(char) then
 				return
@@ -196,7 +197,8 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 			--print("TEMP: LEVEL :: BULLET SHOT")
 			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_SUPPRESSED, origin)
 		end
-	})
+	}
+	BulletSimulation.addConsumer(currentBulletConsumer)
 
 	-- That's sarcasm.
 
@@ -396,6 +398,10 @@ function Level.clearLevel(): ()
 
 	if voxelWorld then
 		voxelWorld:reset()
+	end
+
+	if currentBulletConsumer then
+		BulletSimulation.removeConsumer(currentBulletConsumer)
 	end
 
 	--
