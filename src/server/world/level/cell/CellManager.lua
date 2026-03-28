@@ -66,6 +66,10 @@ function CellManager.new(cells: { Cell }, cellConfigs: CellConfig.ParsedCellConf
 	}, CellManager)
 end
 
+function CellManager.getPlayerCell(self: CellManager, player: Player): Cell?
+	return self.cellsPerPlayer[player]
+end
+
 function CellManager.getPlayerOccupiedAreaName(self: CellManager, player: Player): string?
 	local occupiedCells = self.cellsPerPlayer[player]
 	if not occupiedCells then

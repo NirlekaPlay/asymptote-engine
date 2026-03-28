@@ -27,6 +27,7 @@ local CollisionGroupTypes = require(ServerScriptService.server.physics.collision
 local Entity = require(ServerScriptService.server.world.entity.Entity)
 local TakedownService = require(ServerScriptService.server.world.entity.TakedownService)
 local BodyDraggingService = require(ServerScriptService.server.world.entity.ragdoll.BodyDraggingService)
+local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local EntityInLevelCallback = require(ServerScriptService.server.world.level.entity.EntityInLevelCallback)
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
@@ -65,6 +66,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	designatedPosts: { Node.Node },
 	enforceClass: { [string]: number },
 	serverLevel: ServerLevel.ServerLevel,
+	level: NewLevel.Level,
 	soundListener: SoundListener.SoundListener,
 	hearingSounds: { [string]: HeardSound }, -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
 	removalReason: Entity.RemovalReason?,
@@ -79,7 +81,7 @@ type HeardSound = {
 	lastVisitedNodePos: Vector3
 }
 
-function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
+function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, level: NewLevel.Level, character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
@@ -112,6 +114,8 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or nil)
 	self.levelCallback = EntityInLevelCallback.NULL
+	self.level = level
+	self.enforcerClassName = character:GetAttribute("EnforceClass")
 
 	TakedownService.trackCharacter(character, serverLevel)
 
@@ -254,6 +258,10 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	--self.detectionManager:blockAllDetection()
 
 	return self
+end
+
+function DummyAgent.getLevel(self: DummyAgent): NewLevel.Level
+	return self.level
 end
 
 function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { Node.Node }): DummyAgent
@@ -458,6 +466,9 @@ end
 function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 	if not self:isRemoved() then
 		self:remove(Entity.RemovalReason.KILLED)
+	end
+	if self and self.talkControl then
+		self.talkControl:destroy()
 	end
 	if self.alive then
 		DetectionDummyAi.onDiedOrDestroyed(self)

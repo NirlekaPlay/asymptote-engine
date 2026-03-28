@@ -8,7 +8,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
-local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
@@ -20,12 +19,12 @@ local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
-local DisguiseConfig = require(ServerScriptService.server.disguise.DisguiseConfig)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
+local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
 local CellManager = require(ServerScriptService.server.world.level.cell.CellManager)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
@@ -124,6 +123,7 @@ end
 	@class Level
 ]=]
 local Level = {}
+Level.injectedNewLevel = nil :: NewLevel.Level?
 
 function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	levelFolder = workspace:FindFirstChild("Level") :: Folder
@@ -166,8 +166,6 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 		levelFolder:FindFirstChild("Nodes") :: Folder?,
 		levelFolder:FindFirstChild("Geometry") or error("ERR_NO_GEOMETRY_FOLDER")
 	)
-
-	cellManager = CellManager.new(levelInstancesAccessor)
 
 	if missionSetupObj:hasLightingSettings() then
 		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
@@ -360,6 +358,11 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Dialogue
 
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
+
+	if Level.injectedNewLevel then
+		Level.injectedNewLevel.sceneManager:importFromLoadedScene(missionSetupObj, cellsFolder :: Folder?)
+		cellManager = Level.injectedNewLevel.sceneManager.currentScene.cellManager
+	end
 	return true :: any
 end
 

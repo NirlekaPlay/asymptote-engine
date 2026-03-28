@@ -1,5 +1,8 @@
 --!strict
 
+local ServerScriptService = game:GetService("ServerScriptService")
+local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
+
 local Cell = {}
 
 Cell.BoundType = {
@@ -11,7 +14,8 @@ export type Cell = {
 	name: string,
 	hasFloor: boolean,
 	locationStr: string?,
-	bounds: { Bounds }
+	bounds: { Bounds },
+	config: CellConfig.CellConfig?
 }
 
 export type Bounds = {

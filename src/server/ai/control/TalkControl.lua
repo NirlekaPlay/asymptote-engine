@@ -275,4 +275,11 @@ function TalkControl.getStringWordCount(str: string): number
 	return count
 end
 
+function TalkControl.destroy(self: TalkControl): ()
+	if self.talkThread then
+		task.cancel(self.talkThread)
+		self.talkThread = nil
+	end
+end
+
 return TalkControl

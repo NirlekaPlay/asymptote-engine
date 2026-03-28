@@ -29,6 +29,7 @@ local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local newLevel = NewLevel.new()
+Level.injectedNewLevel = newLevel
 local nodeGroups: { [string]: { Node.Node } } = {}
 local allNodes: { [BasePart]: Node.Node } = {}
 local playerConnections: { [Player]: RBXScriptConnection } = {}
@@ -106,7 +107,7 @@ local function setupDummy(dummyChar: Model): ()
 	-- this aint a dummy no more now is it?
 	AccessoryFiltering.proccessCharacter(dummyChar)
 	local nodes = getNodes(dummyChar)
-	local newDummy = DetectionDummy.new(Level, dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
+	local newDummy = DetectionDummy.new(Level, newLevel, dummyChar, dummyChar:GetAttribute("CharName") :: string?, dummyChar:GetAttribute("Seed") :: number?)
 		:setDesignatedPosts(nodes)
 
 	local enforceClassName = dummyChar:GetAttribute("EnforceClass") :: string?

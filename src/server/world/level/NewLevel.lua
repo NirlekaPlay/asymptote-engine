@@ -2,9 +2,11 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local Entity = require(ServerScriptService.server.world.entity.Entity)
+local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local EntitySectionManager = require(ServerScriptService.server.world.level.entity.EntitySectionManager)
 local EntityTickList = require(ServerScriptService.server.world.level.entity.EntityTickList)
 local LevelCallback = require(ServerScriptService.server.world.level.entity.LevelCallback)
+local SceneManager = require(ServerScriptService.server.world.level.scene.SceneManager)
 
 local TICK_RATE = 1 / 20
 local MAX_TICKS_PER_FRAME = 5
@@ -18,6 +20,7 @@ Level.__index = Level
 export type Level = typeof(setmetatable({} :: {
 	entityManager: EntitySectionManager.EntitySectionManager,
 	entityTickList: EntityTickList.EntityTickList,
+	sceneManager: SceneManager.SceneManager,
 	callback: LevelCallback,
 	isHandlingTick: boolean,
 	--
@@ -30,6 +33,7 @@ type LevelCallback = LevelCallback.LevelCallback<Entity>
 function Level.new(): Level
 	local this = {
 		entityTickList = EntityTickList.new(),
+		sceneManager = SceneManager.new(),
 		isHandlingTick = false,
 		_accumulator = 0
 	}
@@ -66,6 +70,15 @@ function Level.removeAllEntities(self: Level): ()
 	for entity in self.entityManager:getAllEntities() do
 		entity:remove(Entity.RemovalReason.DISCARDED)
 	end
+end
+
+function Level.getPlayerCell(self: Level, player: Player): Cell.Cell?
+	local activeScene = self.sceneManager:getActiveScene()
+	if not activeScene then
+		return nil
+	end
+
+	return activeScene:getCellManager():getPlayerCell(player)
 end
 
 --
