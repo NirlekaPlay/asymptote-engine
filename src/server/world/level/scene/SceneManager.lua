@@ -24,6 +24,12 @@ end
 
 --
 
+function SceneManager.update(self: SceneManager, deltaTime: number): ()
+	if self.currentScene then
+		self.currentScene:update(deltaTime)
+	end
+end
+
 --[=[
 	This is supposed to start the migration from the old Level class to the new one.
 	Do not use this for general purpose scene loading.

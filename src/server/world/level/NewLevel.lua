@@ -118,7 +118,8 @@ function Level.update(self: Level, deltaTime: number): ()
 end
 
 function Level.doUpdate(self: Level, deltaTime: number): ()
-	debug.profilebegin("level_doUpdate_entities")
+	debug.profilebegin("level_doUpdate")
+	debug.profilebegin("entities")
 	self.entityTickList:forEach(function(entity)
 		if entity:isRemoved() then
 			return
@@ -126,6 +127,10 @@ function Level.doUpdate(self: Level, deltaTime: number): ()
 
 		entity:update(deltaTime)
 	end)
+	debug.profileend()
+	debug.profilebegin("sceneManager")
+	self.sceneManager:update(deltaTime)
+	debug.profileend()
 	debug.profileend()
 end
 

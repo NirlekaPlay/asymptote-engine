@@ -19,6 +19,12 @@ function Scene.new(cells, cellConfigs): Scene
 	}, Scene)
 end
 
+function Scene.update(self: Scene, deltaTime: number): ()
+	debug.profilebegin("scene_update_cells")
+	self.cellManager:update()
+	debug.profileend()
+end
+
 function Scene.getCellManager(self: Scene): CellManager.CellManager
 	return self.cellManager
 end

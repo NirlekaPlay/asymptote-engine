@@ -1422,7 +1422,6 @@ end
 local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()) 
 
 function Level.doUpdate(deltaTime: number): ()
-	Level.updateCells()
 	soundDispatcher:update(deltaTime)
 	for prop in propsInLevelSetThrottledUpdate do
 		prop:update(deltaTime, Level)
@@ -1443,10 +1442,6 @@ function Level.updateProps(deltaTime: number): ()
 	for prop in propsInLevelSet do
 		prop:update(deltaTime, Level)
 	end
-end
-
-function Level.updateCells(): ()
-	cellManager:update()
 end
 
 TypedRemotes.ServerboundCinematicsPlayerIntroDone.OnServerEvent:Connect(function(player)
