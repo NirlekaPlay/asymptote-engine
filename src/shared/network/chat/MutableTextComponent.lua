@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
 
+local TRANSLATABLE_FORMAT_PATTERN = "%%(%d+)%$s|%%s"
 local RICH_TEXT_FONT_COLOR = '<font color="%s">%s</font>'
 local RICH_TEXT_BOLD = '<b>%s</b>'
 local RICH_TEXT_ITALIC = '<i>%s</i>'
@@ -25,7 +26,7 @@ local MutableTextComponent = {}
 MutableTextComponent.__index = MutableTextComponent
 
 export type MutableTextComponent = {
-	contents: string, -- make it a string for now...
+	contents: ComponentContents,
 	style: TextStyle.TextStyle,
 	siblings: { MutableTextComponent },
 	--
@@ -33,17 +34,21 @@ export type MutableTextComponent = {
 	appendString: (self: MutableTextComponent, str: string) -> MutableTextComponent,
 	appendComponent: (self: MutableTextComponent, component: MutableTextComponent) -> MutableTextComponent,
 	serialize: (self: MutableTextComponent) -> SerializedComponentResult,
-	buildRichTextMarkupString: (self: MutableTextComponent) -> string
+	buildRichTextMarkupString: (self: MutableTextComponent, language: any) -> string
 }
 
 export type SerializedComponentResult = {
-	contents: string,
+	contents: ComponentContents,
 	style: { [string]: any },
 	siblings: { SerializedComponentResult }
 }
 
+type ComponentContents = 
+	| { type: "literal", text: string }
+	| { type: "translatable", key: string, fallback: string?, args: { any } }
+
 function MutableTextComponent.new(
-	contents: string,
+	contents: ComponentContents,
 	style: TextStyle.TextStyle,
 	siblings: { MutableTextComponent }
 ): MutableTextComponent
@@ -56,7 +61,15 @@ end
 
 function MutableTextComponent.literal(str: string): MutableTextComponent
 	return MutableTextComponent.new(
-		str,
+		{ type = "literal", text = str },
+		TextStyle.empty(),
+		{}
+	)
+end
+
+function MutableTextComponent.translatable(key: string, ...: any): MutableTextComponent
+	return MutableTextComponent.new(
+		{ type = "translatable", key = key, fallback = nil, args = { ... } },
 		TextStyle.empty(),
 		{}
 	)
@@ -147,31 +160,49 @@ function MutableTextComponent.deserialize(data: SerializedComponentResult): Muta
 	return root
 end
 
-function MutableTextComponent.buildRichTextMarkupString(self: MutableTextComponent): string
+local function resolveContents(contents: ComponentContents, args: { any }, language): string
+	if contents.type == "literal" then
+		return contents.text
+	end
+
+	local template = language.getOrDefault(contents.key, contents.fallback)
+
+	local i = 0
+	return (template:gsub("%%(%d*)%$?s", function(index)
+		local argIndex = tonumber(index)
+		if argIndex then
+			return tostring(args[argIndex] or "")
+		else
+			i += 1
+			return tostring(args[i] or "")
+		end
+	end))
+end
+
+function MutableTextComponent.buildRichTextMarkupString(self: MutableTextComponent, language: any): string
 	local result = ""
 
 	local stack: { { component: MutableTextComponent, inheritedStyle: TextStyle.TextStyle } } = {}
 	local stackSize = 0
-	
+
 	table.insert(stack, { component = self, inheritedStyle = TextStyle.empty() })
 	stackSize += 1
-	
+
 	while stackSize > 0 do
 		local current = stack[stackSize]
 		table.remove(stack, stackSize)
 		stackSize -= 1
-		
+
 		local component = current.component
 		local combinedStyle = component.style:applyTo(current.inheritedStyle)
 
-		local text = component.contents
+		local text = resolveContents(component.contents, component.contents.args or {}, language)
 		if text and text ~= "" then
 			result ..= MutableTextComponent.applyStyle(
 				MutableTextComponent.escapeRichTextChar(text), combinedStyle
 			)
 		end
-		
-		-- Push siblings in REVERSE order so they process left-to-right
+
 		for i = #component.siblings, 1, -1 do
 			table.insert(stack, {
 				component = component.siblings[i],
@@ -180,7 +211,7 @@ function MutableTextComponent.buildRichTextMarkupString(self: MutableTextCompone
 			stackSize += 1
 		end
 	end
-	
+
 	return result
 end
 
