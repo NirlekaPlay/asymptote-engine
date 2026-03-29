@@ -76,7 +76,7 @@ function ReportMajorTrespasser.doStart(self: ReportMajorTrespasser, agent: Agent
 
 	faceControl:setFace("Angry")
 
-	local trespasserAreaName = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(trespasserPlayer)
+	local trespasserAreaName = agent:getServerLevel():getPlayerOccupiedAreaName(trespasserPlayer)
 	local reportDialogue
 	if trespasserAreaName then
 		reportDialogue = GuardGenericDialogues["trespassing.major.report.area.known"]

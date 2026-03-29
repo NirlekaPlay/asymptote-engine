@@ -127,7 +127,7 @@ function ConfrontTrespasser.doStart(self: ConfrontTrespasser, agent: Agent): ()
 	if currentEncounters == 1 then
 		doReport = true
 		reportType = ReportType.TRESPASSER_SPOTTED
-		local trespasserAreaName = agent:getServerLevel():getCellManager():getPlayerOccupiedAreaName(trespasserPlayer)
+		local trespasserAreaName = agent:getServerLevel():getPlayerOccupiedAreaName(trespasserPlayer)
 		reportDialogue = trespasserAreaName and GuardGenericDialogues["trespassing.minor.report.area.known"] or GuardGenericDialogues["trespassing.minor.report.area.unknown"]
 
 		local choosenDialogue = talkControl.randomlyChooseDialogueSequences(reportDialogue)

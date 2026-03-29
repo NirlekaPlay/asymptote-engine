@@ -865,6 +865,15 @@ function Level.initializePlayerColliders(folder: Folder): ()
 	end
 end
 
+function Level.getPlayerOccupiedAreaName(_, player: Player): string?
+	local str = cellManager:getPlayerOccupiedAreaName(player)
+	if not str then
+		return nil
+	end
+
+	return Level:getServerLevelInstancesAccessor():getMissionSetup():getLocalizedString(str)
+end
+
 function Level.initializePlayerCollider(part: BasePart): ()
 	part.CanTouch = false
 	part.AudioCanCollide = false
