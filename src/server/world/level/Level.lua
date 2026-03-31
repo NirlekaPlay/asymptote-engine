@@ -28,6 +28,7 @@ local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
 local CellManager = require(ServerScriptService.server.world.level.cell.CellManager)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
+local AmmoBox = require(ServerScriptService.server.world.level.clutter.props.AmmoBox)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
 local Elevator = require(ServerScriptService.server.world.level.clutter.props.Elevator)
@@ -1077,7 +1078,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "CardReader" and passed then
-				CardReader.createFromModel(placeholder, prop, Level)
+				propsInLevelSet[CardReader.createFromModel(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -1143,6 +1144,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if placeholder.Name == "FreeTrigger" then
 				propsInLevelSet[FreeTrigger.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "AmmoBox" then
+				propsInLevelSet[AmmoBox.createFromModel(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -1449,7 +1455,9 @@ end
 
 function Level.updateProps(deltaTime: number): ()
 	for prop in propsInLevelSet do
-		prop:update(deltaTime, Level)
+		if prop.update then
+			prop:update(deltaTime, Level)
+		end
 	end
 end
 
