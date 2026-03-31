@@ -291,6 +291,7 @@ local function canRenderAndEnableIntPrompts(): boolean
 end
 
 local function update(deltaTime: number): ()
+	debug.profilebegin("prompt_update")
 	-- TODO: Handle multiple prompts of different exclusivity types
 	if not canRenderAndEnableIntPrompts() then
 		if currentPrompt then
@@ -306,6 +307,7 @@ local function update(deltaTime: number): ()
 	local nearestPrompt: InteractionPrompt? = nil
 	local nearestDistance = INF
 
+	debug.profilebegin("search_for_prompt_to_show")
 	for interactionPrompt in worldInteractionPrompts do
 		local proxPrompt = interactionPrompt:getProximityPrompt()
 		
@@ -320,7 +322,9 @@ local function update(deltaTime: number): ()
 		local clientVisibleAtt = interactionPrompt:getAttachment():GetAttribute(TriggerAttributes.CLIENT_VISIBLE) :: string?
 		if clientVisibleAtt then
 			if clientVisibleAtt ~= "" then
+				debug.profilebegin("parse_condition_clientVisible")
 				local evaluated = parseCondition(clientVisibleAtt)
+				debug.profileend()
 				if not evaluated then
 					continue
 				end
@@ -386,7 +390,10 @@ local function update(deltaTime: number): ()
 			nearestPrompt = interactionPrompt
 		end
 	end
+	debug.profileend()
 
+	debug.profilebegin("start_render")
+	debug.profilebegin("evaluate_new_prompt")
 	if currentPrompt ~= nearestPrompt then
 		if nearestPrompt then
 			if currentPrompt then
@@ -395,7 +402,9 @@ local function update(deltaTime: number): ()
 
 			currentPrompt = nearestPrompt
 			
+			debug.profilebegin("evaluate_prompt_show_condition")
 			local canShow = evaluatePromptShowCondition(nearestPrompt)
+			debug.profileend()
 			if canShow then
 				showAndEnablePrompt(nearestPrompt)
 			else
@@ -408,7 +417,9 @@ local function update(deltaTime: number): ()
 			end
 		end
 	end
+	debug.profileend()
 
+	debug.profilebegin("validate_current_prompt")
 	if currentPrompt then
 		-- TODO: This might get evaluated twice from the previous checks,
 		-- may cause performance issues.
@@ -419,8 +430,11 @@ local function update(deltaTime: number): ()
 			showAndEnablePrompt(currentPrompt)
 		end
 	end
+	debug.profileend()
+	debug.profileend()
 
 	InteractionPromptRenderer.update()
+	debug.profileend()
 end
 
 ProximityPromptService.PromptShown:Connect(setupInteractionPromptFromProxPrompt)

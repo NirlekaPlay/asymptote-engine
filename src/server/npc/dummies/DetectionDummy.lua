@@ -6,7 +6,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
-local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local DetectionDummyAi = require(script.Parent.DetectionDummyAi)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
@@ -208,6 +207,11 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, level: NewLevel.Le
 
 	-- Do we even need this?
 	function soundListener:checkExtraConditionsBeforeCalc(pos: Vector3, soundType: string): boolean
+		local hasEntity = this:getDetectionManager():getFocusingTarget()
+		if hasEntity and hasEntity.priority > 9 then
+			return false
+		end
+
 		for _, sound in this.hearingSounds do
 			if (sound :: HeardSound).soundType == soundType then
 				return false
