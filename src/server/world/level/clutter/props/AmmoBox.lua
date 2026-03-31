@@ -78,6 +78,10 @@ end
 
 --
 
+function AmmoBox.onLevelRestart(self: AmmoBox): ()
+	return
+end
+
 function AmmoBox.destroy(self: AmmoBox): ()
 	self.maid:doCleaning()
 	setmetatable(self, nil)
