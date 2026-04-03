@@ -8,11 +8,16 @@ local PlayerActiveSessionMetadata = require(ServerScriptService.server.teleporta
 
 local TELE_SERVER_METDATA_TTL = 300
 local ACTIVE_SESSION_METDATA_TTL = 43200
+local RESERVED_SERVERS_ACCESS_CODES_MEMORY_TTL = 46800
 local TELE_SERVER_METDATA_NAME = "ReservedServerMetadata"
 local ACTIVE_SESSIONS_MEMORY_NAME = "ActiveSessions"
+local RESERVED_SERVERS_ACCESS_CODES_MEMORY_NAME = "ServersAccessCodes"
 
 local teleportDataMemoryStore = MemoryStoreService:GetHashMap(TELE_SERVER_METDATA_NAME)
 local activeSessionsMemoryStore = MemoryStoreService:GetHashMap(ACTIVE_SESSIONS_MEMORY_NAME)
+local reservedServerAccessCodesMemoryStore = MemoryStoreService:GetHashMap(RESERVED_SERVERS_ACCESS_CODES_MEMORY_NAME)
+
+local serverAccessCodeCache: string? = nil
 
 --[=[
 	@class Teleportation
@@ -54,6 +59,24 @@ end
 
 --
 
+function Teleportation.joinPlayerSession(player: Player, targetUserId: number): ()
+	local success, data = pcall(function()
+		return activeSessionsMemoryStore:GetAsync(tostring(targetUserId))
+	end)
+
+	if success and data then
+		if data.accessCode then
+			-- reserved server
+			TeleportService:TeleportToPrivateServer(data.placeId, data.accessCode, {player})
+		else
+			-- public server
+			TeleportService:TeleportToPlaceInstance(data.placeId, data.jobId, player)
+		end
+	else
+		warn(`Could not find session for target user '{targetUserId}'`)
+	end
+end
+
 function Teleportation.teleportPlayerToFriendIfFollowing(player: Player): ()
 	local followId = player.FollowUserId
 
@@ -85,6 +108,7 @@ function Teleportation.createReservedSession(owner: Player?, placeId: number, da
 
 	if success and accessCode and privateServerId then
 		teleportDataMemoryStore:SetAsync(privateServerId, data, TELE_SERVER_METDATA_TTL)
+		reservedServerAccessCodesMemoryStore:SetAsync(privateServerId, accessCode, RESERVED_SERVERS_ACCESS_CODES_MEMORY_TTL)
 		return accessCode
 	end
 	
@@ -101,13 +125,30 @@ function Teleportation.isReservedServer(): boolean
 	end
 end
 
+function Teleportation.getServerAccessCode(): string?
+	if not serverAccessCodeCache then
+		if Teleportation.isReservedServer() then
+			serverAccessCodeCache = reservedServerAccessCodesMemoryStore:GetAsync(game.PrivateServerId)
+			if serverAccessCodeCache then
+				reservedServerAccessCodesMemoryStore:RemoveAsync(game.PrivateServerId)
+			end
+			return serverAccessCodeCache
+		else
+			return nil
+		end
+	else
+		return serverAccessCodeCache
+	end
+end
+
 --
 
 function Teleportation.onPlayerAdded(player: Player): ()
 	local activeSessionMetdata: PlayerActiveSessionMetadata.PlayerActiveSessionMetadata = {
 		placeId = game.PlaceId,
 		jobId = game.JobId,
-		allowJoining = true
+		allowJoining = true,
+		accessCode = Teleportation.getServerAccessCode()
 	}
 
 	activeSessionsMemoryStore:SetAsync(tostring(player.UserId), activeSessionMetdata, ACTIVE_SESSION_METDATA_TTL)
