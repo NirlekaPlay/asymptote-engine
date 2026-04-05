@@ -130,10 +130,6 @@ function SoundDispatcher.dispatchToListener(self: SoundDispatcher, listener: Sou
 				sound.maxTravelRadius
 			)
 
-			print("Cost:", cost)
-			print("Travel radius:", sound.maxTravelRadius)
-
-
 			if cost < sound.maxTravelRadius then
 				listener:onReceiveSound(sound.position, cost, lastPos, sound.soundType)
 			end
