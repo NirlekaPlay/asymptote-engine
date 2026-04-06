@@ -126,10 +126,31 @@ function MissionSetupReaderV1.parse(missionSetupModule: ModuleScript): MissionSe
 
 	local localizedStrings = required["CustomStrings"] or {}
 	local rawCellConfigs = required["Cells"] or {}
-	local disguiseConfigs = required["CustomDisguises"] or {}
+	--[=[
+		Security = {
+			Name = "name.disguise.security",
+			Outfits = {
+				{ 4893814518, 4893808612 },
+			},
+			DisguiseClass = 0,
+			BrickColor = BrickColor.idk
+		},
+	]=]
+	local rawDisguiseConfigs = required["CustomDisguises"] or {}
 	local enforceClasses = required["EnforceClass"]
 	local lightingSettings = required["LightingSettings"]
 	local lightingSettingsObj
+
+	local disguiseConfigs = {}
+
+	for disguiseName, rawConfig in rawDisguiseConfigs do
+		disguiseConfigs[disguiseName] = {
+			nameLocalizedKey = rawConfig.Name,
+			upperBodyBrickColor = rawConfig.BrickColor,
+			disguiseClass = rawConfig.DisguiseClass,
+			outfitIds = rawConfig.Outfits
+		}
+	end
 
 	if lightingSettings then
 		local fetch = (LightingNames :: any)[lightingSettings]
