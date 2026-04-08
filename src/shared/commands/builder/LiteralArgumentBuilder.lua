@@ -29,7 +29,7 @@ export type LiteralArgumentBuilder<S> = {
 	describe: <T>(self: T, description: string) -> T
 }
 
-function LiteralArgumentBuilder.new<S>(literalString: string): LiteralArgumentBuilder<S>
+function LiteralArgumentBuilder.new(literalString: string): LiteralArgumentBuilder<any>
 	return setmetatable({
 		literalString = literalString,
 		command = nil,
