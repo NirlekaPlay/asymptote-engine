@@ -22,6 +22,7 @@ export type ReportControl = typeof(setmetatable({} :: {
 	radioTool: typeof(RADIO_TOOL),
 	radioEquipped: boolean,
 	agentDiedConnection: RBXScriptConnection?,
+	agentDestroyedConn: RBXScriptConnection?,
 	reportingOn: {
 		reportType: ReportType.ReportType,
 		reportDuration: number,
@@ -34,8 +35,6 @@ type Agent = Agent.Agent
 
 function ReportControl.new(agent: Agent, serverLevel: ServerLevel.ServerLevel): ReportControl
 	local radioTool = RADIO_TOOL:Clone()
-	serverLevel:getPersistentInstanceManager():register(radioTool)
-	serverLevel:getPersistentInstanceManager():registerInstances(radioTool:GetChildren())
 	return setmetatable({
 		agent = agent,
 		serverLevelRef = serverLevel,
@@ -173,11 +172,27 @@ function ReportControl.connectDiedConnection(self: ReportControl): ()
 	if not self.agentDiedConnection then
 		self.agentDiedConnection = (self.agent.character:FindFirstChildOfClass("Humanoid") :: Humanoid).Died:Once(function()
 			if self:isRadioEquipped() then
+				self.serverLevelRef:getPersistentInstanceManager():register(self.radioTool)
+				self.serverLevelRef:getPersistentInstanceManager():registerInstances(self.radioTool:GetChildren())
 				self:dropRadio()
 			else
 				self.radioTool:Destroy()
 			end
 			self:interruptReport()
+			if self.agentDestroyedConn then
+				self.agentDestroyedConn:Disconnect()
+				self.agentDestroyedConn = nil
+			end
+		end)
+	end
+	if not self.agentDestroyedConn then
+		self.agentDestroyedConn = (self.agent.character :: Model).AncestryChanged:Connect(function()
+			if not (self.agent.character :: Model):IsDescendantOf(game) then
+				self.agentDestroyedConn:Disconnect()
+				if self.radioTool then
+					self.radioTool:Destroy()
+				end
+			end
 		end)
 	end
 end

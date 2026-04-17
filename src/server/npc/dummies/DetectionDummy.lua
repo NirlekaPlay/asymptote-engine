@@ -4,8 +4,8 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
-local DetectionDummyAi = require(script.Parent.DetectionDummyAi)
+local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
+local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
@@ -21,9 +21,14 @@ local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryMod
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
+local DetectionDummyAi = require(ServerScriptService.server.npc.dummies.DetectionDummyAi)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
+local Entity = require(ServerScriptService.server.world.entity.Entity)
+local TakedownService = require(ServerScriptService.server.world.entity.TakedownService)
 local BodyDraggingService = require(ServerScriptService.server.world.entity.ragdoll.BodyDraggingService)
+local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local EntityInLevelCallback = require(ServerScriptService.server.world.level.entity.EntityInLevelCallback)
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 local SoundListener = require(ServerScriptService.server.world.level.sound.SoundListener)
 
@@ -60,8 +65,11 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	designatedPosts: { Node.Node },
 	enforceClass: { [string]: number },
 	serverLevel: ServerLevel.ServerLevel,
+	level: NewLevel.Level,
 	soundListener: SoundListener.SoundListener,
-	hearingSounds: { [string]: HeardSound } -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
+	hearingSounds: { [string]: HeardSound }, -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
+	removalReason: Entity.RemovalReason?,
+	levelCallback: EntityInLevelCallback.EntityInLevelCallback
 }, DummyAgent))
 
 type HeardSound = {
@@ -72,7 +80,7 @@ type HeardSound = {
 	lastVisitedNodePos: Vector3
 }
 
-function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, charName: string?, seed: number?): DummyAgent
+function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, level: NewLevel.Level, character: Model, charName: string?, seed: number?): DummyAgent
 	local self = setmetatable({}, DummyAgent)
 
 	self.character = character
@@ -104,26 +112,19 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.ragdollControl = RagdollControl.new(character)
 	self.reportControl = ReportControl.new(self, serverLevel)
 	self.random = Random.new(seed or nil)
+	self.levelCallback = EntityInLevelCallback.NULL
+	self.level = level
+	self.enforcerClassName = character:GetAttribute("EnforceClass")
 
-	local takedownPromptAttachment = Instance.new("Attachment")
-	takedownPromptAttachment.Name = "Trigger"
-	takedownPromptAttachment.Parent = character.HumanoidRootPart
-
-	local takedownPrompt = InteractionPromptBuilder.new()
-		:withHoldStatus(`2`)
-		:withPrimaryInteractionKey()
-		:withOmniDir(true)
-		:withTitleKey("ui.prompt.subdue")
-		:create(character.HumanoidRootPart, serverLevel:getExpressionContext(), takedownPromptAttachment)
-
-	takedownPrompt.proxPrompt.RequiresLineOfSight = false
-
-	local takedownScript = ReplicatedStorage.shared.assets.scripts.TakedownScript:Clone()
-	takedownScript.Parent = takedownPrompt.proxPrompt
-	takedownScript.Enabled = true
+	TakedownService.trackCharacter(character, serverLevel)
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	local destroyingConn
 	local humanoidDiedConnection: RBXScriptConnection? = humanoid.Died:Once(function()
+		if destroyingConn then
+			destroyingConn:Disconnect()
+			destroyingConn = nil
+		end
 		self:onDied(false)
 	end)
 
@@ -173,16 +174,28 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 		end
 	end)
 
-	character.Destroying:Once(function()
+	local weakSelf = self
+
+	destroyingConn = character.Destroying:Once(function()
 		if humanoidDiedConnection then
 			humanoidDiedConnection:Disconnect()
 			humanoidDiedConnection = nil
 		end
 		descendantAddedConnection:Disconnect()
-		if self ~= nil and self.alive ~= false then
-			self:onDied(true)
+		
+		local agent = weakSelf
+		weakSelf = nil
+		
+		if agent ~= nil and agent.alive ~= false then
+			agent:onDied(true)
 		end
+		if agent and not agent:isRemoved() then
+			agent:remove(Entity.RemovalReason.DISCARDED)
+		end
+		character = nil
 	end)
+
+	self._destroyingConn = destroyingConn
 
 	self.hearingSounds = {}
 
@@ -194,6 +207,11 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 
 	-- Do we even need this?
 	function soundListener:checkExtraConditionsBeforeCalc(pos: Vector3, soundType: string): boolean
+		local hasEntity = this:getDetectionManager():getFocusingTarget()
+		if hasEntity and hasEntity.priority > 9 then
+			return false
+		end
+
 		for _, sound in this.hearingSounds do
 			if (sound :: HeardSound).soundType == soundType then
 				return false
@@ -231,13 +249,23 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, character: Model, 
 	self.soundListener = soundListener
 
 	serverLevel:getPersistentInstanceManager():register(character)
-	serverLevel:getSoundDispatcher():registerListener(soundListener)
+	serverLevel:getSoundDispatcher():registerListener(soundListener);
+
+	local levelCallback = self.levelCallback
+
+	self._posChangedConn = (character.HumanoidRootPart :: BasePart):GetPropertyChangedSignal("Position"):Connect(function()
+		levelCallback:onMove()
+	end)
 
 	-- DEBUG SECTIONS
 
 	--self.detectionManager:blockAllDetection()
 
 	return self
+end
+
+function DummyAgent.getLevel(self: DummyAgent): NewLevel.Level
+	return self.level
 end
 
 function DummyAgent.setDesignatedPosts(self: DummyAgent, posts: { Node.Node }): DummyAgent
@@ -252,6 +280,7 @@ function DummyAgent.setEnforceClass(self: DummyAgent, enforceClass: { [string]: 
 end
 
 function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
+	debug.profilebegin("agent_update")
 	-- Breaks SRP. But who cares at this point.
 	local visibleEntities = self.brain:getMemory(MemoryModuleTypes.VISIBLE_ENTITIES):orElse({})
 	local hearingPlayers = self.brain:getMemory(MemoryModuleTypes.HEARABLE_PLAYERS):orElse({})
@@ -301,8 +330,10 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	end
 	self.detectionManager:addOrUpdateDetectedEntities(detectionProfiles)
 	self.detectionManager:update(deltaTime)
+	debug.profilebegin("agent_brain")
 	DetectionDummyAi.updateActivity(self)
 	self.brain:update(deltaTime)
+	debug.profileend()
 	self.lookControl:update(deltaTime)
 	self.bodyRotationControl:update(deltaTime)
 	self.reportControl:update(deltaTime)
@@ -319,6 +350,25 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 		self.character.isPathfinding.Value = false
 		self.character.isRunning.Value = false
 	end
+
+	if DebugPackets.hasListeningClients(DebugPacketTypes.DEBUG_BRAIN) then
+		DebugPackets.queueDataToBatch(DebugPacketTypes.DEBUG_BRAIN, DebugPackets.createBrainDump(self))
+	end
+
+	if self.brain:hasMemoryValue(MemoryModuleTypes.IS_COMBAT_MODE) or
+		self.brain:hasMemoryValue(MemoryModuleTypes.PRIORITIZED_ENTITY) or
+		self.brain:hasMemoryValue(MemoryModuleTypes.IS_FLEEING) then
+
+		TakedownService.untrackCharacter(self.character)
+	else
+		TakedownService.trackCharacter(self.character, self.serverLevel)
+	end
+
+	debug.profileend()
+end
+
+function DummyAgent.getPosition(self: DummyAgent): Vector3
+	return self.character.HumanoidRootPart.Position :: Vector3
 end
 
 function DummyAgent.getBlockPosition(self: DummyAgent): Vector3
@@ -332,6 +382,19 @@ end
 
 function DummyAgent.isAlive(self: DummyAgent): boolean
 	return self.alive
+end
+
+function DummyAgent.isRemoved(self: DummyAgent): boolean
+	return self.removalReason ~= nil
+end
+
+function DummyAgent.setLevelCallback(self: DummyAgent, levelCallback): ()
+	self.levelCallback = levelCallback
+end
+
+function DummyAgent.remove(self: DummyAgent, removalReason: Entity.RemovalReason): ()
+	self.removalReason = removalReason
+	self.levelCallback:onRemove(removalReason)
 end
 
 function DummyAgent.canBeIntimidated(self: DummyAgent): boolean
@@ -405,23 +468,49 @@ end
 --
 
 function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
+	if not self:isRemoved() then
+		self:remove(Entity.RemovalReason.KILLED)
+	end
+	if self and self.talkControl then
+		self.talkControl:destroy()
+	end
 	if self.alive then
 		DetectionDummyAi.onDiedOrDestroyed(self)
+		self.gunControl:destroy(self.serverLevel)
+	end
+	if self._posChangedConn then
+		self._posChangedConn:Disconnect()
+		self._posChangedConn = nil
 	end
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
+	self.soundListener = nil :: any
+	TakedownService.untrackCharacter(self.character)
 	if not isCharDestroying then
+		self:getBodyRotationControl():destroy()
 		self:getFaceControl():setFace("Unconscious")
 		task.spawn(function()
 			task.wait(1)
 			if self and self.character and self.character:IsDescendantOf(workspace) then
 				local prompt = BodyDraggingService.createDragPromptOnPart(self.serverLevel, self.character.HumanoidRootPart)
+				local character = self.character -- Assuming this captures the character and not self so it can be garbage collected
 				prompt:getTriggeredEvent():Connect(function(player)
-					BodyDraggingService.startDragging(self.character, player)
+					BodyDraggingService.startDragging(character, player)
 					prompt:disable()
+				end);
+
+				(character :: Model).AncestryChanged:Connect(function()
+					if not character:IsDescendantOf(game) then
+						prompt:destroy()
+					end
 				end)
 			end
 		end)
+	else
+		if self._destroyingConn then
+			self._destroyingConn:Disconnect()
+		end
+		self.ragdollControl:destroy()
 	end
 end
 

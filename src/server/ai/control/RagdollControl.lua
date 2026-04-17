@@ -207,4 +207,23 @@ function RagdollControl.connectMethods(self: RagdollControl): ()
 	end)
 end
 
+function RagdollControl.destroy(self: RagdollControl): ()
+	if self._boolValueChangedConnection then
+		self._boolValueChangedConnection:Disconnect()
+		self._boolValueChangedConnection = nil
+	end
+	if self._characterDestroyedConnection then
+		self._characterDestroyedConnection:Disconnect()
+		self._characterDestroyedConnection = nil
+	end
+	if self._diedConnection then
+		self._diedConnection:Disconnect()
+		self._diedConnection = nil
+	end
+	self.character = nil :: any
+	self.torso = nil :: any
+	self.humanoid = nil :: any
+	self.ragdollBoolValue = nil :: any
+end
+
 return RagdollControl

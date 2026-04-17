@@ -4,6 +4,7 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local CompletableFuture = require(ReplicatedStorage.shared.commands.util.CompletableFuture)
 local Draw = require(ReplicatedStorage.shared.thirdparty.Draw)
 local Agent = require(ServerScriptService.server.Agent)
 local ArmedAgent = require(ServerScriptService.server.ArmedAgent)
@@ -70,35 +71,49 @@ function FleeToEscapePoints.canStillUse(self: FleeToEscapePoints, agent: Agent):
 end
 
 function FleeToEscapePoints.doStart(self: FleeToEscapePoints, agent: Agent): ()
-	local post = self:chooseEscapePoint(agent, agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get(), Level.getGuardCombatNodes())
-	if post then
-		agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
-		agent:getBrain():setMemory(MemoryModuleTypes.IS_FLEEING, true)
-		agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, RUN_SPEED_MODIFIER, 2))
-		agent:getBrain():setMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
-		if DEBUG_MODE then
-			Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
-		end
-	else
-		local panicSourceTargetToKill = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
-		if not panicSourceTargetToKill:isPresent() then
-			return
-		end
+	local panicPos = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_POSITION):get()
+	local nodes = Level.getGuardCombatNodes()
 
-		local entityObj = EntityManager.getEntityByUuid(panicSourceTargetToKill:get())
-		if not entityObj then
-			error("Panic source entity is nil")
-		end
+	self.calculatingBestEscapePoint = true
 
-		local playerThreat = EntityUtils.ifPlayerThenGet(entityObj)
-		if playerThreat then
-			local targetableEntities = agent:getBrain():getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES)
-				:orElse({})
+	CompletableFuture.supplyAsync(function()
+		return self:chooseEscapePoint(agent, panicPos, nodes)
+	end):thenAccept(function(post)
+		-- 2. This runs when the calculation is done
+		self.calculatingBestEscapePoint = false
+		
+		if not agent:isAlive() then return end
 
-			targetableEntities[playerThreat] = true
-			agent:getBrain():setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntities)
+		if post then
+			agent:getBrain():eraseMemory(MemoryModuleTypes.LOOK_TARGET)
+			agent:getBrain():setMemory(MemoryModuleTypes.IS_FLEEING, true)
+			agent:getBrain():setMemory(MemoryModuleTypes.WALK_TARGET, WalkTarget.fromVector3(post.cframe.Position, RUN_SPEED_MODIFIER, 2))
+			agent:getBrain():setMemory(MemoryModuleTypes.FLEE_TO_POSITION, post.cframe.Position)
+			
+			if DEBUG_MODE then
+				Debris:AddItem(Draw.point(post.cframe.Position, Color3.new(0, 1, 0)), 5)
+			end
+		else
+			local panicSourceTargetToKill = agent:getBrain():getMemory(MemoryModuleTypes.PANIC_SOURCE_ENTITY_UUID)
+			if not panicSourceTargetToKill:isPresent() then
+				return
+			end
+
+			local entityObj = EntityManager.getEntityByUuid(panicSourceTargetToKill:get())
+			if not entityObj then
+				error("Panic source entity is nil")
+			end
+
+			local playerThreat = EntityUtils.ifPlayerThenGet(entityObj)
+			if playerThreat then
+				local targetableEntities = agent:getBrain():getMemory(MemoryModuleTypes.TARGETABLE_ENTITIES)
+					:orElse({})
+
+				targetableEntities[playerThreat] = true
+				agent:getBrain():setMemory(MemoryModuleTypes.TARGETABLE_ENTITIES, targetableEntities)
+			end
 		end
-	end
+	end)
 end
 
 function FleeToEscapePoints.doStop(self: FleeToEscapePoints, agent: Agent): ()

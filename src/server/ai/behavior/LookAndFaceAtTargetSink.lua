@@ -72,7 +72,19 @@ function LookAndFaceAtTargetSink.canStillUse(self: LookAndFaceAtTargetSink, agen
 				return true
 			end
 
-			if entityObj and not entityObj.isStatic and entityObj.name == "Player" then
+			if EntityUtils.isPlayer(entityObj) then
+				local character = EntityUtils.getPlayerOrThrow(entityObj).Character
+				if not character then
+					return false
+				end
+
+				local agentCFrame = agent:getPrimaryPart().CFrame
+				local toTarget = ((character.HumanoidRootPart.Position - agentCFrame.Position) :: Vector3).Unit
+				local isBehind = toTarget:Dot(agentCFrame.LookVector) < 0.5
+				if isBehind then
+					return true
+				end
+
 				return hearingPlayers[entityObj.instance :: Player] ~= nil
 			end
 

@@ -3,18 +3,15 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local CellCommand = require(ServerScriptService.server.commands.CellCommand)
 local DestroyCommand = require(ServerScriptService.server.commands.DestroyCommand)
 local ForceFieldCommand = require(ServerScriptService.server.commands.ForceFieldCommand)
 local GiveCommand = require(ServerScriptService.server.commands.GiveCommand)
-local GreetCommand = require(ServerScriptService.server.commands.GreetCommand)
 local HelpCommand = require(ServerScriptService.server.commands.HelpCommand)
 local HighlightCommand = require(ServerScriptService.server.commands.HighlightCommand)
 local InsertAssetCommand = require(ServerScriptService.server.commands.InsertAssetCommand)
 local KillCommand = require(ServerScriptService.server.commands.KillCommand)
 local LightingCommand = require(ServerScriptService.server.commands.LightingCommand)
 local MapCommand = require(ServerScriptService.server.commands.MapCommand)
-local PacketCommand = require(ServerScriptService.server.commands.PacketCommand)
 local QuoteOfTheDayCommand = require(ServerScriptService.server.commands.QuoteOfTheDayCommand)
 local RefreshCommand = require(ServerScriptService.server.commands.RefreshCommand)
 local RestartLevelCommand = require(ServerScriptService.server.commands.RestartLevelCommand)
@@ -22,10 +19,10 @@ local RestartServerCommand = require(ServerScriptService.server.commands.Restart
 local SummonCommand = require(ServerScriptService.server.commands.SummonCommand)
 local TagCommand = require(ServerScriptService.server.commands.TagCommand)
 local TeleportCommand = require(ServerScriptService.server.commands.TeleportCommand)
-local TickCommand = require(ServerScriptService.server.commands.TickCommand)
 local VariableCommand = require(ServerScriptService.server.commands.VariableCommand)
 local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSourceStack)
 local GetEntityPosition = require(ServerScriptService.server.commands.util.GetEntityPosition)
+local LevelAccessor = require(ServerScriptService.server.world.level.LevelAccessor)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local ParseResults = require(ReplicatedStorage.shared.commands.ParseResults)
 local SharedSuggestionProvider = require(ReplicatedStorage.shared.commands.asymptote.suggestion.SharedSuggestionProvider)
@@ -33,9 +30,7 @@ local ArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.Argume
 local ArgumentBuilderFactory = require(ReplicatedStorage.shared.commands.builder.ArgumentBuilderFactory)
 local RequiredArgumentBuilder = require(ReplicatedStorage.shared.commands.builder.RequiredArgumentBuilder)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
-local ArgumentTypeInfos = require(ReplicatedStorage.shared.commands.synchronization.arguments.ArgumentTypeInfos)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
-local CommandNodeType = require(ReplicatedStorage.shared.commands.tree.CommandNodeType)
 local RootCommandNode = require(ReplicatedStorage.shared.commands.tree.RootCommandNode)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local ClientboundCommandsPacket = require(ReplicatedStorage.shared.network.game.ClientboundCommandsPacket)
@@ -48,10 +43,12 @@ type SharedSuggestionProvider = SharedSuggestionProvider.SharedSuggestionProvide
 
 local dispatcher = CommandDispatcher.new() :: CommandDispatcher<CommandSourceStack.CommandSourceStack>
 local chattedConnectionsPerPlayer: { [Player]: RBXScriptConnection } = {}
+local currentLevel: LevelAccessor.LevelAccessor
 
 local Commands = {}
 
-function Commands.register()
+function Commands.register(level)
+	currentLevel = level
 	RestartServerCommand.register(dispatcher)
 	TagCommand.register(dispatcher)
 	KillCommand.register(dispatcher)
@@ -63,13 +60,9 @@ function Commands.register()
 	GiveCommand.register(dispatcher)
 	HelpCommand.register(dispatcher)
 	QuoteOfTheDayCommand.register(dispatcher)
-	CellCommand.register(dispatcher)
 	LightingCommand.register(dispatcher)
 	InsertAssetCommand.register(dispatcher)
 	RestartLevelCommand.register(dispatcher)
-	PacketCommand.register(dispatcher)
-	GreetCommand.register(dispatcher)
-	TickCommand.register(dispatcher)
 	RefreshCommand.register(dispatcher)
 	VariableCommand.register(dispatcher)
 	MapCommand.register(dispatcher)
@@ -237,7 +230,8 @@ function Commands.createCommandSourceStackFromPlayer(player: Player): CommandSou
 		player,
 		GetEntityPosition(player) or Vector3.zero,
 		player.DisplayName,
-		player.Name
+		player.Name,
+		currentLevel
 	)
 end
 

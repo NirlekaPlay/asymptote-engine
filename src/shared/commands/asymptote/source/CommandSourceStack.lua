@@ -1,6 +1,8 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local LevelAccessor = require(ServerScriptService.server.world.level.LevelAccessor)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
 local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
@@ -22,7 +24,8 @@ export type CommandSourceStack = typeof(setmetatable({} :: {
 	entity: Instance,
 	position: Vector3,
 	displayName: string,
-	textName: string
+	textName: string,
+	level: LevelAccessor.LevelAccessor
 }, CommandSourceStack))
 
 function CommandSourceStack.new(
@@ -30,15 +33,21 @@ function CommandSourceStack.new(
 	entity: Instance,
 	position: Vector3,
 	displayName: string,
-	textName: string
+	textName: string,
+	level: LevelAccessor.LevelAccessor
 ): CommandSourceStack
 	return setmetatable({
 		source = source,
 		entity = entity,
 		position = position,
 		displayName = displayName,
-		textName = textName
+		textName = textName,
+		level = level
 	}, CommandSourceStack)
+end
+
+function CommandSourceStack.getLevel(self: CommandSourceStack): LevelAccessor.LevelAccessor
+	return self.level
 end
 
 function CommandSourceStack.getPlayerOrThrow(self: CommandSourceStack): Player

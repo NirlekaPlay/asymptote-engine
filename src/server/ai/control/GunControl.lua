@@ -72,8 +72,6 @@ end
 
 function GunControl.new(agent: Agent.Agent, serverLevel: ServerLevel.ServerLevel): GunControl
 	local fbb = GunControl.getFbb(agent.character)
-	serverLevel:getPersistentInstanceManager():register(fbb.tool)
-	serverLevel:getPersistentInstanceManager():registerInstances(fbb.tool:GetChildren())
 	return setmetatable({
 		agent = agent,
 		equipped = false,
@@ -89,11 +87,6 @@ function GunControl.equipGun(self: GunControl, gunConfig: GunConfg?): ()
 	if not self:isEquipped() then
 		self.equipped = true
 
-		-- sets the custom rotator, as having the FBB equipped makes the
-		-- body rotate off
-		--local agentRot = self.agent:getBodyRotationControl()
-		--agentRot.customRotator = GunControl.rotateBody
-
 		self.fbb.tool.Parent = self.agent.character;
 		task.spawn(function()
 			(self.fbbControl :: FBBerylControl.FBBerylControl):equip()
@@ -104,9 +97,6 @@ end
 function GunControl.unequipGun(self: GunControl): ()
 	if self:isEquipped() then
 		self.equipped = false
-
-		--local agentRot = self.agent:getBodyRotationControl()
-		--agentRot.customRotator = nil
 
 		task.spawn(function()
 			task.wait(1)
@@ -199,6 +189,17 @@ function GunControl.rotateBody(self: BodyRotationControl.BodyRotationControl, de
 	local rotationOffset = CFrame.Angles(0, math.rad(57), 0)
 	targetCFrame = targetCFrame * rotationOffset
 	part.CFrame = part.CFrame:Lerp(targetCFrame, deltaTime * self.rotationSpeed)
+end
+
+function GunControl.destroy(self: GunControl, serverLevel: ServerLevel.ServerLevel): ()
+	if self.fbb.tool:IsDescendantOf(game) then -- The gun only drops if the guard only equips the gun anyway
+		serverLevel:getPersistentInstanceManager():register(self.fbb.tool)
+		serverLevel:getPersistentInstanceManager():registerInstances(self.fbb.tool:GetChildren())
+	end
+	self.fbb.tool.Parent = nil
+	self.agent = nil :: any
+	self.fbb = nil :: any
+	self.fbbControl = nil :: any
 end
 
 return GunControl

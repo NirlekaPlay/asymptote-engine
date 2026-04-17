@@ -98,27 +98,21 @@ function Vector3ArgumentType.parse(self: Vector3ArgumentType, input: string): (P
 	local coords: { CoordinateData } = {}
 	local totalConsumed = 0
 	
-	-- Parse 3 coordinates (x, y, z)
 	for i = 1, 3 do
-		-- Skip whitespace
-		remaining = remaining:match("^%s*(.*)") or remaining
-		
-		-- Try to parse a coordinate (can be relative ~, absolute number, or local ^)
+		local whitespace = remaining:match("^(%s*)") :: string
+		local wsLength = #whitespace
+		remaining = remaining:sub(wsLength + 1)
+		totalConsumed = totalConsumed + wsLength
+
 		local coord, consumed = Vector3ArgumentType.parseCoordinate(remaining)
 		if not coord then
 			error(`Expected coordinate {i == 1 and "x" or i == 2 and "y" or "z"}`)
 		end
 		
 		coords[i] = coord
+		
 		remaining = remaining:sub(consumed + 1)
 		totalConsumed = totalConsumed + consumed
-		
-		-- Add whitespace consumption
-		local whitespace = remaining:match("^(%s*)")
-		if whitespace then
-			remaining = remaining:sub(#whitespace + 1)
-			totalConsumed = totalConsumed + #whitespace
-		end
 	end
 	
 	return {

@@ -6,6 +6,7 @@ local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
+local Prop = require(ServerScriptService.server.world.level.clutter.props.Prop)
 local GlobalStatesHolder = require(ServerScriptService.server.world.level.states.GlobalStatesHolder)
 
 local LIGHT_TRUE = BrickColor.new("Slime green")
@@ -17,7 +18,7 @@ local LIGHT_FALSE = BrickColor.new("Crimson")
 local CardReader = {}
 CardReader.__index = CardReader
 
-export type CardReader = typeof(setmetatable({} :: {
+export type CardReader = Prop.Prop & typeof(setmetatable({} :: {
 	lightLevelParts: { BasePart},
 	validCards: { [string]: true },
 	triggerVariableName: string,
@@ -38,7 +39,7 @@ function CardReader.new(
 		lightLevelParts = lightLevelParts,
 		acceptSound = acceptSound,
 		maid = maid
-	}, CardReader)
+	}, CardReader) :: CardReader
 end
 
 function CardReader.onPromptTriggered(self: CardReader, player: Player): ()
@@ -207,6 +208,10 @@ function CardReader.createFromModel(placeholder: BasePart, model: Model, serverL
 end
 
 --
+
+function CardReader.onLevelRestart(self: CardReader): ()
+	return
+end
 
 function CardReader.destroy(self: CardReader): ()
 	self.maid:doCleaning()

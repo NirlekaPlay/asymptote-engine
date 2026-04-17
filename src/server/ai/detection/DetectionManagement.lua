@@ -12,6 +12,7 @@ local UString = require(ReplicatedStorage.shared.util.string.UString)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local EntityUtils = require(ServerScriptService.server.entity.util.EntityUtils)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
+local CellConfig = require(ServerScriptService.server.world.level.cell.CellConfig)
 local Mission = require(ServerScriptService.server.world.level.mission.Mission)
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
 
@@ -306,6 +307,27 @@ function DetectionManagement.getEntityPriorityInfo(
 			if playerStatus == PlayerStatusTypes.DISGUISED then
 				local canDetect = self:canAgentDetectThroughDisguise(entityObject, detectionProfile)
 				if not canDetect then
+					continue
+				end
+			end
+			if playerStatus == PlayerStatusTypes.MINOR_TRESPASSING or playerStatus == PlayerStatusTypes.MAJOR_TRESPASSING then
+				local npcEnforcerClassName = self.agent.enforcerClassName
+				local playerCell = self.agent:getLevel():getPlayerCell(playerInstance)
+				if not playerCell then
+					continue -- Outright illogical circumstance
+				end
+				local cellConfig = playerCell.config :: CellConfig.CellConfig
+				local shouldEnforce = false
+
+				if playerStatus == PlayerStatusTypes.MINOR_TRESPASSING and cellConfig.enforceMinor and cellConfig.enforceMinor[npcEnforcerClassName] then
+					shouldEnforce = true
+				end
+
+				if playerStatus == PlayerStatusTypes.MAJOR_TRESPASSING and cellConfig.enforce and cellConfig.enforce[npcEnforcerClassName] then
+					shouldEnforce = true
+				end
+
+				if not shouldEnforce then
 					continue
 				end
 			end

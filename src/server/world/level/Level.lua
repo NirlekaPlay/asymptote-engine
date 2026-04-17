@@ -8,7 +8,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local CharacterAppearancePayload = require(ReplicatedStorage.shared.network.payloads.CharacterAppearancePayload)
-local ClientBoundDialogueConceptsPayload = require(ReplicatedStorage.shared.network.payloads.ClientBoundDialogueConceptsPayload)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local BodyColorType = require(ReplicatedStorage.shared.network.types.BodyColorType)
 local CameraSocket = require(ReplicatedStorage.shared.player.level.camera.CameraSocket)
@@ -20,15 +19,16 @@ local Maid = require(ReplicatedStorage.shared.util.misc.Maid)
 local ItemService = require(ReplicatedStorage.shared.world.item.ItemService)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
-local DisguiseConfig = require(ServerScriptService.server.disguise.DisguiseConfig)
 local PropDisguiseGiver = require(ServerScriptService.server.disguise.PropDisguiseGiver)
 local BulletSimulation = require(ServerScriptService.server.gunsys.framework.BulletSimulation)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
 local LevelInstancesAccessor = require(ServerScriptService.server.world.level.LevelInstancesAccessor)
+local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
 local PersistentInstanceManager = require(ServerScriptService.server.world.level.PersistentInstanceManager)
 local CellManager = require(ServerScriptService.server.world.level.cell.CellManager)
 local Clutter = require(ServerScriptService.server.world.level.clutter.Clutter)
+local AmmoBox = require(ServerScriptService.server.world.level.clutter.props.AmmoBox)
 local CardReader = require(ServerScriptService.server.world.level.clutter.props.CardReader)
 local DoorCreator = require(ServerScriptService.server.world.level.clutter.props.DoorCreator)
 local Elevator = require(ServerScriptService.server.world.level.clutter.props.Elevator)
@@ -83,6 +83,7 @@ local missionManager: MissionManager.MissionManager
 local currentIntroCam: CameraSocket.CameraSocket
 local soundDispatcher: SoundDispatcher.SoundDispatcher
 local voxelWorld: VoxelWorld.VoxelWorld
+local currentBulletConsumer
 local delayedLevelStartThread: thread? = nil
 local playerWantRestartConn: RBXScriptConnection?
 --
@@ -123,6 +124,7 @@ end
 	@class Level
 ]=]
 local Level = {}
+Level.injectedNewLevel = nil :: NewLevel.Level?
 
 function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	levelFolder = workspace:FindFirstChild("Level") :: Folder
@@ -166,8 +168,6 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 		levelFolder:FindFirstChild("Geometry") or error("ERR_NO_GEOMETRY_FOLDER")
 	)
 
-	cellManager = CellManager.new(levelInstancesAccessor)
-
 	if missionSetupObj:hasLightingSettings() then
 		LightingSetter.readConfig(missionSetupObj:getLightingSettings())
 	end
@@ -188,7 +188,7 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Do you?
 
 	-- Man do I love tight coupling!
-	BulletSimulation.addConsumer({
+	currentBulletConsumer = {
 		onBulletCreated = function(_, origin: Vector3, char: Model): ()
 			if not Players:GetPlayerFromCharacter(char) then
 				return
@@ -196,7 +196,8 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 			--print("TEMP: LEVEL :: BULLET SHOT")
 			soundDispatcher:emitSound(DetectableSound.Profiles.GUN_SHOT_SUPPRESSED, origin)
 		end
-	})
+	}
+	BulletSimulation.addConsumer(currentBulletConsumer)
 
 	-- That's sarcasm.
 
@@ -358,6 +359,11 @@ function Level.initializeLevel(setCanUpdateLevel: boolean?): ()
 	-- Dialogue
 
 	TypedRemotes.ClientBoundRegisterDialogueConcepts:FireAllClients(missionSetupObj.dialogueConceptsPayload)
+
+	if Level.injectedNewLevel then
+		Level.injectedNewLevel.sceneManager:importFromLoadedScene(missionSetupObj, cellsFolder :: Folder?)
+		cellManager = Level.injectedNewLevel.sceneManager.currentScene.cellManager
+	end
 	return true :: any
 end
 
@@ -396,6 +402,10 @@ function Level.clearLevel(): ()
 
 	if voxelWorld then
 		voxelWorld:reset()
+	end
+
+	if currentBulletConsumer then
+		BulletSimulation.removeConsumer(currentBulletConsumer)
 	end
 
 	--
@@ -481,7 +491,7 @@ function Level.loadLevel(levelName: string): ()
 			end
 		end
 		-- Cinematics data
-		TypedRemotes.ClientboundCinematicsData:FireAllClients(Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		Level.sendCinematicsDataToAllPlayers()
 
 		objectiveManager:sendCurrentObjectivesToClients()
 
@@ -492,6 +502,22 @@ function Level.loadLevel(levelName: string): ()
 	else
 		error(`Map '{levelName}' not found!`)
 	end
+end
+
+function Level.sendCinematicsData(player: Player): ()
+	local data = Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData()
+	if not data or not next(data) then
+		return
+	end
+	TypedRemotes.ClientboundCinematicsData:FireClient(player, data)
+end
+
+function Level.sendCinematicsDataToAllPlayers(): ()
+	local data = Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData()
+	if not data or not next(data) then
+		return
+	end
+	TypedRemotes.ClientboundCinematicsData:FireAllClients(data)
 end
 
 function Level.getMapList(): {string}
@@ -788,7 +814,7 @@ function Level.onPlayerJoined(player: Player): ()
 			TypedRemotes.ClientBoundLocalizationAppend:FireClient(player, localizedStrings)
 		end
 		TypedRemotes.ClientBoundRegisterDialogueConcepts:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup().dialogueConceptsPayload) -- TODO: THERE SHOULD BE A METHOD FOR THIS!!!!
-		TypedRemotes.ClientboundCinematicsData:FireClient(player, Level:getServerLevelInstancesAccessor():getMissionSetup():getCinematicsData())
+		Level.sendCinematicsData(player)
 		TypedRemotes.ClientboundCinematicsPlayScene:FireClient(player, "intro") -- NOTES: HAC.
 	end
 
@@ -838,6 +864,15 @@ function Level.initializePlayerColliders(folder: Folder): ()
 
 		Level.initializePlayerCollider(part)
 	end
+end
+
+function Level.getPlayerOccupiedAreaName(_, player: Player): string?
+	local str = cellManager:getPlayerOccupiedAreaName(player)
+	if not str then
+		return nil
+	end
+
+	return Level:getServerLevelInstancesAccessor():getMissionSetup():getLocalizedString(str)
 end
 
 function Level.initializePlayerCollider(part: BasePart): ()
@@ -1043,7 +1078,7 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 			end
 
 			if placeholder.Name == "CardReader" and passed then
-				CardReader.createFromModel(placeholder, prop, Level)
+				propsInLevelSet[CardReader.createFromModel(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -1109,6 +1144,11 @@ function Level.initializeClutters(levelPropsFolder: Model | Folder, colorsMap): 
 
 			if placeholder.Name == "FreeTrigger" then
 				propsInLevelSet[FreeTrigger.createFromPlaceholder(placeholder, prop, Level)] = true
+				return true
+			end
+
+			if placeholder.Name == "AmmoBox" then
+				propsInLevelSet[AmmoBox.createFromModel(placeholder, prop, Level)] = true
 				return true
 			end
 
@@ -1397,7 +1437,6 @@ end
 local context = ExpressionContext.new(GlobalStatesHolder.getAllStatesReference()) 
 
 function Level.doUpdate(deltaTime: number): ()
-	Level.updateCells()
 	soundDispatcher:update(deltaTime)
 	for prop in propsInLevelSetThrottledUpdate do
 		prop:update(deltaTime, Level)
@@ -1416,12 +1455,10 @@ end
 
 function Level.updateProps(deltaTime: number): ()
 	for prop in propsInLevelSet do
-		prop:update(deltaTime, Level)
+		if prop.update then
+			prop:update(deltaTime, Level)
+		end
 	end
-end
-
-function Level.updateCells(): ()
-	cellManager:update()
 end
 
 TypedRemotes.ServerboundCinematicsPlayerIntroDone.OnServerEvent:Connect(function(player)

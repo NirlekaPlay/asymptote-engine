@@ -33,7 +33,7 @@ type LightingSettings = { [any]: any }
 
 function MissionSetup.new(
 	localizedStrings: { [string]: string },
-	cells: { [string]: CellConfig.Config },
+	cells: { [string]: CellConfig.CellConfig },
 	disguiseConfigs: { [string]: DisguiseConfig.DisguiseConfig },
 	enforceClasses: { [string]: EnforceClass.EnforceClass },
 	lightingSettings: LightingSettings?,
