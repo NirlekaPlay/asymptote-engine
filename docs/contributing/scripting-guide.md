@@ -65,25 +65,25 @@ A typical module script will have this as the canvas:
 --!strict
 
 --[=[
-    @class Class
+	@class Class
 
-    A class. Mindblowing I know.
+	A class. Mindblowing I know.
 ]=]
 local Class = {}
 Class.__index = Class
 
 export type Class = typeof(setmetatable({} :: {
-    field: string
+	field: string
 }, Class))
 
 function Class.new(): Class
-    return setmetatable({
-        field = "A field"
-    }, Class)
+	return setmetatable({
+		field = "A field"
+	}, Class)
 end
 
 function Class.getField(self: Class): string
-    return self.field
+	return self.field
 end
 
 return Class
@@ -97,7 +97,7 @@ Avoid:
 
 ```lua
 function Class:getField(): string
-    return self.field
+	return self.field
 end
 ```
 
@@ -105,7 +105,7 @@ Instead do:
 
 ```lua
 function Class.getField(self: Class): string
-    return self.field
+	return self.field
 end
 ```
 
@@ -120,7 +120,7 @@ If your function takes something and returns something, you should state their t
 
 ```lua
 local function add(x: number, y: number): number
-    return x + y
+	return x + y
 end
 ```
 
@@ -128,7 +128,7 @@ Multiple returns:
 
 ```lua
 function ServerPlayer.getNameAndSurname(self: ServerPlayer): (string, string)
-    return self.name, self.surname
+	return self.name, self.surname
 end
 ```
 
@@ -136,7 +136,7 @@ And if it doesn't return anything, explictly state it by using `()`
 
 ```lua
 local function doSomething(): ()
-    -- Does something.
+	-- Does something.
 end
 ```
 
@@ -168,11 +168,11 @@ of an entity.
 
 ```lua
 function Entity.getPosition(self: Entity): Vector?
-    if not self:isAlive() then
-        return nil
-    end
+	if not self:isAlive() then
+		return nil
+	end
 
-    return self:getCharacter().HumanoidRootPart.Position
+	return self:getCharacter().HumanoidRootPart.Position
 end
 ```
 
@@ -181,11 +181,11 @@ change how it's implemented without other scripts needing to handle each entity 
 
 ```lua
 function Entity.setWalkSpeed(self: Entity, walkSpeed: number): ()
-    if not self:isAlive() or not self.humanoid then
-        return
-    end
+	if not self:isAlive() or not self.humanoid then
+		return
+	end
 
-    self.humanoid.WalkSpeed = walkSpeed
+	self.humanoid.WalkSpeed = walkSpeed
 end
 ```
 
@@ -193,17 +193,17 @@ Of course, this is for external uses. This becomes less important if you're usin
 
 ```lua
 function Entity.update(self: Entity, deltaTime: number): ()
-    if not self:isAlive() then
-        return
-    end
+	if not self:isAlive() then
+		return
+	end
 
-    if self.isGoingInsane then
-        self.sanity -= deltaTime
-    end
+	if self.isGoingInsane then
+		self.sanity -= deltaTime
+	end
 
-    if self.sanity <= INSANITY_THRESHOLD then
-        self:ascend()
-    end
+	if self.sanity <= INSANITY_THRESHOLD then
+		self:ascend()
+	end
 end
 ```
 
@@ -237,9 +237,9 @@ For basic use, a basic table works.
 
 ```lua
 local FACE_TYPES = {
-    HAPPY = 0,
-    ANGRY = 1,
-    SAD = 2
+	HAPPY = 0,
+	ANGRY = 1,
+	SAD = 2
 }
 ```
 
@@ -248,9 +248,9 @@ Any attempts to modify them throws an error.
 
 ```lua
 local FACE_TYPES = table.freeze({
-    HAPPY = 0,
-    ANGRY = 1,
-    SAD = 2
+	HAPPY = 0,
+	ANGRY = 1,
+	SAD = 2
 })
 ```
 
@@ -267,19 +267,19 @@ to make a function that accepts any object, as long as that object has the requi
 
 ```lua
 export type Damageable = {
-    takeDamage: (self: any, amount: number) -> (),
-    getHealth: (self: any) -> number,
+	takeDamage: (self: any, amount: number) -> (),
+	getHealth: (self: any) -> number,
 }
 ```
 
 ```lua
 function Server.hurtExplosion(self: Server, damageable: Damageable): ()
-    -- Some logic or something...
-    local calculatedDamage = 10
+	-- Some logic or something...
+	local calculatedDamage = 10
 
-    -- Then:
-    -- Here, we don't care on how the class actually *handles* damage.
-    damageable:takeDamage(calculatedDamage)
+	-- Then:
+	-- Here, we don't care on how the class actually *handles* damage.
+	damageable:takeDamage(calculatedDamage)
 end
 ```
 
@@ -287,23 +287,105 @@ Then we can have other classes implement that interface and supply it into the f
 
 ```lua
 function ServerPlayer.takeDamage(self: ServerPlayer, amount: number): ()
-    if not self:isAlive() then
-        return
-    end
+	if not self:isAlive() then
+		return
+	end
 
-    self.humanoid.Health -= amount
+	self.humanoid.Health -= amount
 end
 ```
 
 ```lua
 function Npc.takeDamage(self: Npc, amount: number): ()
-    if not self:isAlive() then
-        return
-    end
+	if not self:isAlive() then
+		return
+	end
 
-    self.health -= amount
-    if self.health <= 0 then
-        self:kill()
-    end
+	self.health -= amount
+	if self.health <= 0 then
+		self:kill()
+	end
 end
 ```
+
+## My Pedantics
+
+### Variables
+I swear to God, **DO NOT ABREVIATE TO THE POINT YOU WON'T UNDERSTAND SHIT.**
+
+```lua
+local larm
+local rarm
+local lleg
+local rleg
+local head
+local torso
+local hrp
+```
+
+Look at this monstorsity. You can not understand jackshit. When you write code, always assume that there will be a poor soul that is gonna read, understand, and refactor your code.
+
+The good way to do is:
+
+```lua
+local leftArm: BasePart
+local rightArm: BasePart
+local leftLeg: BasePart
+local rightLeg: BasePart
+local head: BasePart
+local torso: BasePart
+local humanoidRootPart: BasePart
+```
+
+Oh now my eyes won't cry anymore. Now I can easily understand what the hell the variables means and do.
+
+Doesn't really mean you should never abbreviate. There are some acceptable forms of abbreviations. Including but not limited to:
+ * `id`. Identifier.
+ * `config`. Configuration.
+ * `msg`. Message.
+ * `init`. Initialize.
+ * `i`, `k`, `v`, `j`. Use these in loops when you do not give a single utter fuck on what values they are.
+
+If an abbreviation can mean many things, stop, rethink your life choices, and write the full term. Do not sacrifice sanity for the sake of a few key strokes.
+
+### Type Handling
+Here's an example:
+
+```luau
+local function add(x: number, y: number): number
+	assert(type(x) == "number", "Bad x!")
+	assert(type(y) == "number", "Bad y!")
+	return x + y
+end
+```
+
+Please. The type-checker is already enough for screaming at you when you mess up the types. This is redundant as shit. Unless you're handling very unpredictable inputs, which begs the question: ***why?***
+
+You should only do these sorts of stuff for stuff that the type-checker cannot check. For example the specific state of an object.
+
+```luau
+local function foo<T>(optional: Optional<T>): ()
+	if optional:isEmpty() then
+		error("Provided Optional should not be empty!")
+	end
+	
+	-- ...
+end
+```
+
+### Identations
+
+Here's an example:
+
+```luau
+local normalVector    = Vector3.FromNormalId(normalId)
+local surfacePosition = (inst.Size * normalVector) / 2
+local offset          = surfacePosition + (normalVector * frontOffset)
+```
+
+Why. *Why.* ***WHY.*** Sure, it looks pretty, but it's not worth your time. You're gonna modify here and there whenever you want to change the variable. You'll gonna spend more time styling your code than actually writing practical code.
+
+### Comments
+Look. Please do not write comments every three goddamn lines. A code should be self-documenting at best, and you should only write comments when a logic is a bit arbitrary, and explaining the *why* you chose this specific implementation.
+
+Write descriptive function and variable names. A function should at most be doing ONE thing. If a large logic can be seperated into many other small chunks of logic, turn them into functions. This way, writing so many comments becomes unnecessary because you can look at the code and immediately understand what it does.
