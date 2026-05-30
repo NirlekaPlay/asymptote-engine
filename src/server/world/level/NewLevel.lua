@@ -6,6 +6,7 @@ local Cell = require(ServerScriptService.server.world.level.cell.Cell)
 local EntitySectionManager = require(ServerScriptService.server.world.level.entity.EntitySectionManager)
 local EntityTickList = require(ServerScriptService.server.world.level.entity.EntityTickList)
 local LevelCallback = require(ServerScriptService.server.world.level.entity.LevelCallback)
+local MissionSetup = require(ServerScriptService.server.world.level.mission.reading.MissionSetup)
 local SceneManager = require(ServerScriptService.server.world.level.scene.SceneManager)
 
 local TICK_RATE = 1 / 20
@@ -33,7 +34,6 @@ type LevelCallback = LevelCallback.LevelCallback<Entity>
 function Level.new(): Level
 	local this = {
 		entityTickList = EntityTickList.new(),
-		sceneManager = SceneManager.new(),
 		isHandlingTick = false,
 		_accumulator = 0
 	}
@@ -57,7 +57,13 @@ function Level.new(): Level
 
 	this.entityManager = EntitySectionManager.new(Callback)
 
-	return setmetatable(this, Level) :: Level
+	--
+
+	local self = setmetatable(this, Level) :: Level
+
+	self.sceneManager = SceneManager.new(self :: any)
+
+	return self
 end
 
 --
@@ -90,6 +96,37 @@ function Level.addFreshEntity(self: Level, entity: Entity): ()
 	else
 		self.entityManager:addEntity(entity)
 	end
+end
+
+--
+
+function Level.getActiveSceneConfig(self: Level): MissionSetup.MissionSetup?
+	local scene =  self.sceneManager:getActiveScene()
+	if not scene then
+		return nil
+	end
+
+	return scene:getSceneConfig()
+end
+
+function Level.restartScene(self: Level): ()
+	self.sceneManager:restartScene()
+end
+
+function Level.clearScene(self: Level): ()
+	self.sceneManager:clear()
+end
+
+function Level.loadScene(self: Level, sceneName: string): ()
+	return self.sceneManager:loadScene(sceneName)
+end
+
+function Level.getMapList(self: Level): {string}
+	return self.sceneManager:getMapList()
+end
+
+function Level.isSceneRestarting(self: Level): boolean
+	return self.sceneManager:isSceneRestarting()
 end
 
 --

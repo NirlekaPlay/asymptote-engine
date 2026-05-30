@@ -1,8 +1,7 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
-local LevelAccessor = require(ServerScriptService.server.world.level.LevelAccessor)
+local LevelAccessor = require(ReplicatedStorage.shared.world.level.LevelAccessor)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
 local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
 local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
@@ -44,6 +43,10 @@ function CommandSourceStack.new(
 		textName = textName,
 		level = level
 	}, CommandSourceStack)
+end
+
+function CommandSourceStack.getPosition(self: CommandSourceStack): Vector3
+	return self.position
 end
 
 function CommandSourceStack.getLevel(self: CommandSourceStack): LevelAccessor.LevelAccessor

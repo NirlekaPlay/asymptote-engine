@@ -12,7 +12,6 @@ local NodeEvaluator = {}
 NodeEvaluator.__index = NodeEvaluator
 
 export type NodeEvaluator = typeof(setmetatable({} :: {
-	
 }, NodeEvaluator))
 
 function NodeEvaluator.new(
@@ -32,6 +31,23 @@ function NodeEvaluator.getDoorBoundPartsAt(self: NodeEvaluator, atPos: Vector3):
 	return workspace:GetPartBoundsInRadius(atPos, 5, overlapParams)
 end
 
+function NodeEvaluator.getDoorOnPathSegment(self: NodeEvaluator, fromPos: Vector3, toPos: Vector3): Door.Door?
+	local parts = self:getDoorBoundPartsAt(toPos)
+	local dir = (toPos - fromPos)
+	local length = dir.Magnitude
+	local unitDir = dir / length
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.FilterDescendantsInstances = parts :: {Instance}
+
+	local result = workspace:Raycast(fromPos, unitDir * length, raycastParams)
+	if result then
+		return DoorRegistry.getDoorFromPart(result.Instance)
+	end
+	return nil
+end
+
 function NodeEvaluator.canOpenDoors(self: NodeEvaluator): boolean
 	return true
 end
@@ -39,6 +55,5 @@ end
 function NodeEvaluator.canOpenDoor(self: NodeEvaluator, door: Door.Door): boolean
 	return true
 end
-
 
 return NodeEvaluator

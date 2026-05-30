@@ -1,37 +1,60 @@
---!strict
+--!nonstrict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
+local EntityType = require(ServerScriptService.server.world.entity.registry.EntityType)
 local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSourceStack)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
-local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
+local JsonArgumentType = require(ReplicatedStorage.shared.commands.arguments.json.JsonArgumentType)
+local Vector3ArgumentType = require(ReplicatedStorage.shared.commands.arguments.position.Vector3ArgumentType)
 local CommandNode = require(ReplicatedStorage.shared.commands.tree.CommandNode)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
-local NamedTextColors = require(ReplicatedStorage.shared.network.chat.NamedTextColors)
-local TextStyle = require(ReplicatedStorage.shared.network.chat.TextStyle)
 
 local SummonCommand = {}
-
-local NAMES_PER_ENTITIES = {
-	bob = ServerStorage:FindFirstChild("REFERENCE_BOB"),
-	jeia = ServerStorage:FindFirstChild("REFERENCE_JEIA"),
-	envvy = ServerStorage:FindFirstChild("REFERENCE_ENVVY"),
-	andrew = ServerStorage:FindFirstChild("REFERENCE_ANDREW")
-}
 
 function SummonCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<CommandSourceStack.CommandSourceStack>): ()
 	local summonNode = dispatcher:register(
 		CommandHelper.literal("summon")
 			:andThen(
 				CommandHelper.argument("entityName", StringArgumentType.word())
-					:executes(SummonCommand.summon)
-			)
-			:andThen(
-				CommandHelper.literal("list")
-					:executes(SummonCommand.list)
+					:executes(function(context): number
+						local specifiedEntityName = StringArgumentType.getString(context, "entityName")
+						local entityType = EntityType.getEntityTypeByName(specifiedEntityName)
+						if not entityType then
+							error(`No such entity type of name '{specifiedEntityName}'`)
+						end
+
+						return SummonCommand.spawnEntity(context:getSource(), entityType, context:getSource():getPosition())
+					end)
+					:andThen(
+						CommandHelper.argument("pos", Vector3ArgumentType.vec3())
+							:executes(function(context): number
+								local pos = Vector3ArgumentType.resolveAndGetVec3(context, "pos", context:getSource())
+								local specifiedEntityName = StringArgumentType.getString(context, "entityName")
+								local entityType = EntityType.getEntityTypeByName(specifiedEntityName)
+								if not entityType then
+									error(`No such entity type of name '{specifiedEntityName}'`)
+								end
+
+								return SummonCommand.spawnEntity(context:getSource(), entityType, pos)
+							end)
+							:andThen(
+								CommandHelper.argument("attributes", JsonArgumentType.jsonObject())
+									:executes(function(context)
+										local json = JsonArgumentType.getJson(context, "attributes")
+										local pos = Vector3ArgumentType.resolveAndGetVec3(context, "pos", context:getSource())
+										local specifiedEntityName = StringArgumentType.getString(context, "entityName")
+										local entityType = EntityType.getEntityTypeByName(specifiedEntityName)
+										if not entityType then
+											error(`No such entity type of name '{specifiedEntityName}'`)
+										end
+
+										return SummonCommand.spawnEntity(context:getSource(), entityType, pos, json)
+									end)
+							)
+					)
 			)
 	)
 
@@ -41,49 +64,23 @@ function SummonCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<
 	)
 end
 
-function SummonCommand.summon(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
-	local entityName = StringArgumentType.getString(c, "entityName")
-	local entityInst = NAMES_PER_ENTITIES[entityName] :: Model
-	if not entityInst then
-		c:getSource():sendFailure(MutableTextComponent.literal(`'{entityName}' is not a valid entity name!`))
-		return 0
+function SummonCommand.createEntity(source: CommandSourceStack.CommandSourceStack, entityType: EntityType.EntityType<any>, pos: Vector3, json: {[string]:any}?): ()
+	local level = source:getLevel()
+	local entity = entityType.create(level)
+	if json then
+		for name, v in json do
+			entity:setAttribute(name, v)
+		end
 	end
-	local playerSource = c:getSource():getPlayerOrThrow()
-	local playerChar = playerSource.Character
-	local toCframe: CFrame
-
-	if not playerChar then
-		c:getSource():sendFailure(MutableTextComponent.literal(`Player {playerSource.Name} has no character!`))
-		return 0
-	end
-
-	toCframe = (playerChar.PrimaryPart :: BasePart).CFrame
-
-	local entityInstClone = entityInst:Clone()
-	entityInstClone:PivotTo(toCframe)
-	entityInstClone.Parent = workspace
-
-	return 1
+	entity:finalizeSpawn()
+	entity:setPosToCFrame(CFrame.new(pos))
+	level:addFreshEntity(entity)
 end
 
-function SummonCommand.list(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
-	local listComponent = MutableTextComponent.literal("Available entity names to summon are:\n")
-	
-	local count = 0
-	for entityName, entityInst in pairs(NAMES_PER_ENTITIES) do
-		listComponent:appendComponent(
-			MutableTextComponent.literal(entityName :: string .. "\n")
-				:withStyle(
-					TextStyle.empty()
-						:withBold(true)
-						:withItalic(true)
-						:withColor(NamedTextColors.YELLOW))
-		)
-	end
-
-	c:getSource():sendSuccess(listComponent)
-
-	return count
+function SummonCommand.spawnEntity(source: CommandSourceStack.CommandSourceStack, entityType: EntityType.EntityType<any>, pos: Vector3, json: {[string]:any}): number
+	SummonCommand.createEntity(source, entityType, pos, json)
+	source:sendSuccess(MutableTextComponent.literal(`Successfully summoned entity.`))
+	return 1
 end
 
 return SummonCommand

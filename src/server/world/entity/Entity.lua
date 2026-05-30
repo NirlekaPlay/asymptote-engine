@@ -8,7 +8,8 @@ export type Entity = {
 	update: (self: Entity, deltaTime: number) -> (),
 	isRemoved: (self: Entity) -> boolean,
 	setLevelCallback: (self: Entity, callback: EntityInLevelCallback.EntityInLevelCallback) -> (),
-	remove: (self: Entity, removalReason: RemovalReason) -> ()
+	remove: (self: Entity, removalReason: RemovalReason) -> (),
+	setPosToCFrame: (self: Entity, cframe: CFrame) -> ()
 }
 
 export type RemovalReason = number

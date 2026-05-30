@@ -5,7 +5,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
 local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSourceStack)
-local Level = require(ServerScriptService.server.world.level.Level)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local StringArgumentType = require(ReplicatedStorage.shared.commands.arguments.StringArgumentType)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
@@ -37,7 +36,7 @@ function MapCommand.register(dispatcher: CommandDispatcher.CommandDispatcher<Com
 end
 
 function MapCommand.clear(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
-	Level.clearLevel()
+	c:getSource():getLevel():clearScene()
 
 	c:getSource():sendSuccess(MutableTextComponent.literal("Successfully cleared level"))
 
@@ -45,7 +44,7 @@ function MapCommand.clear(c: CommandContext.CommandContext<CommandSourceStack.Co
 end
 
 function MapCommand.list(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): number
-	local list = Level.getMapList()
+	local list = c:getSource():getLevel():getMapList()
 	local msg = MutableTextComponent.literal("Available maps are:\n")
 	for _, name in list do
 		msg:appendString(`{name}\n`)
@@ -60,11 +59,7 @@ function MapCommand.loadMap(c: CommandContext.CommandContext<CommandSourceStack.
 	local mapName = rawInput:gsub("%s*--explicit%s*", ""):gsub("%s*$", "")
 	
 	local success, err = pcall(function()
-		--[[task.spawn(function()
-			Level.loadLevel(mapName)
-		end)
-		task.wait(1)]]
-		Level.loadLevel(mapName)
+		c:getSource():getLevel():loadScene(mapName)
 	end)
 
 	if not success then

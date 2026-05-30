@@ -5,7 +5,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local PlayerStatusTypes = require(ReplicatedStorage.shared.player.PlayerStatusTypes)
 local PlayerStatusRegistry = require(ServerScriptService.server.player.PlayerStatusRegistry)
-local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local TypedRemotes = require(ReplicatedStorage.shared.network.remotes.TypedRemotes)
 local InteractionPromptBuilder = require(ReplicatedStorage.shared.world.interaction.InteractionPromptBuilder)
 local WorldInteractionPrompt = require(ReplicatedStorage.shared.world.interaction.WorldInteractionPrompt)
@@ -123,7 +122,7 @@ local function doTakedown(npcCharacter: Model, prompt: ProximityPrompt, player: 
 	end)
 end
 
-function TakedownService.trackCharacter(npcCharacter: Model, serverLevel: ServerLevel.ServerLevel): ()
+function TakedownService.trackCharacter(npcCharacter: Model, context): ()
 	if tracked[npcCharacter] then
 		return
 	end
@@ -138,7 +137,7 @@ function TakedownService.trackCharacter(npcCharacter: Model, serverLevel: Server
 		:withPrimaryInteractionKey()
 		:withOmniDir(true)
 		:withTitleKey("ui.prompt.subdue")
-		:create(rootPart, serverLevel:getExpressionContext(), attachment)
+		:create(rootPart, context, attachment)
 
 	worldPrompt.proxPrompt.RequiresLineOfSight = false
 

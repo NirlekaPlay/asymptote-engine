@@ -4,7 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CommandHelper = require(ServerScriptService.server.commands.registry.CommandHelper)
 local CommandSourceStack = require(ReplicatedStorage.shared.commands.asymptote.source.CommandSourceStack)
-local Level = require(ServerScriptService.server.world.level.Level)
 local CommandDispatcher = require(ReplicatedStorage.shared.commands.CommandDispatcher)
 local CommandContext = require(ReplicatedStorage.shared.commands.context.CommandContext)
 local MutableTextComponent = require(ReplicatedStorage.shared.network.chat.MutableTextComponent)
@@ -22,16 +21,17 @@ function RestartLevelCommand.register(dispatcher: CommandDispatcher.CommandDispa
 end
 
 function RestartLevelCommand.restartServer(c: CommandContext.CommandContext<CommandSourceStack.CommandSourceStack>): ()
-	if Level.isRestarting() then
+	local level = c:getSource():getLevel()
+	if level then
 		c:getSource():sendFailure(
-			MutableTextComponent.literal("Cannot restart level: Level is already restarting.")
+			MutableTextComponent.literal("Cannot restart scene: Scene is already restarting.")
 		)
 	end
 
-	Level.restartLevel()
+	level:restartScene()
 
 	c:getSource():sendSuccess(
-		MutableTextComponent.literal("Level restarted successfully.")
+		MutableTextComponent.literal("Scene restarted successfully.")
 	)
 end
 

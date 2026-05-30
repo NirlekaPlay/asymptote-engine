@@ -6,6 +6,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local DebugPacketTypes = require(ReplicatedStorage.shared.network.DebugPacketTypes)
 local DebugPackets = require(ReplicatedStorage.shared.network.DebugPackets)
+local LevelAccessor = require(ReplicatedStorage.shared.world.level.LevelAccessor)
 local Brain = require(ServerScriptService.server.ai.Brain)
 local BodyRotationControl = require(ServerScriptService.server.ai.control.BodyRotationControl)
 local BubbleChatControl = require(ServerScriptService.server.ai.control.BubbleChatControl)
@@ -20,13 +21,14 @@ local DetectionManagement = require(ServerScriptService.server.ai.detection.Dete
 local MemoryModuleTypes = require(ServerScriptService.server.ai.memory.MemoryModuleTypes)
 local Node = require(ServerScriptService.server.ai.navigation.Node)
 local PathNavigation = require(ServerScriptService.server.ai.navigation.PathNavigation)
+local CollectionTagTypes = require(ServerScriptService.server.collection.CollectionTagTypes)
 local EntityManager = require(ServerScriptService.server.entity.EntityManager)
 local DetectionDummyAi = require(ServerScriptService.server.npc.dummies.DetectionDummyAi)
 local CollisionGroupTypes = require(ServerScriptService.server.physics.collision.CollisionGroupTypes)
 local Entity = require(ServerScriptService.server.world.entity.Entity)
 local TakedownService = require(ServerScriptService.server.world.entity.TakedownService)
 local BodyDraggingService = require(ServerScriptService.server.world.entity.ragdoll.BodyDraggingService)
-local NewLevel = require(ServerScriptService.server.world.level.NewLevel)
+--local NewLevel = require(ServerScriptService.server.world.level.NewLevel) -- FUCK YOU LUAU FOR NOT HAVING TO HANDLE CIRCULAR DEPENDENCIES
 local ServerLevel = require(ServerScriptService.server.world.level.ServerLevel)
 local EntityInLevelCallback = require(ServerScriptService.server.world.level.entity.EntityInLevelCallback)
 local DetectableSound = require(ServerScriptService.server.world.level.sound.DetectableSound)
@@ -65,7 +67,7 @@ export type DummyAgent = typeof(setmetatable({} :: {
 	designatedPosts: { Node.Node },
 	enforceClass: { [string]: number },
 	serverLevel: ServerLevel.ServerLevel,
-	level: NewLevel.Level,
+	level: LevelAccessor.LevelAccessor,
 	soundListener: SoundListener.SoundListener,
 	hearingSounds: { [string]: HeardSound }, -- IDK HOW TO IMPLEMENT THIS, PUT THIS FOR NOW
 	removalReason: Entity.RemovalReason?,
@@ -116,7 +118,7 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, level: NewLevel.Le
 	self.level = level
 	self.enforcerClassName = character:GetAttribute("EnforceClass")
 
-	TakedownService.trackCharacter(character, serverLevel)
+	TakedownService.trackCharacter(character, level.sceneManager:getActiveScene():getExpressionContext())
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	local destroyingConn
@@ -248,8 +250,9 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, level: NewLevel.Le
 
 	self.soundListener = soundListener
 
-	serverLevel:getPersistentInstanceManager():register(character)
-	serverLevel:getSoundDispatcher():registerListener(soundListener);
+	-- TODO: FOR NOW
+	--serverLevel:getPersistentInstanceManager():register(character)
+	--serverLevel:getSoundDispatcher():registerListener(soundListener);
 
 	local levelCallback = self.levelCallback
 
@@ -264,7 +267,37 @@ function DummyAgent.new(serverLevel: ServerLevel.ServerLevel, level: NewLevel.Le
 	return self
 end
 
-function DummyAgent.getLevel(self: DummyAgent): NewLevel.Level
+function DummyAgent.finalizeSpawn(self: DummyAgent): ()
+	-- Client tag
+	local char = self.character
+	local tag = char:GetAttribute("ClientTag") :: string?
+	if tag and tag ~= "" then
+		char:AddTag(tag)
+	end
+
+	-- Enforce class
+	local enforceClassName = char:GetAttribute("EnforceClass") :: string?
+	if enforceClassName then
+		local enforceClass = ((self:getLevel() :: NewLevel.Level):getActiveSceneConfig() :: any):getEnforceClass(enforceClassName)
+		if not enforceClass then
+			warn(`Enforce class {enforceClassName} doesnt exist in MissionSetup.`)
+		elseif next(enforceClass) ~= nil then
+			self:setEnforceClass(enforceClass)
+		end
+	end
+
+	-- Nodes for patrolling
+	local nodeGroup = char:GetAttribute("Nodes")
+	if nodeGroup and type(nodeGroup) == "string" then
+		self:setDesignatedPosts((self:getLevel() :: NewLevel.Level).sceneManager:getActiveScene().navMesh:getPostGroup(nodeGroup))
+	end
+
+	-- Finalize
+	char:AddTag(CollectionTagTypes.NPC_DETECTION_DUMMY.tagName)
+	char.Parent = workspace
+end
+
+function DummyAgent.getLevel(self: DummyAgent): LevelAccessor.LevelAccessor
 	return self.level
 end
 
@@ -365,6 +398,14 @@ function DummyAgent.update(self: DummyAgent, deltaTime: number): ()
 	end
 
 	debug.profileend()
+end
+
+function DummyAgent.setAttribute(self: DummyAgent, name: string, value: any): ()
+	self.character:SetAttribute(name, value)
+end
+
+function DummyAgent.setPosToCFrame(self: DummyAgent, cframe: CFrame): ()
+	self.character:PivotTo(cframe)
 end
 
 function DummyAgent.getPosition(self: DummyAgent): Vector3

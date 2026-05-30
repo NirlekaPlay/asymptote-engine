@@ -43,6 +43,10 @@ function NodePath.isDone(self: NodePath): boolean
 	return self.nextWaypointIndex >= self.waypointCount
 end
 
+function NodePath.getPreviousNode(self: NodePath): PathWaypoint
+	return self.waypoints[math.max(self.nextWaypointIndex - 1, 1)]
+end
+
 function NodePath.getNode(self: NodePath, index: number): PathWaypoint
 	return self.waypoints[index] or error(`Attempt to access node in path at index {index}: Index out of bounds`)
 end
