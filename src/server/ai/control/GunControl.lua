@@ -89,11 +89,6 @@ function GunControl.equipGun(self: GunControl, gunConfig: GunConfg?): ()
 	if not self:isEquipped() then
 		self.equipped = true
 
-		-- sets the custom rotator, as having the FBB equipped makes the
-		-- body rotate off
-		--local agentRot = self.agent:getBodyRotationControl()
-		--agentRot.customRotator = GunControl.rotateBody
-
 		self.fbb.tool.Parent = self.agent.character;
 		task.spawn(function()
 			(self.fbbControl :: FBBerylControl.FBBerylControl):equip()
@@ -104,9 +99,6 @@ end
 function GunControl.unequipGun(self: GunControl): ()
 	if self:isEquipped() then
 		self.equipped = false
-
-		--local agentRot = self.agent:getBodyRotationControl()
-		--agentRot.customRotator = nil
 
 		task.spawn(function()
 			task.wait(1)

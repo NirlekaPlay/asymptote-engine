@@ -3,7 +3,7 @@
 local PathNavigation = require("../navigation/PathNavigation")
 
 local DOT_ALIGNMENT_THRESHOLD = 0.999
-local DEFAULT_ROTATION_SPEED = 5.5
+local DEFAULT_ROTATION_SPEED = 5.5 * 3
 local MAX_ROTATION_COOLDOWN = 0.25 -- How many seconds it takes after the Agent was moving before we can rotate again
 
 --[=[
@@ -22,10 +22,25 @@ export type BodyRotationControl = typeof(setmetatable({} :: {
 	rotationSpeed: number,
 	rotationCooldown: number,
 	dotThresholdReached: boolean,
-	customRotator: ((self: BodyRotationControl, deltaTime: number) -> ())?
+	_alignOrientation: AlignOrientation,
+	_attachment: Attachment
 }, BodyRotationControl))
 
 function BodyRotationControl.new(character: Model, pathNav: PathNavigation.PathNavigation, speed: number?): BodyRotationControl
+	local rootPart = character.HumanoidRootPart
+
+	local alignOrientation = Instance.new("AlignOrientation")
+	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	alignOrientation.Enabled = false
+	alignOrientation.Responsiveness = speed or DEFAULT_ROTATION_SPEED
+	alignOrientation.RigidityEnabled = false
+	alignOrientation.AlignType = Enum.AlignType.PrimaryAxisParallel
+
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = rootPart
+	alignOrientation.Attachment0 = attachment
+	alignOrientation.Parent = rootPart
+
 	return setmetatable({
 		character = character,
 		pathNav = pathNav,
@@ -33,7 +48,9 @@ function BodyRotationControl.new(character: Model, pathNav: PathNavigation.PathN
 		rotationSpeed = speed or DEFAULT_ROTATION_SPEED,
 		rotationCooldown = MAX_ROTATION_COOLDOWN,
 		dotThresholdReached = false,
-		lastPos = character.HumanoidRootPart.Position
+		lastPos = rootPart.Position,
+		_alignOrientation = alignOrientation,
+		_attachment = attachment,
 	}, BodyRotationControl)
 end
 
@@ -70,6 +87,7 @@ end
 function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number): ()
 	if self:isMoving() then
 		self.rotationCooldown = MAX_ROTATION_COOLDOWN
+		self._alignOrientation.Enabled = false
 		return
 	end
 
@@ -83,6 +101,8 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 		return
 	end
 
+	self._alignOrientation.Enabled = true
+
 	local rootPart = self.character.HumanoidRootPart :: BasePart
 	local currentLookVector = rootPart.CFrame.LookVector
 	local desiredLookVector = direction.Unit
@@ -95,17 +115,7 @@ function BodyRotationControl.update(self: BodyRotationControl, deltaTime: number
 		self.dotThresholdReached = false
 	end
 
-	-- created just for GunControl, so the stupid FBB doesnt rotate the body
-	-- off by a few degrees. we should probably just make a degree offset
-	-- property. or not? as this is more flexible? hmm? i dunno.
-	if self.customRotator then
-		self:customRotator(deltaTime)
-		return
-	end
-
-	local targetCFrame = CFrame.new(rootPart.Position, rootPart.Position + direction)
-	local alpha = 1 - math.exp(-self.rotationSpeed * deltaTime)
-	rootPart.CFrame = rootPart.CFrame:Lerp(targetCFrame, alpha)
+	self._alignOrientation.CFrame = CFrame.new(Vector3.zero, direction)
 end
 
 function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
@@ -124,6 +134,11 @@ function BodyRotationControl.isMoving(self: BodyRotationControl): boolean
 	lastPos = Vector3.new(lastPos.X, 0, lastPos.Z)
 	self.lastPos = self.character.HumanoidRootPart.Position
 	return (curPos - lastPos).Magnitude > 0.1
+end
+
+function BodyRotationControl.destroy(self: BodyRotationControl): ()
+	self._alignOrientation:Destroy()
+	self._attachment:Destroy()
 end
 
 return BodyRotationControl
