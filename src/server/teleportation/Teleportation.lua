@@ -1,10 +1,12 @@
 --!strict
 
-local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TeleportService = game:GetService("TeleportService")
 local PlayerActiveSessionMetadata = require(ServerScriptService.server.teleportation.metadata.PlayerActiveSessionMetadata)
+local MemoryStoreServiceMock = require(ServerScriptService.server.teleportation.mock.MemoryStoreServiceMock)
+
+local MemoryStoreService = MemoryStoreServiceMock()
 
 local TELE_SERVER_METDATA_TTL = 300
 local ACTIVE_SESSION_METDATA_TTL = 43200
