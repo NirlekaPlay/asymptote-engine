@@ -83,6 +83,7 @@ function CinematicsDirector.runScene(self: CinematicsDirector, sceneName: string
 	local sceneData = scenes[sceneName]
 	if not sceneData then
 		warn(`No such scene name '{sceneName}'`)
+		return
 	end
 
 	if self.currentThread then
