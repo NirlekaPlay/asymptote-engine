@@ -407,9 +407,11 @@ end
 function DummyAgent.onDied(self: DummyAgent, isCharDestroying: boolean): ()
 	if self.alive then
 		DetectionDummyAi.onDiedOrDestroyed(self)
+		self.gunControl:destroy(self.serverLevel)
 	end
 	self.alive = false
 	self.serverLevel:getSoundDispatcher():deregisterListener(self.soundListener)
+	self.soundListener = nil
 	if not isCharDestroying then
 		self:getBodyRotationControl():destroy()
 		self:getFaceControl():setFace("Unconscious")
