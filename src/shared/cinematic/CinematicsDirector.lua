@@ -79,9 +79,10 @@ end
 --
 
 function CinematicsDirector.runScene(self: CinematicsDirector, sceneName: string, intertitlesScreen: any): ()
-	local sceneData = self.rawIntroData.scenes[sceneName]
+	local scenes = self.rawIntroData.scenes or {}
+	local sceneData = scenes[sceneName]
 	if not sceneData then
-		error(`No such scene name '{sceneName}'`)
+		warn(`No such scene name '{sceneName}'`)
 	end
 
 	if self.currentThread then
