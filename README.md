@@ -1,3 +1,10 @@
+# !NOTICE!
+We (I) stopped developing on this game due to Roblox's recent policy bullshits. We are using another engine now, Godot (.NET version) which you can find [here](https://github.com/Nirleka-Studio/asymptote-godot). If you are a developer I highly recommend looking at the [refactored version](https://github.com/NirlekaPlay/asymptote-engine-refactor), which is not completely finished at this repo's version yet.
+
+I wish you good luck.
+
+---
+
 # Asymptote Engine
 *An extremely overengineered mess of a development framework for creating
 stealth games on Roblox, based on [Entry Point](https://www.roblox.com/games/740581508/Entry-Point), and its successor, [Operators](https://www.roblox.com/games/740581795/Operators-Demo),
